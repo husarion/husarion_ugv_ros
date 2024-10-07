@@ -21,6 +21,8 @@
       docking_yaw_threshold: 0.1
       staging_x_offset: -0.5
       filter_coef: 0.1
+      use_wibotic: <use_wibotic_param>
+      wibotic_info_timeout: 0.5
 
     docks: ["main"]
     main:

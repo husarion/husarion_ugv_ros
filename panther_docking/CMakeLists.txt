@@ -16,7 +16,8 @@ set(PACKAGE_DEPENDENCIES
     sensor_msgs
     std_srvs
     tf2_geometry_msgs
-    tf2_ros)
+    tf2_ros
+    wibotic_msgs)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)

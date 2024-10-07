@@ -46,8 +46,10 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 - `base_frame` [*string*, default: **base_link**]: A base frame id of a robot.
 - `fixed_frame` [*string*, default: **odom**]: A fixed frame id of a robot.
-- `<dock_type>.external_detection_timeout` [*double*, default: **0.2**]: A timeout in seconds for looking up a transformation from an april tag of a dock to a base frame id.
+- `<dock_type>.external_detection_timeout` [*double*, default: **0.2**]: A timeout in seconds for dock pose.
 - `<dock_type>.docking_distance_threshold` [*double*, default: **0.05**]: A threshold of a distance between a robot pose and a dock pose to declare if docking succeed.
 - `<dock_type>.docking_yaw_threshold` [*double*, default: **0.3**]: A threshold of a difference of yaw angles between a robot pose and a dock pose to declare if docking succeed.
 - `<dock_type>.staging_x_offset` [*double*, default: **-0.7**]: A staging pose is defined by offsetting a dock pose in axis X.
 - `<dock_type>.filter_coef` [*double*, default: **0.1**]: A key parameter that influences the trade-off between the filter's responsiveness and its smoothness, balancing how quickly it reacts to new pose data pose how much it smooths out fluctuations.
+- `<dock_type>.use_wibotic_info` [*bool*, default: **True**]: Use readings from `wibotic_info` topics to ensure that a robot is charging.
+- `<dock_type>.wibotic_info_timeout` [*double*, default: **0.2**]: A timeout in seconds for wibotic_info.

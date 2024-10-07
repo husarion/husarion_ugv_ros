@@ -32,8 +32,12 @@
 #include <sensor_msgs/msg/battery_state.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
+#include "wibotic_msgs/msg/wibotic_info.hpp"
+
 namespace panther_docking
 {
+
+constexpr double kWiboticChargingCurrentThreshold = 0.0;
 
 /**
  * @class PantherChargingDock
@@ -45,6 +49,7 @@ public:
   using SharedPtr = std::shared_ptr<PantherChargingDock>;
   using UniquePtr = std::unique_ptr<PantherChargingDock>;
   using PoseStampedMsg = geometry_msgs::msg::PoseStamped;
+  using WiboticInfoMsg = wibotic_msgs::msg::WiboticInfo;
 
   /**
    * @brief Configure the dock with the necessary information.
@@ -140,9 +145,30 @@ protected:
    */
   void getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node);
 
+  /**
+   * @brief Method to update and publish the staging pose.
+   *
+   * Uses staging_x_offset_ and staging_yaw_offset_ to calculate the staging pose.
+   */
   void updateAndPublishStagingPose();
 
+  /**
+   * @brief Set the dock pose.
+   *
+   * This method sets the dock pose.  It can be used as a callback for a subscription.
+   *
+   * @param pose The dock pose.
+   */
   void setDockPose(const PoseStampedMsg::SharedPtr pose);
+
+  /**
+   * @brief Set the Wibotic info.
+   *
+   * This method sets the Wibotic info. It can be used as a callback for a subscription.
+   *
+   * @param msg The Wibotic info message.
+   */
+  void setWiboticInfo(const WiboticInfoMsg::SharedPtr msg);
 
   std::string base_frame_name_;
   std::string fixed_frame_name_;
@@ -156,9 +182,11 @@ protected:
 
   rclcpp::Publisher<PoseStampedMsg>::SharedPtr staging_pose_pub_;
   rclcpp::Subscription<PoseStampedMsg>::SharedPtr dock_pose_sub_;
+  rclcpp::Subscription<WiboticInfoMsg>::SharedPtr wibotic_info_sub_;
 
   PoseStampedMsg dock_pose_;
   PoseStampedMsg staging_pose_;
+  WiboticInfoMsg::SharedPtr wibotic_info_;
 
   double external_detection_timeout_;
 
@@ -171,6 +199,9 @@ protected:
   double staging_yaw_offset_;
 
   double pose_filter_coef_;
+
+  bool use_wibotic_info_;
+  double wibotic_info_timeout_;
 };
 
 }  // namespace panther_docking

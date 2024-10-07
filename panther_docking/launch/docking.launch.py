@@ -19,6 +19,7 @@ from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -58,9 +59,23 @@ def generate_launch_description():
         choices=["debug", "info", "warning", "error"],
     )
 
+    use_wibotic_info = LaunchConfiguration("use_wibotic_info")
+    declare_use_wibotic_info_arg = DeclareLaunchArgument(
+        "use_wibotic_info",
+        default_value="False",
+        description="Whether Wibotic information is used",
+        choices=[True, False, "True", "False", "true", "false", "1", "0"],
+    )
+
     namespaced_docking_server_config = ReplaceString(
         source_file=docking_server_config_path,
-        replacements={"<robot_namespace>": namespace, "//": "/"},
+        replacements={
+            "<robot_namespace>": namespace,
+            "//": "/",
+            "<use_wibotic_info_param>": PythonExpression(
+                ["'false' if '", use_sim, "' else '", use_wibotic_info, "'"]
+            ),
+        },
     )
 
     docking_server_node = Node(
@@ -123,6 +138,7 @@ def generate_launch_description():
             declare_namespace_arg,
             declare_docking_server_config_path_arg,
             declare_log_level,
+            declare_use_wibotic_info_arg,
             station_launch,
             docking_server_node,
             docking_server_activate_node,

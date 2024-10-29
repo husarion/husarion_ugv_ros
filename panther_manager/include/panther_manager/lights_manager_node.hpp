@@ -25,7 +25,6 @@
 #include "std_msgs/msg/bool.hpp"
 
 #include "panther_msgs/msg/led_animation.hpp"
-#include "panther_msgs/msg/robot_state.hpp"
 
 #include "panther_utils/moving_average.hpp"
 
@@ -37,7 +36,6 @@ namespace panther_manager
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
 using LEDAnimationMsg = panther_msgs::msg::LEDAnimation;
-using RobotStateMsg = panther_msgs::msg::RobotState;
 
 /**
  * @brief This class is responsible for creating a BehaviorTree responsible for lights management,
@@ -71,14 +69,12 @@ protected:
 private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
   void EStopCB(const BoolMsg::SharedPtr e_stop);
-  void RobotStateCB(const RobotStateMsg::SharedPtr robot_state);
   void LightsTreeTimerCB();
 
   float update_charging_anim_step_;
 
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;
-  rclcpp::Subscription<RobotStateMsg>::SharedPtr robot_state_sub_;
   rclcpp::TimerBase::SharedPtr lights_tree_timer_;
 
   std::unique_ptr<panther_utils::MovingAverage<double>> battery_percent_ma_;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_manager/robot_states_manager_node.hpp"
+#include "panther_manager/docking_manager_node.hpp"
 
 #include <any>
 #include <chrono>
@@ -35,22 +35,22 @@
 namespace panther_manager
 {
 
-RobotStatesManagerNode::RobotStatesManagerNode(
+DockingManagerNode::DockingManagerNode(
   const std::string & node_name, const rclcpp::NodeOptions & options)
 : Node(node_name, options)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
   DeclareParameters();
+  const std::map<std::string, std::any> docking_initial_bb = {};
 
-  const auto initial_blackboard = CreateBlackboard();
   docking_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "RobotStates", initial_blackboard, 5555);
+    "Docking", docking_initial_bb, 5555);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
 
-void RobotStatesManagerNode::Initialize()
+void DockingManagerNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
 
@@ -59,28 +59,22 @@ void RobotStatesManagerNode::Initialize()
 
   using namespace std::placeholders;
 
-  e_stop_sub_ = this->create_subscription<BoolMsg>(
-    "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-    std::bind(&RobotStatesManagerNode::EStopCB, this, _1));
-  robot_state_pub_ = this->create_publisher<RobotStateMsg>(
-    "robot_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
-
   const float timer_freq = this->get_parameter("timer_frequency").as_double();
   const auto timer_period_ms =
     std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
 
   docking_tree_timer_ = this->create_wall_timer(
-    timer_period_ms, std::bind(&RobotStatesManagerNode::RobotStatesTimerCB, this));
+    timer_period_ms, std::bind(&DockingManagerNode::TimerCB, this));
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
 
-void RobotStatesManagerNode::DeclareParameters()
+void DockingManagerNode::DeclareParameters()
 {
   const auto panther_manager_pkg_path =
     ament_index_cpp::get_package_share_directory("panther_manager");
   const std::string default_bt_project_path = panther_manager_pkg_path +
-                                              "/behavior_trees/RobotStatesBT.btproj";
+                                              "/behavior_trees/DockingBT.btproj";
   const std::vector<std::string> default_plugin_libs = {};
 
   this->declare_parameter<std::string>("bt_project_path", default_bt_project_path);
@@ -92,7 +86,7 @@ void RobotStatesManagerNode::DeclareParameters()
   this->declare_parameter<float>("timer_frequency", 20.0);
 }
 
-void RobotStatesManagerNode::RegisterBehaviorTree()
+void DockingManagerNode::RegisterBehaviorTree()
 {
   const auto bt_project_path = this->get_parameter("bt_project_path").as_string();
 
@@ -118,96 +112,13 @@ void RobotStatesManagerNode::RegisterBehaviorTree()
     this->get_logger(), "BehaviorTree registered from path '%s'", bt_project_path.c_str());
 }
 
-std::map<std::string, std::any> RobotStatesManagerNode::CreateBlackboard()
+void DockingManagerNode::TimerCB()
 {
-  const std::map<std::string, std::any> docking_initial_bb = {
-    // docking states
-    {"docking_cmd", unsigned(DockingCmd::DOCKING_CMD_NONE)},
-    {"DOCKING_CMD_NONE", unsigned(DockingCmd::DOCKING_CMD_NONE)},
-    {"DOCKING_CMD_DOCK", unsigned(DockingCmd::DOCKING_CMD_DOCK)},
-    {"DOCKING_CMD_UNDOCK", unsigned(DockingCmd::DOCKING_CMD_UNDOCK)},
-    // robot states
-    {"robot_state", int(RobotStateMsg::E_STOP)},
-    {"ROBOT_STATE_ERROR", int(RobotStateMsg::ERROR)},
-    {"ROBOT_STATE_ESTOP", int(RobotStateMsg::E_STOP)},
-    {"ROBOT_STATE_STANDBY", int(RobotStateMsg::STANDBY)},
-    {"ROBOT_STATE_DOCKING", int(RobotStateMsg::DOCKING)},
-    {"ROBOT_STATE_SUCCESS", int(RobotStateMsg::SUCCESS)},
-  };
-
-  RCLCPP_INFO(this->get_logger(), "Blackboard created.");
-  return docking_initial_bb;
-}
-
-void RobotStatesManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
-{
-  docking_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
-}
-
-void RobotStatesManagerNode::RobotStatesTimerCB()
-{
-  if (!SystemReady()) {
-    return;
-  }
-
   docking_tree_manager_->TickOnce();
-  PublishRobotStateMsg();
 
   if (docking_tree_manager_->GetTreeStatus() == BT::NodeStatus::FAILURE) {
     RCLCPP_WARN(this->get_logger(), "Docking behavior tree returned FAILURE status");
   }
-}
-
-void RobotStatesManagerNode::PublishRobotStateMsg()
-{
-  int8_t state_id;
-  if (docking_tree_manager_->GetBlackboard()->get("robot_state", state_id)) {
-    auto msg = CreateRobotStateMsg(state_id);
-    robot_state_pub_->publish(msg);
-  }
-}
-
-bool RobotStatesManagerNode::SystemReady()
-{
-  if (!docking_tree_manager_->GetBlackboard()->getEntry("e_stop_state")) {
-    RCLCPP_INFO_THROTTLE(
-      this->get_logger(), *this->get_clock(), 5000,
-      "Waiting for required system messages to arrive.");
-    return false;
-  }
-
-  return true;
-}
-
-RobotStateMsg RobotStatesManagerNode::CreateRobotStateMsg(int8_t state_id)
-{
-  RobotStateMsg msg;
-
-  if (state_id < 0) {
-    msg.state_id = RobotStateMsg::ERROR;
-    msg.state_name = "ERROR";
-    return msg;
-  }
-
-  msg.state_id = state_id;
-  switch (state_id) {
-    case RobotStateMsg::E_STOP:
-      msg.state_name = "E_STOP";
-      break;
-    case RobotStateMsg::STANDBY:
-      msg.state_name = "STANDBY";
-      break;
-    case RobotStateMsg::DOCKING:
-      msg.state_name = "DOCKING";
-      break;
-    case RobotStateMsg::SUCCESS:
-      msg.state_name = "SUCCESS";
-      break;
-    default:
-      throw std::runtime_error("Invalid state_id");
-  }
-
-  return msg;
 }
 
 }  // namespace panther_manager

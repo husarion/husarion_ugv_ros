@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_manager/robot_states_manager_node.hpp"
+#include "panther_manager/docking_manager_node.hpp"
 
 #include <iostream>
 #include <memory>
@@ -22,17 +22,17 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
 
-  auto robot_states_manager_node =
-    std::make_shared<panther_manager::RobotStatesManagerNode>("robot_states_manager");
-  robot_states_manager_node->Initialize();
+  auto docking_manager_node =
+    std::make_shared<panther_manager::DockingManagerNode>("docking_manager");
+  docking_manager_node->Initialize();
 
   try {
-    rclcpp::spin(robot_states_manager_node);
+    rclcpp::spin(docking_manager_node);
   } catch (const std::runtime_error & err) {
-    std::cerr << "[robot_states_manager] Caught exception: " << err.what() << std::endl;
+    std::cerr << "[docking_manager] Caught exception: " << err.what() << std::endl;
   }
 
-  std::cout << "[robot_states_manager] Shutting down" << std::endl;
+  std::cout << "[docking_manager] Shutting down" << std::endl;
   rclcpp::shutdown();
   return 0;
 }

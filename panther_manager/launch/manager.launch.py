@@ -36,7 +36,7 @@ def generate_launch_description():
     declare_docking_bt_project_path_arg = DeclareLaunchArgument(
         "docking_bt_project_path",
         default_value=PathJoinSubstitution(
-            [panther_manager_dir, "behavior_trees", "RobotStatesBT.btproj"]
+            [panther_manager_dir, "behavior_trees", "DockingBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for robot states management.",
     )
@@ -87,12 +87,12 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
-    robot_states_manager_node = Node(
+    docking_manager_node = Node(
         package="panther_manager",
-        executable="robot_states_manager_node",
-        name="robot_states_manager",
+        executable="docking_manager_node",
+        name="docking_manager",
         parameters=[
-            PathJoinSubstitution([panther_manager_dir, "config", "robot_states_manager.yaml"]),
+            PathJoinSubstitution([panther_manager_dir, "config", "docking_manager.yaml"]),
             {"bt_project_path": docking_bt_project_path},
         ],
         namespace=namespace,
@@ -134,7 +134,7 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_shutdown_hosts_config_path_arg,
         declare_use_sim_arg,
-        robot_states_manager_node,
+        docking_manager_node,
         lights_manager_node,
         safety_manager_node,
     ]

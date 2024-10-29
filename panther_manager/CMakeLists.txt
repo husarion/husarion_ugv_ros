@@ -111,11 +111,11 @@ ament_target_dependencies(
 target_link_libraries(lights_manager_node ${plugin_libs})
 
 add_executable(
-  robot_states_manager_node
-  src/robot_states_manager_node_main.cpp src/robot_states_manager_node.cpp
+  docking_manager_node
+  src/docking_manager_node_main.cpp src/docking_manager_node.cpp
   src/behavior_tree_manager.cpp)
 ament_target_dependencies(
-  robot_states_manager_node
+  docking_manager_node
   behaviortree_ros2
   geometry_msgs
   panther_msgs
@@ -124,12 +124,12 @@ ament_target_dependencies(
   sensor_msgs
   std_msgs
   tf2_geometry_msgs)
-target_link_libraries(robot_states_manager_node ${plugin_libs})
+target_link_libraries(docking_manager_node ${plugin_libs})
 
 install(TARGETS ${plugin_libs} DESTINATION lib)
 
-install(TARGETS safety_manager_node lights_manager_node
-                robot_states_manager_node DESTINATION lib/${PROJECT_NAME})
+install(TARGETS safety_manager_node lights_manager_node docking_manager_node
+        DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})

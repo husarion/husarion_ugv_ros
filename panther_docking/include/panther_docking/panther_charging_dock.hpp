@@ -139,38 +139,8 @@ protected:
    */
   void getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node);
 
-  /**
-   * @brief Offset the staging pose.
-   *
-   * This method offsets the staging dock pose by values described in a configuration.
-   *
-   * @param dock_pose The dock pose to offset.
-   *
-   * @return The offset staging pose.
-   */
-  PoseStampedMsg offsetStagingPoseToDockPose(const PoseStampedMsg & dock_pose);
-
-  /**
-   * @brief Offset the detected dock pose.
-   *
-   * This method offsets the detected dock pose by values described in a configuration.
-   *
-   * @param detected_dock_pose The detected dock pose to offset.
-   *
-   * @return The offset detected dock pose.
-   */
-  PoseStampedMsg offsetDetectedDockPose(const PoseStampedMsg & detected_dock_pose);
-
-  /**
-   * @brief Update the staging pose and publish it.
-   *
-   * This method makes all necessary transformations to update the staging pose and publishes it.
-   *
-   * @param frame The frame to publish the staging pose in.
-   */
-  void updateStagingPoseAndPublish(const std::string & frame);
-
   std::string base_frame_name_;
+  std::string fixed_frame_name_;
   std::string dock_frame_;
 
   rclcpp::Logger logger_{rclcpp::get_logger("PantherChargingDock")};
@@ -196,8 +166,6 @@ protected:
   double staging_yaw_offset_;
 
   double pose_filter_coef_;
-
-  builtin_interfaces::msg::Time request_detection_time_;
 };
 
 }  // namespace panther_docking

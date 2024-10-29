@@ -75,7 +75,9 @@ void PantherChargingDock::deactivate()
 void PantherChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
 {
   nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".base_frame", rclcpp::ParameterValue("base_link"));
+    node, "base_frame", rclcpp::ParameterValue("base_link"));
+
+  nav2_util::declare_parameter_if_not_declared(node, "fixed_frame", rclcpp::ParameterValue("odom"));
 
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".docking_distance_threshold", rclcpp::ParameterValue(0.05));
@@ -96,7 +98,8 @@ void PantherChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNod
 
 void PantherChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
 {
-  node->get_parameter(name_ + ".base_frame", base_frame_name_);
+  node->get_parameter("base_frame", base_frame_name_);
+  node->get_parameter("fixed_frame", fixed_frame_name_);
 
   node->get_parameter(name_ + ".external_detection_timeout", external_detection_timeout_);
   node->get_parameter(name_ + ".docking_distance_threshold", docking_distance_threshold_);
@@ -110,16 +113,10 @@ void PantherChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::S
 PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
   const geometry_msgs::msg::Pose & pose, const std::string & frame)
 {
-  RCLCPP_DEBUG(logger_, "Getting staging pose");
+  RCLCPP_DEBUG_STREAM(logger_, "Getting staging pose in frame: " << frame);
 
   // When there is no global pose to reach thanks to nav2
   if (pose == geometry_msgs::msg::Pose()) {
-    dock_frame_ = frame;
-
-    if (dock_frame_.empty()) {
-      throw opennav_docking_core::FailedToControl("Cannot undock before docking!");
-    }
-
     const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
     staging_pose_ = dock_pose_;
     staging_pose_.pose.position.x += cos(yaw) * staging_x_offset_;
@@ -134,13 +131,15 @@ PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
 bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
 {
   RCLCPP_DEBUG(logger_, "Getting refined pose");
+  rclcpp::Time request_detection_time;
+
   {
     auto node = node_.lock();
-    request_detection_time_ = node->now();
+    request_detection_time = node->now();
   }
 
   auto timeout = rclcpp::Duration::from_seconds(external_detection_timeout_);
-  auto duration = rclcpp::Time(request_detection_time_) - rclcpp::Time(dock_pose_.header.stamp);
+  auto duration = rclcpp::Time(request_detection_time) - rclcpp::Time(dock_pose_.header.stamp);
   if (duration > timeout) {
     RCLCPP_WARN_STREAM(
       logger_, "Lost detection or did not detect: timeout exceeded: " << duration.seconds());

@@ -16,8 +16,6 @@
     dock_plugins: ["panther_charging_dock"]
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
-      base_frame: "<robot_namespace>/base_link"
-      odom_frame: "<robot_namespace>/odom"
       docking_distance_threshold: 0.08
       docking_yaw_threshold: 0.1
       staging_x_offset: -0.5

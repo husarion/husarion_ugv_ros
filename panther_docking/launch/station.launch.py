@@ -99,13 +99,13 @@ def generate_launch_description():
 
     declare_apriltag_id = DeclareLaunchArgument(
         "apriltag_id",
-        default_value="1",
+        default_value="0",
         description="ID of a generated apriltag on the station",
     )
 
     declare_apriltag_size = DeclareLaunchArgument(
         "apriltag_size",
-        default_value="0.15",
+        default_value="0.07",
         description="Size in meters of a generated apriltag on the station",
     )
 

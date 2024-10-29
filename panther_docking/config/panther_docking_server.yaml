@@ -17,22 +17,11 @@
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
       base_frame: "<robot_namespace>/base_link"
-      docking_distance_threshold: 0.15
-      docking_yaw_threshold: 0.15
-      staging_x_offset: -0.8
-      staging_yaw_offset: 0.0
-
-      # TODO: @delihus Try to remove this parameters by using docking station description in the ros_components_description
-      # Transform between april tag frame and dock pose. An april tag Z+ faces always a camera
-      external_detection_timeout: 0.3
-      external_detection_translation_x: 0.6
-      external_detection_translation_y: 0.0
-      external_detection_translation_z: 0.0
-      external_detection_rotation_roll: 0.0
-      external_detection_rotation_pitch: 0.0
-      external_detection_rotation_yaw: 3.14
-
-      enable_charger_service_call_timeout: 1.0
+      odom_frame: "<robot_namespace>/odom"
+      docking_distance_threshold: 0.08
+      docking_yaw_threshold: 0.1
+      staging_x_offset: -0.5
+      external_detection_timeout: 0.1
 
     docks: ["main_dock"]
     main_dock:
@@ -43,6 +32,6 @@
     controller:
       k_phi: 1.0
       k_delta: 2.0
-      v_linear_min: 0.05
-      v_linear_max: 0.2
-      v_angular_max: 0.3
+      v_linear_min: 0.0
+      v_linear_max: 0.25
+      v_angular_max: 0.15

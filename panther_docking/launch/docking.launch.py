@@ -52,6 +52,13 @@ def generate_launch_description():
         description=("Path to docking server configuration file."),
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespaced_docking_server_config = ReplaceString(
         source_file=docking_server_config_path,
         replacements={"<robot_namespace>": namespace, "//": "/"},
@@ -65,6 +72,7 @@ def generate_launch_description():
             namespaced_docking_server_config,
             {"use_sim_time": use_sim},
         ],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         namespace=namespace,
         emulate_tty=True,
     )
@@ -85,6 +93,15 @@ def generate_launch_description():
         namespace=namespace,
     )
 
+    dock_pose_publisher = Node(
+        package="panther_docking",
+        executable="dock_pose_publisher",
+        name="dock_pose_publisher",
+        namespace=namespace,
+        emulate_tty=True,
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+    )
+
     station_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -103,8 +120,10 @@ def generate_launch_description():
             declare_use_sim_arg,
             declare_namespace_arg,
             declare_docking_server_config_path_arg,
+            declare_log_level,
             station_launch,
             docking_server_node,
             docking_server_activate_node,
+            dock_pose_publisher,
         ]
     )

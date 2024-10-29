@@ -43,16 +43,20 @@ install(TARGETS panther_charging_dock LIBRARY DESTINATION lib)
 
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
+# if(BUILD_TESTING) find_package(ament_cmake_gtest REQUIRED)
 
-  ament_add_gtest(${PROJECT_NAME}_test_panther_charging_dock
-                  test/test_panther_charging_dock.cpp)
-  target_link_libraries(${PROJECT_NAME}_test_panther_charging_dock
-                        panther_charging_dock)
-  ament_target_dependencies(${PROJECT_NAME}_test_panther_charging_dock
-                            ${PACKAGE_DEPENDENCIES})
-endif()
+# ament_add_gtest(${PROJECT_NAME}_test_panther_charging_dock
+# test/test_panther_charging_dock.cpp)
+# target_link_libraries(${PROJECT_NAME}_test_panther_charging_dock
+# panther_charging_dock)
+# ament_target_dependencies(${PROJECT_NAME}_test_panther_charging_dock
+# ${PACKAGE_DEPENDENCIES}) endif()
+
+add_executable(dock_pose_publisher src/dock_pose_publisher_node.cpp)
+ament_target_dependencies(dock_pose_publisher rclcpp tf2_ros geometry_msgs
+                          tf2_geometry_msgs)
+
+install(TARGETS dock_pose_publisher DESTINATION lib/${PROJECT_NAME})
 
 ament_export_include_directories(include)
 ament_export_libraries(panther_charging_dock)

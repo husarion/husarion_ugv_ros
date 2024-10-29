@@ -93,6 +93,14 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
 
 ### Trees
 
+#### Docking
+
+A tree responsible for waiting for the joystick command and trigger `Docking`/`Undocking` action.
+
+<p align="center">
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/docking_tree.png" alt="Docking Behavior Tree"/>
+</p>
+
 #### Lights
 
 A tree responsible for scheduling animations displayed on the Bumper Lights based on the Husarion Panther robot's system state.

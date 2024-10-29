@@ -30,7 +30,6 @@
 
 #include <panther_manager/behavior_tree_manager.hpp>
 #include <panther_manager/behavior_tree_utils.hpp>
-#include <panther_manager/types.hpp>
 
 namespace panther_manager
 {
@@ -45,7 +44,7 @@ DockingManagerNode::DockingManagerNode(
   const std::map<std::string, std::any> docking_initial_bb = {};
 
   docking_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Docking", docking_initial_bb, 5555);
+    "Docking", docking_initial_bb, 4444);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }

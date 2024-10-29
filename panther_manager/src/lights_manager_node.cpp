@@ -49,7 +49,7 @@ LightsManagerNode::LightsManagerNode(
     battery_percent_window_len, 1.0);
 
   const auto initial_blackboard = CreateLightsInitialBlackboard();
-  lights_tree_manager_ = std::make_unique<BehaviorTreeManager>("Lights", initial_blackboard, 5550);
+  lights_tree_manager_ = std::make_unique<BehaviorTreeManager>("Lights", initial_blackboard, 5555);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }

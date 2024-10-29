@@ -206,7 +206,7 @@ To use your customized project, you can modify the `bt_project_file` ROS paramet
 
 Groot2 also provides a real-time visualization tool that allows you to see and debug actively running trees. To use this tool with trees launched with the `panther_manager` package, you need to specify the port associated with the tree you want to visualize. The ports for each tree are listed below:
 
-- Lights tree: `10.15.20.2:5550`
-- RobotState tree: `10.15.20.2:5555`
-- Safety tree: `10.15.20.2:5560`
-- Shutdown tree: `10.15.20.2:5565`
+- Docking tree: `10.15.20.2:4444`
+- Lights tree: `10.15.20.2:5555`
+- Safety tree: `10.15.20.2:6666`
+- Shutdown tree: `10.15.20.2:7777`

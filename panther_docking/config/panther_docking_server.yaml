@@ -31,5 +31,5 @@
       k_phi: 1.0
       k_delta: 2.0
       v_linear_min: 0.0
-      v_linear_max: 0.25
+      v_linear_max: 0.3
       v_angular_max: 0.15

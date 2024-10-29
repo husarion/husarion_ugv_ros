@@ -59,10 +59,8 @@ void PantherChargingDock::activate()
 {
   auto node = node_.lock();
   dock_pose_sub_ = node->create_subscription<PoseStampedMsg>(
-    "docking/dock_pose", 1, [this](const PoseStampedMsg::SharedPtr msg) {
-      auto filtered_pose = pose_filter_->update(*msg);
-      dock_pose_ = filtered_pose;
-    });
+    "docking/dock_pose", 1,
+    std::bind(&PantherChargingDock::setDockPose, this, std::placeholders::_1));
   staging_pose_pub_ = node->create_publisher<PoseStampedMsg>("docking/staging_pose", 1);
 }
 
@@ -117,6 +115,10 @@ PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
 
   // When there is no global pose to reach thanks to nav2
   if (pose == geometry_msgs::msg::Pose()) {
+    if (dock_pose_.header.frame_id.empty()) {
+      throw opennav_docking_core::FailedToDetectDock("No dock pose detected");
+    }
+
     const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
     staging_pose_ = dock_pose_;
     staging_pose_.pose.position.x += cos(yaw) * staging_x_offset_;
@@ -132,6 +134,10 @@ bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
 {
   RCLCPP_DEBUG(logger_, "Getting refined pose");
   rclcpp::Time request_detection_time;
+
+  if (dock_pose_.header.frame_id.empty()) {
+    throw opennav_docking_core::FailedToDetectDock("No dock pose detected");
+  }
 
   {
     auto node = node_.lock();
@@ -156,7 +162,7 @@ bool PantherChargingDock::isDocked()
   geometry_msgs::msg::PoseStamped robot_pose;
   robot_pose.header.frame_id = base_frame_name_;
 
-  robot_pose = panther_utils::tf2_utils::TransformPose(tf2_buffer_, robot_pose, "panther/odom");
+  robot_pose = panther_utils::tf2_utils::TransformPose(tf2_buffer_, robot_pose, fixed_frame_name_);
 
   return panther_utils::tf2_utils::ArePosesNear(
     robot_pose, dock_pose_, docking_distance_threshold_, docking_yaw_threshold_);
@@ -175,6 +181,12 @@ bool PantherChargingDock::isCharging()
 bool PantherChargingDock::disableCharging() { return true; }
 
 bool PantherChargingDock::hasStoppedCharging() { return !isCharging(); }
+
+void PantherChargingDock::setDockPose(const PoseStampedMsg::SharedPtr pose)
+{
+  auto filtered_pose = pose_filter_->update(*pose);
+  dock_pose_ = filtered_pose;
+}
 
 }  // namespace panther_docking
 

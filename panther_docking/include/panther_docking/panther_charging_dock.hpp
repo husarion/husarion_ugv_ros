@@ -25,6 +25,7 @@
 #include <opennav_docking_core/charging_dock.hpp>
 #include <opennav_docking_core/docking_exceptions.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -138,6 +139,8 @@ protected:
    * @param node The node to declare parameters in.
    */
   void getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node);
+
+  void setDockPose(const PoseStampedMsg::SharedPtr pose);
 
   std::string base_frame_name_;
   std::string fixed_frame_name_;

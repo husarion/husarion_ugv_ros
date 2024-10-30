@@ -26,8 +26,6 @@ from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():
-    panther_version = EnvironmentVariable(name="PANTHER_ROBOT_VERSION", default_value="1.0")
-
     use_sim = LaunchConfiguration("use_sim")
     declare_use_sim_arg = DeclareLaunchArgument(
         "use_sim",
@@ -68,7 +66,6 @@ def generate_launch_description():
         package="opennav_docking",
         executable="opennav_docking",
         parameters=[
-            {"panther_version": panther_version},
             namespaced_docking_server_config,
             {"use_sim_time": use_sim},
         ],

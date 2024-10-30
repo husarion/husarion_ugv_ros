@@ -58,7 +58,7 @@ bool CheckJoyMsg::checkButtons(const JoyMsg::SharedPtr & last_msg)
   if (last_msg->buttons.size() != expected_buttons.size()) {
     RCLCPP_WARN_STREAM(
       this->logger(), GetLoggerPrefix(name())
-                        << "Joy message has " << last_msg->axes.size()
+                        << "Joy message has " << last_msg->buttons.size()
                         << " axes, expected at least " << expected_buttons.size());
     return false;
   }

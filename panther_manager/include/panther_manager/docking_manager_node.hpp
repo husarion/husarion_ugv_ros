@@ -41,8 +41,12 @@ class DockingManagerNode : public rclcpp::Node
 public:
   DockingManagerNode(
     const std::string & node_name, const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  ~DockingManagerNode() {}
+  ~DockingManagerNode() = default;
 
+  /**
+   * @brief Initializes the docking manager, setting up parameters and behavior tree.
+   * @throws std::runtime_error if initialization fails
+   */
   void Initialize();
 
 protected:

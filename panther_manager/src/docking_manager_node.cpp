@@ -42,9 +42,10 @@ DockingManagerNode::DockingManagerNode(
 
   DeclareParameters();
   const std::map<std::string, std::any> docking_initial_bb = {};
+  const int bt_server_port = this->get_parameter("bt_server_port").as_int();
 
   docking_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Docking", docking_initial_bb, 4444);
+    "Docking", docking_initial_bb, bt_server_port);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -83,6 +84,7 @@ void DockingManagerNode::DeclareParameters()
   this->declare_parameter<double>("ros_communication_timeout.response", 1.0);
 
   this->declare_parameter<float>("timer_frequency", 20.0);
+  this->declare_parameter<int>("bt_server_port", 4444);
 }
 
 void DockingManagerNode::RegisterBehaviorTree()

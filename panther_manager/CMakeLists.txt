@@ -225,15 +225,26 @@ if(BUILD_TESTING)
     target_link_libraries(${bt_node_test} ${LIBSSH_LIBRARIES} yaml-cpp)
   endforeach()
 
+  set(TEST_TREE_DEPENDENCIES
+      behaviortree_cpp
+      behaviortree_ros2
+      geometry_msgs
+      panther_msgs
+      panther_utils
+      rclcpp
+      sensor_msgs
+      std_msgs
+      std_srvs
+      tf2_geometry_msgs)
+
   ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_utils
                   test/test_behavior_tree_utils.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_behavior_tree_utils
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
-    geometry_msgs panther_utils tf2_geometry_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_utils
+                            ${TEST_TREE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_behavior_tree_manager
@@ -252,17 +263,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_lights_manager_node
-    behaviortree_cpp
-    behaviortree_ros2
-    geometry_msgs
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    tf2_geometry_msgs
-    std_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_lights_manager_node
+                            ${TEST_TREE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_lights_behavior_tree
@@ -272,17 +274,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_lights_behavior_tree
-    behaviortree_cpp
-    behaviortree_ros2
-    geometry_msgs
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs
-    tf2_geometry_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_lights_behavior_tree
+                            ${TEST_TREE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
@@ -291,17 +284,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_safety_manager_node
-    behaviortree_cpp
-    behaviortree_ros2
-    geometry_msgs
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs
-    tf2_geometry_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_safety_manager_node
+                            ${TEST_TREE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
@@ -311,18 +295,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_safety_behavior_tree
-    behaviortree_cpp
-    behaviortree_ros2
-    geometry_msgs
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs
-    std_srvs
-    tf2_geometry_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_safety_behavior_tree
+                            ${TEST_TREE_DEPENDENCIES})
 endif()
 
 ament_package()

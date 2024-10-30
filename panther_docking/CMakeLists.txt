@@ -35,9 +35,14 @@ pluginlib_export_plugin_description_file(opennav_docking_core plugin.xml)
 
 add_library(panther_charging_dock SHARED src/panther_charging_dock.cpp)
 ament_target_dependencies(panther_charging_dock ${PACKAGE_DEPENDENCIES})
+
 # TODO @delihus how to link the library what is not a name of a package
 target_link_libraries(panther_charging_dock
                       /opt/ros/humble/lib/libpose_filter.so)
+
+target_include_directories(
+  panther_charging_dock PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+                               $<INSTALL_INTERFACE:include>)
 
 install(TARGETS panther_charging_dock LIBRARY DESTINATION lib)
 

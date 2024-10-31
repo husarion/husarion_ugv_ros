@@ -26,6 +26,12 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 - `tf` [*tf2_msgs/TFMessage*]: Tf tree with a detected dock transform.
 
+#### Parameters
+
+- `fixed_frame` [*string*, default: **odom**]: A fixed frame id of a robot.
+- `<dock_name>.type` [*string*, default: **panther_charging_dock**]: It checks if this dock with name `dock_name` is a type of  `panther_charging_dock`.
+- `<dock_name>.frame` [*string*, default: **main_wibotic_receiver_requested_pose_link** ]: Then look for transformation between `fixed_frame` and `<dock_name>.frame`  to publish `dock_pose`
+
 ### PantherChargingDock
 
 #### Publishes
@@ -38,10 +44,10 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 #### Parameters
 
-- `~panther_version` [*double*, default: **1.21**]: A version of Panther robot.
-- `~base_frame` [*string*, default: **base_link**]: A base frame id of a robot.
-- `~external_detection_timeout` [*double*, default: **0.2**]: A timeout in seconds for looking up a transformation from an april tag of a dock to a base frame id.
-- `~<dock_name>.filter_coef` [*double*, default: **0.1**]: A key parameter that influences the trade-off between the filter's responsiveness and its smoothness, balancing how quickly it reacts to new pose data pose how much it smooths out fluctuations.
-- `~<dock_name>.docking_distance_threshold` [*double*, default: **0.05**]: A threshold of a distance between a robot pose and a dock pose to declare if docking succeed.
-- `~<dock_name>.docking_yaw_threshold` [*double*, default: **0.3**]: A threshold of a difference of yaw angles between a robot pose and a dock pose to declare if docking succeed.
-- `~<dock_name>.staging_x_offset` [*double*, default: **-0.7**]: A staging pose is defined by offsetting a dock pose in axis X.
+- `base_frame` [*string*, default: **base_link**]: A base frame id of a robot.
+- `fixed_frame` [*string*, default: **odom**]: A fixed frame id of a robot.
+- `<dock_type>.external_detection_timeout` [*double*, default: **0.2**]: A timeout in seconds for looking up a transformation from an april tag of a dock to a base frame id.
+- `<dock_type>.docking_distance_threshold` [*double*, default: **0.05**]: A threshold of a distance between a robot pose and a dock pose to declare if docking succeed.
+- `<dock_type>.docking_yaw_threshold` [*double*, default: **0.3**]: A threshold of a difference of yaw angles between a robot pose and a dock pose to declare if docking succeed.
+- `<dock_type>.staging_x_offset` [*double*, default: **-0.7**]: A staging pose is defined by offsetting a dock pose in axis X.
+- `<dock_type>.filter_coef` [*double*, default: **0.1**]: A key parameter that influences the trade-off between the filter's responsiveness and its smoothness, balancing how quickly it reacts to new pose data pose how much it smooths out fluctuations.

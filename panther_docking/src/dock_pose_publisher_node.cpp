@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -27,13 +28,29 @@ class DockPosePublisherNode : public rclcpp::Node
 public:
   DockPosePublisherNode() : Node("pose_publisher_node")
   {
-    declare_parameter("device_namespace", "main");
-    std::string device_namespace = get_parameter("device_namespace").as_string();
-    std::string robot_namespace = std::string(get_namespace()).substr(1);
+    declare_parameter("publish_rate", 10.0);
+    declare_parameter("docks", std::vector<std::string>({"main"}));
+    declare_parameter("fixed_frame", "odom");
 
-    source_frame_ = robot_namespace + "/" + device_namespace +
-                    "_wibotic_receiver_requested_pose_link";
-    target_frame_ = robot_namespace + "/odom";
+    const auto fixed_frame = get_parameter("fixed_frame").as_string();
+    const auto docks = get_parameter("docks").as_string_array();
+
+    std::string dock_pose_frame_id;
+    for (const auto & dock : docks) {
+      declare_parameter(dock + ".type", "panther_charging_dock");
+      declare_parameter(dock + ".frame", "main_wibotic_receiver_requested_pose_link");
+
+      const auto dock_type = get_parameter(dock + ".type").as_string();
+      if (dock_type == "panther_charging_dock") {
+        dock_pose_frame_id = get_parameter(dock + ".frame").as_string();
+      }
+    }
+
+    const auto publish_rate = get_parameter("publish_rate").as_double();
+    const auto publish_period = std::chrono::duration<double>(1.0 / publish_rate);
+
+    source_frame_ = dock_pose_frame_id;
+    target_frame_ = fixed_frame;
 
     pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
       "docking/dock_pose", 10);
@@ -42,7 +59,7 @@ public:
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(100), std::bind(&DockPosePublisherNode::publishPose, this));
+      publish_period, std::bind(&DockPosePublisherNode::publishPose, this));
   }
 
 private:

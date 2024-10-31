@@ -61,8 +61,7 @@ if(BUILD_TESTING)
 endif()
 
 add_executable(dock_pose_publisher src/dock_pose_publisher_node.cpp)
-ament_target_dependencies(dock_pose_publisher rclcpp tf2_ros geometry_msgs
-                          tf2_geometry_msgs)
+ament_target_dependencies(dock_pose_publisher ${PACKAGE_DEPENDENCIES})
 
 install(TARGETS dock_pose_publisher DESTINATION lib/${PROJECT_NAME})
 

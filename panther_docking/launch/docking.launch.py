@@ -55,6 +55,7 @@ def generate_launch_description():
         "log_level",
         default_value="info",
         description="Logging level",
+        choices=["debug", "info", "warning", "error"],
     )
 
     namespaced_docking_server_config = ReplaceString(
@@ -93,6 +94,10 @@ def generate_launch_description():
     dock_pose_publisher = Node(
         package="panther_docking",
         executable="dock_pose_publisher",
+        parameters=[
+            namespaced_docking_server_config,
+            {"use_sim_time": use_sim},
+        ],
         name="dock_pose_publisher",
         namespace=namespace,
         emulate_tty=True,

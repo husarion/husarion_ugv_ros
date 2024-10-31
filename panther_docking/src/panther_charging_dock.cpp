@@ -78,17 +78,15 @@ void PantherChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNod
   nav2_util::declare_parameter_if_not_declared(node, "fixed_frame", rclcpp::ParameterValue("odom"));
 
   nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".external_detection_timeout", rclcpp::ParameterValue(0.0));
+
+  nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".docking_distance_threshold", rclcpp::ParameterValue(0.05));
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".docking_yaw_threshold", rclcpp::ParameterValue(0.3));
 
   nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".external_detection_timeout", rclcpp::ParameterValue(0.0));
-
-  nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".staging_x_offset", rclcpp::ParameterValue(-0.7));
-  nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".staging_yaw_offset", rclcpp::ParameterValue(0.0));
 
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".filter_coef", rclcpp::ParameterValue(0.1));

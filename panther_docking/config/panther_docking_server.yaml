@@ -16,15 +16,16 @@
     dock_plugins: ["panther_charging_dock"]
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
+      external_detection_timeout: 0.1
       docking_distance_threshold: 0.08
       docking_yaw_threshold: 0.1
       staging_x_offset: -0.5
-      external_detection_timeout: 0.1
+      filter_coef: 0.1
 
-    docks: ["main_dock"]
-    main_dock:
+    docks: ["main"]
+    main:
       type: panther_charging_dock
-      frame: <robot_namespace>/main_wibotic_station_link
+      frame: <robot_namespace>/main_wibotic_receiver_requested_pose_link
       pose: [0.0, 0.0, 0.0] # position of the dock device (not the staging position), the front (X+) of the dock should point away from the robot
 
     controller:

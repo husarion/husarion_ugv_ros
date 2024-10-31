@@ -33,7 +33,7 @@ from moms_apriltag import TagGenerator2
 
 def generate_apriltag_and_get_path(tag_id):
     tag_generator = TagGenerator2("tag36h11")
-    tag_image = tag_generator.generate(tag_id, scale=100)
+    tag_image = tag_generator.generate(tag_id, scale=1000)
 
     path = f"/tmp/tag_{tag_id}.png"
 
@@ -105,7 +105,7 @@ def generate_launch_description():
 
     declare_apriltag_size = DeclareLaunchArgument(
         "apriltag_size",
-        default_value="0.07",
+        default_value="0.06",
         description="Size in meters of a generated apriltag on the station",
     )
 

@@ -119,12 +119,7 @@ PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
       throw opennav_docking_core::FailedToDetectDock("No dock pose detected");
     }
 
-    const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
-    staging_pose_ = dock_pose_;
-    staging_pose_.pose.position.x += cos(yaw) * staging_x_offset_;
-    staging_pose_.pose.position.y += sin(yaw) * staging_x_offset_;
-
-    staging_pose_pub_->publish(staging_pose_);
+    updateAndPublishStagingPose();
   }
 
   return staging_pose_;
@@ -153,6 +148,8 @@ bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
   }
 
   pose = dock_pose_;
+  updateAndPublishStagingPose();
+
   return true;
 }
 
@@ -186,6 +183,16 @@ void PantherChargingDock::setDockPose(const PoseStampedMsg::SharedPtr pose)
 {
   auto filtered_pose = pose_filter_->update(*pose);
   dock_pose_ = filtered_pose;
+}
+
+void PantherChargingDock::updateAndPublishStagingPose()
+{
+  const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
+  staging_pose_ = dock_pose_;
+  staging_pose_.pose.position.x += cos(yaw) * staging_x_offset_;
+  staging_pose_.pose.position.y += sin(yaw) * staging_x_offset_;
+
+  staging_pose_pub_->publish(staging_pose_);
 }
 
 }  // namespace panther_docking

@@ -118,7 +118,7 @@ inline std::vector<float> convertFromString<std::vector<float>>(StringView str)
 /**
  * @brief Converts a string to a PoseStamped message.
  *
- * The string format should be "roll,pitch,yaw,x,y,z,frame_id" where:
+ * The string format should be "roll;pitch;yaw;x;y;z;frame_id" where:
  *  - roll, pitch, yaw: Euler angles in radians.
  *  - x, y, z: Position coordinates.
  *  - frame_id: Coordinate frame ID (string).
@@ -132,11 +132,13 @@ template <>
 inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::PoseStamped>(
   StringView str)
 {
-  auto parts = splitString(str, ';');
+  constexpr size_t expected_parts_size = 7;
 
-  if (parts.size() != 7) {
+  auto parts = splitString(str, ';');
+  if (parts.size() != expected_parts_size) {
     throw BT::RuntimeError(
-      "Invalid input for PoseStamped. Expected 7 values: x;y;z;roll;pitch;yaw;frame_id");
+      "Invalid input for PoseStamped. Expected " + std::to_string(expected_parts_size) +
+      " values: x;y;z;roll;pitch;yaw;frame_id");
   }
 
   geometry_msgs::msg::PoseStamped pose_stamped;
@@ -148,9 +150,9 @@ inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::Pos
     pose_stamped.pose.position.z = convertFromString<double>(parts[2]);
 
     // Orientation (R,P,Y -> Quaternion)
-    double roll = convertFromString<double>(parts[3]);
-    double pitch = convertFromString<double>(parts[4]);
-    double yaw = convertFromString<double>(parts[5]);
+    const auto roll = convertFromString<double>(parts[3]);
+    const auto pitch = convertFromString<double>(parts[4]);
+    const auto yaw = convertFromString<double>(parts[5]);
     tf2::Quaternion quaternion;
     quaternion.setRPY(roll, pitch, yaw);
     pose_stamped.pose.orientation = tf2::toMsg(quaternion);

@@ -40,6 +40,7 @@ struct TestCase
 
 constexpr auto TOPIC = "bool";
 constexpr auto PLUGIN = "CheckBoolMsg";
+
 class TestCheckBoolMsg : public panther_manager::plugin_test_utils::PluginTestUtils
 {
 public:
@@ -67,7 +68,7 @@ BoolMsg TestCheckBoolMsg::CreateMsg(bool data)
 TEST_F(TestCheckBoolMsg, NoTopicSet)
 {
   bt_ports input = {{"topic_name", ""}, {"data", "true"}};
-  ASSERT_THROW(CreateTree(PLUGIN, input), std::logic_error);
+  ASSERT_ANY_THROW(CreateTree(PLUGIN, input));
 }
 
 TEST_F(TestCheckBoolMsg, NoMessageArrived)

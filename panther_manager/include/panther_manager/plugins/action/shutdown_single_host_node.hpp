@@ -42,7 +42,7 @@ public:
       BT::InputPort<std::string>(
         "username", "Username to use for logging in and executing the shutdown command."),
       BT::InputPort<unsigned>("port", "SSH port used for communication (default is usually 22)."),
-      BT::InputPort<std::string>("command", "Shutdown command to execute on the remote host."),
+      BT::InputPort<std::string>("command", "A command to execute on the remote host."),
       BT::InputPort<float>(
         "timeout", "Maximum time (in seconds) to wait for the host to shut down."),
       BT::InputPort<bool>(

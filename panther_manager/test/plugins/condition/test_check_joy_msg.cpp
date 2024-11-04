@@ -42,6 +42,7 @@ struct TestCase
 
 constexpr auto TOPIC = "joy";
 constexpr auto PLUGIN = "CheckJoyMsg";
+
 class TestCheckJoyMsg : public panther_manager::plugin_test_utils::PluginTestUtils
 {
 public:
@@ -81,10 +82,10 @@ void TestCheckJoyMsg::SetCurrentMsgTime(JoyMsg & msg)
 TEST_F(TestCheckJoyMsg, NoTopicSet)
 {
   bt_ports input = {{"topic_name", ""}, {"axes", "0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}};
-  ASSERT_THROW(CreateTree(PLUGIN, input), std::logic_error);
+  ASSERT_ANY_THROW(CreateTree(PLUGIN, input));
 }
 
-TEST_F(TestCheckJoyMsg, NoMessage)
+TEST_F(TestCheckJoyMsg, NoMessageArrived)
 {
   bt_ports input = {{"topic_name", TOPIC}, {"axes", "0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
@@ -139,17 +140,17 @@ TEST_F(TestCheckJoyMsg, OnTickBehavior)
      {{"topic_name", TOPIC}, {"axes", "0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}},
      CreateMsg({0, 0}, {0, 0})},
     {BT::NodeStatus::SUCCESS,
-     {{"topic_name", TOPIC}, {"axes", "34;0;1"}, {"buttons", "0;0;10;0"}, {"timeout", "1.0"}},
-     CreateMsg({34, 0, 1}, {0, 0, 10, 0})},
+     {{"topic_name", TOPIC}, {"axes", "0.1;-0.2;1.0"}, {"buttons", "0;0;10;0"}, {"timeout", "1.0"}},
+     CreateMsg({0.1, -0.2, 1.0}, {0, 0, 10, 0})},
     {BT::NodeStatus::SUCCESS,
-     {{"topic_name", TOPIC}, {"axes", "34;0;1"}, {"buttons", ""}, {"timeout", "1.0"}},
-     CreateMsg({34, 0, 1}, {0, 0, 10, 0})},
+     {{"topic_name", TOPIC}, {"axes", "0.1;-0.2;1.0"}, {"buttons", ""}, {"timeout", "1.0"}},
+     CreateMsg({0.1, -0.2, 1.0}, {0, 0, 10, 0})},
     {BT::NodeStatus::SUCCESS,
      {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", "0;0;10;0"}, {"timeout", "1.0"}},
-     CreateMsg({34, 0, 1}, {0, 0, 10, 0})},
+     CreateMsg({0.1, -0.2, 1.0}, {0, 0, 10, 0})},
     {BT::NodeStatus::FAILURE,
-     {{"topic_name", TOPIC}, {"axes", "34;0;1"}, {"buttons", "0;0;10;0"}, {"timeout", "1.0"}},
-     CreateMsg({33, 0, 1}, {0, 0, 10, 0})},
+     {{"topic_name", TOPIC}, {"axes", "0.1;-0.2;1.0"}, {"buttons", "0;0;10;0"}, {"timeout", "1.0"}},
+     CreateMsg({0.2, -0.2, 1.0}, {0, 0, 10, 0})},
     {BT::NodeStatus::FAILURE,
      {{"topic_name", TOPIC}, {"axes", "0;0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}},
      CreateMsg({0, 0}, {0, 0})},

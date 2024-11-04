@@ -51,9 +51,7 @@ public:
   {
     return providedBasicPorts(
       {BT::InputPort<std::string>(
-         "dock_type",
-         "Specifies the dock plugin type to use for undocking. If empty, the previously used dock "
-         "type is assumed."),
+         "dock_type", "Specifies the dock plugin type to use for undocking."),
        BT::InputPort<float>(
          "max_undocking_time", 30.0,
          "Maximum allowable time (in seconds) to undock and return to the staging pose."),

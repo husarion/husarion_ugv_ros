@@ -18,14 +18,13 @@
 #include <memory>
 #include <string>
 
-#include "behaviortree_cpp/bt_factory.h"
-#include "rclcpp/rclcpp.hpp"
+#include <behaviortree_cpp/bt_factory.h>
+#include <rclcpp/rclcpp.hpp>
 
-#include "std_msgs/msg/bool.hpp"
+#include <std_msgs/msg/bool.hpp>
 
+#include "panther_manager/behavior_tree_manager.hpp"
 #include "panther_utils/moving_average.hpp"
-
-#include <panther_manager/behavior_tree_manager.hpp>
 
 namespace panther_manager
 {

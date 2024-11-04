@@ -43,7 +43,9 @@ bool CheckJoyMsg::checkAxes(const JoyMsg::SharedPtr & last_msg)
     return false;
   }
 
-  return std::equal(expected_axes.begin(), expected_axes.end(), last_msg->axes.begin());
+  return std::equal(
+    expected_axes.begin(), expected_axes.end(), last_msg->axes.begin(),
+    [](float a, float b) { return std::fabs(a - b) <= std::numeric_limits<float>::epsilon(); });
 }
 
 bool CheckJoyMsg::checkButtons(const JoyMsg::SharedPtr & last_msg)
@@ -71,8 +73,8 @@ bool CheckJoyMsg::checkTimeout(const JoyMsg::SharedPtr & last_msg)
   double max_timeout;
   getInput<double>("timeout", max_timeout);
 
-  return (max_timeout <= 0.0) ||
-         (rclcpp::Clock().now().seconds() < last_msg->header.stamp.sec + max_timeout);
+  return (max_timeout <= 0.0) || (this->node_.lock() && this->node_.lock()->now().seconds() <
+                                                          last_msg->header.stamp.sec + max_timeout);
 }
 
 }  // namespace panther_manager

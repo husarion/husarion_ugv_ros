@@ -80,50 +80,22 @@ foreach(bt_plugin ${plugin_libs})
 endforeach()
 
 add_executable(
-  safety_manager_node
-  src/safety_manager_node_main.cpp src/safety_manager_node.cpp
-  src/behavior_tree_manager.cpp src/behavior_tree_manager.cpp)
-ament_target_dependencies(
-  safety_manager_node
-  behaviortree_ros2
-  geometry_msgs
-  panther_msgs
-  panther_utils
-  rclcpp
-  sensor_msgs
-  std_msgs
-  tf2_geometry_msgs)
+  safety_manager_node src/safety_manager_node_main.cpp
+                      src/safety_manager_node.cpp src/behavior_tree_manager.cpp)
+ament_target_dependencies(safety_manager_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(safety_manager_node ${plugin_libs})
 
 add_executable(
   lights_manager_node src/lights_manager_node_main.cpp
                       src/lights_manager_node.cpp src/behavior_tree_manager.cpp)
-ament_target_dependencies(
-  lights_manager_node
-  behaviortree_ros2
-  geometry_msgs
-  panther_msgs
-  panther_utils
-  rclcpp
-  sensor_msgs
-  std_msgs
-  tf2_geometry_msgs)
+ament_target_dependencies(lights_manager_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(lights_manager_node ${plugin_libs})
 
 add_executable(
   docking_manager_node
   src/docking_manager_node_main.cpp src/docking_manager_node.cpp
   src/behavior_tree_manager.cpp)
-ament_target_dependencies(
-  docking_manager_node
-  behaviortree_ros2
-  geometry_msgs
-  panther_msgs
-  panther_utils
-  rclcpp
-  sensor_msgs
-  std_msgs
-  tf2_geometry_msgs)
+ament_target_dependencies(docking_manager_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(docking_manager_node ${plugin_libs})
 
 install(TARGETS ${plugin_libs} DESTINATION lib)
@@ -225,18 +197,6 @@ if(BUILD_TESTING)
     target_link_libraries(${bt_node_test} ${LIBSSH_LIBRARIES} yaml-cpp)
   endforeach()
 
-  set(TEST_TREE_DEPENDENCIES
-      behaviortree_cpp
-      behaviortree_ros2
-      geometry_msgs
-      panther_msgs
-      panther_utils
-      rclcpp
-      sensor_msgs
-      std_msgs
-      std_srvs
-      tf2_geometry_msgs)
-
   ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_utils
                   test/test_behavior_tree_utils.cpp)
   target_include_directories(
@@ -244,7 +204,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_utils
-                            ${TEST_TREE_DEPENDENCIES})
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_behavior_tree_manager
@@ -264,7 +224,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_lights_manager_node
-                            ${TEST_TREE_DEPENDENCIES})
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_lights_behavior_tree
@@ -275,7 +235,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_lights_behavior_tree
-                            ${TEST_TREE_DEPENDENCIES})
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
@@ -285,7 +245,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_safety_manager_node
-                            ${TEST_TREE_DEPENDENCIES})
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
@@ -296,7 +256,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_safety_behavior_tree
-                            ${TEST_TREE_DEPENDENCIES})
+                            ${PACKAGE_DEPENDENCIES})
 endif()
 
 ament_package()

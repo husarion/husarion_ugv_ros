@@ -24,7 +24,7 @@ BT::NodeStatus CheckBoolMsg::onTick(const BoolMsg::SharedPtr & last_msg)
   bool expected_data;
   getInput<bool>("data", expected_data);
 
-  return (last_msg && expected_data == last_msg->data) ? BT::NodeStatus::SUCCESS
+  return (last_msg && last_msg->data == expected_data) ? BT::NodeStatus::SUCCESS
                                                        : BT::NodeStatus::FAILURE;
 }
 

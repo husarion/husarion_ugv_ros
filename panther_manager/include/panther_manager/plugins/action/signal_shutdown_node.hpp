@@ -35,7 +35,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::string>("reason", "", "Reason to shutdown robot."),
+      BT::InputPort<std::string>("reason", "", "A reason to shutdown a robot."),
     };
   }
 

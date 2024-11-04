@@ -1,1 +1,2 @@
 ament_prepend_unique_value IGN_GUI_PLUGIN_PATH "@CMAKE_INSTALL_PREFIX@/lib"
+ament_prepend_unique_value IGN_GAZEBO_SYSTEM_PLUGIN_PATH= "@CMAKE_INSTALL_PREFIX@/lib"

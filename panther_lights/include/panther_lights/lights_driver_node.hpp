@@ -43,31 +43,15 @@ class LightsDriverNode : public rclcpp::Node
 public:
   LightsDriverNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
+  LightsDriverNode(
+    APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
 protected:
-  int num_led_;
-  double frame_timeout_;
-  bool led_control_granted_;
-  bool led_control_pending_;
-
-  rclcpp::Time chanel_1_ts_;
-  rclcpp::Time chanel_2_ts_;
-
-private:
-  void OnShutdown();
-
-  void InitializationTimerCB();
-
   /**
    * @brief Clears all LEDs on both channels.
    */
   void ClearLEDs();
-
-  /**
-   * @brief Toggles LED control ON or OFF.
-   *
-   * @param enable True to enable LED control, false to disable.
-   */
-  void ToggleLEDControl(const bool enable);
 
   /**
    * @brief Callback to execute when service invoked to toggle LED control returns response.
@@ -86,12 +70,8 @@ private:
    * logging. Valid names are: 'channel_1', 'channel_2'.
    */
   void FrameCB(
-    const ImageMsg::UniquePtr & msg, const apa102::APA102 & panel, const rclcpp::Time & last_time,
-    const std::string & panel_name);
-
-  void SetBrightnessCB(
-    const SetLEDBrightnessSrv::Request::SharedPtr & request,
-    SetLEDBrightnessSrv::Response::SharedPtr response);
+    const ImageMsg::UniquePtr & msg, const APA102Interface::SharedPtr & panel,
+    const rclcpp::Time & last_time, const std::string & panel_name);
 
   /**
    * @brief Logs a warning message to the panel throttle log. Since this is throttle warning, we
@@ -103,6 +83,30 @@ private:
    */
   void PanelThrottleWarnLog(const std::string panel_name, const std::string message);
 
+  int num_led_;
+  double frame_timeout_;
+  bool led_control_granted_;
+  bool led_control_pending_;
+
+  rclcpp::Time channel_1_ts_;
+  rclcpp::Time channel_2_ts_;
+
+private:
+  void OnShutdown();
+
+  void InitializationTimerCB();
+
+  /**
+   * @brief Toggles LED control ON or OFF.
+   *
+   * @param enable True to enable LED control, false to disable.
+   */
+  void ToggleLEDControl(const bool enable);
+
+  void SetBrightnessCB(
+    const SetLEDBrightnessSrv::Request::SharedPtr & request,
+    SetLEDBrightnessSrv::Response::SharedPtr response);
+
   void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
 
   static constexpr unsigned kMaxInitializationAttempts = 3;
@@ -112,8 +116,8 @@ private:
   unsigned initialization_attempt_;
   rclcpp::Time led_control_call_time_;
 
-  apa102::APA102 chanel_1_;
-  apa102::APA102 chanel_2_;
+  APA102Interface::SharedPtr channel_1_;
+  APA102Interface::SharedPtr channel_2_;
 
   rclcpp::TimerBase::SharedPtr initialization_timer_;
 
@@ -122,8 +126,8 @@ private:
 
   rclcpp::CallbackGroup::SharedPtr client_callback_group_;
 
-  rclcpp::Subscription<ImageMsg>::SharedPtr chanel_1_sub_;
-  rclcpp::Subscription<ImageMsg>::SharedPtr chanel_2_sub_;
+  rclcpp::Subscription<ImageMsg>::SharedPtr channel_1_sub_;
+  rclcpp::Subscription<ImageMsg>::SharedPtr channel_2_sub_;
 
   diagnostic_updater::Updater diagnostic_updater_;
 };

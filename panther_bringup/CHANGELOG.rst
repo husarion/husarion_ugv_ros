@@ -2,6 +2,19 @@
 Changelog for package panther_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Merge pull request `#386 <https://github.com/husarion/panther_ros/issues/386>`_ from husarion/ros2-unify-filenames
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Rename config and launch file in manager package
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Update after changes in panther_diagnostics
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Contributors: KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Merge pull request `#362 <https://github.com/husarion/panther_ros/issues/362>`_ from husarion/ros2-api-reorganization

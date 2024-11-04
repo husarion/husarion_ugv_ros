@@ -13,7 +13,6 @@ The package contains a launch file and source files used to run the robot simula
 
 - [`battery_plugin_config.yaml`](./config/battery_plugin_config.yaml): Simulated LinearBatteryPlugin configuration.
 - [`gz_bridge.yaml`](./config/gz_bridge.yaml): Specify data to exchange between ROS and Gazebo simulation.
-- [`led_strips.yaml`](./config/led_strips.yaml): Configure properties of led strips in simulation to animate lights.
 - [`teleop_with_estop.config`](./config/teleop_with_estop.config): Gazebo layout configuration file, which adds E-Stop and Teleop widgets.
 
 ## ROS Nodes
@@ -48,3 +47,29 @@ Plugin based on `ign_system` is responsible for handling sensor interfaces (only
 Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../panther_description/urdf/panther_macro.urdf.xacro)).
 
 - `e_stop_initial_state` [*bool*, default: **true**]: Initial state of E-stop.
+
+### LEDStrip
+
+`LEDStrip` is a Gazebo System plugin responsible for visualizing light and displaying markers based on the data received from a `gz::msgs::Image` message.
+
+> [!NOTE]
+> The topics and services mentioned below are related to Gazebo interfaces, not ROS interfaces.
+
+#### Subscribers
+
+- `{topic}` [*gz::msgs::Image*]: Subscribes to an image message for visualization. The topic is specified via a parameter.
+
+#### Service Servers
+
+- `/marker` [*gz::msgs::Marker*]: Service to request markers for visualizing the received image.
+
+#### Parameters
+
+The following parameters are required when including this interface in the URDF (you can refer to the [gazebo.urdf.xacro](../panther_description/urdf/gazebo.urdf.xacro) file for details).
+
+- `light_name` [*string*, default: **""**]: The name of the light entity. The visualization will be attached to this entity.
+- `topic` [*string*, default: **""**]: The name of the topic from which the Image message is received.
+- `namespace` [*string*, default: **""**]: Specifies the namespace to differentiate topics and models in scenarios with multiple robots.
+- `frequency` [*double*, default: **10.0**]: Defines the frequency at which the animation is updated.
+- `width` [*double*, default: **1.0**]: Specifies the width (y-axis) of the visualization array.
+- `height` [*double*, default: **1.0**]: Specifies the height (z-axis) of the visualization array.

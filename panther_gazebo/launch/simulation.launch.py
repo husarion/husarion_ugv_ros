@@ -56,7 +56,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_gz_worlds"), "launch", "gz_sim.launch.py"]
             )
         ),
-        launch_arguments={"gz_gui": namespaced_gz_gui}.items(),
+        launch_arguments={"gz_gui": namespaced_gz_gui, "gz_log_level": "1"}.items(),
     )
 
     simulate_robots = IncludeLaunchDescription(

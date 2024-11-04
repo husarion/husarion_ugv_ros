@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_GAZEBO_PLUGINS_ESTOP_HPP_
-#define PANTHER_GAZEBO_PLUGINS_ESTOP_HPP_
+#ifndef PANTHER_GAZEBO_GUI_E_STOP_HPP_
+#define PANTHER_GAZEBO_GUI_E_STOP_HPP_
 
 #include <string>
 
@@ -61,4 +61,4 @@ private:
 };
 }  // namespace panther_gazebo
 
-#endif  // PANTHER_GAZEBO_PLUGINS_ESTOP_HPP_
+#endif  // PANTHER_GAZEBO_GUI_E_STOP_HPP_

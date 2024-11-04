@@ -63,16 +63,14 @@ public:
   }
 };
 
-class TestControllerNode : public testing::Test
+class TestLightsControllerNode : public testing::Test
 {
 public:
-  TestControllerNode();
-  ~TestControllerNode();
+  TestLightsControllerNode();
+  ~TestLightsControllerNode();
 
 protected:
   void CreateLEDConfig(const std::filesystem::path file_path);
-  void CallSetLEDAnimationSrv(
-    const std::size_t animation_id, const bool repeating, const std::string & param = "");
 
   static constexpr std::size_t kTestNumberOfLeds = 10;
   static constexpr std::size_t kTestChannel = 1;
@@ -81,10 +79,9 @@ protected:
 
   std::filesystem::path led_config_file_;
   std::shared_ptr<ControllerNodeWrapper> lights_controller_node_;
-  rclcpp::Client<panther_msgs::srv::SetLEDAnimation>::SharedPtr set_led_anim_client_;
 };
 
-TestControllerNode::TestControllerNode()
+TestLightsControllerNode::TestLightsControllerNode()
 {
   led_config_file_ = testing::TempDir() + "/led_config.yaml";
 
@@ -97,14 +94,11 @@ TestControllerNode::TestControllerNode()
   options.parameter_overrides(params);
 
   lights_controller_node_ = std::make_shared<ControllerNodeWrapper>(options);
-
-  set_led_anim_client_ = lights_controller_node_->create_client<panther_msgs::srv::SetLEDAnimation>(
-    "lights/set_animation");
 }
 
-TestControllerNode::~TestControllerNode() { std::filesystem::remove(led_config_file_); }
+TestLightsControllerNode::~TestLightsControllerNode() { std::filesystem::remove(led_config_file_); }
 
-void TestControllerNode::CreateLEDConfig(const std::filesystem::path file_path)
+void TestLightsControllerNode::CreateLEDConfig(const std::filesystem::path file_path)
 {
   YAML::Node panel;
   panel["channel"] = kTestChannel;
@@ -157,23 +151,7 @@ void TestControllerNode::CreateLEDConfig(const std::filesystem::path file_path)
   }
 }
 
-void TestControllerNode::CallSetLEDAnimationSrv(
-  const std::size_t animation_id, const bool repeating, const std::string & param)
-{
-  auto request = std::make_shared<panther_msgs::srv::SetLEDAnimation::Request>();
-  request->animation.id = animation_id;
-  request->animation.param = param;
-  request->repeating = repeating;
-
-  auto result = set_led_anim_client_->async_send_request(request);
-
-  ASSERT_TRUE(
-    rclcpp::spin_until_future_complete(lights_controller_node_, result) ==
-    rclcpp::FutureReturnCode::SUCCESS);
-  EXPECT_TRUE(result.get()->success);
-}
-
-TEST_F(TestControllerNode, InitializeLEDPanelsThrowRepeatingChannel)
+TEST_F(TestLightsControllerNode, InitializeLEDPanelsThrowRepeatingChannel)
 {
   YAML::Node panel_1_desc;
   panel_1_desc["channel"] = kTestChannel;
@@ -195,7 +173,7 @@ TEST_F(TestControllerNode, InitializeLEDPanelsThrowRepeatingChannel)
     "Multiple panels with channel nr"));
 }
 
-TEST_F(TestControllerNode, InitializeLEDSegmentsThrowRepeatingName)
+TEST_F(TestLightsControllerNode, InitializeLEDSegmentsThrowRepeatingName)
 {
   YAML::Node segment_1_desc;
   segment_1_desc["name"] = kTestSegmentName;
@@ -219,7 +197,7 @@ TEST_F(TestControllerNode, InitializeLEDSegmentsThrowRepeatingName)
     "Multiple segments with given name found"));
 }
 
-TEST_F(TestControllerNode, LoadAnimationInvalidPriority)
+TEST_F(TestLightsControllerNode, LoadAnimationInvalidPriority)
 {
   YAML::Node led_animation_desc;
   led_animation_desc["id"] = 11;
@@ -236,7 +214,7 @@ TEST_F(TestControllerNode, LoadAnimationInvalidPriority)
     "Invalid LED animation priority"));
 }
 
-TEST_F(TestControllerNode, LoadAnimationThrowRepeatingID)
+TEST_F(TestLightsControllerNode, LoadAnimationThrowRepeatingID)
 {
   YAML::Node led_animation_desc;
   led_animation_desc["id"] = 11;
@@ -249,13 +227,13 @@ TEST_F(TestControllerNode, LoadAnimationThrowRepeatingID)
     "Animation with given ID already exists"));
 }
 
-TEST_F(TestControllerNode, AddAnimationToQueueThrowBadAnimationID)
+TEST_F(TestLightsControllerNode, AddAnimationToQueueThrowBadAnimationID)
 {
   EXPECT_TRUE(panther_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() { lights_controller_node_->AddAnimationToQueue(99, false); }, "No animation with ID:"));
 }
 
-TEST_F(TestControllerNode, AddAnimationToQueue)
+TEST_F(TestLightsControllerNode, AddAnimationToQueue)
 {
   auto queue = lights_controller_node_->GetQueue();
   EXPECT_TRUE(queue->Empty());
@@ -263,60 +241,13 @@ TEST_F(TestControllerNode, AddAnimationToQueue)
   EXPECT_FALSE(queue->Empty());
 }
 
-TEST_F(TestControllerNode, CallSelLEDAnimationService)
-{
-  this->CallSetLEDAnimationSrv(0, false);
-
-  // spin to invoke timer
-  auto anim = lights_controller_node_->GetCurrentAnimation();
-  while (!anim) {
-    rclcpp::spin_some(lights_controller_node_->get_node_base_interface());
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    anim = lights_controller_node_->GetCurrentAnimation();
-  }
-
-  EXPECT_STREQ("ANIMATION_0", anim->GetName().c_str());
-
-  // add another animation to queue
-  auto queue = lights_controller_node_->GetQueue();
-  EXPECT_TRUE(queue->Empty());
-
-  this->CallSetLEDAnimationSrv(0, false);
-
-  EXPECT_FALSE(queue->Empty());
-}
-
-TEST_F(TestControllerNode, CallSelLEDAnimationServicePriorityInterrupt)
-{
-  this->CallSetLEDAnimationSrv(0, false);
-
-  // spin to invoke timer
-  auto anim = lights_controller_node_->GetCurrentAnimation();
-  while (!anim) {
-    rclcpp::spin_some(lights_controller_node_->get_node_base_interface());
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    anim = lights_controller_node_->GetCurrentAnimation();
-  }
-
-  // add animation with higher priority spin to give time for controller to overwrite current
-  // animation then check if animation has changed
-  this->CallSetLEDAnimationSrv(1, false);
-  for (int i = 0; i < 10; i++) {
-    rclcpp::spin_some(lights_controller_node_->get_node_base_interface());
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
-
-  anim = lights_controller_node_->GetCurrentAnimation();
-  EXPECT_STREQ("ANIMATION_1", anim->GetName().c_str());
-}
-
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
 
-  auto run_tests = RUN_ALL_TESTS();
+  auto result = RUN_ALL_TESTS();
 
   rclcpp::shutdown();
-  return run_tests;
+  return result;
 }

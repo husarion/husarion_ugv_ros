@@ -15,24 +15,92 @@
 #ifndef PANTHER_LIGHTS_APA102_HPP_
 #define PANTHER_LIGHTS_APA102_HPP_
 
+#include <fcntl.h>
+#include <linux/spi/spidev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
-namespace panther_lights::apa102
+namespace panther_lights
 {
+
+class SPIDeviceInterface
+{
+public:
+  virtual ~SPIDeviceInterface() = default;
+
+  /**
+   * @brief Open SPI device
+   *
+   * @param device Name of the device
+   */
+  virtual int Open(const std::string & device) = 0;
+
+  /**
+   * @brief Perform an I/O control operation on the device
+   *
+   * @param fd File descriptor
+   * @param request Request code
+   * @param arg Argument
+   */
+  virtual int IOControl(int fd, unsigned long request, const void * arg) = 0;
+
+  /**
+   * @brief Close the device
+   *
+   * @param fd File descriptor
+   */
+  virtual int Close(int fd) = 0;
+
+  using SharedPtr = std::shared_ptr<SPIDeviceInterface>;
+};
+
+class SPIDevice : public SPIDeviceInterface
+{
+public:
+  int Open(const std::string & device) override { return ::open(device.c_str(), O_WRONLY); }
+
+  int IOControl(int fd, unsigned long request, const void * arg) override
+  {
+    return ::ioctl(fd, request, arg);
+  }
+
+  int Close(int fd) override { return ::close(fd); }
+};
+
+class APA102Interface
+{
+public:
+  virtual ~APA102Interface() = default;
+
+  virtual void SetGlobalBrightness(const std::uint8_t brightness) = 0;
+  virtual void SetGlobalBrightness(const float brightness) = 0;
+  virtual void SetPanel(const std::vector<std::uint8_t> & frame) const = 0;
+
+  using SharedPtr = std::shared_ptr<APA102Interface>;
+};
 
 /**
  * @brief Class representing an APA102 LED panel.
  *
  * This class provides methods to control the APA102 LED panel, including setting the global
  * brightness, setting the LED panel based on a given frame.
+ *
+ * @param spi_device SPI Device object
+ * @param device_name name of the device
+ * @param speed Speed of the SPI communication
+ * @param cs_high Chip select high flag
  */
-class APA102
+class APA102 : public APA102Interface
 {
 public:
   APA102(
-    const std::string & device, const std::uint32_t speed = 800000, const bool cs_high = false);
+    SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
+    const std::uint32_t speed = 800000, const bool cs_high = false);
   ~APA102();
 
   /**
@@ -42,7 +110,7 @@ public:
    *
    * @exception std::out_of_range if brightness value is out of defined range
    */
-  void SetGlobalBrightness(const std::uint8_t brightness);
+  void SetGlobalBrightness(const std::uint8_t brightness) override;
 
   /**
    * @brief Set APA102 LED global brightness
@@ -51,7 +119,7 @@ public:
    *
    * @exception std::out_of_range if brightness value is out of defined range
    */
-  void SetGlobalBrightness(const float brightness);
+  void SetGlobalBrightness(const float brightness) override;
 
   /**
    * @brief Set APA102 LED panel based on given frame
@@ -61,7 +129,7 @@ public:
    * @exception std::ios_base::failure if failed to send data over SPI
    * or std::runtime_error if frame is invalid
    */
-  void SetPanel(const std::vector<std::uint8_t> & frame) const;
+  void SetPanel(const std::vector<std::uint8_t> & frame) const override;
 
 protected:
   /**
@@ -91,11 +159,12 @@ private:
   static constexpr std::uint16_t kCorrGreen = 200;
   static constexpr std::uint16_t kCorrBlue = 62;
 
-  const int fd_;
-  const std::string device_;
+  SPIDeviceInterface::SharedPtr spi_device_;
+  const std::string device_name_;
   const std::uint32_t speed_;
+  const int file_descriptor_;
 };
 
-}  // namespace panther_lights::apa102
+}  // namespace panther_lights
 
 #endif  // PANTHER_LIGHTS_APA102_HPP_

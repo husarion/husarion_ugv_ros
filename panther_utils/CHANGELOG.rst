@@ -2,6 +2,19 @@
 Changelog for package panther_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge pull request `#349 <https://github.com/husarion/panther_ros/issues/349>`_ from husarion/ros2-testing-poc
+* Review changes
+* Add new common utility functions
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* unify CMakeLists.txt files
+* Contributors: Dawid, Dawid Kmak, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Ros2 system status tf namespace (`#372 <https://github.com/husarion/panther_ros/issues/372>`_)

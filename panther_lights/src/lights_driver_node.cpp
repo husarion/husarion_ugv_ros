@@ -44,8 +44,8 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   led_control_granted_(false),
   led_control_pending_(false),
   initialization_attempt_(0),
-  chanel_1_("/dev/spiled-channel1"),
-  chanel_2_("/dev/spiled-channel2"),
+  channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
+  channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
@@ -60,8 +60,8 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   num_led_ = this->get_parameter("num_led").as_int();
 
   const float global_brightness = this->get_parameter("global_brightness").as_double();
-  chanel_1_.SetGlobalBrightness(global_brightness);
-  chanel_2_.SetGlobalBrightness(global_brightness);
+  channel_1_->SetGlobalBrightness(global_brightness);
+  channel_2_->SetGlobalBrightness(global_brightness);
 
   client_callback_group_ =
     this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -76,18 +76,18 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   initialization_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(100), std::bind(&LightsDriverNode::InitializationTimerCB, this));
 
-  chanel_1_ts_ = this->get_clock()->now();
-  chanel_1_sub_ = this->create_subscription<ImageMsg>(
+  channel_1_ts_ = this->get_clock()->now();
+  channel_1_sub_ = this->create_subscription<ImageMsg>(
     "lights/channel_1_frame", 5, [&](const ImageMsg::UniquePtr & msg) {
-      FrameCB(msg, chanel_1_, chanel_1_ts_, "channel_1");
-      chanel_1_ts_ = msg->header.stamp;
+      FrameCB(msg, channel_1_, channel_1_ts_, "channel_1");
+      channel_1_ts_ = msg->header.stamp;
     });
 
-  chanel_2_ts_ = this->get_clock()->now();
-  chanel_2_sub_ = this->create_subscription<ImageMsg>(
+  channel_2_ts_ = this->get_clock()->now();
+  channel_2_sub_ = this->create_subscription<ImageMsg>(
     "lights/channel_2_frame", 5, [&](const ImageMsg::UniquePtr & msg) {
-      FrameCB(msg, chanel_2_, chanel_2_ts_, "channel_2");
-      chanel_2_ts_ = msg->header.stamp;
+      FrameCB(msg, channel_2_, channel_2_ts_, "channel_2");
+      channel_2_ts_ = msg->header.stamp;
     });
 
   diagnostic_updater_.setHardwareID("Bumper Lights");
@@ -133,8 +133,8 @@ void LightsDriverNode::InitializationTimerCB()
 
 void LightsDriverNode::ClearLEDs()
 {
-  chanel_1_.SetPanel(std::vector<std::uint8_t>(num_led_ * 4, 0));
-  chanel_2_.SetPanel(std::vector<std::uint8_t>(num_led_ * 4, 0));
+  channel_1_->SetPanel(std::vector<std::uint8_t>(num_led_ * 4, 0));
+  channel_2_->SetPanel(std::vector<std::uint8_t>(num_led_ * 4, 0));
 }
 
 void LightsDriverNode::ToggleLEDControl(const bool enable)
@@ -191,8 +191,8 @@ void LightsDriverNode::ToggleLEDControlCB(
 }
 
 void LightsDriverNode::FrameCB(
-  const ImageMsg::UniquePtr & msg, const apa102::APA102 & panel, const rclcpp::Time & last_time,
-  const std::string & panel_name)
+  const ImageMsg::UniquePtr & msg, const APA102Interface::SharedPtr & panel,
+  const rclcpp::Time & last_time, const std::string & panel_name)
 {
   if (!led_control_granted_) {
     PanelThrottleWarnLog(
@@ -222,7 +222,7 @@ void LightsDriverNode::FrameCB(
     return;
   }
 
-  panel.SetPanel(msg->data);
+  panel->SetPanel(msg->data);
 }
 
 void LightsDriverNode::SetBrightnessCB(
@@ -231,8 +231,8 @@ void LightsDriverNode::SetBrightnessCB(
   const float brightness = req->data;
 
   try {
-    chanel_1_.SetGlobalBrightness(brightness);
-    chanel_2_.SetGlobalBrightness(brightness);
+    channel_1_->SetGlobalBrightness(brightness);
+    channel_2_->SetGlobalBrightness(brightness);
   } catch (const std::out_of_range & e) {
     res->success = false;
     res->message = "Failed to set brightness: " + std::string(e.what());

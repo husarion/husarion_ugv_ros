@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_gazebo/plugins/e_stop.hpp"
+#include "panther_gazebo/gui/e_stop.hpp"
 
 #include <memory>
 

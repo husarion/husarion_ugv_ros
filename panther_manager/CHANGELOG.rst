@@ -2,6 +2,33 @@
 Changelog for package panther_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Merge pull request `#389 <https://github.com/husarion/panther_ros/issues/389>`_ from husarion/hotfix-ssh-lib
+* Add missing module configuration
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Merge pull request `#386 <https://github.com/husarion/panther_ros/issues/386>`_ from husarion/ros2-unify-filenames
+* Move BT plugins to src directory
+* Minor modifications
+* Fix links in documentations (`#387 <https://github.com/husarion/panther_ros/issues/387>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-unify-filenames
+* Rename shutdown hosts config
+* Reorganize files in panther_lights
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Restructure files tree in manager tests
+* Correct include guards in manager package
+* Rename config and launch file in manager package
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Ros2 increase bt service timeout (`#382 <https://github.com/husarion/panther_ros/issues/382>`_)
+* Update after changes in panther_diagnostics
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* unify CMakeLists.txt files
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Merge pull request `#362 <https://github.com/husarion/panther_ros/issues/362>`_ from husarion/ros2-api-reorganization

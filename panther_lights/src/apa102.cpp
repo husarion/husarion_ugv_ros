@@ -14,11 +14,6 @@
 
 #include "panther_lights/apa102.hpp"
 
-#include <fcntl.h>
-#include <linux/spi/spidev.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -27,39 +22,44 @@
 #include <string>
 #include <vector>
 
-namespace panther_lights::apa102
+namespace panther_lights
 {
 
-APA102::APA102(const std::string & device, const std::uint32_t speed, const bool cs_high)
-: fd_(open(device.c_str(), O_WRONLY)), device_(device), speed_(speed)
+APA102::APA102(
+  SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
+  const std::uint32_t speed, const bool cs_high)
+: spi_device_(spi_device),
+  device_name_(device_name),
+  speed_(speed),
+  file_descriptor_(spi_device->Open(device_name))
 {
-  if (fd_ < 0) {
-    throw std::ios_base::failure("Failed to open " + device_ + ".");
+  if (file_descriptor_ < 0) {
+    throw std::ios_base::failure("Failed to open " + device_name_ + ".");
   }
 
   static std::uint8_t mode = cs_high ? SPI_MODE_3 : SPI_MODE_3 | SPI_CS_HIGH;
-  if (ioctl(fd_, SPI_IOC_WR_MODE32, &mode) == -1) {
-    close(fd_);
-    throw std::ios_base::failure("Failed to set mode for " + device_ + ".");
+  if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_MODE32, &mode) == -1) {
+    spi_device_->Close(file_descriptor_);
+    throw std::ios_base::failure("Failed to set mode for " + device_name_ + ".");
   }
 
-  if (ioctl(fd_, SPI_IOC_WR_BITS_PER_WORD, &kBits) == -1) {
-    close(fd_);
-    throw std::ios_base::failure("Can't set bits per word for " + device_ + ".");
+  if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_BITS_PER_WORD, &kBits) == -1) {
+    spi_device_->Close(file_descriptor_);
+    throw std::ios_base::failure("Can't set bits per word for " + device_name_ + ".");
   }
 
-  if (ioctl(fd_, SPI_IOC_WR_MAX_SPEED_HZ, &speed_) == -1) {
-    close(fd_);
-    throw std::ios_base::failure("Can't set speed for " + device_ + ".");
+  if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_MAX_SPEED_HZ, &speed_) == -1) {
+    spi_device_->Close(file_descriptor_);
+    throw std::ios_base::failure("Can't set speed for " + device_name_ + ".");
   }
 }
 
-APA102::~APA102() { close(fd_); }
+APA102::~APA102() { spi_device_->Close(file_descriptor_); }
 
 void APA102::SetGlobalBrightness(const float brightness)
 {
   if (brightness < 0.0f || brightness > 1.0f) {
-    throw std::out_of_range("Brightness out of range <0.0,1.0>.");
+    throw std::out_of_range("Brightness out of range [0.0, 1.0].");
   }
   SetGlobalBrightness(std::uint8_t(ceil(brightness * 31.0f)));
 }
@@ -67,7 +67,7 @@ void APA102::SetGlobalBrightness(const float brightness)
 void APA102::SetGlobalBrightness(const std::uint8_t brightness)
 {
   if (brightness > 31) {
-    throw std::out_of_range("Brightness out of range <0,31>.");
+    throw std::out_of_range("Brightness out of range [0, 31].");
   }
   global_brightness_ = std::uint16_t(brightness);
 }
@@ -119,11 +119,11 @@ void APA102::SPISendBuffer(const std::vector<std::uint8_t> & buffer) const
   tr.delay_usecs = 0;
   tr.bits_per_word = kBits;
 
-  const int ret = ioctl(fd_, SPI_IOC_MESSAGE(1), &tr);
+  const int ret = spi_device_->IOControl(file_descriptor_, SPI_IOC_MESSAGE(1), &tr);
 
   if (ret < 1) {
-    throw std::ios_base::failure("Failed to send data over SPI " + device_ + ".");
+    throw std::ios_base::failure("Failed to send data over SPI " + device_name_ + ".");
   }
 }
 
-}  // namespace panther_lights::apa102
+}  // namespace panther_lights

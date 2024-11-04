@@ -17,12 +17,14 @@
   gz_type_name: ignition.msgs.Twist
   direction: GZ_TO_ROS
 
-- topic_name: lights/channel_1_frame
+- ros_topic_name: lights/channel_1_frame
+  gz_topic_name: <namespace>/lights/channel_1_frame
   ros_type_name: sensor_msgs/msg/Image
   gz_type_name: ignition.msgs.Image
   direction: ROS_TO_GZ
 
-- topic_name: lights/channel_2_frame
+- ros_topic_name: lights/channel_2_frame
+  gz_topic_name: <namespace>/lights/channel_2_frame
   ros_type_name: sensor_msgs/msg/Image
   gz_type_name: ignition.msgs.Image
   direction: ROS_TO_GZ

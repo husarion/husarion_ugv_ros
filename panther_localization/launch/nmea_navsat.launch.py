@@ -23,7 +23,6 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():

@@ -6,12 +6,7 @@
 
     <!-- Read property -->
     <xacro:property name="battery_config" value="${xacro.load_yaml(config_file)}" />
-    <xacro:if value="${namespace == ''}">
-      <xacro:property name="ns" value="" />
-    </xacro:if>
-    <xacro:unless value="${namespace == ''}">
-        <xacro:property name="ns" value="${namespace}/" />
-    </xacro:unless>
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <!-- Sim Battery -->
     <gazebo>
@@ -68,12 +63,7 @@
   <!-- IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications -->
   <xacro:macro name="imu" params="reference_frame namespace:=''">
 
-    <xacro:if value="${namespace == ''}">
-      <xacro:property name="ns" value="" />
-    </xacro:if>
-    <xacro:unless value="${namespace == ''}">
-        <xacro:property name="ns" value="${namespace}/" />
-    </xacro:unless>
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <gazebo reference="${reference_frame}">
       <sensor name="${ns}imu" type="imu">
@@ -116,9 +106,18 @@
     </gazebo>
   </xacro:macro>
 
-
   <!-- Lights -->
-  <xacro:macro name="light" params="reference_frame name namespace:=''">
+  <xacro:macro name="light" params="reference_frame name topic namespace:=''">
+    <gazebo>
+      <plugin filename="LEDStrip" name="panther_gazebo::LEDStrip">
+        <light_name>${name}</light_name>
+        <topic>${topic}</topic>
+        <namespace>${namespace}</namespace>
+        <frequency>10</frequency>
+        <width>0.5</width>
+        <height>0.015</height>
+      </plugin>
+    </gazebo>
     <gazebo reference="${reference_frame}">
       <light name="${name}" type="spot">
         <cast_shadows>true</cast_shadows>
@@ -126,12 +125,18 @@
         <diffuse>1.0 1.0 1.0</diffuse>
         <specular>1.0 1.0 1.0</specular>
         <direction>1 0 0</direction>
-        <intensity>1.0</intensity>
+        <intensity>0.5</intensity>
         <spot>
           <inner_angle>1.0</inner_angle>
           <outer_angle>2.0</outer_angle>
           <falloff>0.4</falloff>
         </spot>
+        <attenuation>
+          <range>20.0</range>
+          <constant>1.0</constant>
+          <linear>1.0</linear>
+          <quadratic>1.0</quadratic>
+        </attenuation>
       </light>
     </gazebo>
   </xacro:macro>

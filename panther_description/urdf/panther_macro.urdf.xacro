@@ -17,12 +17,7 @@
       <xacro:property name="imu_rpy" value="0.000 -0.000 3.142" />
     </xacro:if>
 
-    <xacro:if value="${namespace == ''}">
-      <xacro:property name="ns" value="" />
-    </xacro:if>
-    <xacro:unless value="${namespace == ''}">
-        <xacro:property name="ns" value="${namespace}/" />
-    </xacro:unless>
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <xacro:property name="wheel_config" value="${xacro.load_yaml(wheel_config_file)}" />
     <xacro:property name="wheel_separation_x" value="0.44" />
@@ -190,8 +185,8 @@
       </xacro:if>
       <xacro:gazebo.controller config_file="${controller_config_file}" namespace="${namespace}" />
       <xacro:gazebo.imu reference_frame="imu_link" namespace="${namespace}" />
-      <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" namespace="${namespace}" />
-      <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" namespace="${namespace}" />
+      <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" topic="lights/channel_1_frame" namespace="${namespace}" />
+      <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" topic="lights/channel_2_frame" namespace="${namespace}" />
     </xacro:if>
   </xacro:macro>
 

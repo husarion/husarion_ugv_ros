@@ -121,13 +121,6 @@ def generate_launch_description():
         condition=UnlessCondition(PythonExpression(["'", namespace, "' == ''"])),
     )
 
-    gz_led_strip_manager = Node(
-        package="panther_gazebo",
-        executable="gz_led_strip_manager",
-        namespace=namespace,
-        arguments=["--config-file", gz_led_strip_config],
-    )
-
     controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -203,7 +196,6 @@ def generate_launch_description():
             spawn_robot_launch,
             lights_launch,
             manager_launch,
-            gz_led_strip_manager,
             controller_launch,
             ekf_launch,
             simulate_components,

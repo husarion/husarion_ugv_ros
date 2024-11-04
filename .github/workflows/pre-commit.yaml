@@ -1,0 +1,11 @@
+---
+name: Pre-Commit
+
+on:
+  push:
+
+jobs:
+  pre-commit:
+    uses: ros-controls/ros2_control_ci/.github/workflows/reusable-pre-commit.yml@master
+    with:
+      ros_distro: humble

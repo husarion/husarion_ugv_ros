@@ -2,6 +2,26 @@
 Changelog for package panther_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* LEDStrip plugin to Gazebo (`#391 <https://github.com/husarion/panther_ros/issues/391>`_)
+* Merge pull request `#374 <https://github.com/husarion/panther_ros/issues/374>`_ from husarion/ros2-ns-refactor
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge pull request `#383 <https://github.com/husarion/panther_ros/issues/383>`_ from husarion/ros-sim-estop
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Rename PantherSystem -> GzPantherSystem
+* Typos in Readme + estop publish on service call
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* Add remapping
+* unify CMakeLists.txt files
+* Add EStop to Gazebo
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Namespace refactor
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Fixed gazebo lights tfs (`#377 <https://github.com/husarion/panther_ros/issues/377>`_)

@@ -1,7 +1,14 @@
 ### Description
 
-[Summary of the changes]
-
-### Modifications
-
 -
+
+### Requirements
+
+- [ ] Code style guidelines followed
+- [ ] Documentation updated
+
+### Tests 🧪
+
+- [ ] Robot
+- [ ] Container
+- [ ] Simulation

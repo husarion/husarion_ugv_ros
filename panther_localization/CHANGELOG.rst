@@ -2,6 +2,22 @@
 Changelog for package panther_localization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Add pre-commit workflow (`#395 <https://github.com/husarion/panther_ros/issues/395>`_)
+* Merge pull request `#388 <https://github.com/husarion/panther_ros/issues/388>`_ from husarion/ros2-add-nmea-gps
+* update names
+* update docs
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* add nmea gps
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* unify CMakeLists.txt files
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, kmakd, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Process noise update (`#361 <https://github.com/husarion/panther_ros/issues/361>`_)

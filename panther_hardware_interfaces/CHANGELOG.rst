@@ -2,6 +2,23 @@
 Changelog for package panther_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Merge pull request `#386 <https://github.com/husarion/panther_ros/issues/386>`_ from husarion/ros2-unify-filenames
+* Reorganize test utilities in hardware_interfaces
+* Minor modifications
+* Fix links in documentations (`#387 <https://github.com/husarion/panther_ros/issues/387>`_)
+* Reorganize panther_hardware_interfaces files
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* unify CMakeLists.txt files
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Merge pull request `#375 <https://github.com/husarion/panther_ros/issues/375>`_ from husarion/hotfix-handle-can-timeout

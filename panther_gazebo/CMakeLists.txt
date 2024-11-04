@@ -8,18 +8,16 @@ endif()
 set(PACKAGE_DEPENDENCIES
     ament_cmake
     hardware_interface
-    ignition-common4
     ignition-gazebo6
     ignition-msgs8
     ignition-plugin1
     ignition-transport11
     ign_ros2_control
     pluginlib
-    panther_utils
     rclcpp
+    realtime_tools
     std_msgs
-    std_srvs
-    yaml-cpp)
+    std_srvs)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
@@ -30,13 +28,6 @@ find_package(Qt5 REQUIRED COMPONENTS Core Quick QuickControls2)
 include_directories(include ${Qt5Core_INCLUDE_DIRS} ${Qt5Qml_INCLUDE_DIRS}
                     ${Qt5Quick_INCLUDE_DIRS} ${Qt5QuickControls2_INCLUDE_DIRS})
 
-add_executable(gz_led_strip_manager src/main.cpp src/gz_led_strip_manager.cpp
-                                    src/gz_led_strip.cpp)
-ament_target_dependencies(gz_led_strip_manager panther_utils)
-target_link_libraries(
-  gz_led_strip_manager ignition-transport11::core ignition-msgs8
-  ignition-common4::ignition-common4 yaml-cpp)
-
 add_library(panther_simulation_plugins SHARED src/gz_panther_system.cpp)
 ament_target_dependencies(
   panther_simulation_plugins
@@ -46,19 +37,27 @@ ament_target_dependencies(
   rclcpp_lifecycle
   std_msgs
   std_srvs)
-target_link_libraries(panther_simulation_plugins ignition-gazebo6::core)
+target_link_libraries(panther_simulation_plugins ignition-gazebo6)
 
 set(CMAKE_AUTOMOC ON)
-qt5_add_resources(resources_rcc src/plugins/EStop.qrc)
+qt5_add_resources(resources_rcc src/gui/EStop.qrc)
 
-add_library(EStop SHARED include/panther_gazebo/plugins/e_stop.hpp
-                         src/plugins/e_stop.cpp ${resources_rcc})
-ament_target_dependencies(EStop ignition-common4 ignition-gazebo6
-                          ignition-plugin1 rclcpp std_srvs)
-target_link_libraries(EStop ${Qt5Core_LIBRARIES} ${Qt5Qml_LIBRARIES}
-                      ${Qt5Quick_LIBRARIES} ${Qt5QuickControls2_LIBRARIES})
+add_library(EStop SHARED include/panther_gazebo/gui/e_stop.hpp
+                         src/gui/e_stop.cpp ${resources_rcc})
+ament_target_dependencies(EStop rclcpp std_srvs)
+target_link_libraries(
+  EStop
+  ignition-gazebo6
+  ignition-plugin1
+  ${Qt5Core_LIBRARIES}
+  ${Qt5Qml_LIBRARIES}
+  ${Qt5Quick_LIBRARIES}
+  ${Qt5QuickControls2_LIBRARIES})
 
-install(TARGETS gz_led_strip_manager DESTINATION lib/${PROJECT_NAME})
+add_library(LEDStrip SHARED src/led_strip.cpp)
+ament_target_dependencies(LEDStrip realtime_tools)
+target_link_libraries(LEDStrip ignition-gazebo6 ignition-msgs8 ignition-plugin1
+                      ignition-transport11)
 
 install(
   TARGETS panther_simulation_plugins
@@ -68,6 +67,12 @@ install(
 
 install(
   TARGETS EStop
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
+
+install(
+  TARGETS LEDStrip
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)

@@ -79,6 +79,7 @@ jobs:
           wait_interval: 10
           client_payload: |
             {
+              "panther_codebase_version": "${{ env.RC_BRANCH_NAME }}",
               "build_type": "development",
               "target_distro": "humble"
             }

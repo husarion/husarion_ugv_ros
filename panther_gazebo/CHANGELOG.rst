@@ -2,6 +2,40 @@
 Changelog for package panther_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.1 (2024-09-05)
+------------------
+* LEDStrip plugin to Gazebo (`#391 <https://github.com/husarion/panther_ros/issues/391>`_)
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge pull request `#383 <https://github.com/husarion/panther_ros/issues/383>`_ from husarion/ros-sim-estop
+* Dawid suggestions
+* Update panther_gazebo/include/panther_gazebo/gz_panther_system.hpp
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Merge pull request `#386 <https://github.com/husarion/panther_ros/issues/386>`_ from husarion/ros2-unify-filenames
+* delete typo
+* Dawid suggestions
+* Update panther_gazebo/src/gz_panther_system.cpp
+* Update panther_gazebo/src/gz_panther_system.cpp
+* Update panther_gazebo/include/panther_gazebo/gz_panther_system.hpp
+* Fix links in documentations (`#387 <https://github.com/husarion/panther_ros/issues/387>`_)
+* Rename PantherSystem -> GzPantherSystem
+* Dawid suggestions part 1
+* Change to Estop -> EStop
+* Inherit from IgnitionSystem
+* Move estop to plugins folder
+* Typos in Readme + estop publish on service call
+* Add david suggestion and change gui layout
+* Update panther_gazebo/panther_hardware_plugins.xml
+* Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
+* Rename config and launch file in manager package
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* Add dependencies
+* unify CMakeLists.txt files
+* Add EStop to Gazebo
+* New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
+
 2.1.0 (2024-08-02)
 ------------------
 * Fixed gazebo lights tfs (`#377 <https://github.com/husarion/panther_ros/issues/377>`_)

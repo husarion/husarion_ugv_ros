@@ -78,13 +78,6 @@ void TestPantherChargingDock::SetTransform(
   tf_buffer_->setTransform(transform_stamped, "unittest", true);
 }
 
-TEST_F(TestPantherChargingDock, FailConfigure)
-{
-  node_.reset();
-
-  ASSERT_THROW({ dock_->configure(node_, "dock", tf_buffer_); }, std::runtime_error);
-}
-
 TEST_F(TestPantherChargingDock, FailConfigureNoNode)
 {
   node_.reset();

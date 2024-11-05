@@ -14,6 +14,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
@@ -62,7 +63,7 @@ def generate_launch_description():
     use_wibotic_info = LaunchConfiguration("use_wibotic_info")
     declare_use_wibotic_info_arg = DeclareLaunchArgument(
         "use_wibotic_info",
-        default_value="False",
+        default_value="True",
         description="Whether Wibotic information is used",
         choices=[True, False, "True", "False", "true", "false", "1", "0"],
     )
@@ -137,7 +138,8 @@ def generate_launch_description():
         executable="wibotic_connector_can",
         namespace=namespace,
         emulate_tty=True,
-        condition=PythonExpression(["'false' if '", use_sim, "' else '", use_wibotic_info, "'"]),
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        condition=IfCondition(PythonExpression(["not ", use_sim, " and ", use_wibotic_info])),
     )
 
     return LaunchDescription(

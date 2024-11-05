@@ -132,6 +132,14 @@ def generate_launch_description():
         launch_arguments={"namespace": namespace}.items(),
     )
 
+    wibotic_connector_can = Node(
+        package="wibotic_connector_can",
+        executable="wibotic_connector_can",
+        namespace=namespace,
+        emulate_tty=True,
+        condition=PythonExpression(["'false' if '", use_sim, "' else '", use_wibotic_info, "'"]),
+    )
+
     return LaunchDescription(
         [
             declare_use_sim_arg,
@@ -143,5 +151,6 @@ def generate_launch_description():
             docking_server_node,
             docking_server_activate_node,
             dock_pose_publisher,
+            wibotic_connector_can,
         ]
     )

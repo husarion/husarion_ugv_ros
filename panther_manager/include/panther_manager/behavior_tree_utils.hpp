@@ -118,9 +118,9 @@ inline std::vector<float> convertFromString<std::vector<float>>(StringView str)
 /**
  * @brief Converts a string to a PoseStamped message.
  *
- * The string format should be "roll;pitch;yaw;x;y;z;frame_id" where:
- *  - roll, pitch, yaw: Euler angles in radians.
+ * The string format should be "x;y;z;roll;pitch;yaw;frame_id" where:
  *  - x, y, z: Position coordinates.
+ *  - roll, pitch, yaw: Euler angles in radians.
  *  - frame_id: Coordinate frame ID (string).
  *
  * @param str The string to convert.

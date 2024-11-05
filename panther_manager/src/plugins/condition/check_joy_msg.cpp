@@ -21,7 +21,7 @@ namespace panther_manager
 
 BT::NodeStatus CheckJoyMsg::onTick(const JoyMsg::SharedPtr & last_msg)
 {
-  return (last_msg && checkAxes(last_msg) && checkButtons(last_msg) && checkTimeout(last_msg))
+  return (last_msg && checkTimeout(last_msg) && checkAxes(last_msg) && checkButtons(last_msg))
            ? BT::NodeStatus::SUCCESS
            : BT::NodeStatus::FAILURE;
 }
@@ -73,8 +73,17 @@ bool CheckJoyMsg::checkTimeout(const JoyMsg::SharedPtr & last_msg)
   double max_timeout;
   getInput<double>("timeout", max_timeout);
 
-  return (max_timeout <= 0.0) || (this->node_.lock() && this->node_.lock()->now().seconds() <
-                                                          last_msg->header.stamp.sec + max_timeout);
+  rclcpp::Time now;
+  {
+    auto node = node_.lock();
+    if (!node) {
+      return false;
+    }
+    now = node->now();
+  }
+
+  const auto time_diff = now - last_msg->header.stamp;
+  return (max_timeout <= 0.0) || time_diff < rclcpp::Duration::from_seconds(max_timeout);
 }
 
 }  // namespace panther_manager

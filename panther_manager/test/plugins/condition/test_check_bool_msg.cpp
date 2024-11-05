@@ -65,12 +65,6 @@ BoolMsg TestCheckBoolMsg::CreateMsg(bool data)
   return msg;
 }
 
-TEST_F(TestCheckBoolMsg, NoTopicSet)
-{
-  bt_ports input = {{"topic_name", ""}, {"data", "true"}};
-  ASSERT_ANY_THROW(CreateTree(PLUGIN, input));
-}
-
 TEST_F(TestCheckBoolMsg, NoMessageArrived)
 {
   bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};

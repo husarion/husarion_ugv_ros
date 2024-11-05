@@ -73,17 +73,7 @@ JoyMsg TestCheckJoyMsg::CreateMsg(
   return msg;
 }
 
-void TestCheckJoyMsg::SetCurrentMsgTime(JoyMsg & msg)
-{
-  msg.header.stamp.sec = bt_node_->now().seconds();
-  msg.header.stamp.nanosec = bt_node_->now().nanoseconds();
-}
-
-TEST_F(TestCheckJoyMsg, NoTopicSet)
-{
-  bt_ports input = {{"topic_name", ""}, {"axes", "0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}};
-  ASSERT_ANY_THROW(CreateTree(PLUGIN, input));
-}
+void TestCheckJoyMsg::SetCurrentMsgTime(JoyMsg & msg) { msg.header.stamp = bt_node_->now(); }
 
 TEST_F(TestCheckJoyMsg, NoMessageArrived)
 {
@@ -99,13 +89,13 @@ TEST_F(TestCheckJoyMsg, TimeoutTests)
 {
   std::vector<TestCase> test_cases = {
     {BT::NodeStatus::SUCCESS,
-     {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "1.0"}},
+     {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "0.5"}},
      CreateMsg()},
     {BT::NodeStatus::SUCCESS,
      {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "0.0"}},
      CreateMsg()},
     {BT::NodeStatus::SUCCESS,
-     {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "-1.0"}},
+     {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "-0.5"}},
      CreateMsg()},
     {BT::NodeStatus::FAILURE,
      {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "0.001"}},

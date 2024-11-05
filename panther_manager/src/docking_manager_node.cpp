@@ -40,11 +40,11 @@ DockingManagerNode::DockingManagerNode(
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
   DeclareParameters();
-  const std::map<std::string, std::any> docking_initial_bb = {};
+  const std::map<std::string, std::any> empty_bb = {};
   const int bt_server_port = this->get_parameter("bt_server_port").as_int();
 
   docking_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Docking", docking_initial_bb, bt_server_port);
+    "Docking", empty_bb, bt_server_port);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -97,10 +97,11 @@ void DockingManagerNode::RegisterBehaviorTree()
 
   BT::RosNodeParams params;
   params.nh = this->shared_from_this();
+  auto wait_for_server_timeout_s = std::chrono::duration<double>(service_availability_timeout);
   params.wait_for_server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_availability_timeout * 1000));
-  params.server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_response_timeout * 1000));
+    std::chrono::duration_cast<std::chrono::milliseconds>(wait_for_server_timeout_s);
+  auto server_timeout_s = std::chrono::duration<double>(service_response_timeout);
+  params.server_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(server_timeout_s);
 
   behavior_tree_utils::RegisterBehaviorTree(
     factory_, bt_project_path, plugin_libs, params, ros_plugin_libs);

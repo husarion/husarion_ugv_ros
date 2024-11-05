@@ -120,7 +120,7 @@ inline std::vector<float> convertFromString<std::vector<float>>(StringView str)
  *
  * The string format should be "x;y;z;roll;pitch;yaw;frame_id" where:
  *  - x, y, z: Position coordinates.
- *  - roll, pitch, yaw: Euler angles in radians.
+ *  - roll, pitch, yaw: Rotation around axes XYZ.
  *  - frame_id: Coordinate frame ID (string).
  *
  * @param str The string to convert.
@@ -132,7 +132,7 @@ template <>
 inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::PoseStamped>(
   StringView str)
 {
-  constexpr size_t expected_parts_size = 7;
+  constexpr std::size_t expected_parts_size = 7;
 
   auto parts = splitString(str, ';');
   if (parts.size() != expected_parts_size) {
@@ -144,12 +144,10 @@ inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::Pos
   geometry_msgs::msg::PoseStamped pose_stamped;
 
   try {
-    // Position (x, y, z)
     pose_stamped.pose.position.x = convertFromString<double>(parts[0]);
     pose_stamped.pose.position.y = convertFromString<double>(parts[1]);
     pose_stamped.pose.position.z = convertFromString<double>(parts[2]);
 
-    // Orientation (R,P,Y -> Quaternion)
     const auto roll = convertFromString<double>(parts[3]);
     const auto pitch = convertFromString<double>(parts[4]);
     const auto yaw = convertFromString<double>(parts[5]);
@@ -157,7 +155,6 @@ inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::Pos
     quaternion.setRPY(roll, pitch, yaw);
     pose_stamped.pose.orientation = tf2::toMsg(quaternion);
 
-    // Frame ID and current time
     pose_stamped.header.frame_id = convertFromString<std::string>(parts[6]);
     pose_stamped.header.stamp = rclcpp::Clock().now();
 

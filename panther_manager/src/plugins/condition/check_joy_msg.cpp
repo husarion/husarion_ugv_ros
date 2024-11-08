@@ -61,7 +61,7 @@ bool CheckJoyMsg::checkButtons(const JoyMsg::SharedPtr & last_msg)
     RCLCPP_WARN_STREAM(
       this->logger(), GetLoggerPrefix(name())
                         << "Joy message has " << last_msg->buttons.size()
-                        << " axes, expected at least " << expected_buttons.size());
+                        << " buttons, expected at least " << expected_buttons.size());
     return false;
   }
 

@@ -8,7 +8,7 @@
                        topic_name="joy"
                        timeout="2.0"
                        axes=""
-                       buttons="0;0;0;1;1;1"/>
+                       buttons="0;0;0;1;1;1;0;0;0;0;0;0"/>
           <DockRobot name="Dock Action"
                      use_dock_id="true"
                      dock_id="main_dock"
@@ -22,7 +22,7 @@
                        topic_name="joy"
                        timeout="2.0"
                        axes=""
-                       buttons="1;0;0;0;1;1"/>
+                       buttons="1;0;0;0;1;1;0;0;0;0;0;0"/>
           <UndockRobot name="Undock Action"
                        dock_type="panther_charging_dock"
                        max_undocking_time="100"

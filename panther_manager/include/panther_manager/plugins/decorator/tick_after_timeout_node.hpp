@@ -31,7 +31,8 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<float>("timeout", "time in s to wait before ticking child again")};
+    return {BT::InputPort<float>(
+      "timeout", "Time in seconds to wait before ticking the child node again.")};
   }
 
 private:

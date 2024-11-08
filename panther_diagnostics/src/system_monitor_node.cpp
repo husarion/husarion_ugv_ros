@@ -28,7 +28,6 @@
 #include "panther_utils/ros_utils.hpp"
 
 #include "panther_diagnostics/filesystem.hpp"
-#include "panther_diagnostics/types.hpp"
 
 namespace panther_diagnostics
 {

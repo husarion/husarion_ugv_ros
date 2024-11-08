@@ -36,11 +36,11 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts({
-      BT::InputPort<unsigned>("id", "animation ID"),
-      BT::InputPort<std::string>("param", "optional parameter"),
-      BT::InputPort<bool>("repeating", "indicates if animation should repeat"),
-    });
+    return providedBasicPorts(
+      {BT::InputPort<unsigned>("id", "Animation ID to trigger."),
+       BT::InputPort<std::string>("param", "Optional animation parameter."),
+       BT::InputPort<bool>(
+         "repeating", "Specifies whether the animation should repeated continuously.")});
   }
 
   virtual bool setRequest(typename Request::SharedPtr & request) override;

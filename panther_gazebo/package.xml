@@ -34,6 +34,7 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">nav2_common</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_controller</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_description</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_docking</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_lights</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_localization</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_manager</exec_depend>

@@ -151,12 +151,14 @@ def generate_launch_description():
         ]
     )
 
+    namespace_ext = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
+
     set_robot_description = ExecuteProcess(
         cmd=[
             "ros2",
             "param",
             "set",
-            "/panther/robot_state_publisher",
+            [namespace_ext, "robot_state_publisher"],
             "robot_description",
             robot_description_content,
         ],

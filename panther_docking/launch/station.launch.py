@@ -17,6 +17,7 @@
 import imageio
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
     EnvironmentVariable,
@@ -45,6 +46,7 @@ def launch_setup(context, *args, **kwargs):
     namespace = LaunchConfiguration("namespace").perform(context)
     apriltag_id = int(LaunchConfiguration("apriltag_id").perform(context))
     apriltag_size = LaunchConfiguration("apriltag_size").perform(context)
+    use_docking = LaunchConfiguration("use_docking").perform(context)
 
     apriltag_image_path = generate_apriltag_and_get_path(apriltag_id)
 
@@ -85,12 +87,20 @@ def launch_setup(context, *args, **kwargs):
         remappings=[("robot_description", "station_description")],
         namespace=namespace,
         emulate_tty=True,
+        condition=IfCondition(use_docking),
     )
 
     return [station_state_pub_node]
 
 
 def generate_launch_description():
+    declare_use_docking_arg = DeclareLaunchArgument(
+        "use_docking",
+        default_value="True",
+        description="Enable docking server.",
+        choices=["True", "False", "true", "false"],
+    )
+
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
         default_value=EnvironmentVariable("ROBOT_NAMESPACE", default_value=""),
@@ -111,6 +121,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            declare_use_docking_arg,
             declare_namespace_arg,
             declare_apriltag_id,
             declare_apriltag_size,

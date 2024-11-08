@@ -27,6 +27,7 @@
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_msgs</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_srvs</depend>
 
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">apriltag_ros</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">launch</exec_depend>

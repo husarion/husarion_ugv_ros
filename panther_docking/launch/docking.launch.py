@@ -13,14 +13,11 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import (
-    LaunchConfiguration,
-    PathJoinSubstitution,
-    PythonExpression,
-)
+from launch.actions import DeclareLaunchArgument  # , IncludeLaunchDescription
+from launch.conditions import IfCondition  # , UnlessCondition
+
+# from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import ReplaceString
@@ -34,6 +31,13 @@ def generate_launch_description():
             [FindPackageShare("panther_docking"), "config", "panther_docking_server.yaml"]
         ),
         description=("Path to docking server configuration file."),
+    )
+
+    declare_use_docking_arg = DeclareLaunchArgument(
+        "use_docking",
+        default_value="True",
+        description="Enable docking server.",
+        choices=["True", "False", "true", "false"],
     )
 
     namespace = LaunchConfiguration("namespace")
@@ -95,28 +99,30 @@ def generate_launch_description():
         namespace=namespace,
         emulate_tty=True,
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        condition=IfCondition(use_docking),
     )
 
     # FIXME: This launch does not work with the simulation. It can be caused by different versions of opencv
-    station_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("panther_docking"),
-                    "launch",
-                    "station.launch.py",
-                ]
-            ),
-        ),
-        launch_arguments={"namespace": namespace}.items(),
-        condition=IfCondition(PythonExpression(["not ", use_sim, " and ", use_docking])),
-    )
+    # station_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         PathJoinSubstitution(
+    #             [
+    #                 FindPackageShare("panther_docking"),
+    #                 "launch",
+    #                 "station.launch.py",
+    #             ]
+    #         ),
+    #     ),
+    #     launch_arguments={"namespace": namespace}.items(),
+    #     condition=UnlessCondition(use_sim),
+    # )
 
     return LaunchDescription(
         [
+            declare_use_docking_arg,
             declare_docking_server_config_path_arg,
             declare_log_level,
-            station_launch,
+            # station_launch,
             docking_server_node,
             docking_server_activate_node,
             dock_pose_publisher,

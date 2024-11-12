@@ -116,6 +116,7 @@ def generate_launch_description():
         namespace=namespace,
         emulate_tty=True,
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        condition=IfCondition(use_docking),
     )
 
     station_launch = IncludeLaunchDescription(
@@ -137,7 +138,9 @@ def generate_launch_description():
         namespace=namespace,
         emulate_tty=True,
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
-        condition=IfCondition(PythonExpression(["not ", use_sim, " and ", use_wibotic_info])),
+        condition=IfCondition(
+            PythonExpression(["not ", use_sim, " and ", use_wibotic_info, " and ", use_docking])
+        ),
     )
 
     return LaunchDescription(

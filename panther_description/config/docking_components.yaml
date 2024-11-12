@@ -6,15 +6,15 @@ components:
     rpy: 0.0 0.0 0.0
     device_namespace: wireless_charger
 
-  - type: WCH02
-    parent_link: world
-    xyz: 3.0 -2.0 1.0
-    rpy: 1.57  0.0 -1.57
-    device_namespace: wireless_charger
-
   - type: CAM01
     name: camera
     parent_link: front_bumper_link
     xyz: 0.0 0.0 -0.06
     rpy: 0.0 0.0 0.0
     device_namespace: camera
+
+  - type: LDR06
+    parent_link: cover_link
+    xyz: 0.0 0.0 0.0
+    rpy: 0.0 0.0 0.0
+    device_namespace: main_lidar

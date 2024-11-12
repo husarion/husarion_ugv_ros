@@ -140,7 +140,7 @@ protected:
    */
   void getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node);
 
-  void updateAndPublishStagingPose();
+  void updateAndPublishStagingPose(const std::string & frame);
 
   void setDockPose(const PoseStampedMsg::SharedPtr pose);
 

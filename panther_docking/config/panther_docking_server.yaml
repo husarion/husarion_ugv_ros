@@ -16,17 +16,26 @@
     dock_plugins: ["panther_charging_dock"]
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
-      external_detection_timeout: 0.1
-      docking_distance_threshold: 0.08
-      docking_yaw_threshold: 0.1
-      staging_x_offset: -0.5
+      external_detection_timeout: 0.2
+      docking_distance_threshold: 0.12
+      docking_yaw_threshold: 0.2
+      staging_x_offset: -0.8
       filter_coef: 0.1
 
-    docks: ["main"]
+    docks: ["main", "backup"]
     main:
       type: panther_charging_dock
-      frame: <robot_namespace>/main_wibotic_receiver_requested_pose_link
-      pose: [0.0, 0.0, 0.0] # position of the dock device (not the staging position), the front (X+) of the dock should point away from the robot
+      frame: <robot_namespace>/map
+      dock_frame: main_wibotic_receiver_requested_pose_link
+      pose: [1.0, 1.5, 1.57] # position of the dock device (not the staging position), the front (X+) of the dock should point away from the robot
+      apriltag_id: 0
+
+    backup:
+      type: panther_charging_dock
+      frame: <robot_namespace>/map
+      dock_frame: backup_wibotic_receiver_requested_pose_link
+      pose: [-1.0, 1.5, 1.57] # position of the dock device (not the staging position), the front (X+) of the dock should point away from the robot
+      apriltag_id: 1
 
     controller:
       k_phi: 1.0

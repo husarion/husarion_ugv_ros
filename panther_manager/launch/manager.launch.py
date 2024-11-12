@@ -87,6 +87,7 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
+    use_docking = LaunchConfiguration("use_docking")
     docking_manager_node = Node(
         package="panther_manager",
         executable="docking_manager_node",
@@ -97,6 +98,7 @@ def generate_launch_description():
         ],
         namespace=namespace,
         emulate_tty=True,
+        condition=IfCondition(use_docking),
     )
 
     lights_manager_node = Node(

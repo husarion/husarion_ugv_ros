@@ -16,6 +16,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
@@ -71,6 +72,17 @@ def generate_launch_description():
         ),
     )
 
+    use_docking = LaunchConfiguration("use_docking")
+
+    spawn_charging_docks = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("panther_gazebo"), "launch", "spawn_charging_docks.launch.py"]
+            )
+        ),
+        condition=IfCondition(use_docking),
+    )
+
     return LaunchDescription(
         [
             declare_gz_gui,
@@ -79,5 +91,6 @@ def generate_launch_description():
             SetUseSimTime(True),
             gz_sim,
             simulate_robots,
+            spawn_charging_docks,
         ]
     )

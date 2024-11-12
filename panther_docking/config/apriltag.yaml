@@ -18,6 +18,6 @@
 
 
     tag:
-      ids: [0]
-      frames: [<robot_namespace>/main_apriltag_link]
-      sizes: [0.06]
+      ids: [0, 1]
+      frames: [main_apriltag_link, backup_apriltag_link]
+      sizes: [0.06, 0.06]

@@ -13,11 +13,14 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument  # , IncludeLaunchDescription
-from launch.conditions import IfCondition  # , UnlessCondition
-
-# from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import ReplaceString
@@ -38,6 +41,15 @@ def generate_launch_description():
         default_value="True",
         description="Enable docking server.",
         choices=["True", "False", "true", "false"],
+    )
+
+    apriltag_config_path = LaunchConfiguration("apriltag_config_path")
+    declare_apriltag_config_path_arg = DeclareLaunchArgument(
+        "apriltag_config_path",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("panther_docking"), "config", "apriltag.yaml"]
+        ),
+        description=("Path to apriltag configuration file. Only used in simulation."),
     )
 
     namespace = LaunchConfiguration("namespace")
@@ -102,29 +114,43 @@ def generate_launch_description():
         condition=IfCondition(use_docking),
     )
 
-    # FIXME: This launch does not work with the simulation. It can be caused by different versions of opencv
-    # station_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         PathJoinSubstitution(
-    #             [
-    #                 FindPackageShare("panther_docking"),
-    #                 "launch",
-    #                 "station.launch.py",
-    #             ]
-    #         ),
-    #     ),
-    #     launch_arguments={"namespace": namespace}.items(),
-    #     condition=UnlessCondition(use_sim),
-    # )
+    apriltag_node = Node(
+        package="apriltag_ros",
+        executable="apriltag_node",
+        parameters=[{"use_sim_time": True}, apriltag_config_path],
+        namespace=namespace,
+        emulate_tty=True,
+        remappings={
+            "camera_info": "camera/color/camera_info",
+            "image_rect": "camera/color/image_raw",
+            "detections": "docking/april_tags",
+        }.items(),
+        condition=IfCondition(PythonExpression([use_docking, " and ", use_sim])),
+    )
+
+    station_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("panther_docking"),
+                    "launch",
+                    "station.launch.py",
+                ]
+            ),
+        ),
+        launch_arguments={"namespace": namespace}.items(),
+    )
 
     return LaunchDescription(
         [
+            declare_apriltag_config_path_arg,
             declare_use_docking_arg,
             declare_docking_server_config_path_arg,
             declare_log_level,
-            # station_launch,
+            station_launch,
             docking_server_node,
             docking_server_activate_node,
             dock_pose_publisher,
+            apriltag_node,
         ]
     )

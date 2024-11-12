@@ -105,20 +105,18 @@ void PantherChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::S
   node->get_parameter(name_ + ".filter_coef", pose_filter_coef_);
 }
 
-// When there is no pose actual position of robot is a staging pose
 PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
   const geometry_msgs::msg::Pose & pose, const std::string & frame)
 {
   RCLCPP_DEBUG_STREAM(logger_, "Getting staging pose in frame: " << frame);
 
-  // When there is no global pose to reach thanks to nav2
-  if (pose == geometry_msgs::msg::Pose()) {
-    if (dock_pose_.header.frame_id.empty()) {
-      throw opennav_docking_core::FailedToDetectDock("No dock pose detected");
-    }
-
-    updateAndPublishStagingPose();
+  // No global pose provided, use the detected dock pose
+  if (pose != geometry_msgs::msg::Pose()) {
+    dock_pose_.pose = pose;
+    dock_frame_ = frame;
   }
+
+  updateAndPublishStagingPose(frame);
 
   return staging_pose_;
 }
@@ -141,12 +139,13 @@ bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
   auto duration = rclcpp::Time(request_detection_time) - rclcpp::Time(dock_pose_.header.stamp);
   if (duration > timeout) {
     RCLCPP_WARN_STREAM(
-      logger_, "Lost detection or did not detect: timeout exceeded: " << duration.seconds());
+      logger_, "Lost detection or did not detect: timeout exceeded: "
+                 << duration.seconds() << "s timeout: " << timeout.seconds() << "s");
     return false;
   }
 
   pose = dock_pose_;
-  updateAndPublishStagingPose();
+  updateAndPublishStagingPose(fixed_frame_name_);
 
   return true;
 }
@@ -183,12 +182,21 @@ void PantherChargingDock::setDockPose(const PoseStampedMsg::SharedPtr pose)
   dock_pose_ = filtered_pose;
 }
 
-void PantherChargingDock::updateAndPublishStagingPose()
+void PantherChargingDock::updateAndPublishStagingPose(const std::string & frame)
 {
   const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
+  RCLCPP_DEBUG_STREAM(
+    logger_, "Dock pose x: " << dock_pose_.pose.position.x << " y: " << dock_pose_.pose.position.y
+                             << " yaw: " << yaw);
+
   staging_pose_ = dock_pose_;
-  staging_pose_.pose.position.x += cos(yaw) * staging_x_offset_;
-  staging_pose_.pose.position.y += sin(yaw) * staging_x_offset_;
+  staging_pose_.header.frame_id = frame;
+  staging_pose_.header.stamp = node_.lock()->now();
+  staging_pose_.pose.position.x += std::cos(yaw) * staging_x_offset_;
+  staging_pose_.pose.position.y += std::sin(yaw) * staging_x_offset_;
+  tf2::Quaternion orientation;
+  orientation.setRPY(0.0, 0.0, yaw);
+  staging_pose_.pose.orientation = tf2::toMsg(orientation);
 
   staging_pose_pub_->publish(staging_pose_);
 }

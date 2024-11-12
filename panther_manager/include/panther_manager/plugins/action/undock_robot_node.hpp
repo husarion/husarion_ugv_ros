@@ -49,16 +49,15 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts({
-      BT::InputPort<std::string>(
-        "dock_type", "The dock plugin type, if not previous instance used for docking"),
-      BT::InputPort<float>(
-        "max_undocking_time", 30.0, "Maximum time to get back to the staging pose"),
+    return providedBasicPorts(
+      {BT::InputPort<std::string>(
+         "dock_type", "Specifies the dock plugin type to use for undocking."),
+       BT::InputPort<float>(
+         "max_undocking_time", 30.0,
+         "Maximum allowable time (in seconds) to undock and return to the staging pose."),
 
-      BT::OutputPort<UndockRobotActionResult::_success_type>(
-        "success", "If the action was successful"),
-      BT::OutputPort<UndockRobotActionResult::_error_code_type>("error_code", "Error code"),
-    });
+       BT::OutputPort<UndockRobotActionResult::_error_code_type>(
+         "error_code", "Returns an error code if the undocking process fails.")});
   }
 };
 

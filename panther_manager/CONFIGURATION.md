@@ -93,6 +93,14 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
 
 ### Trees
 
+#### Docking
+
+A tree responsible for waiting for the joystick command and trigger `Docking`/`Undocking` action.
+
+<p align="center">
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/docking_tree.png" alt="Docking Behavior Tree"/>
+</p>
+
 #### Lights
 
 A tree responsible for scheduling animations displayed on the Bumper Lights based on the Husarion Panther robot's system state.
@@ -206,6 +214,7 @@ To use your customized project, you can modify the `bt_project_file` ROS paramet
 
 Groot2 also provides a real-time visualization tool that allows you to see and debug actively running trees. To use this tool with trees launched with the `panther_manager` package, you need to specify the port associated with the tree you want to visualize. The ports for each tree are listed below:
 
+- Docking tree: `10.15.20.2:4444`
 - Lights tree: `10.15.20.2:5555`
 - Safety tree: `10.15.20.2:6666`
 - Shutdown tree: `10.15.20.2:7777`

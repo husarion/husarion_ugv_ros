@@ -17,7 +17,6 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
-    EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
     PythonExpression,
@@ -28,21 +27,6 @@ from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():
-    use_sim = LaunchConfiguration("use_sim")
-    declare_use_sim_arg = DeclareLaunchArgument(
-        "use_sim",
-        default_value="False",
-        description="Whether simulation is used",
-        choices=[True, False, "True", "False", "true", "false", "1", "0"],
-    )
-
-    namespace = LaunchConfiguration("namespace")
-    declare_namespace_arg = DeclareLaunchArgument(
-        "namespace",
-        default_value=EnvironmentVariable("ROBOT_NAMESPACE", default_value=""),
-        description="Add namespace to all launched nodes.",
-    )
-
     docking_server_config_path = LaunchConfiguration("docking_server_config_path")
     declare_docking_server_config_path_arg = DeclareLaunchArgument(
         "docking_server_config_path",
@@ -51,6 +35,17 @@ def generate_launch_description():
         ),
         description=("Path to docking server configuration file."),
     )
+
+    declare_use_docking_arg = DeclareLaunchArgument(
+        "use_docking",
+        default_value="True",
+        description="Enable docking server.",
+        choices=["True", "False", "true", "false"],
+    )
+
+    namespace = LaunchConfiguration("namespace")
+    use_docking = LaunchConfiguration("use_docking")
+    use_sim = LaunchConfiguration("use_sim")
 
     log_level = LaunchConfiguration("log_level")
     declare_log_level = DeclareLaunchArgument(
@@ -82,19 +77,22 @@ def generate_launch_description():
     docking_server_node = Node(
         package="opennav_docking",
         executable="opennav_docking",
+        namespace=namespace,
         parameters=[
             namespaced_docking_server_config,
             {"use_sim_time": use_sim},
         ],
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
-        namespace=namespace,
+        remappings=[("~/transition_event", "~/_transition_event")],
         emulate_tty=True,
+        condition=IfCondition(use_docking),
     )
 
     docking_server_activate_node = Node(
         package="nav2_lifecycle_manager",
         executable="lifecycle_manager",
         name="nav2_docking_lifecycle_manager",
+        namespace=namespace,
         parameters=[
             {
                 "autostart": True,
@@ -104,7 +102,7 @@ def generate_launch_description():
                 "use_sim_time": use_sim,
             },
         ],
-        namespace=namespace,
+        condition=IfCondition(use_docking),
     )
 
     dock_pose_publisher = Node(
@@ -144,8 +142,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            declare_use_sim_arg,
-            declare_namespace_arg,
+            declare_use_docking_arg,
             declare_docking_server_config_path_arg,
             declare_log_level,
             declare_use_wibotic_info_arg,

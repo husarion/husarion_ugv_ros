@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" project_name="DockingBT">
+    <include path="docking.xml"/>
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Condition ID="CheckJoyMsg" editable="true">
+            <input_port name="topic_name">
+Topic name for sensor_msgs/Joy message type</input_port>
+            <input_port name="timeout" default="0.0">Max timeout to accept the msg</input_port>
+            <input_port name="axes">Vector of provided axis inputs</input_port>
+            <input_port name="buttons">Vector of provided button inputs</input_port>
+        </Condition>
+        <Action ID="DockRobot" editable="true">
+            <input_port name="use_dock_id">bool value indicating whether to use dock ID</input_port>
+            <input_port name="dock_id">dock ID</input_port>
+            <input_port name="dock_type">type of the dock</input_port>
+            <inout_port name="max_staging_time">maximum staging time</inout_port>
+            <input_port name="navigate_to_staging_pose">bool value indicating whether to navigate to
+                staging pose</input_port>
+            <input_port name="action_name">action name to call</input_port>
+        </Action>
+        <Action ID="UndockRobot" editable="true">
+            <input_port name="dock_type">type of the dock</input_port>
+            <input_port name="max_undocking_time">maximum time to get back to the staging pose</input_port>
+            <input_port name="action_name">action name to call</input_port>
+        </Action>
+    </TreeNodesModel>
+</root>

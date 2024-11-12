@@ -101,12 +101,11 @@ void SafetyManagerNode::Initialize()
   //   Timers
   // -------------------------------
 
-  const float timer_freq = this->get_parameter("timer_frequency").as_double();
-  const auto timer_period_ms =
-    std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
+  const auto timer_freq = this->get_parameter("timer_frequency").as_double();
+  const auto timer_period = std::chrono::duration<double>(1.0 / timer_freq);
 
   safety_tree_timer_ = this->create_wall_timer(
-    timer_period_ms, std::bind(&SafetyManagerNode::SafetyTreeTimerCB, this));
+    timer_period, std::bind(&SafetyManagerNode::SafetyTreeTimerCB, this));
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
@@ -115,8 +114,8 @@ void SafetyManagerNode::DeclareParameters()
 {
   const auto panther_manager_pkg_path =
     ament_index_cpp::get_package_share_directory("panther_manager");
-  const std::string default_bt_project_path = panther_manager_pkg_path +
-                                              "/behavior_trees/PantherSafetyBT.btproj";
+  const auto default_bt_project_path = panther_manager_pkg_path +
+                                       "/behavior_trees/PantherSafetyBT.btproj";
   const std::vector<std::string> default_plugin_libs = {};
 
   this->declare_parameter<std::string>("bt_project_path", default_bt_project_path);
@@ -151,16 +150,17 @@ void SafetyManagerNode::RegisterBehaviorTree()
 
   BT::RosNodeParams params;
   params.nh = this->shared_from_this();
+  auto wait_for_server_timeout_s = std::chrono::duration<double>(service_availability_timeout);
   params.wait_for_server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_availability_timeout * 1000));
-  params.server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_response_timeout * 1000));
+    std::chrono::duration_cast<std::chrono::milliseconds>(wait_for_server_timeout_s);
+  auto server_timeout_s = std::chrono::duration<double>(service_response_timeout);
+  params.server_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(server_timeout_s);
 
   behavior_tree_utils::RegisterBehaviorTree(
     factory_, bt_project_path, plugin_libs, params, ros_plugin_libs);
 
-  RCLCPP_INFO(
-    this->get_logger(), "BehaviorTree registered from path '%s'", bt_project_path.c_str());
+  RCLCPP_INFO_STREAM(
+    this->get_logger(), "BehaviorTree registered from path '" << bt_project_path << "'");
 }
 
 std::map<std::string, std::any> SafetyManagerNode::CreateSafetyInitialBlackboard()

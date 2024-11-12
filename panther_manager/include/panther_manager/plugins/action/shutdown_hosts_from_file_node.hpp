@@ -39,10 +39,8 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {
-      BT::InputPort<std::string>(
-        "shutdown_hosts_file", "global path to YAML file with hosts to shutdown"),
-    };
+    return {BT::InputPort<std::string>(
+      "shutdown_hosts_file", "Absolute path to a YAML file listing the hosts to shut down.")};
   }
 
 private:

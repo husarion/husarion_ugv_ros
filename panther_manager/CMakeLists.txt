@@ -11,14 +11,17 @@ set(PACKAGE_DEPENDENCIES
     behaviortree_cpp
     behaviortree_ros2
     libssh
+    geometry_msgs
+    opennav_docking_msgs
     panther_msgs
     panther_utils
     rclcpp
     rclcpp_action
     sensor_msgs
+    std_msgs
     std_srvs
-    yaml-cpp
-    opennav_docking_msgs)
+    tf2_geometry_msgs
+    yaml-cpp)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
@@ -59,9 +62,13 @@ add_library(undock_robot_bt_node SHARED
             src/plugins/action/undock_robot_node.cpp)
 list(APPEND plugin_libs undock_robot_bt_node)
 
-add_library(are_buttons_pressed_bt_node SHARED
-            src/plugins/condition/are_buttons_pressed.cpp)
-list(APPEND plugin_libs are_buttons_pressed_bt_node)
+add_library(check_bool_msg_bt_node SHARED
+            src/plugins/condition/check_bool_msg.cpp)
+list(APPEND plugin_libs check_bool_msg_bt_node)
+
+add_library(check_joy_msg_bt_node SHARED
+            src/plugins/condition/check_joy_msg.cpp)
+list(APPEND plugin_libs check_joy_msg_bt_node)
 
 add_library(tick_after_timeout_bt_node SHARED
             src/plugins/decorator/tick_after_timeout_node.cpp)
@@ -75,32 +82,25 @@ endforeach()
 add_executable(
   safety_manager_node src/safety_manager_node_main.cpp
                       src/safety_manager_node.cpp src/behavior_tree_manager.cpp)
-ament_target_dependencies(
-  safety_manager_node
-  behaviortree_ros2
-  panther_msgs
-  panther_utils
-  rclcpp
-  sensor_msgs
-  std_msgs)
+ament_target_dependencies(safety_manager_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(safety_manager_node ${plugin_libs})
 
 add_executable(
   lights_manager_node src/lights_manager_node_main.cpp
                       src/lights_manager_node.cpp src/behavior_tree_manager.cpp)
-ament_target_dependencies(
-  lights_manager_node
-  behaviortree_ros2
-  panther_msgs
-  panther_utils
-  rclcpp
-  sensor_msgs
-  std_msgs)
+ament_target_dependencies(lights_manager_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(lights_manager_node ${plugin_libs})
+
+add_executable(
+  docking_manager_node
+  src/docking_manager_node_main.cpp src/docking_manager_node.cpp
+  src/behavior_tree_manager.cpp)
+ament_target_dependencies(docking_manager_node ${PACKAGE_DEPENDENCIES})
+target_link_libraries(docking_manager_node ${plugin_libs})
 
 install(TARGETS ${plugin_libs} DESTINATION lib)
 
-install(TARGETS safety_manager_node lights_manager_node
+install(TARGETS safety_manager_node lights_manager_node docking_manager_node
         DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY behavior_trees config launch
@@ -161,10 +161,16 @@ if(BUILD_TESTING)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_undock_robot_node)
 
   ament_add_gtest(
-    ${PROJECT_NAME}_test_are_buttons_pressed
-    test/plugins/condition/test_are_buttons_pressed.cpp
-    src/plugins/condition/are_buttons_pressed.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_are_buttons_pressed)
+    ${PROJECT_NAME}_test_check_bool_msg
+    test/plugins/condition/test_check_bool_msg.cpp
+    src/plugins/condition/check_bool_msg.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_check_bool_msg)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_check_joy_msg
+    test/plugins/condition/test_check_joy_msg.cpp
+    src/plugins/condition/check_joy_msg.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_check_joy_msg)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_tick_after_timeout_node
@@ -198,7 +204,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_utils
-                            behaviortree_cpp behaviortree_ros2 panther_utils)
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_behavior_tree_manager
@@ -217,15 +223,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_lights_manager_node
-    behaviortree_cpp
-    behaviortree_ros2
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_lights_manager_node
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_lights_behavior_tree
@@ -235,15 +234,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_lights_behavior_tree
-    behaviortree_cpp
-    behaviortree_ros2
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_lights_behavior_tree
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
@@ -252,15 +244,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_safety_manager_node
-    behaviortree_cpp
-    behaviortree_ros2
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_safety_manager_node
+                            ${PACKAGE_DEPENDENCIES})
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
@@ -270,16 +255,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_safety_behavior_tree
-    behaviortree_cpp
-    behaviortree_ros2
-    panther_msgs
-    panther_utils
-    rclcpp
-    sensor_msgs
-    std_msgs
-    std_srvs)
+  ament_target_dependencies(${PROJECT_NAME}_test_safety_behavior_tree
+                            ${PACKAGE_DEPENDENCIES})
 endif()
 
 ament_package()

@@ -2,7 +2,7 @@
   ros__parameters:
     controller_frequency: 50.0
     initial_perception_timeout: 5.0
-    wait_charge_timeout: 5.0
+    wait_charge_timeout: 10.0
     dock_approach_timeout: 20.0
     undock_linear_tolerance: 0.08
     undock_angular_tolerance: 0.08
@@ -17,12 +17,12 @@
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
       external_detection_timeout: 0.1
-      docking_distance_threshold: 0.08
-      docking_yaw_threshold: 0.1
+      docking_distance_threshold: 0.12
+      docking_yaw_threshold: 0.15
       staging_x_offset: -0.5
       filter_coef: 0.1
       use_wibotic: <use_wibotic_param>
-      wibotic_info_timeout: 0.5
+      wibotic_info_timeout: 1.0
 
     docks: ["main"]
     main:
@@ -34,5 +34,5 @@
       k_phi: 1.0
       k_delta: 2.0
       v_linear_min: 0.0
-      v_linear_max: 0.3
+      v_linear_max: 0.1
       v_angular_max: 0.15

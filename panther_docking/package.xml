@@ -17,6 +17,7 @@
   <depend>geometry_msgs</depend>
   <depend>nav2_util</depend>
   <depend>opennav_docking</depend>
+  <depend>panther_manager</depend>
   <depend>panther_utils</depend>
   <depend>pluginlib</depend>
   <depend>python3-pip</depend>
@@ -28,7 +29,6 @@
   <depend>wibotic_msgs</depend>
 
   <!-- FIXME: Remove before release -->
-  <depend >panther_manager</depend>
 
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>python3-imageio</exec_depend>

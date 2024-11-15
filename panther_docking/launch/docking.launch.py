@@ -151,13 +151,15 @@ def generate_launch_description():
         name="docking_manager",
         parameters=[
             PathJoinSubstitution([panther_manager_dir, "config", "docking_manager.yaml"]),
-            {"bt_project_path": PathJoinSubstitution(
-            [panther_manager_dir, "behavior_trees", "DockingBT.btproj"])},
+            {
+                "bt_project_path": PathJoinSubstitution(
+                    [panther_manager_dir, "behavior_trees", "DockingBT.btproj"]
+                )
+            },
         ],
         namespace=namespace,
         emulate_tty=True,
     )
-
 
     return LaunchDescription(
         [
@@ -170,6 +172,6 @@ def generate_launch_description():
             docking_server_activate_node,
             dock_pose_publisher,
             wibotic_connector_can,
-            docking_manager_node
+            docking_manager_node,
         ]
     )

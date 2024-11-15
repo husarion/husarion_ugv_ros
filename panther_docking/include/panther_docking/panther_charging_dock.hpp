@@ -155,16 +155,14 @@ protected:
   /**
    * @brief Set the dock pose.
    *
-   * This method sets the dock pose.  It can be used as a callback for a subscription.
+   * This method sets the dock pose. It can be used as a callback for a subscription.
    *
    * @param pose The dock pose.
    */
   void setDockPose(const PoseStampedMsg::SharedPtr pose);
 
   /**
-   * @brief Set the Wibotic info.
-   *
-   * This method sets the Wibotic info. It can be used as a callback for a subscription.
+   * @brief Wibotic info callback, used when `use_wibotic_info` is enabled.
    *
    * @param msg The Wibotic info message.
    */

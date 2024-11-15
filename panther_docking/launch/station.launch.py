@@ -29,10 +29,11 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
-from moms_apriltag import TagGenerator2
 
 
 def generate_apriltag_and_get_path(tag_id):
+    from moms_apriltag import TagGenerator2
+
     tag_generator = TagGenerator2("tag36h11")
     tag_image = tag_generator.generate(tag_id, scale=1000)
 

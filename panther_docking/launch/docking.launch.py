@@ -17,7 +17,6 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
-    EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
     PythonExpression,
@@ -117,6 +116,7 @@ def generate_launch_description():
         namespace=namespace,
         emulate_tty=True,
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        condition=IfCondition(use_docking),
     )
 
     station_launch = IncludeLaunchDescription(
@@ -138,7 +138,9 @@ def generate_launch_description():
         namespace=namespace,
         emulate_tty=True,
         arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
-        condition=IfCondition(PythonExpression(["not ", use_sim, " and ", use_wibotic_info])),
+        condition=IfCondition(
+            PythonExpression(["not ", use_sim, " and ", use_wibotic_info, " and ", use_docking])
+        ),
     )
 
     # FIXME: Remove before release

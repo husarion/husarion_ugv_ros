@@ -27,7 +27,6 @@ bool DockRobot::setGoal(Goal & goal)
   }
 
   if (!this->getInput<bool>("use_dock_id", goal.use_dock_id)) {
-    goal.use_dock_id = false;
     RCLCPP_WARN_STREAM(
       this->logger(), GetLoggerPrefix(name())
                         << "use_dock_id not set, using default value: " << goal.use_dock_id);
@@ -41,7 +40,6 @@ bool DockRobot::setGoal(Goal & goal)
   }
 
   if (!this->getInput<bool>("navigate_to_staging_pose", goal.navigate_to_staging_pose)) {
-    goal.navigate_to_staging_pose = false;
     RCLCPP_WARN_STREAM(
       this->logger(), GetLoggerPrefix(name()) << "navigate_to_staging_pose not set, using default "
                                                  "value: "
@@ -63,7 +61,6 @@ BT::NodeStatus DockRobot::onResultReceived(const WrappedResult & wr)
 {
   const auto & result = wr.result;
 
-  this->setOutput("success", result->success);
   this->setOutput("error_code", result->error_code);
   this->setOutput("num_retries", result->num_retries);
 

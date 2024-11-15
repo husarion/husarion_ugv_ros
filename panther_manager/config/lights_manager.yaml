@@ -2,6 +2,7 @@
   lights_manager:
     ros__parameters:
       timer_frequency: 10.0
+      bt_server_port: 5555
       battery:
         percent:
           window_len: 6

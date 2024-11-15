@@ -26,6 +26,9 @@
 #include "behaviortree_cpp/utils/shared_library.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
 namespace panther_manager::behavior_tree_utils
 {
 
@@ -93,28 +96,75 @@ inline std::string GetLoggerPrefix(const std::string & bt_node_name)
 namespace BT
 {
 /**
- * @brief Converts a string to a vector of integers.
+ * @brief Converts a string to a vector of float.
  *
  * @param str The string to convert.
- * @return std::vector<int> The vector of integers.
+ * @return std::vector<float> The vector of float.
  *
- * @throw BT::RuntimeError Throws when there is no input or cannot parse int.
+ * @throw BT::RuntimeError Throws when there is no input or cannot parse float.
  */
 template <>
-inline std::vector<int> convertFromString<std::vector<int>>(StringView str)
+inline std::vector<float> convertFromString<std::vector<float>>(StringView str)
 {
-  auto parts = BT::splitString(str, ';');
-  if (!parts.size()) {
-    throw BT::RuntimeError("invalid input");
-  } else {
-    std::vector<int> result;
-    for (auto & part : parts) {
-      result.push_back(convertFromString<int>(part));
-    }
-
-    return result;
+  auto parts = splitString(str, ';');
+  std::vector<float> output;
+  output.reserve(parts.size());
+  for (const StringView & part : parts) {
+    output.push_back(convertFromString<float>(part));
   }
+  return output;
 }
+
+/**
+ * @brief Converts a string to a PoseStamped message.
+ *
+ * The string format should be "x;y;z;roll;pitch;yaw;frame_id" where:
+ *  - x, y, z: Position coordinates.
+ *  - roll, pitch, yaw: Rotation around axes XYZ.
+ *  - frame_id: Coordinate frame ID (string).
+ *
+ * @param str The string to convert.
+ * @return geometry_msgs::msg::PoseStamped The converted PoseStamped message.
+ *
+ * @throw BT::RuntimeError Throws if the input is invalid or cannot be parsed.
+ */
+template <>
+inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::PoseStamped>(
+  StringView str)
+{
+  constexpr std::size_t expected_parts_size = 7;
+
+  auto parts = splitString(str, ';');
+  if (parts.size() != expected_parts_size) {
+    throw BT::RuntimeError(
+      "Invalid input for PoseStamped. Expected " + std::to_string(expected_parts_size) +
+      " values: x;y;z;roll;pitch;yaw;frame_id");
+  }
+
+  geometry_msgs::msg::PoseStamped pose_stamped;
+
+  try {
+    pose_stamped.pose.position.x = convertFromString<double>(parts[0]);
+    pose_stamped.pose.position.y = convertFromString<double>(parts[1]);
+    pose_stamped.pose.position.z = convertFromString<double>(parts[2]);
+
+    const auto roll = convertFromString<double>(parts[3]);
+    const auto pitch = convertFromString<double>(parts[4]);
+    const auto yaw = convertFromString<double>(parts[5]);
+    tf2::Quaternion quaternion;
+    quaternion.setRPY(roll, pitch, yaw);
+    pose_stamped.pose.orientation = tf2::toMsg(quaternion);
+
+    pose_stamped.header.frame_id = convertFromString<std::string>(parts[6]);
+    pose_stamped.header.stamp = rclcpp::Clock().now();
+
+  } catch (const std::exception & e) {
+    throw BT::RuntimeError("Failed to convert string to PoseStamped: " + std::string(e.what()));
+  }
+
+  return pose_stamped;
+}
+
 }  // namespace BT
 
 #endif  // PANTHER_MANAGER_BEHAVIOR_TREE_UTILS_HPP_

@@ -32,6 +32,15 @@ def generate_launch_description():
     panther_version = EnvironmentVariable(name="PANTHER_ROBOT_VERSION", default_value="1.0")
     panther_manager_dir = FindPackageShare("panther_manager")
 
+    docking_bt_project_path = LaunchConfiguration("docking_bt_project_path")
+    declare_docking_bt_project_path_arg = DeclareLaunchArgument(
+        "docking_bt_project_path",
+        default_value=PathJoinSubstitution(
+            [panther_manager_dir, "behavior_trees", "DockingBT.btproj"]
+        ),
+        description="Path to BehaviorTree project file, responsible for docking management.",
+    )
+
     lights_bt_project_path = LaunchConfiguration("lights_bt_project_path")
     declare_lights_bt_project_path_arg = DeclareLaunchArgument(
         "lights_bt_project_path",
@@ -78,6 +87,18 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
+    docking_manager_node = Node(
+        package="panther_manager",
+        executable="docking_manager_node",
+        name="docking_manager",
+        parameters=[
+            PathJoinSubstitution([panther_manager_dir, "config", "docking_manager.yaml"]),
+            {"bt_project_path": docking_bt_project_path},
+        ],
+        namespace=namespace,
+        emulate_tty=True,
+    )
+
     lights_manager_node = Node(
         package="panther_manager",
         executable="lights_manager_node",
@@ -107,11 +128,13 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_docking_bt_project_path_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,
         declare_namespace_arg,
         declare_shutdown_hosts_config_path_arg,
         declare_use_sim_arg,
+        docking_manager_node,
         lights_manager_node,
         safety_manager_node,
     ]

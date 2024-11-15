@@ -1,0 +1,12 @@
+/**:
+  docking_manager:
+    ros__parameters:
+      timer_frequency: 50.0
+      bt_server_port: 4444
+      ros_communication_timeout:
+        availability: 2.0
+        response: 1.0
+      ros_plugin_libs:
+        - check_joy_msg_bt_node
+        - dock_robot_bt_node
+        - undock_robot_bt_node

@@ -19,15 +19,18 @@
 
   <depend>behaviortree_cpp</depend>
   <depend>behaviortree_ros2</depend>
+  <depend>geometry_msgs</depend>
   <depend>iputils-ping</depend>
   <depend>libboost-dev</depend>
   <depend>libssh-dev</depend>
+  <depend>opennav_docking_msgs</depend>
   <depend>panther_msgs</depend>
   <depend>panther_utils</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>yaml-cpp</depend>
 
   <test_depend>ament_lint_auto</test_depend>

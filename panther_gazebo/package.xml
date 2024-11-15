@@ -27,6 +27,7 @@
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_msgs</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_srvs</depend>
 
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">apriltag_ros</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">launch</exec_depend>
@@ -34,6 +35,7 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">nav2_common</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_controller</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_description</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_docking</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_lights</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_localization</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_manager</exec_depend>

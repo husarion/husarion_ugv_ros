@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_MANAGER_PLUGINS_CONDITION_ARE_BUTTONS_PRESSED_HPP_
-#define PANTHER_MANAGER_PLUGINS_CONDITION_ARE_BUTTONS_PRESSED_HPP_
+#ifndef PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
+#define PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
 
 #include <memory>
 #include <mutex>
@@ -29,27 +29,40 @@
 namespace panther_manager
 {
 
-class AreButtonsPressed : public BT::RosTopicSubNode<sensor_msgs::msg::Joy>
+class CheckJoyMsg : public BT::RosTopicSubNode<sensor_msgs::msg::Joy>
 {
+  using JoyMsg = sensor_msgs::msg::Joy;
+
 public:
-  AreButtonsPressed(
+  CheckJoyMsg(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-  : BT::RosTopicSubNode<sensor_msgs::msg::Joy>(name, conf, params)
+  : BT::RosTopicSubNode<JoyMsg>(name, conf, params)
   {
   }
 
-  BT::NodeStatus onTick(const std::shared_ptr<sensor_msgs::msg::Joy> & last_msg);
+  BT::NodeStatus onTick(const JoyMsg::SharedPtr & last_msg);
 
   static BT::PortsList providedPorts()
   {
     return providedBasicPorts(
-      {BT::InputPort<std::vector<int>>("buttons", "state of buttons to accept a condition")});
+      {BT::InputPort<std::vector<float>>(
+         "axes", "",
+         "Specifies the expected state of the axes field. An empty string (\"\") means the values "
+         "are ignored."),
+       BT::InputPort<std::vector<int>>(
+         "buttons", "",
+         "Specifies the expected state of the buttons field. An empty string (\"\") means values "
+         "are ignored."),
+       BT::InputPort<double>(
+         "timeout", 0.0, "Maximum allowable time delay to accept the condition.")});
   }
 
 private:
-  std::vector<int> buttons_;
+  bool checkAxes(const JoyMsg::SharedPtr & last_msg);
+  bool checkButtons(const JoyMsg::SharedPtr & last_msg);
+  bool checkTimeout(const JoyMsg::SharedPtr & last_msg);
 };
 
 }  // namespace panther_manager
 
-#endif  // PANTHER_MANAGER_PLUGINS_CONDITION_ARE_BUTTONS_PRESSED_HPP_
+#endif  // PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_

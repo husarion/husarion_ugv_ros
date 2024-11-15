@@ -12,38 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
-#define PANTHER_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
+#ifndef PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_BOOL_MSG_HPP_
+#define PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_BOOL_MSG_HPP_
 
+#include <memory>
+#include <mutex>
 #include <string>
 
-#include "behaviortree_ros2/bt_service_node.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include <behaviortree_ros2/bt_topic_sub_node.hpp>
+#include <rclcpp/rclcpp.hpp>
 
-#include "std_srvs/srv/set_bool.hpp"
+#include <std_msgs/msg/bool.hpp>
+
+#include "panther_manager/behavior_tree_utils.hpp"
 
 namespace panther_manager
 {
 
-class CallSetBoolService : public BT::RosServiceNode<std_srvs::srv::SetBool>
+// FIXME: There is no possibility to set QoS profile. Add it in the future to subscribe e_stop.
+class CheckBoolMsg : public BT::RosTopicSubNode<std_msgs::msg::Bool>
 {
+  using BoolMsg = std_msgs::msg::Bool;
+
 public:
-  CallSetBoolService(
+  CheckBoolMsg(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-  : BT::RosServiceNode<std_srvs::srv::SetBool>(name, conf, params)
+  : BT::RosTopicSubNode<BoolMsg>(name, conf, params)
   {
   }
+
+  BT::NodeStatus onTick(const BoolMsg::SharedPtr & last_msg);
 
   static BT::PortsList providedPorts()
   {
     return providedBasicPorts(
-      {BT::InputPort<bool>("data", "Boolean value to send with the service request.")});
+      {BT::InputPort<bool>("data", "Specifies the expected state of the data field.")});
   }
-
-  virtual bool setRequest(typename Request::SharedPtr & request) override;
-  virtual BT::NodeStatus onResponseReceived(const typename Response::SharedPtr & response) override;
 };
 
 }  // namespace panther_manager
 
-#endif  // PANTHER_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
+#endif  // PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_BOOL_MSG_HPP_

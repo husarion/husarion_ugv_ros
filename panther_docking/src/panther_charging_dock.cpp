@@ -45,6 +45,11 @@ void PantherChargingDock::configure(
   declareParameters(node);
   getParameters(node);
 
+  if(!use_wibotic_info_){
+    RCLCPP_INFO(logger_, "Wibotic info is disabled.");
+  }
+
+
   pose_filter_ = std::make_unique<opennav_docking::PoseFilter>(
     pose_filter_coef_, external_detection_timeout_);
 }

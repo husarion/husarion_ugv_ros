@@ -142,6 +142,22 @@ def generate_launch_description():
         condition=IfCondition(PythonExpression(["not ", use_sim, " and ", use_wibotic_info])),
     )
 
+    # FIXME: Remove before release
+    panther_manager_dir = FindPackageShare("panther_manager")
+    docking_manager_node = Node(
+        package="panther_manager",
+        executable="docking_manager_node",
+        name="docking_manager",
+        parameters=[
+            PathJoinSubstitution([panther_manager_dir, "config", "docking_manager.yaml"]),
+            {"bt_project_path": PathJoinSubstitution(
+            [panther_manager_dir, "behavior_trees", "DockingBT.btproj"])},
+        ],
+        namespace=namespace,
+        emulate_tty=True,
+    )
+
+
     return LaunchDescription(
         [
             declare_use_sim_arg,
@@ -154,5 +170,6 @@ def generate_launch_description():
             docking_server_activate_node,
             dock_pose_publisher,
             wibotic_connector_can,
+            docking_manager_node
         ]
     )

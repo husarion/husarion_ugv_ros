@@ -2,7 +2,7 @@
   ros__parameters:
     controller_frequency: 50.0
     initial_perception_timeout: 5.0
-    wait_charge_timeout: 5.0
+    wait_charge_timeout: 10.0
     dock_approach_timeout: 20.0
     undock_linear_tolerance: 0.08
     undock_angular_tolerance: 0.08
@@ -16,7 +16,7 @@
     dock_plugins: ["panther_charging_dock"]
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
-      external_detection_timeout: 0.2
+      external_detection_timeout: 0.1
       docking_distance_threshold: 0.12
       docking_yaw_threshold: 0.2
       staging_x_offset: -0.8

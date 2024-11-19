@@ -30,9 +30,14 @@ static constexpr char kOdomFrame[] = "odom";
 class PantherChargingDockWrapper : public panther_docking::PantherChargingDock
 {
 public:
-  void setDockPose(geometry_msgs::msg::PoseStamped::SharedPtr pose)
+  void setDockPose(geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
-    panther_docking::PantherChargingDock::setDockPose(pose);
+    panther_docking::PantherChargingDock::setDockPose(msg);
+  }
+
+  void setWiboticInfo(wibotic_msgs::msg::WiboticInfo::SharedPtr msg)
+  {
+    panther_docking::PantherChargingDock::setWiboticInfo(msg);
   }
 };
 
@@ -43,6 +48,8 @@ protected:
   void SetTransform(
     const std::string & frame_id, const std::string & child_frame_id,
     const builtin_interfaces::msg::Time & stamp, const geometry_msgs::msg::Transform & transform);
+
+  void ActivateWiboticInfo();
 
   rclcpp_lifecycle::LifecycleNode::SharedPtr node_;
   std::shared_ptr<PantherChargingDockWrapper> dock_;
@@ -76,6 +83,14 @@ void TestPantherChargingDock::SetTransform(
   transform_stamped.transform = transform;
 
   tf_buffer_->setTransform(transform_stamped, "unittest", true);
+}
+
+void TestPantherChargingDock::ActivateWiboticInfo()
+{
+  node_->declare_parameter("dock.use_wibotic_info", true);
+  node_->declare_parameter("dock.wibotic_info_timeout", 1.0);
+  dock_->configure(node_, "dock", tf_buffer_);
+  dock_->activate();
 }
 
 TEST_F(TestPantherChargingDock, FailConfigureNoNode)
@@ -188,6 +203,57 @@ TEST_F(TestPantherChargingDock, IsDocked)
   }
 
   ASSERT_TRUE(dock_->isDocked());
+}
+
+TEST_F(TestPantherChargingDock, IsChargingNoWiboticInfo)
+{
+  ActivateWiboticInfo();
+  ASSERT_THROW({ dock_->isCharging(); }, opennav_docking_core::FailedToCharge);
+}
+
+TEST_F(TestPantherChargingDock, IsChargingTimeout)
+{
+  ActivateWiboticInfo();
+
+  wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
+    std::make_shared<wibotic_msgs::msg::WiboticInfo>();
+  dock_->setWiboticInfo(wibotic_info);
+  ASSERT_FALSE(dock_->isCharging());
+}
+
+TEST_F(TestPantherChargingDock, IsChargingCurrentZero)
+{
+  ActivateWiboticInfo();
+  wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
+    std::make_shared<wibotic_msgs::msg::WiboticInfo>();
+  wibotic_info->header.stamp = node_->now();
+  wibotic_info->i_charger = 0.0;
+
+  dock_->setWiboticInfo(wibotic_info);
+  ASSERT_FALSE(dock_->isCharging());
+}
+
+TEST_F(TestPantherChargingDock, IsChargingTimeoutWithGoodCurrent)
+{
+  ActivateWiboticInfo();
+  wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
+    std::make_shared<wibotic_msgs::msg::WiboticInfo>();
+  wibotic_info->i_charger = 0.1;
+
+  dock_->setWiboticInfo(wibotic_info);
+  ASSERT_FALSE(dock_->isCharging());
+}
+
+TEST_F(TestPantherChargingDock, IsChargingGoodCurrentWithoutTimeout)
+{
+  ActivateWiboticInfo();
+  wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
+    std::make_shared<wibotic_msgs::msg::WiboticInfo>();
+  wibotic_info->i_charger = 0.1;
+  wibotic_info->header.stamp = node_->now();
+
+  dock_->setWiboticInfo(wibotic_info);
+  ASSERT_TRUE(dock_->isCharging());
 }
 
 int main(int argc, char ** argv)

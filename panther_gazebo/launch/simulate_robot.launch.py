@@ -198,6 +198,19 @@ def generate_launch_description():
         launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
     )
 
+    apriltag_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("panther_gazebo"),
+                    "launch",
+                    "apriltag.launch.py",
+                ]
+            ),
+        ),
+        launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
+    )
+
     return LaunchDescription(
         [
             declare_battery_config_path_arg,
@@ -214,5 +227,6 @@ def generate_launch_description():
             simulate_components,
             gz_bridge,
             docking_launch,
+            apriltag_launch,
         ]
     )

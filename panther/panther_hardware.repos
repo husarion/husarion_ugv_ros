@@ -14,8 +14,12 @@ repositories:
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git
-    version: b29f41ac00ab1a6fbac3e1d03602575094de277a
+    version: 0813c3eebec410c2635b1db3ab87b094c38658c6
   ros2_controllers: # Caused by two error: 1. https://github.com/ros-controls/ros2_controllers/pull/1104 2. There is no nice way to change `sensor_name` imu_bradcaster param when spawning multiple robots -> ros2_control refer only to single imu entity
     type: git
     url: https://github.com/husarion/ros2_controllers/
     version: 9da42a07a83bbf3faf5cad11793fff22f25068af
+  wibotic_ros:
+    type: git
+    url: https://github.com/husarion/wibotic_ros/
+    version: 0.1.0

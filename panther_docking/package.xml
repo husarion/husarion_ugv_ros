@@ -17,6 +17,7 @@
   <depend>geometry_msgs</depend>
   <depend>nav2_util</depend>
   <depend>opennav_docking</depend>
+  <depend>panther_manager</depend>
   <depend>panther_utils</depend>
   <depend>pluginlib</depend>
   <depend>python3-pip</depend>
@@ -25,10 +26,12 @@
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
   <depend>tf2_ros</depend>
+  <depend>wibotic_msgs</depend>
 
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">apriltag_ros</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>python3-imageio</exec_depend>
+  <exec_depend>wibotic_connector_can</exec_depend>
   <exec_depend>xacro</exec_depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

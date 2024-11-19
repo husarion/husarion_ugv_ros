@@ -64,9 +64,23 @@ def generate_launch_description():
         choices=["debug", "info", "warning", "error"],
     )
 
+    use_wibotic_info = LaunchConfiguration("use_wibotic_info")
+    declare_use_wibotic_info_arg = DeclareLaunchArgument(
+        "use_wibotic_info",
+        default_value="True",
+        description="Whether Wibotic information is used",
+        choices=[True, False, "True", "False", "true", "false", "1", "0"],
+    )
+
     namespaced_docking_server_config = ReplaceString(
         source_file=docking_server_config_path,
-        replacements={"<robot_namespace>": namespace, "//": "/"},
+        replacements={
+            "<robot_namespace>": namespace,
+            "//": "/",
+            "<use_wibotic_info_param>": PythonExpression(
+                ["'false' if '", use_sim, "' else '", use_wibotic_info, "'"]
+            ),
+        },
     )
 
     docking_server_node = Node(
@@ -141,16 +155,29 @@ def generate_launch_description():
         launch_arguments={"namespace": namespace}.items(),
     )
 
+    wibotic_connector_can = Node(
+        package="wibotic_connector_can",
+        executable="wibotic_connector_can",
+        namespace=namespace,
+        emulate_tty=True,
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        condition=IfCondition(
+            PythonExpression(["not ", use_sim, " and ", use_wibotic_info, " and ", use_docking])
+        ),
+    )
+
     return LaunchDescription(
         [
             declare_apriltag_config_path_arg,
-            declare_use_docking_arg,
             declare_docking_server_config_path_arg,
+            declare_use_docking_arg,
+            declare_use_wibotic_info_arg,
             declare_log_level,
             station_launch,
             docking_server_node,
             docking_server_activate_node,
             dock_pose_publisher,
             apriltag_node,
+            wibotic_connector_can,
         ]
     )

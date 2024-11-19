@@ -177,7 +177,7 @@ bool GPIOControllerPTH12X::ChargerEnable(const bool enable)
 
 bool GPIOControllerPTH12X::LEDControlEnable(const bool enable)
 {
-  return gpio_driver_->SetPinValue(GPIOPin::LED_SBC_SEL, enable);
+  return gpio_driver_->SetPinValue(GPIOPin::LED_SBC_SEL, enable, std::chrono::milliseconds(10));
 }
 
 std::unordered_map<GPIOPin, bool> GPIOControllerPTH12X::QueryControlInterfaceIOStates() const

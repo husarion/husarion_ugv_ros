@@ -189,13 +189,17 @@ public:
    *
    * @param pin GPIOPin to set the value for.
    * @param value The boolean value to set for the pin.
+   * @param pin_validation_wait_time The time duration to wait for the pin value to change before
+   * checking if change was successful.
    *
    * @throws std::invalid_argument if trying to set the value for an INPUT pin.
    * @throws std::runtime_error if changing the GPIO state fails.
    *
    * @return true if the pin value is successfully set, false otherwise.
    */
-  bool SetPinValue(const GPIOPin pin, const bool value);
+  bool SetPinValue(
+    const GPIOPin pin, const bool value,
+    const std::chrono::milliseconds & pin_validation_wait_time = std::chrono::milliseconds(0));
 
 private:
   std::unique_ptr<gpiod::line_request> CreateLineRequest(gpiod::chip & chip);

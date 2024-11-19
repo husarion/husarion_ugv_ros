@@ -51,5 +51,5 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 - `panther_charging_dock.docking_yaw_threshold` [*double*, default: **0.3**]: A threshold of a difference of yaw angles between a robot pose and a dock pose to declare if docking succeed.
 - `panther_charging_dock.staging_x_offset` [*double*, default: **-0.7**]: A staging pose is defined by offsetting a dock pose in axis X.
 - `panther_charging_dock.filter_coef` [*double*, default: **0.1**]: A key parameter that influences the trade-off between the filter's responsiveness and its smoothness, balancing how quickly it reacts to new pose data pose how much it smooths out fluctuations.
-- `panther_charging_dock.use_wibotic_info` [*bool*, default: **True**]: Use readings from `wibotic_info` topics to ensure that a robot is charging.
+- `panther_charging_dock.use_wibotic_info` [*bool*, default: **True**]: Whether Wibotic information is used.
 - `panther_charging_dock.wibotic_info_timeout` [*double*, default: **1.5**]: A timeout in seconds to receive wibotic_info.

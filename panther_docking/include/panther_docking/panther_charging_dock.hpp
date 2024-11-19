@@ -153,9 +153,7 @@ protected:
   void updateAndPublishStagingPose();
 
   /**
-   * @brief Set the dock pose.
-   *
-   * This method sets the dock pose. It can be used as a callback for a subscription.
+   * @brief Dock pose callback, used for external detection.
    *
    * @param pose The dock pose.
    */

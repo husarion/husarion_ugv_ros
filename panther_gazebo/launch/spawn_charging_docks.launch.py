@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+from tempfile import NamedTemporaryFile
 
 import imageio
 import yaml
@@ -31,22 +32,24 @@ def generate_apriltag_and_get_path(tag_id):
 
     tag_generator = TagGenerator2("tag36h11")
     tag_image = tag_generator.generate(tag_id, scale=1000)
+    temp_file = NamedTemporaryFile(suffix=f"_tag_{tag_id}.png", delete=False)
 
-    path = f"/tmp/tag_{tag_id}.png"
-
-    imageio.imwrite(path, tag_image)
-    return path
+    imageio.imwrite(temp_file.name, tag_image)
+    return temp_file.name
 
 
 def spawn_stations(context, *args, **kwargs):
     docking_server_config_path = LaunchConfiguration("docking_server_config_path").perform(context)
-
     docking_server_config = None
-    if docking_server_config_path == "None":
-        return []
 
-    with open(os.path.join(docking_server_config_path)) as file:
-        docking_server_config = yaml.safe_load(file)
+    try:
+        with open(os.path.join(docking_server_config_path)) as file:
+            docking_server_config = yaml.safe_load(file)
+        if not isinstance(docking_server_config, dict) or "/**" not in docking_server_config:
+            raise ValueError("Invalid configuration structure")
+    except Exception as e:
+        print(f"Error loading docking server config: {str(e)}")
+        return []
 
     actions = []
 

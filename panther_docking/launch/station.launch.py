@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+from tempfile import NamedTemporaryFile
 
 import imageio
 import yaml
@@ -37,11 +38,10 @@ def generate_apriltag_and_get_path(tag_id):
 
     tag_generator = TagGenerator2("tag36h11")
     tag_image = tag_generator.generate(tag_id, scale=1000)
+    temp_file = NamedTemporaryFile(suffix=f"_tag_{tag_id}.png", delete=False)
 
-    path = f"/tmp/tag_{tag_id}.png"
-
-    imageio.imwrite(path, tag_image)
-    return path
+    imageio.imwrite(temp_file.name, tag_image)
+    return temp_file.name
 
 
 def generate_urdf(name, apriltag_id, apriltag_size):
@@ -78,11 +78,15 @@ def launch_stations_descriptions(context, *args, **kwargs):
     apriltag_size = LaunchConfiguration("apriltag_size").perform(context)
 
     docking_server_config = None
-    if docking_server_config_path == "None":
-        return []
 
-    with open(os.path.join(docking_server_config_path)) as file:
-        docking_server_config = yaml.safe_load(file)
+    try:
+        with open(os.path.join(docking_server_config_path)) as file:
+            docking_server_config = yaml.safe_load(file)
+        if not isinstance(docking_server_config, dict) or "/**" not in docking_server_config:
+            raise ValueError("Invalid configuration structure")
+    except Exception as e:
+        print(f"Error loading docking server config: {str(e)}")
+        return []
 
     actions = []
     ros_parameters = docking_server_config["/**"]["ros__parameters"]
@@ -112,13 +116,6 @@ def launch_stations_descriptions(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    declare_use_docking_arg = DeclareLaunchArgument(
-        "use_docking",
-        default_value="True",
-        description="Enable docking server.",
-        choices=["True", "False", "true", "false"],
-    )
-
     declare_apriltag_id = DeclareLaunchArgument(
         "apriltag_id",
         default_value="0",
@@ -133,7 +130,6 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            declare_use_docking_arg,
             declare_apriltag_id,
             declare_apriltag_size,
             OpaqueFunction(function=launch_stations_descriptions),

@@ -41,7 +41,7 @@ public:
     const auto publish_rate = get_parameter("publish_rate").as_double();
     const auto publish_period = std::chrono::duration<double>(1.0 / publish_rate);
 
-    timeout_ = get_parameter("panther_charging_dock.external_detection_timeout").as_double();
+    timeout_ = get_parameter("panther_charging_dock.external_detection_timeout").as_double() * 0.1;
     base_frame_ = get_parameter("base_frame").as_string();
 
     for (const auto & dock : docks) {
@@ -87,7 +87,7 @@ private:
       base_transform_stamped = tf_buffer_->lookupTransform(
         target_frame_, base_frame_, tf2::TimePointZero);
     } catch (tf2::TransformException & ex) {
-      RCLCPP_DEBUG(this->get_logger(), "Could not get transform: %s", ex.what());
+      RCLCPP_DEBUG_STREAM(this->get_logger(), "Could not get transform: " << ex.what());
       return;
     }
 
@@ -95,10 +95,9 @@ private:
       geometry_msgs::msg::TransformStamped transform_stamped;
       try {
         transform_stamped = tf_buffer_->lookupTransform(
-          target_frame_, source_frames_[i], tf2::TimePointZero,
-          tf2::durationFromSec(timeout_ * 0.1));
+          target_frame_, source_frames_[i], tf2::TimePointZero, tf2::durationFromSec(timeout_));
       } catch (tf2::TransformException & ex) {
-        RCLCPP_DEBUG(this->get_logger(), "Could not get transform: %s", ex.what());
+        RCLCPP_DEBUG_STREAM(this->get_logger(), "Could not get transform: " << ex.what());
         continue;
       }
 

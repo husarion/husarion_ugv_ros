@@ -16,11 +16,13 @@
     dock_plugins: ["panther_charging_dock"]
     panther_charging_dock:
       plugin: panther_docking::PantherChargingDock
-      external_detection_timeout: 0.1
+      external_detection_timeout: 0.2
       docking_distance_threshold: 0.12
       docking_yaw_threshold: 0.2
       staging_x_offset: -0.8
       filter_coef: 0.1
+      use_wibotic_info: <use_wibotic_info_param>
+      wibotic_info_timeout: 1.0
 
     docks: ["main", "backup"]
     main:

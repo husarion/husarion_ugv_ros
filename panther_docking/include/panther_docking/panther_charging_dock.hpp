@@ -149,8 +149,10 @@ protected:
    * @brief Method to update and publish the staging pose.
    *
    * Uses staging_x_offset_ and staging_yaw_offset_ to calculate the staging pose.
+   *
+   * @param frame The frame to publish the staging pose in.
    */
-  void updateAndPublishStagingPose();
+  void updateAndPublishStagingPose(const std::string & frame);
 
   /**
    * @brief Dock pose callback, used for external detection.

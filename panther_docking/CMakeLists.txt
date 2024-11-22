@@ -61,7 +61,8 @@ if(BUILD_TESTING)
 
 endif()
 
-add_executable(dock_pose_publisher src/dock_pose_publisher_node.cpp)
+add_executable(dock_pose_publisher src/dock_pose_publisher_node.cpp
+                                   src/dock_pose_publisher_main.cpp)
 ament_target_dependencies(dock_pose_publisher ${PACKAGE_DEPENDENCIES})
 
 install(TARGETS dock_pose_publisher DESTINATION lib/${PROJECT_NAME})

@@ -6,7 +6,6 @@
     size: 0.06
     profile: false
 
-
     max_hamming: 0
     detector:
       threads: 1
@@ -15,7 +14,6 @@
       refine: true
       sharpening: 0.25
       debug: false
-
 
     tag:
       ids: [0, 1]

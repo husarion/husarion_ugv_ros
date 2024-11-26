@@ -9,7 +9,8 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 ## Configuration Files
 
-- [`panther_docking_server.yaml`](./config/panther_docking_server.yaml): Defines parameters for a `docking_server` and a `PantherChargingDock` plugin.
+- [`panther_docking_server.yaml`](./config/panther_docking_server.yaml): Defines parameters for a `docking_server` and a `PantherChargingDock` plugin. Defines poses where charging docks are spawned in the Gazebo.
+
 
 ## ROS Nodes
 

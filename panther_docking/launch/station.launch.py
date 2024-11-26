@@ -128,10 +128,18 @@ def generate_launch_description():
         description="Size in meters of a generated apriltag on the station",
     )
 
+    declare_use_docking_arg = DeclareLaunchArgument(
+        "use_docking",
+        default_value="True",
+        description="Enable docking server.",
+        choices=["True", "False", "true", "false"],
+    )
+
     return LaunchDescription(
         [
             declare_apriltag_id,
             declare_apriltag_size,
+            declare_use_docking_arg,
             OpaqueFunction(function=launch_stations_descriptions),
         ]
     )

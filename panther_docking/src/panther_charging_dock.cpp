@@ -159,8 +159,10 @@ bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
   auto duration = rclcpp::Time(request_detection_time) - rclcpp::Time(dock_pose_.header.stamp);
   if (duration > timeout) {
     RCLCPP_WARN_STREAM(
-      logger_, "Lost detection or did not detect: timeout exceeded: "
-                 << duration.seconds() << "s timeout: " << timeout.seconds() << "s");
+      logger_, "Detection timeout exceeded. Duration since last detection: "
+                 << duration.seconds() << " seconds (timeout threshold: " << timeout.seconds()
+                 << " seconds). "
+                 << "No detection received or lost detection for external detection.");
     return false;
   }
 

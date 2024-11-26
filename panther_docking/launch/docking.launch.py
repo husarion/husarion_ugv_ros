@@ -36,13 +36,6 @@ def generate_launch_description():
         description=("Path to docking server configuration file."),
     )
 
-    declare_use_docking_arg = DeclareLaunchArgument(
-        "use_docking",
-        default_value="True",
-        description="Enable docking server.",
-        choices=["True", "False", "true", "false"],
-    )
-
     apriltag_config_path = LaunchConfiguration("apriltag_config_path")
     declare_apriltag_config_path_arg = DeclareLaunchArgument(
         "apriltag_config_path",
@@ -170,9 +163,8 @@ def generate_launch_description():
         [
             declare_apriltag_config_path_arg,
             declare_docking_server_config_path_arg,
-            declare_use_docking_arg,
-            declare_use_wibotic_info_arg,
             declare_log_level,
+            declare_use_wibotic_info_arg,
             station_launch,
             docking_server_node,
             docking_server_activate_node,

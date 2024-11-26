@@ -36,7 +36,7 @@
       type: panther_charging_dock
       frame: <robot_namespace>/map
       dock_frame: backup_wibotic_receiver_requested_pose_link
-      pose: [-1.0, 1.5, 1.57]  # position of the dock on the map. Used also for spawning dock in the simulation.
+      pose: [-1.0, 1.5, 1.57]  # [x, y, yaw] pose of the dock on the map. Used also for spawning dock in the simulation.
       apriltag_id: 1
 
     controller:

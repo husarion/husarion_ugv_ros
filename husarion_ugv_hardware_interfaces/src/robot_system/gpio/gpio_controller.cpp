@@ -212,7 +212,8 @@ std::unordered_map<GPIOPin, bool> GPIOController::QueryControlInterfaceIOStates(
 const std::vector<GPIOInfo> GPIOController::gpio_config_info_storage_ = {
   GPIOInfo{GPIOPin::WATCHDOG, gpiod::line::direction::OUTPUT},
   GPIOInfo{GPIOPin::AUX_PW_EN, gpiod::line::direction::OUTPUT},
-  GPIOInfo{GPIOPin::CHRG_DISABLE, gpiod::line::direction::OUTPUT},
+  GPIOInfo{
+    GPIOPin::CHRG_DISABLE, gpiod::line::direction::OUTPUT, false, gpiod::line::value::ACTIVE},
   GPIOInfo{GPIOPin::DRIVER_EN, gpiod::line::direction::OUTPUT},
   GPIOInfo{GPIOPin::E_STOP_RESET, gpiod::line::direction::INPUT},
   GPIOInfo{GPIOPin::FAN_SW, gpiod::line::direction::OUTPUT},

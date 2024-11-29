@@ -87,7 +87,7 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
-    use_docking = LaunchConfiguration("use_docking")
+    use_docking = LaunchConfiguration("use_docking", default="False")
     docking_manager_node = Node(
         package="panther_manager",
         executable="docking_manager_node",

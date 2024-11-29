@@ -45,9 +45,9 @@ def generate_launch_description():
         description=("Path to apriltag configuration file. Only used in simulation."),
     )
 
-    namespace = LaunchConfiguration("namespace")
-    use_docking = LaunchConfiguration("use_docking")
-    use_sim = LaunchConfiguration("use_sim")
+    namespace = LaunchConfiguration("namespace", default="")
+    use_docking = LaunchConfiguration("use_docking", default="True")
+    use_sim = LaunchConfiguration("use_sim", default="False")
 
     log_level = LaunchConfiguration("log_level")
     declare_log_level = DeclareLaunchArgument(

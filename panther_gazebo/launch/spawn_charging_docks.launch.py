@@ -40,6 +40,7 @@ def generate_apriltag_and_get_path(tag_id):
 
 def spawn_stations(context, *args, **kwargs):
     docking_server_config_path = LaunchConfiguration("docking_server_config_path").perform(context)
+    use_docking = LaunchConfiguration("use_docking").perform(context)
     docking_server_config = None
 
     try:
@@ -80,7 +81,7 @@ def spawn_stations(context, *args, **kwargs):
                 str(pose[2] - 1.57),
             ],
             emulate_tty=True,
-            condition=IfCondition(LaunchConfiguration("use_docking")),
+            condition=IfCondition(use_docking),
         )
 
         actions.append(spawn_station)
@@ -103,10 +104,18 @@ def generate_launch_description():
         description=("Path to docking server configuration file."),
     )
 
+    declare_use_docking_arg = DeclareLaunchArgument(
+        "use_docking",
+        default_value="True",
+        description="Enable docking server and spawn docking stations in a simulation.",
+        choices=["True", "False", "true", "false"],
+    )
+
     return LaunchDescription(
         [
             declare_docking_server_config_path_arg,
             declare_device_namespace,
+            declare_use_docking_arg,
             OpaqueFunction(function=spawn_stations),
         ]
     )

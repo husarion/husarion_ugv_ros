@@ -131,7 +131,7 @@ def generate_launch_description():
     declare_use_docking_arg = DeclareLaunchArgument(
         "use_docking",
         default_value="True",
-        description="Enable docking server.",
+        description="Enable docking server and spawn docking stations in a simulation.",
         choices=["True", "False", "true", "false"],
     )
 

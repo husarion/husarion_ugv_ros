@@ -31,7 +31,7 @@
 
     <joint name="${prefix}_wheel_joint" type="continuous">
       <origin xyz="${x} ${y} 0.0" rpy="0.0 0.0 0.0" />
-      <parent link="body_link" />
+      <parent link="base_link" />
       <child link="${prefix}_wheel_link" />
       <axis xyz="0.0 1.0 0.0" />
 
@@ -41,13 +41,9 @@
 
     <link name="${prefix}_wheel_link">
       <visual>
-        <origin xyz="0.0 0.0 0.0" rpy="-${pi/2} 0.0 0.0" />
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
         <geometry>
-          <!-- TODO cheange when models ready -->
-          <!-- <mesh
-          filename="package://${wheel_config['mesh_package']}/${wheel_config['folder_path']}/${prefix}_wheel.dae"
-          /> -->
-          <cylinder radius="${wheel_config['wheel_radius']}" length="${wheel_config['wheel_width']}" />
+          <mesh filename="package://${wheel_config['mesh_package']}/${wheel_config['folder_path']}/${prefix}_wheel.dae" />
         </geometry>
       </visual>
 

@@ -179,6 +179,8 @@ protected:
    */
   void setDockPosePublisherState(std::uint8_t state);
 
+  bool IsWiboticInfoTimeout();
+
   std::string base_frame_name_;
   std::string fixed_frame_name_;
   std::string dock_frame_;

@@ -204,22 +204,7 @@ bool PantherChargingDock::isCharging()
       return false;
     }
 
-    if (!wibotic_info_) {
-      setDockPosePublisherState(lifecycle_msgs::msg::Transition::TRANSITION_DEACTIVATE);
-      throw opennav_docking_core::FailedToCharge("No Wibotic info received.");
-    }
-
-    rclcpp::Time requested_wibotic_info_time;
-    {
-      auto node = node_.lock();
-      requested_wibotic_info_time = node->now();
-    }
-
-    const auto duration = requested_wibotic_info_time - wibotic_info_->header.stamp;
-    if (duration > rclcpp::Duration::from_seconds(wibotic_info_timeout_)) {
-      RCLCPP_WARN_STREAM(
-        logger_, "Wibotic info is outdated. Time difference is: "
-                   << duration.seconds() << "s but timeout is " << wibotic_info_timeout_ << "s.");
+    if (IsWiboticInfoTimeout()) {
       return false;
     }
 
@@ -283,6 +268,30 @@ void PantherChargingDock::setDockPosePublisherState(std::uint8_t state)
   auto request = std::make_shared<lifecycle_msgs::srv::ChangeState::Request>();
   request->transition.id = state;
   dock_pose_publisher_change_state_client_->async_send_request(request);
+}
+
+bool PantherChargingDock::IsWiboticInfoTimeout()
+{
+  if (!wibotic_info_) {
+    RCLCPP_ERROR_STREAM(
+      logger_, "Wibotic info is not set. This should not happen. Check the Wibotic info topic.");
+    return true;
+  }
+
+  rclcpp::Time requested_wibotic_info_time;
+  {
+    auto node = node_.lock();
+    requested_wibotic_info_time = node->now();
+  }
+
+  const auto duration = requested_wibotic_info_time - wibotic_info_->header.stamp;
+  if (duration > rclcpp::Duration::from_seconds(wibotic_info_timeout_)) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Wibotic info is outdated. Time difference is: "
+                 << duration.seconds() << "s but timeout is " << wibotic_info_timeout_ << "s.");
+    return true;
+  }
+  return false;
 }
 
 }  // namespace panther_docking

@@ -31,7 +31,7 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 - `fixed_frame` [*string*, default: **odom**]: A fixed frame id of a robot.
 - `<dock_name>.type` [*string*, default: **panther_charging_dock**]: It checks if this dock with name `dock_name` is a type of  `panther_charging_dock`.
-- `<dock_name>.frame` [*string*, default: **main_wibotic_receiver_requested_pose_link** ]: Then look for transformation between `fixed_frame` and `<dock_name>.frame`  to publish `dock_pose`. A frame id of a wireless transmitter.
+- `<dock_name>.frame` [*string*, default: **main_wibotic_transmitter_link** ]: Then look for transformation between `fixed_frame` and `<dock_name>.frame`  to publish `dock_pose`. A frame id of a wireless transmitter.
 
 ### PantherChargingDock
 

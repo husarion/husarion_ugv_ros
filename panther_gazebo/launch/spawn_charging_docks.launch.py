@@ -99,7 +99,11 @@ def generate_launch_description():
     declare_docking_server_config_path_arg = DeclareLaunchArgument(
         "docking_server_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("panther_docking"), "config", "panther_docking_server.yaml"]
+            [
+                FindPackageShare("husarion_ugv_docking"),
+                "config",
+                "husarion_ugv_docking_server.yaml",
+            ]
         ),
         description=("Path to docking server configuration file."),
     )

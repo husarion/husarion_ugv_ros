@@ -22,6 +22,7 @@
 
 #include "gtest/gtest.h"
 
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_cpp/basic_types.h"
 #include "rclcpp/rclcpp.hpp"
 
@@ -126,6 +127,10 @@ TestSafetyBehaviorTree::~TestSafetyBehaviorTree() { rclcpp::shutdown(); }
 
 std::vector<rclcpp::Parameter> TestSafetyBehaviorTree::CreateTestParameters() const
 {
+  const auto panther_manager_pkg_path =
+    ament_index_cpp::get_package_share_directory("husarion_ugv_manager");
+  const std::string bt_project_path = panther_manager_pkg_path + "/behavior_trees/SafetyBT.btproj";
+
   std::vector<std::string> plugin_libs;
   plugin_libs.push_back("tick_after_timeout_bt_node");
   plugin_libs.push_back("shutdown_single_host_bt_node");
@@ -137,6 +142,7 @@ std::vector<rclcpp::Parameter> TestSafetyBehaviorTree::CreateTestParameters() co
   ros_plugin_libs.push_back("call_trigger_service_bt_node");
 
   std::vector<rclcpp::Parameter> params;
+  params.push_back(rclcpp::Parameter("bt_project_path", bt_project_path));
   params.push_back(rclcpp::Parameter("plugin_libs", plugin_libs));
   params.push_back(rclcpp::Parameter("ros_plugin_libs", ros_plugin_libs));
   params.push_back(rclcpp::Parameter("fan_turn_off_timeout", kFanTurnOffTimeout));

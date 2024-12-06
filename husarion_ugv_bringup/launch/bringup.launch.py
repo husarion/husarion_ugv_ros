@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 
 from husarion_ugv_utils.messages import welcome_msg
 from launch import LaunchDescription
@@ -45,12 +44,10 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
-    robot_model = robot_model_dict[robot_model_env]
+    robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
     robot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="----")
     robot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
-    welcome_info = welcome_msg(robot_model, robot_serial_no, robot_version)
+    welcome_info = welcome_msg(robot_model_name, robot_serial_no, robot_version)
 
     controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(

@@ -253,6 +253,11 @@ TEST_F(TestADCBattery, BatteryMsgStatusCharging)
   UpdateBattery(1.5, 0.01, 0.98, 0.5, true);
 
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING, battery_state_.power_supply_status);
+
+  // Small charge, but voltage over 41.2 V
+  UpdateBattery(1.65, 0.01, 0.98, 0.04, true);
+
+  EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING, battery_state_.power_supply_status);
 }
 
 TEST_F(TestADCBattery, BatteryMsgStatusNotCharging)

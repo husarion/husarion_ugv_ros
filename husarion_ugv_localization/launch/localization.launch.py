@@ -90,7 +90,7 @@ def generate_launch_description():
     declare_localization_config_path_arg = DeclareLaunchArgument(
         "localization_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_localization"), "config", localization_config_filename]
+            ["/config", "husarion_ugv_localization", "config", localization_config_filename]
         ),
         description="Specify the path to the localization configuration file.",
     )

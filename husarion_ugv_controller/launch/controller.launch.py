@@ -34,6 +34,21 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    husarion_ugv_controller_common_dir = PathJoinSubstitution(
+        ["/config", "husarion_ugv_controller"]
+    )
+
+    robot_model = LaunchConfiguration("robot_model")
+    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
+    robot_description_common_dir = PathJoinSubstitution(["/config", robot_description_pkg])
+
+    declare_robot_model_arg = DeclareLaunchArgument(
+        "robot_model",
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
+        description="Specify robot model",
+        choices=["lynx", "panther"],
+    )
+
     battery_config_path = LaunchConfiguration("battery_config_path")
     declare_battery_config_path_arg = DeclareLaunchArgument(
         "battery_config_path",
@@ -48,7 +63,7 @@ def generate_launch_description():
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_description"), "config", "components.yaml"]
+            [robot_description_common_dir, "config", "components.yaml"]
         ),
         description=(
             "Additional components configuration file. Components described in this file "
@@ -64,7 +79,7 @@ def generate_launch_description():
         "controller_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare("husarion_ugv_controller"),
+                husarion_ugv_controller_common_dir,
                 "config",
                 PythonExpression(["'", wheel_type, "_controller.yaml'"]),
             ]
@@ -92,16 +107,6 @@ def generate_launch_description():
             "When set to False, users should publish their own robot description."
         ),
         choices=["True", "true", "False", "false"],
-    )
-
-    robot_model = LaunchConfiguration("robot_model")
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
-    declare_robot_model_arg = DeclareLaunchArgument(
-        "robot_model",
-        default_value=robot_model_dict[robot_model_env],
-        description="Specify robot model.",
-        choices=["lynx", "panther"],
     )
 
     use_sim = LaunchConfiguration("use_sim")

@@ -40,7 +40,7 @@ public:
     std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater,
     std::shared_ptr<husarion_ugv_battery::Battery> & battery_1,
     std::shared_ptr<husarion_ugv_battery::Battery> & battery_2)
-  : DualBatteryPublisher(node, diagnostic_updater, battery_1, battery_2)
+  : DualBatteryPublisher(node, diagnostic_updater, kBatteryTimeout, battery_1, battery_2)
   {
   }
 
@@ -71,6 +71,9 @@ public:
     return DualBatteryPublisher::MergeChargingStatusMsgs(
       charging_status_msg_1, charging_status_msg_2);
   }
+
+private:
+  static constexpr double kBatteryTimeout = 0.2;
 };
 
 class TestDualBatteryPublisher : public testing::Test

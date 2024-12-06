@@ -32,7 +32,8 @@ public:
   DualBatteryPublisher(
     const rclcpp::Node::SharedPtr & node,
     const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
-    const std::shared_ptr<Battery> & battery_1, const std::shared_ptr<Battery> & battery_2);
+    const double battery_timeout, const std::shared_ptr<Battery> & battery_1,
+    const std::shared_ptr<Battery> & battery_2);
 
   ~DualBatteryPublisher() {}
 

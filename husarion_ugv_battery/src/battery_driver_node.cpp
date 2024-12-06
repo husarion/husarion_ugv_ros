@@ -41,8 +41,9 @@ BatteryDriverNode::BatteryDriverNode(
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
-  this->declare_parameter<int>("ma_window_len/voltage", 10);
-  this->declare_parameter<int>("ma_window_len/current", 10);
+  this->param_listener_ =
+    std::make_shared<battery::ParamListener>(this->get_node_parameters_interface());
+  this->params_ = this->param_listener_->get_params();
 
   // Running at 10 Hz
   battery_pub_timer_ = this->create_wall_timer(
@@ -75,22 +76,17 @@ void BatteryDriverNode::InitializeWithADCBattery()
 {
   RCLCPP_DEBUG(this->get_logger(), "Initializing with ADC data.");
 
-  this->declare_parameter<std::string>("adc/device0", "/sys/bus/iio/devices/iio:device0");
-  this->declare_parameter<std::string>("adc/device1", "/sys/bus/iio/devices/iio:device1");
-  this->declare_parameter<int>("adc/ma_window_len/temp", 10);
-  this->declare_parameter<int>("adc/ma_window_len/charge", 10);
-
-  const std::string adc0_device_path = this->get_parameter("adc/device0").as_string();
-  const std::string adc1_device_path = this->get_parameter("adc/device1").as_string();
+  const std::string adc0_device_path = this->params_.adc.device0;
+  const std::string adc1_device_path = this->params_.adc.device1;
 
   adc0_reader_ = std::make_shared<ADCDataReader>(adc0_device_path);
   adc1_reader_ = std::make_shared<ADCDataReader>(adc1_device_path);
 
   const ADCBatteryParams battery_params = {
-    static_cast<std::size_t>(this->get_parameter("ma_window_len/voltage").as_int()),
-    static_cast<std::size_t>(this->get_parameter("ma_window_len/current").as_int()),
-    static_cast<std::size_t>(this->get_parameter("adc/ma_window_len/temp").as_int()),
-    static_cast<std::size_t>(this->get_parameter("adc/ma_window_len/charge").as_int()),
+    static_cast<std::size_t>(this->params_.ma_window_len.voltage),
+    static_cast<std::size_t>(this->params_.ma_window_len.current),
+    static_cast<std::size_t>(this->params_.adc.ma_window_len.temp),
+    static_cast<std::size_t>(this->params_.adc.ma_window_len.charge),
   };
 
   battery_2_ = std::make_shared<ADCBattery>(
@@ -106,7 +102,8 @@ void BatteryDriverNode::InitializeWithADCBattery()
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
     battery_publisher_ = std::make_shared<DualBatteryPublisher>(
-      this->shared_from_this(), diagnostic_updater_, battery_1_, battery_2_);
+      this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_,
+      battery_2_);
   } else {
     battery_2_.reset();
     battery_1_ = std::make_shared<ADCBattery>(
@@ -118,7 +115,7 @@ void BatteryDriverNode::InitializeWithADCBattery()
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
-      this->shared_from_this(), diagnostic_updater_, battery_1_);
+      this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
   }
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using ADC data.");
@@ -128,12 +125,10 @@ void BatteryDriverNode::InitializeWithRoboteqBattery()
 {
   RCLCPP_DEBUG(this->get_logger(), "Initializing with Roboteq data.");
 
-  this->declare_parameter<float>("roboteq/driver_state_timeout", 0.2);
-
   const RoboteqBatteryParams battery_params = {
-    static_cast<float>(this->get_parameter("roboteq/driver_state_timeout").as_double()),
-    static_cast<std::size_t>(this->get_parameter("ma_window_len/voltage").as_int()),
-    static_cast<std::size_t>(this->get_parameter("ma_window_len/current").as_int()),
+    static_cast<float>(this->params_.roboteq.driver_state_timeout),
+    static_cast<std::size_t>(this->params_.ma_window_len.voltage),
+    static_cast<std::size_t>(this->params_.ma_window_len.current),
   };
 
   driver_state_sub_ = this->create_subscription<RobotDriverStateMsg>(
@@ -143,7 +138,7 @@ void BatteryDriverNode::InitializeWithRoboteqBattery()
   battery_1_ = std::make_shared<RoboteqBattery>([&]() { return driver_state_; }, battery_params);
 
   battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
-    this->shared_from_this(), diagnostic_updater_, battery_1_);
+    this->shared_from_this(), diagnostic_updater_, this->params_.battery_timeout, battery_1_);
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using motor controllers data.");
 }

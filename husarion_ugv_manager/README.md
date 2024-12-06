@@ -15,7 +15,9 @@ This package contains:
 - [`SafetyBT.btproj`](./behavior_trees/SafetyBT.btproj): BehaviorTree project for managing Panther safety protocols.
 - [`safety.xml`](./behavior_trees/safety.xml): BehaviorTree for monitoring and managing dangerous situations.
 - [`shutdown.xml`](./behavior_trees/shutdown.xml): BehaviorTree for initiating shutdown procedures.
+- [`lights_manager_parameters.yaml`](./config/lights_manager_parameters.yaml): Defines parameters for the `lights_manager` node.
 - [`lights_manager.yaml`](./config/lights_manager.yaml): Contains parameters for the `lights_manager` node.
+- [`safety_manager_parameters.yaml`](./config/safety_manager_parameters.yaml): Defines parameters for the `safety_manager` node.
 - [`safety_manager.yaml`](./config/safety_manager.yaml): Contains parameters for the `safety_manager` node.
 - [`shutdown_hosts.yaml`](./config/shutdown_hosts.yaml): List with all hosts to request shutdown.
 

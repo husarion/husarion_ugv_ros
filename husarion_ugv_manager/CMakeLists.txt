@@ -10,6 +10,7 @@ set(PACKAGE_DEPENDENCIES
     ament_index_cpp
     behaviortree_cpp
     behaviortree_ros2
+    generate_parameter_library
     libssh
     panther_msgs
     husarion_ugv_utils
@@ -71,7 +72,11 @@ ament_target_dependencies(
   rclcpp
   sensor_msgs
   std_msgs)
-target_link_libraries(safety_manager_node ${plugin_libs})
+
+generate_parameter_library(safety_manager_parameters
+                           config/safety_manager_parameters.yaml)
+target_link_libraries(safety_manager_node ${plugin_libs}
+                      safety_manager_parameters)
 
 add_executable(
   lights_manager_node src/lights_manager_node_main.cpp
@@ -84,7 +89,11 @@ ament_target_dependencies(
   rclcpp
   sensor_msgs
   std_msgs)
-target_link_libraries(lights_manager_node ${plugin_libs})
+
+generate_parameter_library(lights_manager_parameters
+                           config/lights_manager_parameters.yaml)
+target_link_libraries(lights_manager_node ${plugin_libs}
+                      lights_manager_parameters)
 
 install(TARGETS ${plugin_libs} DESTINATION lib)
 
@@ -197,6 +206,8 @@ if(BUILD_TESTING)
     rclcpp
     sensor_msgs
     std_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_lights_manager_node
+                        lights_manager_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_lights_behavior_tree
@@ -215,6 +226,8 @@ if(BUILD_TESTING)
     rclcpp
     sensor_msgs
     std_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
+                        lights_manager_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
@@ -232,6 +245,8 @@ if(BUILD_TESTING)
     rclcpp
     sensor_msgs
     std_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
+                        safety_manager_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
@@ -251,6 +266,8 @@ if(BUILD_TESTING)
     sensor_msgs
     std_msgs
     std_srvs)
+  target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
+                        safety_manager_parameters)
 endif()
 
 ament_package()

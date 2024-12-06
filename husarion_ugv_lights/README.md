@@ -12,6 +12,8 @@ This package contains:
 
 - [`{robot_model}_animations.yaml`](./config): Defines and describes the appearance and parameters of the animations for specific robot.
 - [`{robot_model}_driver.yaml`](./config): Defines and describes specific hardware configuration for specific robot.
+- [`lights_controller_parameters.yaml`](./config/lights_controller_parameters.yaml): Defines parameters for `lights_controller_node`.
+- [`lights_driver_parameters.yaml`](./config/lights_driver_parameters.yaml): Defines parameters for `lights_driver_node`.
 
 ## ROS Nodes
 
@@ -59,4 +61,5 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 - `~frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
 - `~global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
-- `~num_led` [*int*, default: **46**]: Number of LEDs in a single bumper.
+- `~channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
+- `~channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

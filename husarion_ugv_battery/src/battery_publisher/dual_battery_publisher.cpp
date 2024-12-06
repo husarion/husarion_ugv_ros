@@ -34,8 +34,9 @@ namespace husarion_ugv_battery
 DualBatteryPublisher::DualBatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
   const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
-  const std::shared_ptr<Battery> & battery_1, const std::shared_ptr<Battery> & battery_2)
-: BatteryPublisher(std::move(node), std::move(diagnostic_updater)),
+  const double battery_timeout, const std::shared_ptr<Battery> & battery_1,
+  const std::shared_ptr<Battery> & battery_2)
+: BatteryPublisher(std::move(node), std::move(diagnostic_updater), battery_timeout),
   battery_1_(std::move(battery_1)),
   battery_2_(std::move(battery_2))
 {

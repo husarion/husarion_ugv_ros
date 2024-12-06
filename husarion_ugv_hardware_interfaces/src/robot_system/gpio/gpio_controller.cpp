@@ -189,7 +189,9 @@ bool GPIOController::ChargerEnable(const bool enable)
 
 bool GPIOController::LEDControlEnable(const bool enable)
 {
-  return gpio_driver_->SetPinValue(GPIOPin::LED_SBC_SEL, enable);
+  // pin_validation_wait_time=10ms used due to slow pin state transition
+  // on pin loaded by high 100nF capacity in SBC Overlay v1.4
+  return gpio_driver_->SetPinValue(GPIOPin::LED_SBC_SEL, enable, std::chrono::milliseconds(10));
 }
 
 std::unordered_map<GPIOPin, bool> GPIOController::QueryControlInterfaceIOStates() const
@@ -212,7 +214,8 @@ std::unordered_map<GPIOPin, bool> GPIOController::QueryControlInterfaceIOStates(
 const std::vector<GPIOInfo> GPIOController::gpio_config_info_storage_ = {
   GPIOInfo{GPIOPin::WATCHDOG, gpiod::line::direction::OUTPUT},
   GPIOInfo{GPIOPin::AUX_PW_EN, gpiod::line::direction::OUTPUT},
-  GPIOInfo{GPIOPin::CHRG_DISABLE, gpiod::line::direction::OUTPUT},
+  GPIOInfo{
+    GPIOPin::CHRG_DISABLE, gpiod::line::direction::OUTPUT, false, gpiod::line::value::ACTIVE},
   GPIOInfo{GPIOPin::DRIVER_EN, gpiod::line::direction::OUTPUT},
   GPIOInfo{GPIOPin::E_STOP_RESET, gpiod::line::direction::INPUT},
   GPIOInfo{GPIOPin::FAN_SW, gpiod::line::direction::OUTPUT},

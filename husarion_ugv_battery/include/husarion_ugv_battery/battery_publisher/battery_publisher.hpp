@@ -37,7 +37,8 @@ class BatteryPublisher
 public:
   BatteryPublisher(
     const rclcpp::Node::SharedPtr & node,
-    const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater);
+    const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
+    const double battery_timeout);
 
   ~BatteryPublisher() {}
 

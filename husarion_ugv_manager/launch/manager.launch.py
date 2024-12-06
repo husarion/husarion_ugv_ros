@@ -28,13 +28,14 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
 
-    husarion_ugv_manager_dir = FindPackageShare("husarion_ugv_manager")
+    husarion_ugv_manager_pkg = FindPackageShare("husarion_ugv_manager")
+    husarion_ugv_manager_common_dir = PathJoinSubstitution(["/config", "husarion_ugv_manager"])
 
     lights_bt_project_path = LaunchConfiguration("lights_bt_project_path")
     declare_lights_bt_project_path_arg = DeclareLaunchArgument(
         "lights_bt_project_path",
         default_value=PathJoinSubstitution(
-            [husarion_ugv_manager_dir, "behavior_trees", "LightsBT.btproj"]
+            [husarion_ugv_manager_common_dir, "behavior_trees", "LightsBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for lights management.",
     )
@@ -50,7 +51,7 @@ def generate_launch_description():
     declare_safety_bt_project_path_arg = DeclareLaunchArgument(
         "safety_bt_project_path",
         default_value=PathJoinSubstitution(
-            [husarion_ugv_manager_dir, "behavior_trees", "SafetyBT.btproj"]
+            [husarion_ugv_manager_pkg, "behavior_trees", "SafetyBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for safety and shutdown management.",
     )
@@ -60,7 +61,7 @@ def generate_launch_description():
         "shutdown_hosts_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare("husarion_ugv_manager"),
+                husarion_ugv_manager_common_dir,
                 "config",
                 "shutdown_hosts.yaml",
             ]
@@ -80,7 +81,7 @@ def generate_launch_description():
         executable="lights_manager_node",
         name="lights_manager",
         parameters=[
-            PathJoinSubstitution([husarion_ugv_manager_dir, "config", "lights_manager.yaml"]),
+            PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "lights_manager.yaml"]),
             {"bt_project_path": lights_bt_project_path},
         ],
         namespace=namespace,
@@ -92,7 +93,7 @@ def generate_launch_description():
         executable="safety_manager_node",
         name="safety_manager",
         parameters=[
-            PathJoinSubstitution([husarion_ugv_manager_dir, "config", "safety_manager.yaml"]),
+            PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "safety_manager.yaml"]),
             {
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,

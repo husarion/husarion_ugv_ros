@@ -5,8 +5,14 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(PACKAGE_DEPENDENCIES ament_cmake diagnostic_updater panther_msgs
-                         husarion_ugv_utils rclcpp sensor_msgs)
+set(PACKAGE_DEPENDENCIES
+    ament_cmake
+    diagnostic_updater
+    generate_parameter_library
+    panther_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
@@ -24,6 +30,9 @@ add_executable(
   src/battery_publisher/dual_battery_publisher.cpp
   src/battery_publisher/single_battery_publisher.cpp)
 ament_target_dependencies(battery_driver_node ${PACKAGE_DEPENDENCIES})
+
+generate_parameter_library(battery_parameters config/battery_parameters.yaml)
+target_link_libraries(battery_driver_node battery_parameters)
 
 install(TARGETS battery_driver_node DESTINATION lib/${PROJECT_NAME})
 
@@ -76,6 +85,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_publisher
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_battery_publisher
+                        battery_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_single_battery_publisher
@@ -89,6 +100,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_single_battery_publisher
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_single_battery_publisher
+                        battery_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_dual_battery_publisher
@@ -102,6 +115,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_dual_battery_publisher
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_dual_battery_publisher
+                        battery_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_driver_node_adc_dual
@@ -118,6 +133,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_dual
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_dual
+                        battery_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_driver_node_adc_single
@@ -134,6 +151,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_single
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_single
+                        battery_parameters)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_driver_node_roboteq
@@ -150,6 +169,8 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_roboteq
                             ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_roboteq
+                        battery_parameters)
 
 endif()
 

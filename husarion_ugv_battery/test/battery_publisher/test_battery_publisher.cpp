@@ -35,7 +35,7 @@ public:
   BatteryPublisherWrapper(
     const rclcpp::Node::SharedPtr & node,
     std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater)
-  : husarion_ugv_battery::BatteryPublisher(node, diagnostic_updater)
+  : husarion_ugv_battery::BatteryPublisher(node, diagnostic_updater, kBatteryTimeout)
   {
   }
 
@@ -62,6 +62,9 @@ public:
   {
     status.summary(0, "");  // Avoid unused parameter compiler warning
   };
+
+protected:
+  static constexpr double kBatteryTimeout = 0.2;
 };
 
 class TestBatteryPublisher : public testing::Test

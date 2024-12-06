@@ -29,6 +29,8 @@
 #include "panther_msgs/msg/robot_driver_state.hpp"
 #include "panther_msgs/msg/system_status.hpp"
 
+#include "safety_manager_parameters.hpp"
+
 #include "husarion_ugv_utils/moving_average.hpp"
 
 #include <husarion_ugv_manager/behavior_tree_manager.hpp>
@@ -88,6 +90,9 @@ private:
 
   int driver_temp_window_len_;
   float update_charging_anim_step_;
+
+  std::shared_ptr<safety_manager::ParamListener> param_listener_;
+  safety_manager::Params params_;
 
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<RobotDriverStateMsg>::SharedPtr driver_state_sub_;

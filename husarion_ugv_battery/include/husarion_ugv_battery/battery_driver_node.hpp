@@ -23,6 +23,8 @@
 
 #include "panther_msgs/msg/robot_driver_state.hpp"
 
+#include "battery_parameters.hpp"
+
 #include "husarion_ugv_battery/adc_data_reader.hpp"
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
@@ -53,6 +55,9 @@ private:
   std::shared_ptr<Battery> battery_1_;
   std::shared_ptr<Battery> battery_2_;
   std::shared_ptr<BatteryPublisher> battery_publisher_;
+
+  std::shared_ptr<battery::ParamListener> param_listener_;
+  battery::Params params_;
 
   rclcpp::Subscription<RobotDriverStateMsg>::SharedPtr driver_state_sub_;
   rclcpp::TimerBase::SharedPtr battery_pub_timer_;

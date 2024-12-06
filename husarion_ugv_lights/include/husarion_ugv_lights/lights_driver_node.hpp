@@ -26,6 +26,8 @@
 
 #include "panther_msgs/srv/set_led_brightness.hpp"
 
+#include "lights_driver_parameters.hpp"
+
 #include "husarion_ugv_lights/apa102.hpp"
 
 namespace husarion_ugv_lights
@@ -119,6 +121,9 @@ private:
 
   APA102Interface::SharedPtr channel_1_;
   APA102Interface::SharedPtr channel_2_;
+
+  std::shared_ptr<lights_driver::ParamListener> param_listener_;
+  lights_driver::Params params_;
 
   rclcpp::TimerBase::SharedPtr initialization_timer_;
 

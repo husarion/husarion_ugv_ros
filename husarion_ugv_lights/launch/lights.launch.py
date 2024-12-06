@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
@@ -33,13 +32,14 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     robot_model = LaunchConfiguration("robot_model")
-    lights_pkg = FindPackageShare("husarion_ugv_lights")
+    husarion_ugv_lights_pkg = FindPackageShare("husarion_ugv_lights")
+    husarion_ugv_lights_common_dir = PathJoinSubstitution(["/config", "husarion_ugv_lights"])
     animations_config = PythonExpression(["'", robot_model, "_animations.yaml'"])
 
     animations_config_path = LaunchConfiguration("animations_config_path")
     declare_animations_config_path_arg = DeclareLaunchArgument(
         "animations_config_path",
-        default_value=PathJoinSubstitution([lights_pkg, "config", animations_config]),
+        default_value=PathJoinSubstitution([husarion_ugv_lights_pkg, "config", animations_config]),
         description="Path to a YAML file with a description of led configuration.",
     )
 
@@ -50,11 +50,9 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
-        default_value=robot_model_dict[robot_model_env],
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
         description="Specify robot model.",
         choices=["lynx", "panther"],
     )
@@ -69,12 +67,14 @@ def generate_launch_description():
     user_led_animations_path = LaunchConfiguration("user_led_animations_path")
     declare_user_led_animations_path_arg = DeclareLaunchArgument(
         "user_led_animations_path",
-        default_value="",
+        default_value=PathJoinSubstitution(
+            [husarion_ugv_lights_common_dir, "config", "user_animations.yaml"]
+        ),
         description="Path to a YAML file with a description of the user defined animations.",
     )
 
     driver_config = PythonExpression(["'", robot_model, "_driver.yaml'"])
-    driver_config_path = PathJoinSubstitution([lights_pkg, "config", driver_config])
+    driver_config_path = PathJoinSubstitution([husarion_ugv_lights_pkg, "config", driver_config])
     lights_container = ComposableNodeContainer(
         package="rclcpp_components",
         name="lights_container",

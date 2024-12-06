@@ -164,7 +164,8 @@ bool GPIODriver::IsPinActive(const GPIOPin pin)
   return pin_info.value == gpiod::line::value::ACTIVE;
 }
 
-bool GPIODriver::SetPinValue(const GPIOPin pin, const bool value)
+bool GPIODriver::SetPinValue(
+  const GPIOPin pin, const bool value, const std::chrono::milliseconds & pin_validation_wait_time)
 {
   GPIOInfo & gpio_info = GetGPIOInfoRef(pin);
 
@@ -174,9 +175,16 @@ bool GPIODriver::SetPinValue(const GPIOPin pin, const bool value)
 
   gpiod::line::value gpio_value = value ? gpiod::line::value::ACTIVE : gpiod::line::value::INACTIVE;
 
-  std::lock_guard lock(gpio_info_storage_mutex_);
+  std::unique_lock lock(gpio_info_storage_mutex_);
+
   try {
     line_request_->set_value(gpio_info.offset, gpio_value);
+
+    if (pin_validation_wait_time.count() > 0) {
+      lock.unlock();
+      std::this_thread::sleep_for(pin_validation_wait_time);
+      lock.lock();
+    }
 
     if (line_request_->get_value(gpio_info.offset) != gpio_value) {
       throw std::runtime_error("Failed to change GPIO state.");

@@ -26,6 +26,8 @@
 
 #include "panther_msgs/msg/led_animation.hpp"
 
+#include "lights_manager_parameters.hpp"
+
 #include "husarion_ugv_utils/moving_average.hpp"
 
 #include <husarion_ugv_manager/behavior_tree_manager.hpp>
@@ -72,6 +74,9 @@ private:
   void LightsTreeTimerCB();
 
   float update_charging_anim_step_;
+
+  std::shared_ptr<lights_manager::ParamListener> param_listener_;
+  lights_manager::Params params_;
 
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;

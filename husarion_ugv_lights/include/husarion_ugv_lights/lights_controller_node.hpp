@@ -27,6 +27,8 @@
 
 #include "panther_msgs/srv/set_led_animation.hpp"
 
+#include "lights_controller_parameters.hpp"
+
 #include "husarion_ugv_lights/animation/animation.hpp"
 #include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
 #include "husarion_ugv_lights/led_components/segment_converter.hpp"
@@ -147,6 +149,9 @@ private:
   std::unordered_map<std::string, std::vector<std::string>> segments_map_;
   std::unordered_map<std::size_t, LEDAnimationDescription> animations_descriptions_;
   std::shared_ptr<SegmentConverter> segment_converter_;
+
+  std::shared_ptr<lights_controller::ParamListener> param_listener_;
+  lights_controller::Params params_;
 
   rclcpp::Service<SetLEDAnimationSrv>::SharedPtr set_led_animation_server_;
   rclcpp::TimerBase::SharedPtr controller_timer_;

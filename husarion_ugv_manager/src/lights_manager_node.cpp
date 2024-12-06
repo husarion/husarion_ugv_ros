@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -40,10 +39,11 @@ LightsManagerNode::LightsManagerNode(
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
-  DeclareParameters();
+  this->param_listener_ =
+    std::make_shared<lights_manager::ParamListener>(this->get_node_parameters_interface());
+  this->params_ = this->param_listener_->get_params();
 
-  const auto battery_percent_window_len =
-    this->get_parameter("battery.percent.window_len").as_int();
+  const auto battery_percent_window_len = this->params_.battery.percent.window_len;
 
   battery_percent_ma_ = std::make_unique<husarion_ugv_utils::MovingAverage<double>>(
     battery_percent_window_len, 1.0);
@@ -69,7 +69,7 @@ void LightsManagerNode::Initialize()
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
 
-  const float timer_freq = this->get_parameter("timer_frequency").as_double();
+  const double timer_freq = this->params_.timer_frequency;
   const auto timer_period_ms =
     std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
 
@@ -79,40 +79,15 @@ void LightsManagerNode::Initialize()
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
 
-void LightsManagerNode::DeclareParameters()
-{
-  const auto husarion_ugv_manager_pkg_path =
-    ament_index_cpp::get_package_share_directory("husarion_ugv_manager");
-  const std::string default_bt_project_path = husarion_ugv_manager_pkg_path +
-                                              "/behavior_trees/LightsBT.btproj";
-  const std::vector<std::string> default_plugin_libs = {};
-
-  this->declare_parameter<std::string>("bt_project_path", default_bt_project_path);
-  this->declare_parameter<std::vector<std::string>>("plugin_libs", default_plugin_libs);
-  this->declare_parameter<std::vector<std::string>>("ros_plugin_libs", default_plugin_libs);
-  this->declare_parameter<double>("ros_communication_timeout.availability", 1.0);
-  this->declare_parameter<double>("ros_communication_timeout.response", 1.0);
-
-  this->declare_parameter<int>("battery.percent.window_len", 6);
-  this->declare_parameter<float>("battery.percent.threshold.low", 0.4);
-  this->declare_parameter<float>("battery.percent.threshold.critical", 0.1);
-  this->declare_parameter<float>("battery.animation_period.low", 30.0);
-  this->declare_parameter<float>("battery.animation_period.critical", 15.0);
-  this->declare_parameter<float>("battery.charging_anim_step", 0.1);
-  this->declare_parameter<float>("timer_frequency", 10.0);
-}
-
 void LightsManagerNode::RegisterBehaviorTree()
 {
-  const auto bt_project_path = this->get_parameter("bt_project_path").as_string();
+  const auto bt_project_path = this->params_.bt_project_path;
 
-  const auto plugin_libs = this->get_parameter("plugin_libs").as_string_array();
-  const auto ros_plugin_libs = this->get_parameter("ros_plugin_libs").as_string_array();
+  const auto plugin_libs = this->params_.plugin_libs;
+  const auto ros_plugin_libs = this->params_.ros_plugin_libs;
 
-  const auto service_availability_timeout =
-    this->get_parameter("ros_communication_timeout.availability").as_double();
-  const auto service_response_timeout =
-    this->get_parameter("ros_communication_timeout.response").as_double();
+  const auto service_availability_timeout = this->params_.ros_communication_timeout.availability;
+  const auto service_response_timeout = this->params_.ros_communication_timeout.response;
 
   BT::RosNodeParams params;
   params.nh = this->shared_from_this();
@@ -130,15 +105,14 @@ void LightsManagerNode::RegisterBehaviorTree()
 
 std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard()
 {
-  update_charging_anim_step_ = this->get_parameter("battery.charging_anim_step").as_double();
+  update_charging_anim_step_ = this->params_.battery.charging_anim_step;
   const float critical_battery_anim_period =
-    this->get_parameter("battery.animation_period.critical").as_double();
+    static_cast<float>(this->params_.battery.anim_period.critical);
   const float critical_battery_threshold_percent =
-    this->get_parameter("battery.percent.threshold.critical").as_double();
-  const float low_battery_anim_period =
-    this->get_parameter("battery.animation_period.low").as_double();
+    static_cast<float>(this->params_.battery.percent.threshold.critical);
+  const float low_battery_anim_period = static_cast<float>(this->params_.battery.anim_period.low);
   const float low_battery_threshold_percent =
-    this->get_parameter("battery.percent.threshold.low").as_double();
+    static_cast<float>(this->params_.battery.percent.threshold.low);
 
   const std::string undefined_charging_anim_percent = "";
   const int undefined_anim_id = -1;

@@ -8,6 +8,7 @@ endif()
 set(PACKAGE_DEPENDENCIES
     ament_cmake
     diagnostic_updater
+    generate_parameter_library
     image_transport
     panther_msgs
     husarion_ugv_utils
@@ -43,6 +44,10 @@ ament_target_dependencies(
   sensor_msgs
   std_srvs)
 
+generate_parameter_library(lights_driver_parameters
+                           config/lights_driver_parameters.yaml)
+target_link_libraries(lights_driver_node_component lights_driver_parameters)
+
 add_library(
   lights_controller_node_component SHARED
   src/lights_controller_node.cpp src/led_components/led_segment.cpp
@@ -56,7 +61,11 @@ ament_target_dependencies(
   rclcpp
   rclcpp_components
   sensor_msgs)
-target_link_libraries(lights_controller_node_component yaml-cpp)
+
+generate_parameter_library(lights_controller_parameters
+                           config/lights_controller_parameters.yaml)
+target_link_libraries(lights_controller_node_component yaml-cpp
+                      lights_controller_parameters)
 
 rclcpp_components_register_node(
   lights_driver_node_component PLUGIN "husarion_ugv_lights::LightsDriverNode"
@@ -68,7 +77,7 @@ rclcpp_components_register_node(
 
 ament_export_targets(export_lights_driver_node_component)
 install(
-  TARGETS lights_driver_node_component
+  TARGETS lights_driver_node_component lights_driver_parameters
   EXPORT export_lights_driver_node_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -76,7 +85,7 @@ install(
 
 ament_export_targets(export_lights_controller_node_component)
 install(
-  TARGETS lights_controller_node_component
+  TARGETS lights_controller_node_component lights_controller_parameters
   EXPORT export_lights_controller_node_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

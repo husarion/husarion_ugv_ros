@@ -31,6 +31,8 @@
 
 #include "panther_msgs/srv/set_led_animation.hpp"
 
+#include "lights_controller_parameters.hpp"
+
 #include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
 #include "husarion_ugv_lights/led_components/led_panel.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
@@ -48,13 +50,13 @@ LightsControllerNode::LightsControllerNode(const rclcpp::NodeOptions & options)
 
   using namespace std::placeholders;
 
-  this->declare_parameter<std::string>("animations_config_path");
-  this->declare_parameter<std::string>("user_led_animations_path", "");
-  this->declare_parameter<float>("controller_freq", 50.0);
+  this->param_listener_ =
+    std::make_shared<lights_controller::ParamListener>(this->get_node_parameters_interface());
+  this->params_ = this->param_listener_->get_params();
 
-  const auto animations_config_path = this->get_parameter("animations_config_path").as_string();
-  const auto user_led_animations_path = this->get_parameter("user_led_animations_path").as_string();
-  const float controller_freq = this->get_parameter("controller_freq").as_double();
+  const auto animations_config_path = this->params_.animations_config_path;
+  const auto user_led_animations_path = this->params_.user_led_animations_path;
+  const float controller_freq = static_cast<float>(this->params_.controller_frequency);
 
   YAML::Node led_config_desc = YAML::LoadFile(animations_config_path);
 

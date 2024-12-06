@@ -102,7 +102,7 @@ def generate_launch_description():
             [
                 FindPackageShare("husarion_ugv_docking"),
                 "config",
-                "husarion_ugv_docking_server.yaml",
+                "docking_server.yaml",
             ]
         ),
         description=("Path to docking server configuration file."),

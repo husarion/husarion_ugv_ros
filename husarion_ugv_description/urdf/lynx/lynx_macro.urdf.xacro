@@ -11,15 +11,9 @@
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''">
 
-    <xacro:if value="${namespace == ''}">
-      <xacro:property name="ns" value="" />
-    </xacro:if>
-    <xacro:unless value="${namespace == ''}">
-        <xacro:property name="ns" value="${namespace}/" />
-    </xacro:unless>
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <xacro:property name="wheel_config" value="${xacro.load_yaml(wheel_config_file)}" />
-    <!-- TODO find real value -->
     <xacro:property name="wheel_separation_x" value="0.35" />
 
     <!-- INCLUDE ROBOT PARTS DEFINITIONS -->
@@ -61,7 +55,7 @@
           <param name="e_stop_initial_state">true</param>
         </xacro:if>
 
-        <xacro:unless value="$(arg use_sim)">
+        <xacro:unless value="${use_sim}">
           <plugin>husarion_ugv_hardware_interfaces/LynxSystem</plugin>
 
           <param name="encoder_resolution">1600</param>
@@ -182,8 +176,9 @@
       </xacro:if>
       <xacro:gazebo.controller config_file="${controller_config_file}" namespace="${namespace}" />
       <xacro:gazebo.imu reference_frame="imu_link" namespace="${namespace}" />
-      <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" namespace="${namespace}" />
-      <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" namespace="${namespace}" />
+      <!-- TODO Add lights visualization -->
+      <!-- <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" topic="lights/channel_1_frame" namespace="${namespace}" /> -->
+      <!-- <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" topic="lights/channel_2_frame" namespace="${namespace}" /> -->
     </xacro:if>
   </xacro:macro>
 

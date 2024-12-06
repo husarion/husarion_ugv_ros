@@ -122,6 +122,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
+        condition=UnlessCondition(PythonExpression(["'", robot_model, "' == 'lynx'"])),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -131,7 +132,9 @@ def generate_launch_description():
             )
         ),
         launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
-        condition=UnlessCondition(disable_manager),
+        condition=UnlessCondition(
+            PythonExpression(["'", robot_model, "' == 'lynx' or ", disable_manager])
+        ),
     )
 
     controller_launch = IncludeLaunchDescription(

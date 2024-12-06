@@ -30,7 +30,7 @@
       </collision>
 
       <inertial>
-        <!-- TODO: Fix oringin -->
+        <!-- TODO Fix oringin -->
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
         <mass value="43.0" />
         <inertia ixx="2.630036" ixy="-0.023480" ixz="0.052320"

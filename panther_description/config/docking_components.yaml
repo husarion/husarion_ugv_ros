@@ -4,12 +4,12 @@ components:
     parent_link: lights_channel_1_link
     xyz: -0.02 0.0 -0.0185
     rpy: 0.0 0.0 0.0
-    device_namespace: wireless_charger
+    device_namespace: None
 
   - type: CAM01
     name: camera
-    parent_link: front_bumper_link
-    xyz: 0.0 0.0 -0.06
+    parent_link: cover_link
+    xyz: 0.18 0.0 0.12
     rpy: 0.0 0.0 0.0
     device_namespace: camera
 

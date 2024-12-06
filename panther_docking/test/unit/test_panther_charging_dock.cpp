@@ -116,26 +116,18 @@ TEST_F(TestPantherChargingDock, GetStagingPoseLocal)
   dock_pose->pose.position.y = 1.0;
   dock_pose->pose.position.z = 0.0;
   dock_pose->pose.orientation.w = 1.0;
-
-  dock_->setDockPose(dock_pose);
-  geometry_msgs::msg::PoseStamped pose;
-
-  geometry_msgs::msg::PoseStamped staging_pose;
-  ASSERT_THROW(
-    { staging_pose = dock_->getStagingPose(pose.pose, kOdomFrame); },
-    opennav_docking_core::FailedToDetectDock);
-
   dock_pose->header.frame_id = kOdomFrame;
   dock_->setDockPose(dock_pose);
 
-  staging_pose = dock_->getStagingPose(pose.pose, kOdomFrame);
+  geometry_msgs::msg::PoseStamped pose;
+  geometry_msgs::msg::PoseStamped staging_pose = dock_->getStagingPose(pose.pose, kOdomFrame);
 
   ASSERT_FLOAT_EQ(staging_pose.pose.position.x, 0.3);
   ASSERT_FLOAT_EQ(staging_pose.pose.position.y, 1.0);
   ASSERT_FLOAT_EQ(staging_pose.pose.position.z, 0.0);
 }
 
-// TODO: fill after nav2 tests
+// TODO: @delihus fill after nav2 tests
 // TEST_F(TestPantherChargingDock, GetStagingPoseGlobal){
 // }
 

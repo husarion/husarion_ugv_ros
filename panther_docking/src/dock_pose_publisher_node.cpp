@@ -45,7 +45,7 @@ DockPosePublisherNode::DockPosePublisherNode(const std::string & name) : Node(na
 
   for (const auto & dock : docks) {
     declare_parameter(dock + ".type", "panther_charging_dock");
-    declare_parameter(dock + ".dock_frame", "main_wibotic_receiver_requested_pose_link");
+    declare_parameter(dock + ".dock_frame", "main_wibotic_transmitter_link");
 
     const auto dock_type = get_parameter(dock + ".type").as_string();
     if (dock_type == "panther_charging_dock") {

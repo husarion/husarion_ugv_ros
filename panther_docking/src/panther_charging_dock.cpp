@@ -243,6 +243,8 @@ void PantherChargingDock::updateAndPublishStagingPose(const std::string & frame)
   staging_pose_.header.stamp = node_.lock()->now();
   staging_pose_.pose.position.x += std::cos(yaw) * staging_x_offset_;
   staging_pose_.pose.position.y += std::sin(yaw) * staging_x_offset_;
+  staging_pose_.pose.position.z = 0.0;
+
   tf2::Quaternion orientation;
   orientation.setRPY(0.0, 0.0, yaw);
   staging_pose_.pose.orientation = tf2::toMsg(orientation);

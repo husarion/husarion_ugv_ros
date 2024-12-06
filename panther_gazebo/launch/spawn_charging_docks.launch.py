@@ -72,7 +72,7 @@ def spawn_stations(context, *args, **kwargs):
                 "-y",
                 str(pose[1] - 2.0),  # -2.0 is the offset between world and map
                 "-z",
-                "0.2",  # station z is not in 0.0
+                "0.5",  # station z is not in 0.0
                 "-R",
                 "1.57",
                 "-P",

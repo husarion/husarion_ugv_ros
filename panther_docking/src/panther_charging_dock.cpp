@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "husarion_ugv_docking/charging_dock.hpp"
+#include "panther_docking/panther_charging_dock.hpp"
 
 #include <stdexcept>
 
@@ -21,17 +21,17 @@
 #include "panther_utils/common_utilities.hpp"
 #include "panther_utils/tf2_utils.hpp"
 
-namespace husarion_ugv_docking
+namespace panther_docking
 {
 
-void ChargingDock::configure(
+void PantherChargingDock::configure(
   const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent, const std::string & name,
   std::shared_ptr<tf2_ros::Buffer> tf)
 {
   name_ = name;
 
   if (!tf) {
-    throw std::runtime_error("ChargingDock requires a TF buffer");
+    throw std::runtime_error("PantherChargingDock requires a TF buffer");
   }
 
   tf2_buffer_ = tf;
@@ -53,17 +53,18 @@ void ChargingDock::configure(
     pose_filter_coef_, external_detection_timeout_);
 }
 
-void ChargingDock::cleanup()
+void PantherChargingDock::cleanup()
 {
   dock_pose_sub_.reset();
   staging_pose_pub_.reset();
 }
 
-void ChargingDock::activate()
+void PantherChargingDock::activate()
 {
   auto node = node_.lock();
   dock_pose_sub_ = node->create_subscription<PoseStampedMsg>(
-    "docking/dock_pose", 1, std::bind(&ChargingDock::setDockPose, this, std::placeholders::_1));
+    "docking/dock_pose", 1,
+    std::bind(&PantherChargingDock::setDockPose, this, std::placeholders::_1));
   staging_pose_pub_ = node->create_publisher<PoseStampedMsg>("docking/staging_pose", 1);
 
   dock_pose_publisher_change_state_client_ =
@@ -71,20 +72,21 @@ void ChargingDock::activate()
 
   if (use_wibotic_info_) {
     wibotic_info_sub_ = node->create_subscription<WiboticInfoMsg>(
-      "wibotic_info", 1, std::bind(&ChargingDock::setWiboticInfo, this, std::placeholders::_1));
+      "wibotic_info", 1,
+      std::bind(&PantherChargingDock::setWiboticInfo, this, std::placeholders::_1));
   }
 
   setDockPosePublisherState(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
 }
 
-void ChargingDock::deactivate()
+void PantherChargingDock::deactivate()
 {
   dock_pose_sub_.reset();
   staging_pose_pub_.reset();
   dock_pose_publisher_change_state_client_.reset();
 }
 
-void ChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
+void PantherChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
 {
   nav2_util::declare_parameter_if_not_declared(
     node, "base_frame", rclcpp::ParameterValue("base_link"));
@@ -112,7 +114,7 @@ void ChargingDock::declareParameters(const rclcpp_lifecycle::LifecycleNode::Shar
     node, name_ + ".wibotic_info_timeout", rclcpp::ParameterValue(1.5));
 }
 
-void ChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
+void PantherChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPtr & node)
 {
   node->get_parameter("base_frame", base_frame_name_);
   node->get_parameter("fixed_frame", fixed_frame_name_);
@@ -129,7 +131,7 @@ void ChargingDock::getParameters(const rclcpp_lifecycle::LifecycleNode::SharedPt
 }
 
 // When there is no pose actual position of robot is a staging pose
-ChargingDock::PoseStampedMsg ChargingDock::getStagingPose(
+PantherChargingDock::PoseStampedMsg PantherChargingDock::getStagingPose(
   const geometry_msgs::msg::Pose & pose, const std::string & frame)
 {
   RCLCPP_DEBUG_STREAM(logger_, "Getting staging pose in frame: " << frame);
@@ -145,7 +147,7 @@ ChargingDock::PoseStampedMsg ChargingDock::getStagingPose(
   return staging_pose_;
 }
 
-bool ChargingDock::getRefinedPose(PoseStampedMsg & pose)
+bool PantherChargingDock::getRefinedPose(PoseStampedMsg & pose)
 {
   RCLCPP_DEBUG(logger_, "Getting refined pose");
   setDockPosePublisherState(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);
@@ -178,7 +180,7 @@ bool ChargingDock::getRefinedPose(PoseStampedMsg & pose)
   return true;
 }
 
-bool ChargingDock::isDocked()
+bool PantherChargingDock::isDocked()
 {
   RCLCPP_DEBUG(logger_, "Checking if docked");
   geometry_msgs::msg::PoseStamped robot_pose;
@@ -190,7 +192,7 @@ bool ChargingDock::isDocked()
     robot_pose, dock_pose_, docking_distance_threshold_, docking_yaw_threshold_);
 }
 
-bool ChargingDock::isCharging()
+bool PantherChargingDock::isCharging()
 {
   RCLCPP_DEBUG(logger_, "Checking if charging");
   try {
@@ -218,17 +220,17 @@ bool ChargingDock::isCharging()
   return false;
 }
 
-bool ChargingDock::disableCharging() { return true; }
+bool PantherChargingDock::disableCharging() { return true; }
 
-bool ChargingDock::hasStoppedCharging() { return !isCharging(); }
+bool PantherChargingDock::hasStoppedCharging() { return !isCharging(); }
 
-void ChargingDock::setDockPose(const PoseStampedMsg::SharedPtr pose)
+void PantherChargingDock::setDockPose(const PoseStampedMsg::SharedPtr pose)
 {
   auto filtered_pose = pose_filter_->update(*pose);
   dock_pose_ = filtered_pose;
 }
 
-void ChargingDock::updateAndPublishStagingPose(const std::string & frame)
+void PantherChargingDock::updateAndPublishStagingPose(const std::string & frame)
 {
   const double yaw = tf2::getYaw(dock_pose_.pose.orientation);
   RCLCPP_DEBUG_STREAM(
@@ -249,12 +251,12 @@ void ChargingDock::updateAndPublishStagingPose(const std::string & frame)
   staging_pose_pub_->publish(staging_pose_);
 }
 
-void ChargingDock::setWiboticInfo(const WiboticInfoMsg::SharedPtr msg)
+void PantherChargingDock::setWiboticInfo(const WiboticInfoMsg::SharedPtr msg)
 {
   wibotic_info_ = std::make_shared<WiboticInfoMsg>(*msg);
 }
 
-void ChargingDock::setDockPosePublisherState(std::uint8_t state)
+void PantherChargingDock::setDockPosePublisherState(std::uint8_t state)
 {
   if (dock_pose_publisher_state_ == state) {
     return;
@@ -268,7 +270,7 @@ void ChargingDock::setDockPosePublisherState(std::uint8_t state)
   dock_pose_publisher_change_state_client_->async_send_request(request);
 }
 
-bool ChargingDock::IsWiboticInfoTimeout()
+bool PantherChargingDock::IsWiboticInfoTimeout()
 {
   if (!wibotic_info_) {
     RCLCPP_ERROR_STREAM(
@@ -292,7 +294,7 @@ bool ChargingDock::IsWiboticInfoTimeout()
   return false;
 }
 
-}  // namespace husarion_ugv_docking
+}  // namespace panther_docking
 
 #include "pluginlib/class_list_macros.hpp"
-PLUGINLIB_EXPORT_CLASS(husarion_ugv_docking::ChargingDock, opennav_docking_core::ChargingDock)
+PLUGINLIB_EXPORT_CLASS(panther_docking::PantherChargingDock, opennav_docking_core::ChargingDock)

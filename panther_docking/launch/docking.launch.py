@@ -31,7 +31,7 @@ def generate_launch_description():
     declare_docking_server_config_path_arg = DeclareLaunchArgument(
         "docking_server_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_docking"), "config", "docking_server.yaml"]
+            [FindPackageShare("panther_docking"), "config", "panther_docking_server.yaml"]
         ),
         description=("Path to docking server configuration file."),
     )
@@ -40,7 +40,7 @@ def generate_launch_description():
     declare_apriltag_config_path_arg = DeclareLaunchArgument(
         "apriltag_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_docking"), "config", "apriltag.yaml"]
+            [FindPackageShare("panther_docking"), "config", "apriltag.yaml"]
         ),
         description=("Path to apriltag configuration file. Only used in simulation."),
     )
@@ -108,7 +108,7 @@ def generate_launch_description():
     )
 
     dock_pose_publisher = Node(
-        package="husarion_ugv_docking",
+        package="panther_docking",
         executable="dock_pose_publisher",
         parameters=[
             namespaced_docking_server_config,
@@ -139,7 +139,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
-                    FindPackageShare("husarion_ugv_docking"),
+                    FindPackageShare("panther_docking"),
                     "launch",
                     "station.launch.py",
                 ]

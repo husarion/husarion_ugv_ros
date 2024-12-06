@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>husarion_ugv_docking</name>
+  <name>panther_docking</name>
   <version>2.1.0</version>
   <description>Integration Panther with Wibotic charger and Opennav Docking framework</description>
 
@@ -41,6 +41,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <husarion_ugv_docking plugin="${prefix}/plugin.xml"/>
+    <panther_docking plugin="${prefix}/plugin.xml"/>
   </export>
 </package>

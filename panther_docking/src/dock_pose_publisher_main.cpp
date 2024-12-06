@@ -18,14 +18,14 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "husarion_ugv_docking/dock_pose_publisher_node.hpp"
+#include "panther_docking/dock_pose_publisher_node.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
 
   auto dock_pose_publisher_node =
-    std::make_shared<husarion_ugv_docking::DockPosePublisherNode>("dock_pose_publisher_node");
+    std::make_shared<panther_docking::DockPosePublisherNode>("dock_pose_publisher_node");
 
   try {
     rclcpp::spin(dock_pose_publisher_node->get_node_base_interface());

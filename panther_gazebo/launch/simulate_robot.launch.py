@@ -189,7 +189,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
-                    FindPackageShare("husarion_ugv_docking"),
+                    FindPackageShare("panther_docking"),
                     "launch",
                     "docking.launch.py",
                 ]

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_CHARGING_DOCK_HPP_
-#define HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_CHARGING_DOCK_HPP_
+#ifndef PANTHER_DOCKING_PANTHER_CHARGING_DOCK_HPP_
+#define PANTHER_DOCKING_PANTHER_CHARGING_DOCK_HPP_
 
 #include <memory>
 #include <string>
@@ -36,20 +36,20 @@
 
 #include "wibotic_msgs/msg/wibotic_info.hpp"
 
-namespace husarion_ugv_docking
+namespace panther_docking
 {
 
 constexpr double kWiboticChargingCurrentThreshold = 0.0;
 
 /**
- * @class ChargingDock
+ * @class PantherChargingDock
  * @brief A class to represent a Panther charging dock.
  */
-class ChargingDock : public opennav_docking_core::ChargingDock
+class PantherChargingDock : public opennav_docking_core::ChargingDock
 {
 public:
-  using SharedPtr = std::shared_ptr<ChargingDock>;
-  using UniquePtr = std::unique_ptr<ChargingDock>;
+  using SharedPtr = std::shared_ptr<PantherChargingDock>;
+  using UniquePtr = std::unique_ptr<PantherChargingDock>;
   using PoseStampedMsg = geometry_msgs::msg::PoseStamped;
   using WiboticInfoMsg = wibotic_msgs::msg::WiboticInfo;
 
@@ -185,7 +185,7 @@ protected:
   std::string fixed_frame_name_;
   std::string dock_frame_;
 
-  rclcpp::Logger logger_{rclcpp::get_logger("ChargingDock")};
+  rclcpp::Logger logger_{rclcpp::get_logger("PantherChargingDock")};
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
 
   rclcpp_lifecycle::LifecycleNode::WeakPtr node_;
@@ -219,6 +219,6 @@ protected:
   double wibotic_info_timeout_;
 };
 
-}  // namespace husarion_ugv_docking
+}  // namespace panther_docking
 
-#endif  // HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_CHARGING_DOCK_HPP_
+#endif  // PANTHER_DOCKING_PANTHER_CHARGING_DOCK_HPP_

@@ -22,29 +22,29 @@
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
-#include <husarion_ugv_docking/charging_dock.hpp>
+#include <panther_docking/panther_charging_dock.hpp>
 
 static constexpr char kBaseFrame[] = "base_link";
 static constexpr char kOdomFrame[] = "odom";
 
-class ChargingDockWrapper : public husarion_ugv_docking::ChargingDock
+class PantherChargingDockWrapper : public panther_docking::PantherChargingDock
 {
 public:
   void setDockPose(geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
-    husarion_ugv_docking::ChargingDock::setDockPose(msg);
+    panther_docking::PantherChargingDock::setDockPose(msg);
   }
 
   void setWiboticInfo(wibotic_msgs::msg::WiboticInfo::SharedPtr msg)
   {
-    husarion_ugv_docking::ChargingDock::setWiboticInfo(msg);
+    panther_docking::PantherChargingDock::setWiboticInfo(msg);
   }
 };
 
-class TestChargingDock : public ::testing::Test
+class TestPantherChargingDock : public ::testing::Test
 {
 protected:
-  TestChargingDock();
+  TestPantherChargingDock();
   void SetTransform(
     const std::string & frame_id, const std::string & child_frame_id,
     const builtin_interfaces::msg::Time & stamp, const geometry_msgs::msg::Transform & transform);
@@ -52,12 +52,12 @@ protected:
   void ActivateWiboticInfo();
 
   rclcpp_lifecycle::LifecycleNode::SharedPtr node_;
-  std::shared_ptr<ChargingDockWrapper> dock_;
+  std::shared_ptr<PantherChargingDockWrapper> dock_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr dock_pose_pub;
   tf2_ros::Buffer::SharedPtr tf_buffer_;
 };
 
-TestChargingDock::TestChargingDock()
+TestPantherChargingDock::TestPantherChargingDock()
 {
   node_ = std::make_shared<rclcpp_lifecycle::LifecycleNode>("test_node");
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
@@ -65,14 +65,14 @@ TestChargingDock::TestChargingDock()
   // Silence error about dedicated thread's being necessary
   tf_buffer_->setUsingDedicatedThread(true);
 
-  dock_ = std::make_shared<ChargingDockWrapper>();
+  dock_ = std::make_shared<PantherChargingDockWrapper>();
   dock_pose_pub = node_->create_publisher<geometry_msgs::msg::PoseStamped>("dock_pose", 10);
 
   node_->configure();
   node_->activate();
 }
 
-void TestChargingDock::SetTransform(
+void TestPantherChargingDock::SetTransform(
   const std::string & frame_id, const std::string & child_frame_id,
   const builtin_interfaces::msg::Time & stamp, const geometry_msgs::msg::Transform & transform)
 {
@@ -85,7 +85,7 @@ void TestChargingDock::SetTransform(
   tf_buffer_->setTransform(transform_stamped, "unittest", true);
 }
 
-void TestChargingDock::ActivateWiboticInfo()
+void TestPantherChargingDock::ActivateWiboticInfo()
 {
   node_->declare_parameter("dock.use_wibotic_info", true);
   node_->declare_parameter("dock.wibotic_info_timeout", 1.0);
@@ -93,19 +93,19 @@ void TestChargingDock::ActivateWiboticInfo()
   dock_->activate();
 }
 
-TEST_F(TestChargingDock, FailConfigureNoNode)
+TEST_F(TestPantherChargingDock, FailConfigureNoNode)
 {
   node_.reset();
   ASSERT_THROW({ dock_->configure(node_, "dock", tf_buffer_); }, std::runtime_error);
 }
 
-TEST_F(TestChargingDock, FailConfigureNoTfBuffer)
+TEST_F(TestPantherChargingDock, FailConfigureNoTfBuffer)
 {
   tf_buffer_.reset();
   ASSERT_THROW({ dock_->configure(node_, "dock", tf_buffer_); }, std::runtime_error);
 }
 
-TEST_F(TestChargingDock, GetStagingPoseLocal)
+TEST_F(TestPantherChargingDock, GetStagingPoseLocal)
 {
   dock_->configure(node_, "dock", tf_buffer_);
   dock_->activate();
@@ -128,10 +128,10 @@ TEST_F(TestChargingDock, GetStagingPoseLocal)
 }
 
 // TODO: @delihus fill after nav2 tests
-// TEST_F(TestChargingDock, GetStagingPoseGlobal){
+// TEST_F(TestPantherChargingDock, GetStagingPoseGlobal){
 // }
 
-TEST_F(TestChargingDock, GetRefinedPose)
+TEST_F(TestPantherChargingDock, GetRefinedPose)
 {
   node_->declare_parameter("dock.external_detection_timeout", 0.5);
   dock_->configure(node_, "dock", tf_buffer_);
@@ -163,7 +163,7 @@ TEST_F(TestChargingDock, GetRefinedPose)
   ASSERT_FLOAT_EQ(pose.pose.position.z, 0.0);
 }
 
-TEST_F(TestChargingDock, IsDocked)
+TEST_F(TestPantherChargingDock, IsDocked)
 {
   node_->declare_parameter("dock.external_detection_timeout", 0.5);
   dock_->configure(node_, "dock", tf_buffer_);
@@ -197,13 +197,13 @@ TEST_F(TestChargingDock, IsDocked)
   ASSERT_TRUE(dock_->isDocked());
 }
 
-TEST_F(TestChargingDock, IsChargingNoWiboticInfo)
+TEST_F(TestPantherChargingDock, IsChargingNoWiboticInfo)
 {
   ActivateWiboticInfo();
   ASSERT_THROW({ dock_->isCharging(); }, opennav_docking_core::FailedToCharge);
 }
 
-TEST_F(TestChargingDock, IsChargingTimeout)
+TEST_F(TestPantherChargingDock, IsChargingTimeout)
 {
   ActivateWiboticInfo();
 
@@ -213,7 +213,7 @@ TEST_F(TestChargingDock, IsChargingTimeout)
   ASSERT_FALSE(dock_->isCharging());
 }
 
-TEST_F(TestChargingDock, IsChargingCurrentZero)
+TEST_F(TestPantherChargingDock, IsChargingCurrentZero)
 {
   ActivateWiboticInfo();
   wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
@@ -225,7 +225,7 @@ TEST_F(TestChargingDock, IsChargingCurrentZero)
   ASSERT_FALSE(dock_->isCharging());
 }
 
-TEST_F(TestChargingDock, IsChargingTimeoutWithGoodCurrent)
+TEST_F(TestPantherChargingDock, IsChargingTimeoutWithGoodCurrent)
 {
   ActivateWiboticInfo();
   wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =
@@ -236,7 +236,7 @@ TEST_F(TestChargingDock, IsChargingTimeoutWithGoodCurrent)
   ASSERT_FALSE(dock_->isCharging());
 }
 
-TEST_F(TestChargingDock, IsChargingGoodCurrentWithoutTimeout)
+TEST_F(TestPantherChargingDock, IsChargingGoodCurrentWithoutTimeout)
 {
   ActivateWiboticInfo();
   wibotic_msgs::msg::WiboticInfo::SharedPtr wibotic_info =

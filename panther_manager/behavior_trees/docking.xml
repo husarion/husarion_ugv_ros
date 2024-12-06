@@ -12,7 +12,7 @@
           <DockRobot name="Dock Action"
                      use_dock_id="true"
                      dock_id="main"
-                     dock_type="charging_dock"
+                     dock_type="panther_charging_dock"
                      max_staging_time="100"
                      navigate_to_staging_pose="false"
                      action_name="dock_robot"/>
@@ -24,7 +24,7 @@
                        axes=""
                        buttons="1;0;0;0;1;1;0;0;0;0;0;0"/>
           <UndockRobot name="Undock Action"
-                       dock_type="charging_dock"
+                       dock_type="panther_charging_dock"
                        max_undocking_time="100"
                        action_name="undock_robot"/>
         </Sequence>

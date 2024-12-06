@@ -20,14 +20,18 @@
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-#include <rclcpp/rclcpp.hpp>
-
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace panther_docking
 {
-DockPosePublisherNode::DockPosePublisherNode(const std::string & name) : Node(name)
+DockPosePublisherNode::DockPosePublisherNode(const std::string & name)
+: rclcpp_lifecycle::LifecycleNode(name)
+{
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+DockPosePublisherNode::on_configure(const rclcpp_lifecycle::State &)
 {
   declare_parameter("publish_rate", 10.0);
   declare_parameter("docks", std::vector<std::string>({"main"}));
@@ -38,7 +42,7 @@ DockPosePublisherNode::DockPosePublisherNode(const std::string & name) : Node(na
   const auto fixed_frame = get_parameter("fixed_frame").as_string();
   const auto docks = get_parameter("docks").as_string_array();
   const auto publish_rate = get_parameter("publish_rate").as_double();
-  const auto publish_period = std::chrono::duration<double>(1.0 / publish_rate);
+  publish_period_ = std::chrono::duration<double>(1.0 / publish_rate);
 
   timeout_ = get_parameter("panther_charging_dock.external_detection_timeout").as_double() * 0.1;
   base_frame_ = get_parameter("base_frame").as_string();
@@ -60,12 +64,52 @@ DockPosePublisherNode::DockPosePublisherNode(const std::string & name) : Node(na
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  timer_ = this->create_wall_timer(
-    publish_period, std::bind(&DockPosePublisherNode::publishPose, this));
   pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
     "docking/dock_pose", 10);
 
-  RCLCPP_INFO(this->get_logger(), "DockPosePublisherNode initialized");
+  RCLCPP_DEBUG_STREAM(this->get_logger(), "Node configured successfully");
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+DockPosePublisherNode::on_activate(const rclcpp_lifecycle::State &)
+{
+  pose_publisher_->on_activate();
+  timer_ = this->create_wall_timer(
+    publish_period_, std::bind(&DockPosePublisherNode::publishPose, this));
+
+  RCLCPP_DEBUG_STREAM(this->get_logger(), "Node activated");
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+DockPosePublisherNode::on_deactivate(const rclcpp_lifecycle::State &)
+{
+  pose_publisher_->on_deactivate();
+  timer_.reset();
+
+  RCLCPP_DEBUG_STREAM(this->get_logger(), "Node deactivated");
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+DockPosePublisherNode::on_cleanup(const rclcpp_lifecycle::State &)
+{
+  pose_publisher_.reset();
+  timer_.reset();
+  tf_listener_.reset();
+  tf_buffer_.reset();
+  source_frames_.clear();
+
+  RCLCPP_DEBUG_STREAM(this->get_logger(), "Node cleaned up");
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+DockPosePublisherNode::on_shutdown(const rclcpp_lifecycle::State &)
+{
+  RCLCPP_DEBUG_STREAM(this->get_logger(), "Node shutting down");
+  return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
 void DockPosePublisherNode::publishPose()
@@ -78,7 +122,6 @@ void DockPosePublisherNode::publishPose()
   geometry_msgs::msg::TransformStamped base_transform_stamped;
 
   bool found = false;
-
   double closest_dist = std::numeric_limits<double>::max();
 
   try {
@@ -89,24 +132,23 @@ void DockPosePublisherNode::publishPose()
     return;
   }
 
-  for (size_t i = 0; i < source_frames_.size(); ++i) {
-    geometry_msgs::msg::TransformStamped transform_stamped;
+  for (const auto & source_frame : source_frames_) {
     try {
-      transform_stamped = tf_buffer_->lookupTransform(
-        target_frame_, source_frames_[i], tf2::TimePointZero, tf2::durationFromSec(timeout_));
+      const auto transform_stamped = tf_buffer_->lookupTransform(
+        target_frame_, source_frame, tf2::TimePointZero, tf2::durationFromSec(timeout_));
+
+      const double dist = std::hypot(
+        transform_stamped.transform.translation.x - base_transform_stamped.transform.translation.x,
+        transform_stamped.transform.translation.y - base_transform_stamped.transform.translation.y);
+
+      if (dist < kMinimalDetectionDistance && dist < closest_dist) {
+        closest_dist = dist;
+        closest_dock = transform_stamped;
+        found = true;
+      }
     } catch (tf2::TransformException & ex) {
       RCLCPP_DEBUG_STREAM(this->get_logger(), "Could not get transform: " << ex.what());
       continue;
-    }
-
-    const double dist = std::hypot(
-      transform_stamped.transform.translation.x - base_transform_stamped.transform.translation.x,
-      transform_stamped.transform.translation.y - base_transform_stamped.transform.translation.y);
-
-    if (dist < kMinimalDetectionDistance && dist < closest_dist) {
-      closest_dist = dist;
-      closest_dock = transform_stamped;
-      found = true;
     }
   }
 
@@ -121,4 +163,5 @@ void DockPosePublisherNode::publishPose()
   pose_msg.pose.orientation = closest_dock.transform.rotation;
   pose_publisher_->publish(pose_msg);
 }
+
 }  // namespace panther_docking

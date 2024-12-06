@@ -15,6 +15,7 @@
   <author email="jakub.delicat@husarion.com">Jakub Delicat</author>
 
   <depend>geometry_msgs</depend>
+  <depend>lifecycle_msgs</depend>
   <depend>nav2_util</depend>
   <depend>opennav_docking</depend>
   <depend>panther_manager</depend>
@@ -22,6 +23,7 @@
   <depend>pluginlib</depend>
   <depend>python3-pip</depend>
   <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
   <depend>ros_components_description</depend>
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>

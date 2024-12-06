@@ -8,11 +8,13 @@ endif()
 set(PACKAGE_DEPENDENCIES
     ament_cmake
     geometry_msgs
+    lifecycle_msgs
     opennav_docking_core
     opennav_docking
     panther_utils
     pluginlib
     rclcpp
+    rclcpp_lifecycle
     sensor_msgs
     std_srvs
     tf2_geometry_msgs

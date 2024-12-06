@@ -14,7 +14,7 @@ The package contains a `PantherChargingDock` plugin for the [opennav_docking](ht
 
 ## ROS Nodes
 
-- `DockPosePublisherNode`: A node listens to `tf` and republishes position of `dock_pose` in the fixed frame.
+- `DockPosePublisherNode`: A lifecycle node listens to `tf` and republishes position of `dock_pose` in the fixed frame when it is activated.
 - `PantherChargingDock`:  A plugin for a Panther robot what is responsible for a charger service.
 
 ### DockPosePublisherNode

@@ -28,7 +28,7 @@ int main(int argc, char ** argv)
     std::make_shared<panther_docking::DockPosePublisherNode>("dock_pose_publisher_node");
 
   try {
-    rclcpp::spin(dock_pose_publisher_node);
+    rclcpp::spin(dock_pose_publisher_node->get_node_base_interface());
   } catch (const std::runtime_error & e) {
     std::cerr << "[" << dock_pose_publisher_node->get_name() << "] Caught exception: " << e.what()
               << std::endl;

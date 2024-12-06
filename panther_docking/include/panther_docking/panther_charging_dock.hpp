@@ -29,6 +29,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <lifecycle_msgs/msg/state.hpp>
+#include <lifecycle_msgs/srv/change_state.hpp>
 #include <sensor_msgs/msg/battery_state.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
@@ -168,6 +170,17 @@ protected:
    */
   void setWiboticInfo(const WiboticInfoMsg::SharedPtr msg);
 
+  /**
+   * @brief Method to set the state of the dock pose publisher lifecycle node.
+   *
+   * Calls async service to change the state of the dock pose publisher lifecycle node.
+   *
+   * @param state The transition state to set the dock pose publisher to.
+   */
+  void setDockPosePublisherState(std::uint8_t state);
+
+  bool IsWiboticInfoTimeout();
+
   std::string base_frame_name_;
   std::string fixed_frame_name_;
   std::string dock_frame_;
@@ -181,10 +194,14 @@ protected:
   rclcpp::Publisher<PoseStampedMsg>::SharedPtr staging_pose_pub_;
   rclcpp::Subscription<PoseStampedMsg>::SharedPtr dock_pose_sub_;
   rclcpp::Subscription<WiboticInfoMsg>::SharedPtr wibotic_info_sub_;
+  rclcpp::Client<lifecycle_msgs::srv::ChangeState>::SharedPtr
+    dock_pose_publisher_change_state_client_;
 
   PoseStampedMsg dock_pose_;
   PoseStampedMsg staging_pose_;
   WiboticInfoMsg::SharedPtr wibotic_info_;
+
+  std::uint8_t dock_pose_publisher_state_;
 
   double external_detection_timeout_;
 

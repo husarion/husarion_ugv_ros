@@ -56,7 +56,7 @@ def generate_launch_description():
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_description"), "config", "components.yaml"]
+            [FindPackageShare("husarion_ugv_descriptions"), "config", "components.yaml"]
         ),
         description=(
             "Specify file which contains components. These components will be included in URDF."
@@ -112,14 +112,14 @@ def generate_launch_description():
         "wheel_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare("husarion_ugv_description"),
+                FindPackageShare("husarion_ugv_descriptions"),
                 "config",
                 PythonExpression(["'", wheel_type, ".yaml'"]),
             ]
         ),
         description=(
             "Path to wheel configuration file. By default, it is located in "
-            "'husarion_ugv_description/config/{wheel_type}.yaml'. You can also specify the path "
+            "'husarion_ugv_descriptions/config/{wheel_type}.yaml'. You can also specify the path "
             "to your custom wheel configuration file here. "
         ),
     )
@@ -149,7 +149,7 @@ def generate_launch_description():
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
             PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_description"), "urdf", urdf_file]
+                [FindPackageShare("husarion_ugv_descriptions"), "urdf", urdf_file]
             ),
             " use_sim:=",
             use_sim,

@@ -72,7 +72,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
-                    FindPackageShare("husarion_ugv_description"),
+                    FindPackageShare("husarion_ugv_descriptions"),
                     "launch",
                     "rviz.launch.py",
                 ]

@@ -41,7 +41,7 @@ def generate_launch_description():
     declare_rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_description"), "rviz", "husarion_ugv.rviz"]
+            [FindPackageShare("husarion_ugv_descriptions"), "rviz", "husarion_ugv.rviz"]
         ),
         description="RViz configuration file.",
     )

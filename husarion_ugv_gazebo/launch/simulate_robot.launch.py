@@ -57,7 +57,7 @@ def generate_launch_description():
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_description"), "config", "components.yaml"]
+            [FindPackageShare("husarion_ugv_descriptions"), "config", "components.yaml"]
         ),
         description=(
             "Additional components configuration file. Components described in this file "

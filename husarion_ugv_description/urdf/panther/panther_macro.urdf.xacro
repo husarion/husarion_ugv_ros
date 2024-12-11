@@ -22,7 +22,7 @@
     <xacro:property name="wheel_separation_x" value="0.44" />
 
     <!-- INCLUDE ROBOT PARTS DEFINITIONS -->
-    <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/panther/body.urdf.xacro" ns="body" />
+    <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/panther/base.urdf.xacro" ns="body" />
     <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/common/gazebo.urdf.xacro" ns="gazebo" />
     <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/common/wheel.urdf.xacro" ns="wheel" />
 

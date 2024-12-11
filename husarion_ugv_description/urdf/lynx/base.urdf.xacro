@@ -13,11 +13,11 @@
       </visual>
 
       <collision>
-        <origin xyz="0.0 0.0 0.0745" rpy="0.0 0.0 0.0" />
+        <origin xyz="0.0 0.0 0.09" rpy="0.0 0.0 0.0" />
         <geometry>
           <!-- TODO change when models ready -->
           <!-- <mesh filename="package://husarion_ugv_descriptions/meshes/panther/body_collision.stl" /> -->
-          <box size="0.646 0.34 0.268" />
+          <box size="0.64 0.34 0.28" />
         </geometry>
       </collision>
 

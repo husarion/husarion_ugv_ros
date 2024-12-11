@@ -57,7 +57,7 @@ def generate_launch_description():
 
     z = LaunchConfiguration("z")
     declare_z_arg = DeclareLaunchArgument(
-        "z", default_value="0.0", description="Initial robot position in the global 'z' axis."
+        "z", default_value="0.2", description="Initial robot position in the global 'z' axis."
     )
 
     roll = LaunchConfiguration("roll")

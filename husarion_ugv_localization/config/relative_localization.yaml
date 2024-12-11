@@ -10,7 +10,7 @@
 
       map_frame: map
       odom_frame: odom
-      base_link_frame: base_footprint
+      base_link_frame: base_link
       world_frame: odom
       publish_tf: true
       publish_acceleration: false

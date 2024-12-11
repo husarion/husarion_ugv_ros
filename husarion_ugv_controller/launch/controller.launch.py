@@ -34,13 +34,39 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    husarion_ugv_controller_common_dir = PathJoinSubstitution(
-        ["/config", "husarion_ugv_controller"]
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_controller_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_controller' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_controller"),
+            "'",
+        ]
     )
 
     robot_model = LaunchConfiguration("robot_model")
     robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
-    robot_description_common_dir = PathJoinSubstitution(["/config", robot_description_pkg])
+    robot_description_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/",
+            robot_description_pkg,
+            "' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare(robot_description_pkg),
+            "'",
+        ]
+    )
 
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
@@ -284,6 +310,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_battery_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path

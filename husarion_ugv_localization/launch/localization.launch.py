@@ -86,11 +86,29 @@ def generate_launch_description():
         ["'", mode_prefix, "localization", gps_postfix, ".yaml'"]
     )
 
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_localization_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_localization' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_localization"),
+            "'",
+        ]
+    )
+
     localization_config_path = LaunchConfiguration("localization_config_path")
     declare_localization_config_path_arg = DeclareLaunchArgument(
         "localization_config_path",
         default_value=PathJoinSubstitution(
-            ["/config", "husarion_ugv_localization", "config", localization_config_filename]
+            [husarion_ugv_localization_common_dir, "config", localization_config_filename]
         ),
         description="Specify the path to the localization configuration file.",
     )
@@ -135,6 +153,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_fuse_gps_arg,
         declare_launch_nmea_gps_arg,
         declare_localization_mode_arg,

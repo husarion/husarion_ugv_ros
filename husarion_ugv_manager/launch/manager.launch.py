@@ -21,6 +21,7 @@ from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -28,8 +29,25 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
 
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_manager_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_manager' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_manager"),
+            "'",
+        ]
+    )
+
     husarion_ugv_manager_pkg = FindPackageShare("husarion_ugv_manager")
-    husarion_ugv_manager_common_dir = PathJoinSubstitution(["/config", "husarion_ugv_manager"])
 
     lights_bt_project_path = LaunchConfiguration("lights_bt_project_path")
     declare_lights_bt_project_path_arg = DeclareLaunchArgument(
@@ -105,6 +123,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,
         declare_namespace_arg,

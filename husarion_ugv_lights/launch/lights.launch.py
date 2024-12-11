@@ -33,7 +33,24 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     robot_model = LaunchConfiguration("robot_model")
     husarion_ugv_lights_pkg = FindPackageShare("husarion_ugv_lights")
-    husarion_ugv_lights_common_dir = PathJoinSubstitution(["/config", "husarion_ugv_lights"])
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_lights_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_lights' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_lights"),
+            "'",
+        ]
+    )
+
     animations_config = PythonExpression(["'", robot_model, "_animations.yaml'"])
 
     animations_config_path = LaunchConfiguration("animations_config_path")
@@ -112,6 +129,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
         declare_namespace_arg,

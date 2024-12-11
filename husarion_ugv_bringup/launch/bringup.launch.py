@@ -29,6 +29,13 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+
     disable_manager = LaunchConfiguration("disable_manager")
     declare_disable_manager_arg = DeclareLaunchArgument(
         "disable_manager",
@@ -55,7 +62,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_controller"), "launch", "controller.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
     )
 
     system_monitor_launch = IncludeLaunchDescription(
@@ -77,7 +84,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_lights"), "launch", "lights.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
     )
 
     battery_launch = IncludeLaunchDescription(
@@ -95,7 +102,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_localization"), "launch", "localization.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -105,7 +112,7 @@ def generate_launch_description():
             )
         ),
         condition=UnlessCondition(disable_manager),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
     )
 
     delayed_action = TimerAction(
@@ -119,6 +126,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_namespace_arg,
         welcome_info,

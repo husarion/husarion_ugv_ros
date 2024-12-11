@@ -23,7 +23,3 @@ repositories:
     type: git
     url: https://github.com/husarion/husarion_gz_worlds.git
     version: 9d514a09c74bca2afbfba76cf2c87134918bbf97
-  wibotic_ros:
-    type: git
-    url: https://github.com/husarion/wibotic_ros/
-    version: 0.1.0

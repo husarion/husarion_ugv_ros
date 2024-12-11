@@ -185,19 +185,6 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    docking_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("husarion_ugv_docking"),
-                    "launch",
-                    "docking.launch.py",
-                ]
-            ),
-        ),
-        launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
-    )
-
     return LaunchDescription(
         [
             declare_battery_config_path_arg,
@@ -213,6 +200,5 @@ def generate_launch_description():
             ekf_launch,
             simulate_components,
             gz_bridge,
-            docking_launch,
         ]
     )

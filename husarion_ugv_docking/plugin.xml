@@ -1,8 +1,0 @@
-<class_libraries>
-    <library path="charging_dock">
-        <class name="husarion_ugv_docking::ChargingDock" type="husarion_ugv_docking::ChargingDock"
-            base_class_type="opennav_docking_core::ChargingDock">
-            <description>A dock plugin interface for Panther robot</description>
-        </class>
-    </library>
-</class_libraries>

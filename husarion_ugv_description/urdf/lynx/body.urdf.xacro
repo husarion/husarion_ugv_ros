@@ -5,14 +5,6 @@
     name="body"
     params="wheel_radius imu_xyz imu_rpy">
 
-    <link name="base_footprint" />
-
-    <joint name="base_to_body_joint" type="fixed">
-      <origin xyz="0.0 0.0 ${wheel_radius}" rpy="0.0 0.0 0.0" />
-      <parent link="base_footprint" />
-      <child link="base_link" />
-    </joint>
-
     <link name="base_link">
       <visual>
         <geometry>
@@ -38,6 +30,14 @@
                                               izz="1.51185" />
       </inertial>
     </link>
+
+    <joint name="base_to_footprint_joint" type="fixed">
+      <origin xyz="0.0 0.0 -${wheel_radius}" rpy="0.0 0.0 0.0" />
+      <parent link="base_link" />
+      <child link="base_footprint" />
+    </joint>
+
+    <link name="base_footprint" />
 
     <joint name="base_to_user_compartment_joint" type="fixed">
       <origin xyz="0.0 0.0 0.00535" rpy="0.0 0.0 0.0" />
@@ -98,7 +98,7 @@
       </inertial>
     </link>
 
-    <joint name="body_to_imu_joint" type="fixed">
+    <joint name="base_to_imu_joint" type="fixed">
       <origin xyz="${imu_xyz}" rpy="${imu_rpy}" />
       <parent link="base_link" />
       <child link="imu_link" />
@@ -106,7 +106,7 @@
 
     <link name="imu_link" />
 
-    <joint name="body_to_cover_joint" type="fixed">
+    <joint name="base_to_cover_joint" type="fixed">
       <!-- TODO change to real value -->
       <origin xyz="0.0 0.0 0.2085" rpy="0.0 0.0 0.0" />
       <parent link="base_link" />

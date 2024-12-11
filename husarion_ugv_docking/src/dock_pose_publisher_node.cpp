@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_docking/dock_pose_publisher_node.hpp"
+#include "husarion_ugv_docking/dock_pose_publisher_node.hpp"
 
 #include <memory>
 #include <string>
@@ -23,7 +23,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-namespace panther_docking
+namespace husarion_ugv_docking
 {
 DockPosePublisherNode::DockPosePublisherNode(const std::string & name)
 : rclcpp_lifecycle::LifecycleNode(name)
@@ -37,22 +37,22 @@ DockPosePublisherNode::on_configure(const rclcpp_lifecycle::State &)
   declare_parameter("docks", std::vector<std::string>({"main"}));
   declare_parameter("fixed_frame", "odom");
   declare_parameter("base_frame", "base_link");
-  declare_parameter("panther_charging_dock.external_detection_timeout", 0.1);
+  declare_parameter("charging_dock.external_detection_timeout", 0.1);
 
   const auto fixed_frame = get_parameter("fixed_frame").as_string();
   const auto docks = get_parameter("docks").as_string_array();
   const auto publish_rate = get_parameter("publish_rate").as_double();
   publish_period_ = std::chrono::duration<double>(1.0 / publish_rate);
 
-  timeout_ = get_parameter("panther_charging_dock.external_detection_timeout").as_double() * 0.1;
+  timeout_ = get_parameter("charging_dock.external_detection_timeout").as_double() * 0.1;
   base_frame_ = get_parameter("base_frame").as_string();
 
   for (const auto & dock : docks) {
-    declare_parameter(dock + ".type", "panther_charging_dock");
+    declare_parameter(dock + ".type", "charging_dock");
     declare_parameter(dock + ".dock_frame", "main_wibotic_transmitter_link");
 
     const auto dock_type = get_parameter(dock + ".type").as_string();
-    if (dock_type == "panther_charging_dock") {
+    if (dock_type == "charging_dock") {
       const auto dock_pose_frame_id = get_parameter(dock + ".dock_frame").as_string();
       RCLCPP_INFO_STREAM(
         this->get_logger(), "Adding dock " << dock << " with frame " << dock_pose_frame_id);
@@ -164,4 +164,4 @@ void DockPosePublisherNode::publishPose()
   pose_publisher_->publish(pose_msg);
 }
 
-}  // namespace panther_docking
+}  // namespace husarion_ugv_docking

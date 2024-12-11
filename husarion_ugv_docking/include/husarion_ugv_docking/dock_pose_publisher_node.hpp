@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_
-#define PANTHER_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_
+#ifndef HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_
+#define HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_
 
 #include <memory>
 #include <string>
@@ -26,7 +26,7 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-namespace panther_docking
+namespace husarion_ugv_docking
 {
 constexpr double kMinimalDetectionDistance = 1.0;
 
@@ -60,6 +60,6 @@ private:
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
-}  // namespace panther_docking
+}  // namespace husarion_ugv_docking
 
-#endif  // PANTHER_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_
+#endif  // HUSARION_UGV_DOCKING_HUSARION_UGV_DOCKING_DOCK_POSE_PUBLISHER_NODE_HPP_

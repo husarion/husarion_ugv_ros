@@ -32,9 +32,9 @@ This node is of type rclcpp_components is responsible for processing animations 
 
 #### Parameters
 
-- `~animations_config_path` [*string*, default: **$(find husarion_ugv_lights)/husarion_ugv_lights/config/{robot_model}_animations.yaml**]: Path to a YAML file with a description of led configuration. This file includes definition of robot panels, virtual segments and default animations.
-- `~controller_frequency` [*float*, default: **50.0**]: Frequency [Hz] at which the lights controller node will process animations.
-- `~user_led_animations_path` [*string*, default: **None**]: Path to a YAML file with a description of the user defined animations.
+- `~/animations_config_path` [*string*, default: **$(find husarion_ugv_lights)/husarion_ugv_lights/config/{robot_model}_animations.yaml**]: Path to a YAML file with a description of led configuration. This file includes definition of robot panels, virtual segments and default animations.
+- `~/controller_frequency` [*float*, default: **50.0**]: Frequency [Hz] at which the lights controller node will process animations.
+- `~/user_led_animations_path` [*string*, default: **None**]: Path to a YAML file with a description of the user defined animations.
 
 ### LightsDriverNode
 
@@ -59,7 +59,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 #### Parameters
 
-- `~frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
-- `~global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
-- `~channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
-- `~channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.
+- `~/frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
+- `~/global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
+- `~/channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
+- `~/channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

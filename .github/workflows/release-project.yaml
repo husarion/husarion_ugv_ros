@@ -1,5 +1,5 @@
 ---
-name: Release Panther project
+name: Release project
 
 on:
   workflow_dispatch:
@@ -30,11 +30,11 @@ env:
   MAIN_BRANCH: ros2
 
 jobs:
-  release_panther_msgs:
-    name: Release panther_msgs repository
+  release_project:
+    name: Release Husarion UGV project
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger repository release workflow
+      - name: Release panther_msgs repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -42,7 +42,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
@@ -52,13 +51,7 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-  release_panther_ros:
-    name: Release panther_ros repository
-    needs:
-      - release_panther_msgs
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger panther_ros release workflow
+      - name: Release panther_ros repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -66,7 +59,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }} # Use the default GITHUB_TOKEN for local repository
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
@@ -76,13 +68,7 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-  rebuild_and_push_docker_images:
-    name: Rebuild panther docker images with new version
-    runs-on: ubuntu-22.04
-    needs:
-      - release_panther_ros
-    steps:
-      - name: Trigger repository build workflow
+      - name: Rebuild panther docker images with new version
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -90,7 +76,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: ros-docker-image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "panther_codebase_version": "${{ github.event.inputs.version }}",
@@ -98,13 +83,7 @@ jobs:
               "target_distro": "humble"
             }
 
-  release_panther_docker:
-    name: Release panther-docker repository
-    needs:
-      - rebuild_and_push_docker_images
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository release workflow
+      - name: Release panther-docker repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -112,7 +91,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
@@ -122,14 +100,7 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-  release_panther_rpi_os_image:
-    name: Release panther-rpi-os-img repository
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - release_panther_docker
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository release workflow
+      - name: Release panther-rpi-os-img repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -137,7 +108,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
@@ -147,14 +117,8 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-  build_and_publish_rpi_image:
-    name: Build panther system image
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - release_panther_rpi_os_image
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository build workflow
+      - name: Build panther system image
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -162,7 +126,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.MAIN_BRANCH }}
-          wait_interval: 10
           client_payload: |
             {
               "dev_image": "false",
@@ -170,14 +133,8 @@ jobs:
               "image_tag": "${{ github.event.inputs.version }}"
             }
 
-  build_and_publish_rpi_flash_os_image:
-    name: Build panther flash OS image
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - build_and_publish_rpi_image
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository build workflow
+      - name: Build panther flash OS image
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -185,8 +142,16 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: build_and_deploy_flash_os_image.yaml
           ref: ${{ env.MAIN_BRANCH }}
-          wait_interval: 10
           client_payload: |
             {
               "image_tag": "${{ github.event.inputs.version }}"
             }
+
+      - name: Trigger repository build workflow
+        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        with:
+          owner: husarion
+          repo: docs_new
+          github_token: ${{ secrets.GH_PAT }}
+          workflow_file_name: build.yml
+          ref: master

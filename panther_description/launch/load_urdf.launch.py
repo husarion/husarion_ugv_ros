@@ -65,20 +65,20 @@ def generate_launch_description():
         ),
     )
 
-    wheel_type = LaunchConfiguration("wheel_type")  # wheel_type is used by controller_config_path
+    wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
         "controller_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare("panther_controller"),
+                FindPackageShare("husarion_ugv_controller"),
                 "config",
                 PythonExpression(["'", wheel_type, "_controller.yaml'"]),
             ]
         ),
         description=(
             "Path to controller configuration file. By default, it is located in"
-            " 'panther_controller/config/{wheel_type}_controller.yaml'. You can also specify"
+            " 'husarion_ugv_controller/config/{wheel_type}_controller.yaml'. You can also specify"
             " the path to your custom controller configuration file here. "
         ),
     )
@@ -98,6 +98,7 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    wheel_config_path = LaunchConfiguration("wheel_config_path")
     declare_wheel_config_path_arg = DeclareLaunchArgument(
         "wheel_config_path",
         default_value=PathJoinSubstitution(
@@ -114,21 +115,24 @@ def generate_launch_description():
         ),
     )
 
-    wheel_config_path = LaunchConfiguration("wheel_config_path")
     declare_wheel_type_arg = DeclareLaunchArgument(
         "wheel_type",
         default_value="WH01",
         description=(
-            "Type of wheel. If you choose a value from the preset options ('WH01', 'WH02',"
-            " 'WH04'), you can ignore the 'wheel_config_path' and 'controller_config_path'"
-            " parameters. For custom wheels, please define these parameters to point to files that"
-            " accurately describe the custom wheels."
+            "Specify the wheel type. If the selected wheel type is not 'custom', "
+            "the 'wheel_config_path' and 'controller_config_path' arguments will be "
+            "automatically adjusted and can be omitted."
         ),
         choices=["WH01", "WH02", "WH04", "custom"],
     )
 
-    panther_version = EnvironmentVariable(name="PANTHER_ROBOT_VERSION", default_value="1.0")
     # Get URDF via xacro
+    imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
+    imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
+    imu_pos_z = os.environ.get("ROBOT_IMU_LOCALIZATION_Z", "0.083")
+    imu_rot_r = os.environ.get("ROBOT_IMU_ORIENTATION_R", "3.14")
+    imu_rot_p = os.environ.get("ROBOT_IMU_ORIENTATION_P", "-1.57")
+    imu_rot_y = os.environ.get("ROBOT_IMU_ORIENTATION_Y", "0.0")
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -136,8 +140,6 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare("panther_description"), "urdf", "panther.urdf.xacro"]
             ),
-            " panther_version:=",
-            panther_version,
             " use_sim:=",
             use_sim,
             " wheel_config_file:=",
@@ -147,9 +149,9 @@ def generate_launch_description():
             " battery_config_file:=",
             battery_config_path,
             " imu_xyz:=",
-            f"\"{os.environ.get('PANTHER_IMU_LOCALIZATION_X', '0.168')} {os.environ.get('PANTHER_IMU_LOCALIZATION_Y', '0.028')} {os.environ.get('PANTHER_IMU_LOCALIZATION_Z', '0.083')}\"",
+            f"'{imu_pos_x} {imu_pos_y} {imu_pos_z}'",
             " imu_rpy:=",
-            f"\"{os.environ.get('PANTHER_IMU_ORIENTATION_R', '3.14')} {os.environ.get('PANTHER_IMU_ORIENTATION_P', '-1.57')} {os.environ.get('PANTHER_IMU_ORIENTATION_Y', '0.0')}\"",
+            f"'{imu_rot_r} {imu_rot_p} {imu_rot_y}'",
             " namespace:=",
             namespace,
             " components_config_path:=",

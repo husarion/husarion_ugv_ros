@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" project_name="SafetyBT">
+    <include path="safety.xml"/>
+    <include path="shutdown.xml"/>
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Action ID="CallSetBoolService" editable="true">
+            <input_port name="data">true / false value</input_port>
+            <input_port name="service_name">ROS service name</input_port>
+        </Action>
+        <Action ID="CallTriggerService" editable="true">
+            <input_port name="service_name">ROS service name</input_port>
+        </Action>
+        <Action ID="ShutdownHostsFromFile" editable="true">
+            <input_port name="shutdown_hosts_file">global path to YAML file with hosts to shutdown</input_port>
+        </Action>
+        <Action ID="ShutdownSingleHost" editable="true">
+            <input_port name="command" default="sudo shutdown now">command to execute on shutdown</input_port>
+            <input_port name="ip">ip of the host to shutdown</input_port>
+            <input_port name="ping_for_success" default="true">ping host until it is not available or timeout is reached</input_port>
+            <input_port name="port" default="22">SSH communication port</input_port>
+            <input_port name="timeout" default="5.0">time in s to wait for host to shutdown</input_port>
+            <input_port name="username">user to log into while executing shutdown command</input_port>
+        </Action>
+        <Action ID="SignalShutdown" editable="true">
+            <input_port name="reason">reason to shutdown robot</input_port>
+        </Action>
+        <Decorator ID="TickAfterTimeout" editable="true">
+            <input_port name="timeout">time in s to wait before ticking child again</input_port>
+        </Decorator>
+    </TreeNodesModel>
+</root>

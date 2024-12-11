@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>husarion_ugv_localization</name>
+  <version>2.1.2</version>
+  <description>robot localization configuration for Husarion UGV</description>
+  <maintainer email="support@husarion.com">Husarion</maintainer>
+  <license>Apache License 2.0</license>
+
+  <url type="website">https://husarion.com/</url>
+  <url type="repository">https://github.com/husarion/panther_ros</url>
+  <url type="bugtracker">https://github.com/husarion/panther_ros/issues</url>
+
+  <author email="rafal.gorecki@husarion.com">Rafal Gorecki</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>nav2_common</exec_depend>
+  <exec_depend>nmea_navsat_driver</exec_depend>
+  <exec_depend>python3-transforms3d</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

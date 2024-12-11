@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- body defining macro -->
+  <xacro:macro
+    name="body"
+    params="wheel_radius imu_xyz imu_rpy">
+
+    <link name="base_link" />
+
+    <joint name="base_to_body_joint" type="fixed">
+      <origin xyz="0.0 0.0 ${wheel_radius}" rpy="0.0 0.0 0.0" />
+      <parent link="base_link" />
+      <child link="body_link" />
+    </joint>
+
+    <link name="body_link">
+      <visual>
+        <origin xyz="0.0 0.0 0.0745" rpy="0.0 0.0 0.0" />
+        <geometry>
+          <!-- TODO cheange when models ready -->
+          <!-- <mesh filename="package://lynx_description/meshes/body.dae" /> -->
+          <box size="0.646 0.34 0.268" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0.0 0.0 0.0745" rpy="0.0 0.0 0.0" />
+        <geometry>
+          <!-- TODO cheange when models ready -->
+          <!-- <mesh filename="package://lynx_description/meshes/body_collision.stl" /> -->
+          <box size="0.646 0.34 0.268" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <mass value="30.0" />
+        <!-- TODO calculate real interia -->
+        <inertia ixx="0.46856"  ixy="0.0"     ixz="0.0"
+                                iyy="1.22285" iyz="0.0"
+                                              izz="1.51185" />
+      </inertial>
+    </link>
+
+    <joint name="body_to_imu_joint" type="fixed">
+      <origin xyz="${imu_xyz}" rpy="${imu_rpy}" />
+      <parent link="body_link" />
+      <child link="imu_link" />
+    </joint>
+
+    <link name="imu_link" />
+
+    <joint name="body_to_cover_joint" type="fixed">
+      <!-- TODO cheange to real value -->
+      <origin xyz="0.0 0.0 0.2085" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="cover_link" />
+    </joint>
+
+    <link name="cover_link" />
+
+  </xacro:macro>
+</robot>

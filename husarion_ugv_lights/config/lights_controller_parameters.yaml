@@ -1,0 +1,17 @@
+lights_controller:
+  animations_config_path:
+    type: string
+    default_value: ""
+    description: Path to a YAML file with a description of LED configuration. This file includes definition of robot panels, virtual segments and default animations.
+    validation: { not_empty<> }
+
+  controller_frequency:
+    type: double
+    default_value: 50.0
+    description: Frequency in Hz at which the lights controller node will process animations.
+    validation: { gt<>: 0.0 }
+
+  user_led_animations_path:
+    type: string
+    default_value: ""
+    description: Path to a YAML file with a description of the user defined animations.

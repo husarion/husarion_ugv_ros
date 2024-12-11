@@ -1,8 +1,0 @@
-<library path="panther_animation_plugins">
-  <class type="panther_lights::ImageAnimation" base_class_type="panther_lights::Animation">
-    <description>Animation processed from an image</description>
-  </class>
-  <class type="panther_lights::ChargingAnimation" base_class_type="panther_lights::Animation">
-    <description>Charging animation representing percentage of battery</description>
-  </class>
-</library>

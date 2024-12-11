@@ -1,0 +1,52 @@
+battery:
+  adc:
+    device0:
+      type: string
+      default_value: "/sys/bus/iio/devices/iio:device0"
+      description: "Internal ADC0 IIO device."
+      validation: { not_empty<> }
+
+    device1:
+      type: string
+      default_value: "/sys/bus/iio/devices/iio:device1"
+      description: "Internal ADC1 IIO device."
+      validation: { not_empty<> }
+
+    ma_window_len:
+      charge:
+        type: int
+        default_value: 10
+        description: "Window length of a moving average, used to smooth out battery charge readings."
+        validation: { gt<>: 0 }
+
+      temp:
+        type: int
+        default_value: 10
+        description: "Window length of a moving average, used to smooth out battery temperature readings."
+        validation: { gt<>: 0 }
+
+  ma_window_len:
+    voltage:
+      type: int
+      default_value: 10
+      description: "Window length of a moving average, used to smooth out battery voltage readings."
+      validation: { gt<>: 0 }
+
+    current:
+      type: int
+      default_value: 10
+      description: "Window length of a moving average, used to smooth out battery current readings."
+      validation: { gt<>: 0 }
+
+  roboteq:
+    driver_state_timeout:
+      type: double
+      default_value: 0.2
+      description: "Timeout in seconds after which driver state messages will be considered old. Used as a fallback when ADC data is not available."
+      validation: { gt<>: 0.0 }
+
+  battery_timeout:
+    type: double
+    default_value: 1.0
+    description: "Timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state."
+    validation: { gt<>: 0.0 }

@@ -1,0 +1,3 @@
+# In ComposableNode ros__parameters are not supported:
+channel_1_num_led: 22
+channel_2_num_led: 22

@@ -1,0 +1,116 @@
+panels:
+  - channel: 1
+    number_of_leds: 46
+  - channel: 2
+    number_of_leds: 46
+
+segments:
+  - name: front
+    channel: 1
+    led_range: 0-45
+  - name: rear
+    channel: 2
+    led_range: 45-0
+
+segments_map:
+  all: [front, rear]
+  front: [front]
+  rear: [rear]
+
+led_animations:
+  - id: 0
+    name: E_STOP
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/triangle01_red.png
+          duration: 2
+
+  - id: 1
+    name: READY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/triangle01_green.png
+          duration: 2
+
+  - id: 2
+    name: ERROR
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/strip01_red.png
+          duration: 2
+          repeat: 2
+
+  - id: 3
+    name: MANUAL_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/triangle01_blue.png
+          duration: 3
+
+  - id: 4
+    name: AUTONOMOUS_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/triangle01_orange.png
+          duration: 3
+
+  - id: 5
+    name: GOAL_ACHIEVED
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/strip01_purple.png
+          duration: 3
+          repeat: 2
+
+  - id: 6
+    name: LOW_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/battery_low.png
+          duration: 2
+          repeat: 2
+
+  - id: 7
+    name: CRITICAL_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/battery_critical.png
+          duration: 2
+          repeat: 2
+
+  # The BATTERY_STATE animation is no longer supported.
+  # Animation ID: 8 was intentionally omitted to keep numbering compatibility with ROS 1.
+
+  - id: 9
+    name: CHARGING_BATTERY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ChargingAnimation
+        segments: all
+        animation:
+          duration: 3
+          repeat: 2

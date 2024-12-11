@@ -6,32 +6,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  unit-tests:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  build:
+      runs-on: ubuntu-22.04
 
-      - name: Setup ROS
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          use-ros2-testing: true
+      steps:
+          - uses: ros-tooling/setup-ros@v0.7
+            with:
+                use-ros2-testing: true
 
-      - name: Build and test
-        uses: ros-tooling/action-ros-ci@v0.3
-        with:
-          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/simulation_deps.repos
-          target-ros2-distro: humble
-          colcon-defaults: |
-            {
-              "build": {
-                "packages-up-up": [
-                    "husarion_ugv"
-                ]
-              },
-              "test": {
-                "packages-up-up": [
-                    "husarion_ugv"
-                ]
-              }
-            }
+          - name: Build and test
+            uses: ros-tooling/action-ros-ci@v0.3
+            with:
+              vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/simulation_deps.repos
+              target-ros2-distro: humble
+              colcon-defaults: |
+                {
+                  "build": {
+                    "packages-up-up": [
+                        "husarion_ugv"
+                    ]
+                  },
+                  "test": {
+                    "packages-up-up": [
+                        "husarion_ugv"
+                    ]
+                  }
+                }

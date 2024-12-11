@@ -1,0 +1,86 @@
+/**:
+  ekf_filter:
+    ros__parameters:
+      frequency: 50.0
+      sensor_timeout: 0.05
+      two_d_mode: true
+
+      transform_time_offset: 0.0
+      transform_timeout: 0.05
+
+      map_frame: map
+      odom_frame: odom
+      base_link_frame: base_link
+      world_frame: odom
+      publish_tf: true
+      publish_acceleration: false
+
+      odom0: odometry/wheels
+      odom0_config: [false, false, false,
+                     false, false, false,
+                      true,  true, false,
+                     false, false,  true,
+                     false, false, false]
+      odom0_queue_size: 3
+      odom0_nodelay: true
+      odom0_differential: false
+      odom0_relative: true
+
+      imu0: imu/data
+      imu0_config: [false, false, false,
+                    false, false,  true,
+                    false, false, false,
+                    false, false,  true,
+                    false, false, false]
+      imu0_queue_size: 3
+      imu0_nodelay: true
+      imu0_differential: false
+      imu0_relative: false
+      imu0_remove_gravitational_acceleration: false
+
+      use_control: true
+      control_timeout: 0.5
+      control_config: [true, true, false, false, false, true]
+      acceleration_limits: [2.7, 1.5, 0.0, 0.0, 0.0, 5.7] # Values taken from WH01_controller.yaml and WH02_controller.yaml inside husarion_ugv_controller/config
+
+      predict_to_current_time: true
+
+      # Selected values ​​experimentally so as to ensure relatively fast convergence (values ​​should be about 10x higher than the sensor variance values)
+      dynamic_process_noise_covariance: true
+      process_noise_covariance: [2e-1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0, 2e-1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0, 2e-1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0, 3e-2,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0, 3e-2,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0, 3e-2,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-4,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-4,  0.0,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 2e-4,  0.0,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 5e-5,  0.0,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 5e-5,  0.0,
+                                  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 5e-5]
+
+      initial_state: [0.0,  0.0,  0.0,
+                      0.0,  0.0,  0.0,
+                      0.0,  0.0,  0.0,
+                      0.0,  0.0,  0.0,
+                      0.0,  0.0,  0.0]
+
+      initial_estimate_covariance: [1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  1e5,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9,  0.0,
+                                     0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0, 1e-9]

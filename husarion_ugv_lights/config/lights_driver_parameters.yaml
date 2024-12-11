@@ -1,0 +1,24 @@
+lights_driver:
+  frame_timeout:
+    type: double
+    default_value: 0.1
+    description: Time in seconds after which an incoming frame will be considered too old.
+    validation: { gt<>: 0.0 }
+
+  global_brightness:
+    type: double
+    default_value: 1.0
+    description: LED global brightness. The range should be between [0.0, 1.0].
+    validation: { bounds<>: [0.0, 1.0] }
+
+  channel_1_num_led:
+    type: int
+    default_value: 46
+    description: Number of LEDs in the first bumper.
+    validation: { gt<>: 0 }
+
+  channel_2_num_led:
+    type: int
+    default_value: 46
+    description: Number of LEDs in the second bumper.
+    validation: { gt<>: 0 }

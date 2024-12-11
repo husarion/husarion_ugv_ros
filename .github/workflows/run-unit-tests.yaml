@@ -1,5 +1,5 @@
 ---
-name: Run panther unit tests
+name: Run unit tests
 
 on:
   workflow_dispatch:
@@ -28,12 +28,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
-          path: ros2_ws/src/panther_ros
+          path: ros2_ws/src/husarion_ugv
 
       - name: Resolve dependencies
         working-directory: ros2_ws
         run: |
-          vcs import < src/panther_ros/panther/panther_hardware.repos src
+          vcs import < src/husarion_ugv/husarion_ugv/hardware_deps.repos src
           sudo apt update
           rosdep update --rosdistro $ROS_DISTRO
           rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
@@ -43,15 +43,15 @@ jobs:
         run: |
           source /opt/ros/$ROS_DISTRO/setup.bash
           if [ -f install/setup.bash ]; then source install/setup.bash; fi
-          colcon build --symlink-install --parallel-workers $(nproc) --packages-up-to panther --cmake-args -DCMAKE_CXX_FLAGS='-fprofile-arcs -ftest-coverage'
+          colcon build --symlink-install --parallel-workers $(nproc) --packages-up-to husarion_ugv --cmake-args -DCMAKE_CXX_FLAGS='-fprofile-arcs -ftest-coverage'
 
       - name: Test
         working-directory: ros2_ws
         run: |
           source install/setup.bash
-          colcon test --packages-up-to panther --retest-until-pass 10 --event-handlers console_cohesion+ --return-code-on-test-failure
+          colcon test --packages-up-to husarion_ugv --retest-until-pass 10 --event-handlers console_cohesion+ --return-code-on-test-failure
           echo "result=$?" >> ${{ runner.temp }}/${{ env.TEST_RESULT_FILENAME }}
-          colcon lcov-result --packages-up-to panther --verbose >> ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}
+          colcon lcov-result --packages-up-to husarion_ugv --verbose >> ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}
           lines_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }} | grep -E 'lines' | head -1)
           functions_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}  | grep -E 'functions' | head -1)
           branches_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}  | grep -E 'branches' | head -1)

@@ -1,0 +1,22 @@
+# Parameters for the Gazebo LinearBatteryPlugin
+# For more information on robots power consumption, please refer to:
+# Panther: https://husarion.com/manuals/panther/#battery--charging
+
+# If set to true, the battery will discharge and if it depletes completely, the robot will stop moving.
+simulate_discharging: false
+
+# Battery capacity
+# BAT01 - 20 Ah
+# BAT02 - 40 Ah
+capacity: 20.0 # [Ah]
+
+# Sets the initial charge percentage of the battery (range 0-1).
+initial_charge_percentage: 0.7
+
+# Specifies the charging time for the battery in hours.
+charging_time: 6.0 # [h]
+
+# Constant power discharging the battery.
+# 120W – represents the power consumed during normal operation.
+# With this power load, the robot equipped with BAT01 should work for about 7 hours.
+power_load: 120.0 # [W]

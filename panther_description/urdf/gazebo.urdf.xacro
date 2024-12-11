@@ -37,12 +37,15 @@
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
+          <remapping>drive_controller/cmd_vel_unstamped:=cmd_vel</remapping>
+          <remapping>drive_controller/odom:=odometry/wheels</remapping>
+          <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
           <remapping>gz_ros2_control/e_stop:=hardware/e_stop</remapping>
           <remapping>gz_ros2_control/e_stop_reset:=hardware/e_stop_reset</remapping>
           <remapping>gz_ros2_control/e_stop_trigger:=hardware/e_stop_trigger</remapping>
           <remapping>imu_broadcaster/imu:=imu/data</remapping>
-          <remapping>drive_controller/cmd_vel_unstamped:=cmd_vel</remapping>
-          <remapping>drive_controller/odom:=odometry/wheels</remapping>
+          <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
+          <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
         </ros>
       </plugin>
     </gazebo>
@@ -109,7 +112,7 @@
   <!-- Lights -->
   <xacro:macro name="light" params="reference_frame name topic namespace:=''">
     <gazebo>
-      <plugin filename="LEDStrip" name="panther_gazebo::LEDStrip">
+      <plugin filename="LEDStrip" name="husarion_ugv_gazebo::LEDStrip">
         <light_name>${name}</light_name>
         <topic>${topic}</topic>
         <namespace>${namespace}</namespace>

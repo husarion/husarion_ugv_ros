@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot name="panther" xmlns:xacro="http://wiki.ros.org/xacro">
 
-  <xacro:arg name="panther_version" default="1.0" />
   <xacro:arg name="use_sim" default="false" />
   <!-- if lidars have to work correctly, use_gpu has to be true. -->
   <xacro:arg name="use_gpu" default="true" />
@@ -10,7 +9,7 @@
   <xacro:arg name="wheel_config_file"
     default="$(find panther_description)/config/WH01.yaml" />
   <xacro:arg name="controller_config_file"
-    default="$(find panther_controller)/config/WH01_controller.yaml" />
+    default="$(find husarion_ugv_controller)/config/WH01_controller.yaml" />
   <xacro:arg name="battery_config_file"
     default="" />
   <xacro:arg name="namespace" default="" />
@@ -18,7 +17,6 @@
 
   <xacro:include filename="$(find panther_description)/urdf/panther_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.panther_robot
-    panther_version="$(arg panther_version)"
     use_sim="$(arg use_sim)"
     imu_xyz="$(arg imu_xyz)"
     imu_rpy="$(arg imu_rpy)"

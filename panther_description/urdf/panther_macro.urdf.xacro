@@ -3,8 +3,7 @@
 
   <xacro:macro
     name="panther_robot"
-    params="panther_version
-            wheel_config_file
+    params="wheel_config_file
             controller_config_file
             battery_config_file
             use_sim:=false
@@ -57,14 +56,12 @@
     <ros2_control name="${ns}panther_system" type="system">
       <hardware>
         <xacro:if value="${use_sim}">
-          <plugin>panther_gazebo/GzPantherSystem</plugin>
+          <plugin>husarion_ugv_gazebo/EStopSystem</plugin>
           <param name="e_stop_initial_state">true</param>
         </xacro:if>
 
-        <xacro:unless value="$(arg use_sim)">
-          <plugin>panther_hardware_interfaces/PantherSystem</plugin>
-
-          <param name="panther_version">${panther_version}</param>
+        <xacro:unless value="${use_sim}">
+          <plugin>husarion_ugv_hardware_interfaces/PantherSystem</plugin>
 
           <param name="encoder_resolution">1600</param>
 
@@ -77,7 +74,7 @@
           <!-- Max RPM speed set in the Roboteq driver (MXRPM parameter) -->
           <param name="max_rpm_motor_speed">3600.0</param>
 
-          <param name="can_interface_name">panther_can</param>
+          <param name="can_interface_name">robot_can</param>
           <param name="master_can_id">3</param>
           <param name="front_driver_can_id">1</param>
           <param name="rear_driver_can_id">2</param>
@@ -143,10 +140,10 @@
       </xacro:if>
     </ros2_control>
 
-    <xacro:unless value="$(arg use_sim)">
+    <xacro:unless value="${use_sim}">
       <ros2_control name="${ns}imu" type="sensor">
         <hardware>
-          <plugin>panther_hardware_interfaces/PantherImuSensor</plugin>
+          <plugin>husarion_ugv_hardware_interfaces/PhidgetImuSensor</plugin>
           <param name="serial">-1</param>
           <param name="hub_port">0</param>
           <param name="data_interval_ms">8</param>

@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>husarion_ugv_hardware_interfaces</name>
+  <version>2.1.2</version>
+  <description>Hardware controller for Husarion UGV</description>
+  <maintainer email="support@husarion.com">Husarion</maintainer>
+  <license>Apache License 2.0</license>
+
+  <url type="website">https://husarion.com/</url>
+  <url type="repository">https://github.com/husarion/panther_ros</url>
+  <url type="bugtracker">https://github.com/husarion/panther_ros/issues</url>
+
+  <author email="jakub.delicat@husarion.com">Jakub Delicat</author>
+  <author email="pawel.irzyk@husarion.com">Paweł Irzyk</author>
+  <author email="dawid.kmak@husarion.com">Dawid Kmak</author>
+  <author email="pawel.kowalski@husarion.com">Paweł Kowalski</author>
+  <author email="maciej.stepien@husarion.com">Maciej Stępień</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>autoconf</build_depend>
+  <build_depend>autoconf-archive</build_depend>
+  <build_depend>libtool</build_depend>
+  <build_depend>m4</build_depend>
+  <build_depend>pkg-config</build_depend>
+  <build_depend>pluginlib</build_depend>
+
+  <depend>controller_interface</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>generate_parameter_library</depend>
+  <depend>geometry_msgs</depend>
+  <depend>hardware_interface</depend>
+  <depend>husarion_ugv_utils</depend>
+  <depend>imu_filter_madgwick</depend>
+  <depend>panther_msgs</depend>
+  <depend>phidgets_api</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>google-mock</test_depend>
+  <test_depend>ros_testing</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

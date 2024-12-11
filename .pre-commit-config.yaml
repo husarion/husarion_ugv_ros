@@ -47,7 +47,7 @@ repos:
         entry: codespell
         args:
           [
-            "--exclude-file=panther_hardware_interfaces/config/roboteq_motor_controllers_v80_21a.eds",
+            "--exclude-file=husarion_ugv_hardware_interfaces/config/roboteq_motor_controllers_v80_21a.eds",
             "--ignore-words-list",
             "ned" # north, east, down (NED)
           ]

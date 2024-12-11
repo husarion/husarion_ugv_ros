@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>husarion_ugv</name>
+  <version>2.1.2</version>
+  <description>Meta package that contains all packages of Husarion UGV (Unmanned Ground Vehicle)</description>
+  <maintainer email="support@husarion.com">Husarion</maintainer>
+  <license>Apache License 2.0</license>
+
+  <url type="website">https://husarion.com/</url>
+  <url type="repository">https://github.com/husarion/panther_ros</url>
+  <url type="bugtracker">https://github.com/husarion/panther_ros/issues</url>
+
+  <author email="dawid.kmak@husarion.com">Dawid Kmak</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>husarion_ugv_bringup</depend>
+  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_gazebo</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

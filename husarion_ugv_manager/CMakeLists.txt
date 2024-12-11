@@ -61,9 +61,8 @@ foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${PACKAGE_DEPENDENCIES})
 endforeach()
 
-add_executable(
-  safety_manager_node src/safety_manager_node_main.cpp
-                      src/safety_manager_node.cpp src/behavior_tree_manager.cpp)
+add_executable(safety_manager_node src/safety_manager_node_main.cpp
+                                   src/safety_manager_node.cpp)
 ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
@@ -78,9 +77,8 @@ generate_parameter_library(safety_manager_parameters
 target_link_libraries(safety_manager_node ${plugin_libs}
                       safety_manager_parameters)
 
-add_executable(
-  lights_manager_node src/lights_manager_node_main.cpp
-                      src/lights_manager_node.cpp src/behavior_tree_manager.cpp)
+add_executable(lights_manager_node src/lights_manager_node_main.cpp
+                                   src/lights_manager_node.cpp)
 ament_target_dependencies(
   lights_manager_node
   behaviortree_ros2
@@ -180,9 +178,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
     husarion_ugv_utils)
 
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_behavior_tree_manager
-    test/test_behavior_tree_manager.cpp src/behavior_tree_manager.cpp)
+  ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_manager
+                  test/test_behavior_tree_manager.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_behavior_tree_manager
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -190,9 +187,8 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_manager
                             behaviortree_cpp husarion_ugv_utils)
 
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_lights_manager_node test/test_lights_manager_node.cpp
-    src/lights_manager_node.cpp src/behavior_tree_manager.cpp)
+  ament_add_gtest(${PROJECT_NAME}_test_lights_manager_node
+                  test/test_lights_manager_node.cpp src/lights_manager_node.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_lights_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -211,8 +207,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_lights_behavior_tree
-    test/test_lights_behavior_tree.cpp src/lights_manager_node.cpp
-    src/behavior_tree_manager.cpp)
+    test/test_lights_behavior_tree.cpp src/lights_manager_node.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_lights_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -229,9 +224,8 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
                         lights_manager_parameters)
 
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
-    src/safety_manager_node.cpp src/behavior_tree_manager.cpp)
+  ament_add_gtest(${PROJECT_NAME}_test_safety_manager_node
+                  test/test_safety_manager_node.cpp src/safety_manager_node.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_safety_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -250,8 +244,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
-    test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp
-    src/behavior_tree_manager.cpp)
+    test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_safety_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>

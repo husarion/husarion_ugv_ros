@@ -58,7 +58,7 @@ public:
    *
    * @param factory The factory object used to create the tree.
    */
-  void Initialize(BT::BehaviorTreeFactory & factory)
+  inline void Initialize(BT::BehaviorTreeFactory & factory)
   {
     config_ = CreateBTConfig(initial_blackboard_);
     tree_ = factory.createTree(tree_name_, config_.blackboard);
@@ -85,7 +85,7 @@ protected:
    * entry type.
    * @return A BehaviorTree configuration object.
    */
-  BT::NodeConfig CreateBTConfig(const std::map<std::string, std::any> & bb_values) const
+  inline BT::NodeConfig CreateBTConfig(const std::map<std::string, std::any> & bb_values) const
   {
     BT::NodeConfig config;
     config.blackboard = BT::Blackboard::create();

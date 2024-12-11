@@ -137,6 +137,6 @@ pre-commit install
 ### Unit testing
 
 ```bash
-colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release --cmake-args -DTEST_INTEGRATION=OFF
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF
 colcon test --packages-up-to husarion_ugv
 ```

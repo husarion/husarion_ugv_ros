@@ -24,14 +24,14 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "panther_msgs/msg/driver_state_named.hpp"
-#include "panther_msgs/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msg/msg/driver_state_named.hpp"
+#include "husarion_ugv_msg/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_battery/battery/roboteq_battery.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using RobotDriverStateMsg = panther_msgs::msg::RobotDriverState;
+using RobotDriverStateMsg = husarion_ugv_msg::msg::RobotDriverState;
 
 class RoboteqBatteryWrapper : public husarion_ugv_battery::RoboteqBattery
 {
@@ -81,8 +81,8 @@ void TestRoboteqBattery::UpdateBattery(const float voltage, const float current)
 {
   if (!driver_state_) {
     driver_state_ = std::make_shared<RobotDriverStateMsg>();
-    driver_state_->driver_states.push_back(panther_msgs::msg::DriverStateNamed());
-    driver_state_->driver_states.push_back(panther_msgs::msg::DriverStateNamed());
+    driver_state_->driver_states.push_back(husarion_ugv_msg::msg::DriverStateNamed());
+    driver_state_->driver_states.push_back(husarion_ugv_msg::msg::DriverStateNamed());
   }
 
   auto stamp = rclcpp::Time(0, 0, RCL_ROS_TIME);

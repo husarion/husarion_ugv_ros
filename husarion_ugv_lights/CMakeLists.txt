@@ -9,7 +9,7 @@ set(PACKAGE_DEPENDENCIES
     ament_cmake
     diagnostic_updater
     image_transport
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     pluginlib
     rclcpp
@@ -37,7 +37,7 @@ ament_target_dependencies(
   lights_driver_node_component
   diagnostic_updater
   image_transport
-  panther_msgs
+  husarion_ugv_msg
   rclcpp
   rclcpp_components
   sensor_msgs
@@ -50,7 +50,7 @@ add_library(
   src/led_components/led_animations_queue.cpp)
 ament_target_dependencies(
   lights_controller_node_component
-  panther_msgs
+  husarion_ugv_msg
   husarion_ugv_utils
   pluginlib
   rclcpp

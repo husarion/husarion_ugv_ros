@@ -1,0 +1,5 @@
+husarion_ugv_msg/LEDAnimation animation
+bool repeating
+---
+bool success
+string message

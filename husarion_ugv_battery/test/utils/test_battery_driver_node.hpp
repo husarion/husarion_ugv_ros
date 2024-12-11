@@ -28,14 +28,14 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "panther_msgs/msg/io_state.hpp"
-#include "panther_msgs/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msg/msg/io_state.hpp"
+#include "husarion_ugv_msg/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_battery/battery_driver_node.hpp"
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using RobotDriverStateMsg = panther_msgs::msg::RobotDriverState;
-using IOStateMsg = panther_msgs::msg::IOState;
+using RobotDriverStateMsg = husarion_ugv_msg::msg::RobotDriverState;
+using IOStateMsg = husarion_ugv_msg::msg::IOState;
 
 class TestBatteryNode : public testing::Test
 {

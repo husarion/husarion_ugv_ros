@@ -11,7 +11,7 @@ set(PACKAGE_DEPENDENCIES
     behaviortree_cpp
     behaviortree_ros2
     libssh
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     rclcpp
     rclcpp_action
@@ -66,7 +66,7 @@ add_executable(
 ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
-  panther_msgs
+  husarion_ugv_msg
   husarion_ugv_utils
   rclcpp
   sensor_msgs
@@ -79,7 +79,7 @@ add_executable(
 ament_target_dependencies(
   lights_manager_node
   behaviortree_ros2
-  panther_msgs
+  husarion_ugv_msg
   husarion_ugv_utils
   rclcpp
   sensor_msgs
@@ -192,7 +192,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_manager_node
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     rclcpp
     sensor_msgs
@@ -210,7 +210,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_behavior_tree
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     rclcpp
     sensor_msgs
@@ -227,7 +227,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_manager_node
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     rclcpp
     sensor_msgs
@@ -245,7 +245,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_behavior_tree
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    husarion_ugv_msg
     husarion_ugv_utils
     rclcpp
     sensor_msgs

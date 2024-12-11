@@ -29,7 +29,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
-#include "panther_msgs/srv/set_led_brightness.hpp"
+#include "husarion_ugv_msg/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
 

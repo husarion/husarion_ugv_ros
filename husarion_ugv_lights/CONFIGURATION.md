@@ -158,7 +158,7 @@ ros2 launch husarion_ugv_bringup bringup.launch user_animations_file:=/my_awesom
 Test new animations:
 
 ```bash
-ros2 service call /lights/set_animation panther_msgs/srv/SetLEDAnimation "{animation: {id: 0, param: ''}, repeating: true}"
+ros2 service call /lights/set_animation husarion_ugv_msg/srv/SetLEDAnimation "{animation: {id: 0, param: ''}, repeating: true}"
 ```
 
 ## Defining a Custom Animation Type

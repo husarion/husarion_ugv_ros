@@ -21,9 +21,9 @@
 #include <string>
 #include <vector>
 
-#include "panther_msgs/msg/fault_flag.hpp"
-#include "panther_msgs/msg/runtime_error.hpp"
-#include "panther_msgs/msg/script_flag.hpp"
+#include "husarion_ugv_msg/msg/fault_flag.hpp"
+#include "husarion_ugv_msg/msg/runtime_error.hpp"
+#include "husarion_ugv_msg/msg/script_flag.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
@@ -124,7 +124,7 @@ class FaultFlag : public FlagError
 {
 public:
   FaultFlag();
-  panther_msgs::msg::FaultFlag GetMessage() const;
+  husarion_ugv_msg::msg::FaultFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
 };
 
@@ -132,7 +132,7 @@ class ScriptFlag : public FlagError
 {
 public:
   ScriptFlag();
-  panther_msgs::msg::ScriptFlag GetMessage() const;
+  husarion_ugv_msg::msg::ScriptFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
 };
 
@@ -140,7 +140,7 @@ class RuntimeError : public FlagError
 {
 public:
   RuntimeError();
-  panther_msgs::msg::RuntimeError GetMessage() const;
+  husarion_ugv_msg::msg::RuntimeError GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
 };
 

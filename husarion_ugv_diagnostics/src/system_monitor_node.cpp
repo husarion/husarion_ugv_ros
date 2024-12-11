@@ -22,7 +22,7 @@
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include "panther_msgs/msg/system_status.hpp"
+#include "husarion_ugv_msg/msg/system_status.hpp"
 
 #include "husarion_ugv_utils/common_utilities.hpp"
 #include "husarion_ugv_utils/ros_utils.hpp"
@@ -44,7 +44,7 @@ SystemMonitorNode::SystemMonitorNode(
     std::make_shared<system_monitor::ParamListener>(this->get_node_parameters_interface());
   params_ = param_listener_->get_params();
 
-  system_status_publisher_ = this->create_publisher<panther_msgs::msg::SystemStatus>(
+  system_status_publisher_ = this->create_publisher<husarion_ugv_msg::msg::SystemStatus>(
     "system_status", 10);
 
   const auto timer_interval_ms = static_cast<long long>(1000.0 / params_.publish_frequency);
@@ -149,10 +149,10 @@ float SystemMonitorNode::GetDiskUsage() const
   return disk_usage;
 }
 
-panther_msgs::msg::SystemStatus SystemMonitorNode::SystemStatusToMessage(
+husarion_ugv_msg::msg::SystemStatus SystemMonitorNode::SystemStatusToMessage(
   const SystemStatus & status)
 {
-  panther_msgs::msg::SystemStatus message;
+  husarion_ugv_msg::msg::SystemStatus message;
 
   message.header.stamp = this->get_clock()->now();
   message.cpu_percent = status.core_usages;

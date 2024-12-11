@@ -22,12 +22,12 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "panther_msgs/msg/io_state.hpp"
+#include "husarion_ugv_msg/msg/io_state.hpp"
 
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using IOStateMsg = panther_msgs::msg::IOState;
+using IOStateMsg = husarion_ugv_msg::msg::IOState;
 
 class BatteryPublisherWrapper : public husarion_ugv_battery::BatteryPublisher
 {

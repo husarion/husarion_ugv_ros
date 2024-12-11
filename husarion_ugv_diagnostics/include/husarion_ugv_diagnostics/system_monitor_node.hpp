@@ -20,7 +20,7 @@
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include "panther_msgs/msg/system_status.hpp"
+#include "husarion_ugv_msg/msg/system_status.hpp"
 
 #include "system_monitor_parameters.hpp"
 
@@ -63,7 +63,7 @@ protected:
    * @param status The SystemStatus object to be converted.
    * @return The converted SystemStatus message.
    */
-  panther_msgs::msg::SystemStatus SystemStatusToMessage(const SystemStatus & status);
+  husarion_ugv_msg::msg::SystemStatus SystemStatusToMessage(const SystemStatus & status);
 
 private:
   void TimerCallback();
@@ -73,7 +73,7 @@ private:
   diagnostic_updater::Updater diagnostic_updater_;
 
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<panther_msgs::msg::SystemStatus>::SharedPtr system_status_publisher_;
+  rclcpp::Publisher<husarion_ugv_msg::msg::SystemStatus>::SharedPtr system_status_publisher_;
 
   system_monitor::Params params_;
   std::shared_ptr<system_monitor::ParamListener> param_listener_;

@@ -20,17 +20,17 @@
 #include "behaviortree_ros2/bt_service_node.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include "panther_msgs/srv/set_led_animation.hpp"
+#include "husarion_ugv_msg/srv/set_led_animation.hpp"
 
 namespace husarion_ugv_manager
 {
 
-class CallSetLedAnimationService : public BT::RosServiceNode<panther_msgs::srv::SetLEDAnimation>
+class CallSetLedAnimationService : public BT::RosServiceNode<husarion_ugv_msg::srv::SetLEDAnimation>
 {
 public:
   CallSetLedAnimationService(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-  : BT::RosServiceNode<panther_msgs::srv::SetLEDAnimation>(name, conf, params)
+  : BT::RosServiceNode<husarion_ugv_msg::srv::SetLEDAnimation>(name, conf, params)
   {
   }
 

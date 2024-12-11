@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(PACKAGE_DEPENDENCIES ament_cmake diagnostic_updater panther_msgs
+set(PACKAGE_DEPENDENCIES ament_cmake diagnostic_updater husarion_ugv_msg
                          husarion_ugv_utils rclcpp sensor_msgs)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
@@ -45,7 +45,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery rclcpp sensor_msgs
-                            panther_msgs)
+                            husarion_ugv_msg)
 
   ament_add_gtest(${PROJECT_NAME}_test_adc_battery
                   test/battery/test_adc_battery.cpp src/battery/adc_battery.cpp)
@@ -54,7 +54,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_adc_battery rclcpp sensor_msgs
-                            panther_msgs)
+                            husarion_ugv_msg)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_roboteq_battery test/battery/test_roboteq_battery.cpp
@@ -63,8 +63,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_roboteq_battery
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_battery panther_msgs
-                            rclcpp sensor_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_battery
+                            husarion_ugv_msg rclcpp sensor_msgs)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_publisher

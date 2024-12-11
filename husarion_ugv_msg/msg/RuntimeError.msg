@@ -1,0 +1,7 @@
+bool amps_limit_active
+bool motor_stall
+bool loop_error
+bool safety_stop_active
+bool forward_limit_triggered
+bool reverse_limit_triggered
+bool amps_trigger_activated

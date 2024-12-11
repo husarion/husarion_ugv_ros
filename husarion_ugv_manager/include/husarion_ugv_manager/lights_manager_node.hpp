@@ -24,7 +24,7 @@
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
-#include "husarion_ugv_msg/msg/led_animation.hpp"
+#include "husarion_ugv_msgs/msg/led_animation.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
@@ -35,7 +35,7 @@ namespace husarion_ugv_manager
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
-using LEDAnimationMsg = husarion_ugv_msg::msg::LEDAnimation;
+using LEDAnimationMsg = husarion_ugv_msgs::msg::LEDAnimation;
 
 /**
  * @brief This class is responsible for creating a BehaviorTree responsible for lights management,

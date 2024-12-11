@@ -26,7 +26,7 @@
 
 #include "utils/test_constants.hpp"
 
-using RobotDriverStateMsg = husarion_ugv_msg::msg::RobotDriverState;
+using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
 
 class SystemROSInterfaceWrapper : public husarion_ugv_hardware_interfaces::SystemROSInterface
 {

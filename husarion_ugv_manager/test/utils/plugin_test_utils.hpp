@@ -30,7 +30,7 @@
 #include "std_srvs/srv/set_bool.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-#include "husarion_ugv_msg/srv/set_led_animation.hpp"
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "husarion_ugv_manager/plugins/action/call_set_bool_service_node.hpp"
 #include "husarion_ugv_manager/plugins/action/call_set_led_animation_service_node.hpp"

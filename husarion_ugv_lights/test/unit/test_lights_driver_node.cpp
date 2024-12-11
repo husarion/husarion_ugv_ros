@@ -23,7 +23,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
-#include "husarion_ugv_msg/srv/set_led_brightness.hpp"
+#include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
 #include "husarion_ugv_lights/lights_driver_node.hpp"
@@ -31,7 +31,7 @@
 
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
-using SetLEDBrightnessSrv = husarion_ugv_msg::srv::SetLEDBrightness;
+using SetLEDBrightnessSrv = husarion_ugv_msgs::srv::SetLEDBrightness;
 
 class MockAPA102 : public husarion_ugv_lights::APA102Interface
 {

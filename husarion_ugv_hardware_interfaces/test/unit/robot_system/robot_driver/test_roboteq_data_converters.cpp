@@ -24,7 +24,7 @@
 #include "utils/test_constants.hpp"
 
 void TestFaultFlagMsg(
-  const husarion_ugv_msg::msg::FaultFlag & msg, const std::vector<bool> & expected_values)
+  const husarion_ugv_msgs::msg::FaultFlag & msg, const std::vector<bool> & expected_values)
 {
   if (expected_values.size() != 8) {
     throw std::runtime_error("Wrong size of expected_values in TestFaultFlagMsg");
@@ -41,7 +41,7 @@ void TestFaultFlagMsg(
 }
 
 void TestScriptFlagMsg(
-  const husarion_ugv_msg::msg::ScriptFlag & msg, const std::vector<bool> & expected_values)
+  const husarion_ugv_msgs::msg::ScriptFlag & msg, const std::vector<bool> & expected_values)
 {
   if (expected_values.size() != 3) {
     throw std::runtime_error("Wrong size of expected_values in TestScriptFlagMsg");
@@ -53,7 +53,7 @@ void TestScriptFlagMsg(
 }
 
 void TestRuntimeErrorMsg(
-  const husarion_ugv_msg::msg::RuntimeError & msg, const std::vector<bool> & expected_values)
+  const husarion_ugv_msgs::msg::RuntimeError & msg, const std::vector<bool> & expected_values)
 {
   if (expected_values.size() != 7) {
     throw std::runtime_error("Wrong size of expected_values in TestFaultFlagMsg");

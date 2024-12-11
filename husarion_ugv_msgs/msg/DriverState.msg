@@ -1,0 +1,14 @@
+float32 voltage
+float32 current
+float32 temperature
+float32 heatsink_temperature
+
+husarion_ugv_interfaces/FaultFlag fault_flag
+husarion_ugv_interfaceserfaces/ScriptFlag script_flag
+husarion_ugv_interfaceserfaces/RuntimeError channel_1_motor_runtime_error
+husarion_ugv_interfaceserfaces/RuntimeError channel_2_motor_runtime_error
+
+bool motor_states_data_timed_out
+bool driver_state_data_timed_out
+bool can_error
+bool heartbeat_timeout

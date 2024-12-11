@@ -67,7 +67,7 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
 - `CallSetBoolService` - allows calling the standard **std_srvs/SetBool** ROS service. Provided ports are:
   - `data` [*input*, *bool*, default: **None**]: service data - **true** or **false** value.
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
-- `CallSetLedAnimationService` - allows calling custom type **husarion_ugv_msg/SetLEDAnimation** ROS service. The provided ports are:
+- `CallSetLedAnimationService` - allows calling custom type **husarion_ugv_msgs/SetLEDAnimation** ROS service. The provided ports are:
   - `id` [*input*, *unsigned*, default: **None**]: animation ID.
   - `param` [*input*, *string*, default: **None**]: optional parameter passed to animation.
   - `repeating` [*input*, *bool*, default: **false**]: indicates if the animation should repeat.
@@ -118,16 +118,16 @@ Default constant blackboard entries:
 - `CRITICAL_BATTERY_THRESHOLD_PERCENT` [*float*, default: **0.1**]: refers to `critical_battery_threshold_percent` ROS parameter.
 - `LOW_BATTERY_ANIM_PERIOD` [*float*, default: **30.0**]: refers to `low_battery_anim_period` ROS parameter.
 - `LOW_BATTERY_THRESHOLD_PERCENT` [*float*, default: **0.4**]: refers to `low_battery_threshold_percent` ROS parameter.
-- `E_STOP_ANIM_ID` [*unsigned*, value: **0**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::E_STOP`.
-- `READY_ANIM_ID` [*unsigned*, value: **1**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::READY`.
-- `ERROR_ANIM_ID` [*unsigned*, value: **2**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::ERROR`.
-- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::MANUAL_ACTION`.
-- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::AUTONOMOUS_ACTION`.
-- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::GOAL_ACHIEVED`.
-- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::LOW_BATTERY`.
-- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::CRITICAL_BATTERY`.
-- `BATTERY_STATE_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::BATTERY_STATE`.
-- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msg::LEDAnimation::CHARGING_BATTERY`.
+- `E_STOP_ANIM_ID` [*unsigned*, value: **0**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::E_STOP`.
+- `READY_ANIM_ID` [*unsigned*, value: **1**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::READY`.
+- `ERROR_ANIM_ID` [*unsigned*, value: **2**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::ERROR`.
+- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::MANUAL_ACTION`.
+- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_ACTION`.
+- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::GOAL_ACHIEVED`.
+- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::LOW_BATTERY`.
+- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CRITICAL_BATTERY`.
+- `BATTERY_STATE_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_STATE`.
+- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGING_BATTERY`.
 - `POWER_SUPPLY_STATUS_UNKNOWN` [*unsigned*, value: **0**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN`.
 - `POWER_SUPPLY_STATUS_CHARGING` [*unsigned*, value: **1**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_CHARGING`.
 - `POWER_SUPPLY_STATUS_DISCHARGING` [*unsigned*, value: **2**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING`.

@@ -22,13 +22,13 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "husarion_ugv_msg/msg/charging_status.hpp"
+#include "husarion_ugv_msgs/msg/charging_status.hpp"
 
 #include "husarion_ugv_battery/battery/adc_battery.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using ChargingStatusMsg = husarion_ugv_msg::msg::ChargingStatus;
+using ChargingStatusMsg = husarion_ugv_msgs::msg::ChargingStatus;
 
 class TestADCBattery : public testing::Test
 {

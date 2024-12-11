@@ -30,9 +30,9 @@
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
-#include "husarion_ugv_msg/msg/driver_state_named.hpp"
-#include "husarion_ugv_msg/msg/io_state.hpp"
-#include "husarion_ugv_msg/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msgs/msg/driver_state_named.hpp"
+#include "husarion_ugv_msgs/msg/io_state.hpp"
+#include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
@@ -43,9 +43,9 @@ namespace husarion_ugv_hardware_interfaces
 {
 
 using BoolMsg = std_msgs::msg::Bool;
-using RobotDriverStateMsg = husarion_ugv_msg::msg::RobotDriverState;
-using IOStateMsg = husarion_ugv_msg::msg::IOState;
-using DriverStateNamedMsg = husarion_ugv_msg::msg::DriverStateNamed;
+using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
+using IOStateMsg = husarion_ugv_msgs::msg::IOState;
+using DriverStateNamedMsg = husarion_ugv_msgs::msg::DriverStateNamed;
 using SetBoolSrv = std_srvs::srv::SetBool;
 using TriggerSrv = std_srvs::srv::Trigger;
 

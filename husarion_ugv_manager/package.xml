@@ -19,7 +19,7 @@
 
   <depend>behaviortree_cpp</depend>
   <depend>behaviortree_ros2</depend>
-  <depend>husarion_ugv_msg</depend>
+  <depend>husarion_ugv_msgs</depend>
   <depend>husarion_ugv_utils</depend>
   <depend>iputils-ping</depend>
   <depend>libboost-dev</depend>

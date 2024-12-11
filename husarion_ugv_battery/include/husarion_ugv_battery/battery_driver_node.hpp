@@ -21,7 +21,7 @@
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include "husarion_ugv_msg/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_battery/adc_data_reader.hpp"
 #include "husarion_ugv_battery/battery/battery.hpp"
@@ -30,7 +30,7 @@
 namespace husarion_ugv_battery
 {
 
-using RobotDriverStateMsg = husarion_ugv_msg::msg::RobotDriverState;
+using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
 
 class BatteryDriverNode : public rclcpp::Node
 {

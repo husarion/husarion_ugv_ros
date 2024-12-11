@@ -44,7 +44,7 @@ TEST_F(TestBatteryNodeRoboteq, BatteryValues)
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_STATUS_UNKNOWN, battery_state_->power_supply_status);
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_UNKNOWN, battery_state_->power_supply_health);
 
-  husarion_ugv_msg::msg::DriverStateNamed motor_controller;
+  husarion_ugv_msgs::msg::DriverStateNamed motor_controller;
   motor_controller.state.voltage = 35.0f;
   motor_controller.state.current = 0.1f;
 
@@ -84,7 +84,7 @@ TEST_F(TestBatteryNodeRoboteq, BatteryTimeout)
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_UNKNOWN, battery_state_->power_supply_health);
 
   // Publish some values
-  husarion_ugv_msg::msg::DriverStateNamed motor_controller;
+  husarion_ugv_msgs::msg::DriverStateNamed motor_controller;
   motor_controller.state.voltage = 35.0f;
   motor_controller.state.current = 0.1f;
 

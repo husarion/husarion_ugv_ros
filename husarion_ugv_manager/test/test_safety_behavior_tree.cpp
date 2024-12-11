@@ -30,16 +30,16 @@
 #include "std_srvs/srv/set_bool.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-#include "husarion_ugv_msg/msg/io_state.hpp"
-#include "husarion_ugv_msg/msg/system_status.hpp"
+#include "husarion_ugv_msgs/msg/io_state.hpp"
+#include "husarion_ugv_msgs/msg/system_status.hpp"
 
 #include <husarion_ugv_manager/safety_manager_node.hpp>
 #include <utils/behavior_tree_test_utils.hpp>
 
 using BoolMsg = std_msgs::msg::Bool;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using IOStateMsg = husarion_ugv_msg::msg::IOState;
-using SystemStatusMsg = husarion_ugv_msg::msg::SystemStatus;
+using IOStateMsg = husarion_ugv_msgs::msg::IOState;
+using SystemStatusMsg = husarion_ugv_msgs::msg::SystemStatus;
 using SetBoolSrv = std_srvs::srv::SetBool;
 using TriggerSrv = std_srvs::srv::Trigger;
 

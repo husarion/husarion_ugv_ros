@@ -31,7 +31,7 @@
   <depend>generate_parameter_library</depend>
   <depend>geometry_msgs</depend>
   <depend>hardware_interface</depend>
-  <depend>husarion_ugv_msg</depend>
+  <depend>husarion_ugv_msgs</depend>
   <depend>husarion_ugv_utils</depend>
   <depend>imu_filter_madgwick</depend>
   <depend>phidgets_api</depend>

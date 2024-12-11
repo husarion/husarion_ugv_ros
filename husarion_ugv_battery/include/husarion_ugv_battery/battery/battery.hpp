@@ -25,13 +25,13 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "husarion_ugv_msg/msg/charging_status.hpp"
+#include "husarion_ugv_msgs/msg/charging_status.hpp"
 
 namespace husarion_ugv_battery
 {
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using ChargingStatusMsg = husarion_ugv_msg::msg::ChargingStatus;
+using ChargingStatusMsg = husarion_ugv_msgs::msg::ChargingStatus;
 
 class Battery
 {

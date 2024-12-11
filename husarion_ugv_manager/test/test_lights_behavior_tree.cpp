@@ -28,16 +28,16 @@
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
-#include "husarion_ugv_msg/msg/led_animation.hpp"
-#include "husarion_ugv_msg/srv/set_led_animation.hpp"
+#include "husarion_ugv_msgs/msg/led_animation.hpp"
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include <husarion_ugv_manager/lights_manager_node.hpp>
 #include <utils/behavior_tree_test_utils.hpp>
 
 using BoolMsg = std_msgs::msg::Bool;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using SetLEDAnimationSrv = husarion_ugv_msg::srv::SetLEDAnimation;
-using LEDAnimationMsg = husarion_ugv_msg::msg::LEDAnimation;
+using SetLEDAnimationSrv = husarion_ugv_msgs::srv::SetLEDAnimation;
+using LEDAnimationMsg = husarion_ugv_msgs::msg::LEDAnimation;
 
 class LightsManagerNodeWrapper : public husarion_ugv_manager::LightsManagerNode
 {

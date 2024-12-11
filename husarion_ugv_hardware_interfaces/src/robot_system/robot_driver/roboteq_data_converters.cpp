@@ -110,9 +110,9 @@ FaultFlag::FaultFlag()
 {
 }
 
-husarion_ugv_msg::msg::FaultFlag FaultFlag::GetMessage() const
+husarion_ugv_msgs::msg::FaultFlag FaultFlag::GetMessage() const
 {
-  husarion_ugv_msg::msg::FaultFlag fault_flags_msg;
+  husarion_ugv_msgs::msg::FaultFlag fault_flags_msg;
 
   fault_flags_msg.overheat = flags_.test(0);
   fault_flags_msg.overvoltage = flags_.test(1);
@@ -137,9 +137,9 @@ std::map<std::string, bool> FaultFlag::GetErrorMap() const
 
 ScriptFlag::ScriptFlag() : FlagError({"loop_error", "encoder_disconnected", "amp_limiter"}) {}
 
-husarion_ugv_msg::msg::ScriptFlag ScriptFlag::GetMessage() const
+husarion_ugv_msgs::msg::ScriptFlag ScriptFlag::GetMessage() const
 {
-  husarion_ugv_msg::msg::ScriptFlag script_flags_msg;
+  husarion_ugv_msgs::msg::ScriptFlag script_flags_msg;
 
   script_flags_msg.loop_error = flags_.test(0);
   script_flags_msg.encoder_disconnected = flags_.test(1);
@@ -178,9 +178,9 @@ RuntimeError::RuntimeError()
 {
 }
 
-husarion_ugv_msg::msg::RuntimeError RuntimeError::GetMessage() const
+husarion_ugv_msgs::msg::RuntimeError RuntimeError::GetMessage() const
 {
-  husarion_ugv_msg::msg::RuntimeError runtime_errors_msg;
+  husarion_ugv_msgs::msg::RuntimeError runtime_errors_msg;
 
   runtime_errors_msg.amps_limit_active = flags_.test(0);
   runtime_errors_msg.motor_stall = flags_.test(1);

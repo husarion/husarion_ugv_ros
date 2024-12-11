@@ -32,7 +32,7 @@ Node responsible for managing Bumper Lights animation scheduling.
 
 #### Service Clients (for Default Trees)
 
-- `~/lights/set_animation` [*husarion_ugv_msg/SetLEDAnimation*]: Allows setting animation on Bumper Lights based on animation ID.
+- `~/lights/set_animation` [*husarion_ugv_msgs/SetLEDAnimation*]: Allows setting animation on Bumper Lights based on animation ID.
 
 #### Parameters
 
@@ -57,9 +57,9 @@ Node responsible for managing safety features, and software shutdown of componen
 
 - `battery/battery_status` [*sensor_msgs/BatteryState*]: State of the internal Battery.
 - `hardware/e_stop` [*std_msgs/Bool*]: State of emergency stop.
-- `hardware/io_state` [*husarion_ugv_msg/IOState*]: State of IO pins.
-- `hardware/robot_driver_state` [*husarion_ugv_msg/RobotDriverState*]: State of motor controllers.
-- `system_status` [*husarion_ugv_msg/SystemStatus*]: Built-in computer system status, includes the most important computation-related parameters.
+- `hardware/io_state` [*husarion_ugv_msgs/IOState*]: State of IO pins.
+- `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: State of motor controllers.
+- `system_status` [*husarion_ugv_msgs/SystemStatus*]: Built-in computer system status, includes the most important computation-related parameters.
 
 #### Service Clients (for Default Trees)
 

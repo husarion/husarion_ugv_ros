@@ -31,8 +31,8 @@ from launch_testing_ros import WaitForTopics
 from sensor_msgs.msg import Image
 from std_srvs.srv import SetBool
 
-from husarion_ugv_msg.msg import LEDAnimation
-from husarion_ugv_msg.srv import SetLEDAnimation
+from husarion_ugv_msgs.msg import LEDAnimation
+from husarion_ugv_msgs.srv import SetLEDAnimation
 
 
 def generate_test_description():

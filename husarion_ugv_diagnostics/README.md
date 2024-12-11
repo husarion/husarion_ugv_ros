@@ -19,7 +19,7 @@ Publishes the built-in computer system status , monitoring parameters as such as
 #### Publishes
 
 - `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: System monitor diagnostic messages.
-- `system_status` [*husarion_ugv_msg/SystemStatus*]: Built-in computer system status, includes the most important computation-related parameters.
+- `system_status` [*husarion_ugv_msgs/SystemStatus*]: Built-in computer system status, includes the most important computation-related parameters.
 
 #### Parameters
 

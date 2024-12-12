@@ -10,51 +10,50 @@ lights_manager:
       critical:
         type: double
         default_value: 15.0
-        description: Time in seconds to wait before repeating animation, indicating a critical Battery state.
+        description: Time in seconds to wait before repeating animation, indicating a critical battery state.
         validation: { gt<>: 0.0 }
 
       low:
         type: double
         default_value: 30.0
-        description: Time in seconds to wait before repeating the animation, indicating a low Battery state.
+        description: Time in seconds to wait before repeating the animation, indicating a low battery state.
         validation: { gt<>: 0.0 }
 
     percent:
       window_len:
         type: int
         default_value: 6
-        description: Moving average window length used to smooth out Battery percentage readings.
+        description: Moving average window length used to smooth out battery percentage readings.
         validation: { gt<>: 0 }
 
       threshold:
         critical:
           type: double
           default_value: 0.1
-          description: If the Battery percentage drops below this value, an animation indicating a critical Battery state will start being displayed.
+          description: If the battery percentage drops below this value, an animation indicating a critical battery state will start being displayed.
           validation: { bounds<>: [0.0, 1.0] }
 
         low:
           type: double
           default_value: 0.4
-          description: If the Battery percentage drops below this value, the animation indicating a low Battery state will start being displayed.
+          description: If the battery percentage drops below this value, the animation indicating a low battery state will start being displayed.
           validation: { bounds<>: [0.0, 1.0] }
 
   bt_project_path:
     type: string
     default_value: ""
     description: Path to a BehaviorTree project.
-    validation: { not_empty<> }
 
   plugin_libs:
     type: string_array
     default_value: []
-    description: List with names of plugins that are used in the BT project.
+    description: A list with names of plugins that are used in the BehaviorTree project.
 
   ros_communication_timeout:
     availability:
       type: double
       default_value: 1.0
-      description: Timeout in seconds to wait for a service/action while initializing BT node.
+      description: Timeout in seconds to wait for a service/action while initializing a BehaviorTree node.
       validation: { gt<>: 0.0 }
 
     response:
@@ -66,7 +65,7 @@ lights_manager:
   ros_plugin_libs:
     type: string_array
     default_value: []
-    description: List with names of ROS plugins that are used in a BT project.
+    description: A list with names of ROS plugins that are used in a BehaviorTree project.
 
   timer_frequency:
     type: double

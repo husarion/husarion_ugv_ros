@@ -71,9 +71,8 @@ TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_bat
     device0_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice0;
     device1_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice1;
 
-    params.push_back(rclcpp::Parameter("adc/device0", device0_path_.string()));
-    params.push_back(rclcpp::Parameter("adc/device1", device1_path_.string()));
-    params.push_back(rclcpp::Parameter("adc/path", testing::TempDir()));
+    params.push_back(rclcpp::Parameter("adc.device0", device0_path_.string()));
+    params.push_back(rclcpp::Parameter("adc.device1", device1_path_.string()));
 
     // Create the device0 and device1 directories if they do not exist
     std::filesystem::create_directory(device0_path_);

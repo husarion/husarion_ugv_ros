@@ -56,7 +56,7 @@ LightsControllerNode::LightsControllerNode(const rclcpp::NodeOptions & options)
 
   const auto animations_config_path = this->params_.animations_config_path;
   const auto user_led_animations_path = this->params_.user_led_animations_path;
-  const float controller_freq = this->params_.controller_frequency;
+  const float controller_freq = static_cast<float>(this->params_.controller_frequency);
 
   YAML::Node led_config_desc = YAML::LoadFile(animations_config_path);
 

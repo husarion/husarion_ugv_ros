@@ -107,7 +107,7 @@ float ADCBattery::ADCToBatteryTemp(const float adc_data) const
 
   const float R_therm = (adc_data * kR1) / (kUSupply - adc_data);
   return (kTempCoeffA * kTempCoeffB / (kTempCoeffA * logf(R_therm / kR0) + kTempCoeffB)) -
-         kKelvinToCelciusOffset;
+         kKelvinToCelsiusOffset;
 }
 
 void ADCBattery::UpdateBatteryMsgs(const rclcpp::Time & header_stamp, const bool charger_connected)
@@ -167,7 +167,7 @@ std::uint8_t ADCBattery::GetBatteryStatus(const float charge, const bool charger
   if (charger_connected) {
     if (fabs(battery_state_.percentage - 1.0f) < std::numeric_limits<float>::epsilon()) {
       return BatteryStateMsg::POWER_SUPPLY_STATUS_FULL;
-    } else if (charge > kChargingCurrentTresh) {
+    } else if (charge > kChargingCurrentTresh || battery_state_.voltage > kBatteryCCCheckTresh) {
       return BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
     } else {
       return BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;

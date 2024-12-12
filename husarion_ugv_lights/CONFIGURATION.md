@@ -96,7 +96,7 @@ user_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/strip01_red.png
+          image: $(find husarion_ugv_lights)/animations/panther/strip01_red.png
           duration: 2
           repeat: 2
           color: 0xffff00

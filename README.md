@@ -104,10 +104,11 @@ Launch arguments are largely common to both simulation and physical robot. Howev
 | ✅   | ✅   | `localization_mode`          | Specifies the localization mode:  <br/>- 'relative' `odometry/filtered` data is relative to the initial position and orientation. <br/>- 'enu' `odometry/filtered` data is relative to initial position and ENU (East North Up) orientation. <br/> ***string:*** `relative` (choices: `relative`, `enu`)           |
 | ✅   | ✅   | `namespace`                  | Add namespace to all launched nodes. <br/> ***string:*** `env(ROBOT_NAMESPACE)`                                                                                                                                                                                                                                    |
 | ✅   | ✅   | `publish_robot_state`        | Whether to publish the default URDF of specified robot. <br/> ***bool:*** `True`                                                                                                                                                                                                                                   |
-| ❌   | ✅   | `robot_model`                | Specify robot model type. <br/> ***string:*** `env(ROBOT_MODEL)` (choices: `lynx`, `panther`)                                                                                                                                                                                                                      |
+| ❌   | ✅   | `robot_model`                | Specify robot model type. <br/> ***string:*** `env(ROBOT_MODEL_NAME)` (choices: `lynx`, `panther`)                                                                                                                                                                                                                      |
 | ✅   | ✅   | `safety_bt_project_path`     | Path to BehaviorTree project file, responsible for safety and shutdown management. <br/> ***string:*** [`SafetyBT.btproj`](./husarion_ugv_manager/behavior_trees/SafetyBT.btproj)                                                                                                                    |
 | ✅   | ✅   | `shutdown_hosts_config_path` | Path to file with list of hosts to request shutdown. <br/> ***string:*** [`shutdown_hosts.yaml`](./husarion_ugv_manager/config/shutdown_hosts.yaml)                                                                                                                                                                |
 | ✅   | ✅   | `use_ekf`                    | Enable or disable EKF. <br/> ***bool:*** `True`                                                                                                                                                                                                                                                                    |
+| ❌   | ✅   | `use_rviz`                   | Run RViz simultaneously. <br/> ***bool:*** `True`                                                                                                                                                                                                                                                                                   |
 | ✅   | ✅   | `use_sim`                    | Whether simulation is used. <br/> ***bool:*** `False`                                                                                                                                                                                                                                                              |
 | ✅   | ✅   | `user_led_animations_path`   | Path to a YAML file with a description of the user-defined animations. <br/> ***string:*** `''`                                                                                                                                                                                                                    |
 | ✅   | ✅   | `wheel_config_path`          | Path to wheel configuration file. <br/> ***string:*** [`{wheel_type}.yaml`](./panther_description/config)                                                                                                                                                                                                          |
@@ -131,4 +132,11 @@ This project uses pre-commit to maintain high quality of the source code. Instal
 
 ```bash
 pre-commit install
+```
+
+### Unit testing
+
+```bash
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF
+colcon test --packages-up-to husarion_ugv
 ```

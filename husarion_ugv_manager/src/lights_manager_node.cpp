@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -70,7 +69,7 @@ void LightsManagerNode::Initialize()
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
 
-  const float timer_freq = this->params_.timer_frequency;
+  const double timer_freq = this->params_.timer_frequency;
   const auto timer_period_ms =
     std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
 
@@ -107,10 +106,13 @@ void LightsManagerNode::RegisterBehaviorTree()
 std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard()
 {
   update_charging_anim_step_ = this->params_.battery.charging_anim_step;
-  const float critical_battery_anim_period = this->params_.battery.anim_period.critical;
-  const float critical_battery_threshold_percent = this->params_.battery.percent.threshold.critical;
-  const float low_battery_anim_period = this->params_.battery.anim_period.low;
-  const float low_battery_threshold_percent = this->params_.battery.percent.threshold.low;
+  const float critical_battery_anim_period =
+    static_cast<float>(this->params_.battery.anim_period.critical);
+  const float critical_battery_threshold_percent =
+    static_cast<float>(this->params_.battery.percent.threshold.critical);
+  const float low_battery_anim_period = static_cast<float>(this->params_.battery.anim_period.low);
+  const float low_battery_threshold_percent =
+    static_cast<float>(this->params_.battery.percent.threshold.low);
 
   const std::string undefined_charging_anim_percent = "";
   const int undefined_anim_id = -1;

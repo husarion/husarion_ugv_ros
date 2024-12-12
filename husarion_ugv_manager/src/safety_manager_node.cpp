@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -98,7 +97,7 @@ void SafetyManagerNode::Initialize()
   //   Timers
   // -------------------------------
 
-  const float timer_freq = this->params_.timer_frequency;
+  const double timer_freq = this->params_.timer_frequency;
   const auto timer_period_ms =
     std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
 
@@ -134,11 +133,11 @@ void SafetyManagerNode::RegisterBehaviorTree()
 
 std::map<std::string, std::any> SafetyManagerNode::CreateSafetyInitialBlackboard()
 {
-  const float cpu_fan_on_temp = this->params_.cpu.temp.fan_on;
-  const float cpu_fan_off_temp = this->params_.cpu.temp.fan_off;
-  const float driver_fan_on_temp = this->params_.driver.temp.fan_on;
-  const float driver_fan_off_temp = this->params_.driver.temp.fan_off;
-  const float fan_turn_off_timeout = this->params_.fan_turn_off_timeout;
+  const double cpu_fan_on_temp = this->params_.cpu.temp.fan_on;
+  const double cpu_fan_off_temp = this->params_.cpu.temp.fan_off;
+  const double driver_fan_on_temp = this->params_.driver.temp.fan_on;
+  const double driver_fan_off_temp = this->params_.driver.temp.fan_off;
+  const float fan_turn_off_timeout = static_cast<float>(this->params_.fan_turn_off_timeout);
 
   const std::map<std::string, std::any> safety_initial_bb = {
     {"CPU_FAN_OFF_TEMP", cpu_fan_off_temp},

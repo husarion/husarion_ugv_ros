@@ -2,6 +2,12 @@
 Changelog for package panther_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.2 (2024-12-02)
+------------------
+* Ros2 fix led bug (`#441 <https://github.com/husarion/panther_ros/issues/441>`_)
+* Merge branch 'ros2-devel' into ros2-lights-tests
+* Contributors: Dawid Kmak, pawelirh
+
 2.1.1 (2024-09-05)
 ------------------
 * Merge branch 'ros2-devel' into ros2-ns-refactor

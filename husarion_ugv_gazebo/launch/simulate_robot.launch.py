@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -94,11 +93,9 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
-        default_value=robot_model_dict[robot_model_env],
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
         description="Specify robot model",
         choices=["lynx", "panther"],
     )

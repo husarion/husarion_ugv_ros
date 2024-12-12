@@ -77,7 +77,12 @@ private:
   static constexpr float kR1 = 10000.0;
   static constexpr float kR0 = 10000.0;
   static constexpr float kUSupply = 3.28;
-  static constexpr float kKelvinToCelciusOffset = 273.15;
+  static constexpr float kKelvinToCelsiusOffset = 273.15;
+
+  // Threshold used for diagnostics. At this voltage level, and below, the battery shall draw a
+  // significant current from the charger if the charger is connected. If not, the charging circuit
+  // may be broken.
+  static constexpr float kBatteryCCCheckTresh = 41.2;
 
   float voltage_raw_;
   float current_raw_;

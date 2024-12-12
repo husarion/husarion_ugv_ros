@@ -66,7 +66,10 @@ public:
     bool, IsPinAvailable, (const husarion_ugv_hardware_interfaces::GPIOPin), (const, override));
   MOCK_METHOD(bool, IsPinActive, (const husarion_ugv_hardware_interfaces::GPIOPin), (override));
   MOCK_METHOD(
-    bool, SetPinValue, (const husarion_ugv_hardware_interfaces::GPIOPin, const bool), (override));
+    bool, SetPinValue,
+    (const husarion_ugv_hardware_interfaces::GPIOPin, const bool,
+     const std::chrono::milliseconds & pin_validation_wait_time),
+    (override));
 
   using NiceMock = testing::NiceMock<MockGPIODriver>;
 };

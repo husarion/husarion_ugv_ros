@@ -2,7 +2,7 @@ lights_controller:
   animations_config_path:
     type: string
     default_value: ""
-    description: Path to a YAML file with a description of led configuration. This file includes definition of robot panels, virtual segments and default animations.
+    description: Path to a YAML file with a description of LED configuration. This file includes definition of robot panels, virtual segments and default animations.
     validation: { not_empty<> }
 
   controller_frequency:

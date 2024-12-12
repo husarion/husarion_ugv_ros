@@ -11,7 +11,7 @@ jobs:
     name: Run unit tests simulation build type
     runs-on: ubuntu-22.04
     env:
-      - HUSARION_ROS_BUILD_TYPE=simulation
+      HUSARION_ROS_BUILD_TYPE: simulation
 
     steps:
       - name: Checkout repository
@@ -49,7 +49,7 @@ jobs:
     name: Run unit tests hardware build type
     runs-on: ubuntu-22.04
     env:
-      - HUSARION_ROS_BUILD_TYPE=hardware
+      HUSARION_ROS_BUILD_TYPE: hardware
 
     steps:
       - name: Checkout repository

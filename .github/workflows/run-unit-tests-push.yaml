@@ -6,8 +6,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test-simulation:
+    name: Run unit tests simulation build type
     runs-on: ubuntu-22.04
+    env: HUSARION_ROS_BUILD_TYPE=simulation
 
     steps:
       - name: Checkout repository
@@ -21,6 +23,43 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.3
         with:
           vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/simulation_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": [
+                    "husarion_ugv"
+                ],
+                "cmake-args": [
+                    "-DCMAKE_BUILD_TYPE=Release",
+                    "-DTEST_INTEGRATION=OFF"
+                ]
+              },
+              "test": {
+                "packages-up-to": [
+                    "husarion_ugv"
+                ]
+              }
+            }
+
+
+  build-and-test-hardware:
+    name: Run unit tests hardware build type
+    runs-on: ubuntu-22.04
+    env: HUSARION_ROS_BUILD_TYPE=hardware
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          use-ros2-testing: true
+
+      - name: Build and test
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/hardware_deps.repos
           target-ros2-distro: humble
           colcon-defaults: |
             {

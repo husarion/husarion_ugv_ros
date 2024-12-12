@@ -3,13 +3,15 @@ name: Run unit tests
 
 on:
   push:
+
   workflow_dispatch:
 
 jobs:
   build-and-test-simulation:
     name: Run unit tests simulation build type
     runs-on: ubuntu-22.04
-    env: HUSARION_ROS_BUILD_TYPE=simulation
+    env:
+      - HUSARION_ROS_BUILD_TYPE=simulation
 
     steps:
       - name: Checkout repository
@@ -46,7 +48,8 @@ jobs:
   build-and-test-hardware:
     name: Run unit tests hardware build type
     runs-on: ubuntu-22.04
-    env: HUSARION_ROS_BUILD_TYPE=hardware
+    env:
+      - HUSARION_ROS_BUILD_TYPE=hardware
 
     steps:
       - name: Checkout repository

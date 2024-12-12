@@ -124,6 +124,8 @@ install(TARGETS safety_manager_node lights_manager_node
 install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})
 
+install(DIRECTORY include/ DESTINATION include/)
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(PkgConfig REQUIRED)

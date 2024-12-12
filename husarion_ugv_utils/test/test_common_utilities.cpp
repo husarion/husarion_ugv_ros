@@ -199,12 +199,12 @@ TEST(TestMeetsVersionRequirement, NaNVersionRequired)
 TEST(MeetsVersionRequirement, CorrectlyComparesVersions)
 {
   float panther_version = 1.06;
-  EXPECT_TRUE(panther_utils::common_utilities::MeetsVersionRequirement(panther_version, 0.0));
-  EXPECT_TRUE(panther_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.0));
-  EXPECT_TRUE(panther_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.06));
-  EXPECT_FALSE(panther_utils::common_utilities::MeetsVersionRequirement(
+  EXPECT_TRUE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(panther_version, 0.0));
+  EXPECT_TRUE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.0));
+  EXPECT_TRUE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.06));
+  EXPECT_FALSE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(
     panther_version, std::numeric_limits<float>::quiet_NaN()));
-  EXPECT_FALSE(panther_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.2));
+  EXPECT_FALSE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(panther_version, 1.2));
 }
 
 int main(int argc, char ** argv)

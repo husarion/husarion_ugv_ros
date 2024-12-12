@@ -24,9 +24,9 @@
 
 #include <std_msgs/msg/bool.hpp>
 
-#include "panther_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 // FIXME: There is no possibility to set QoS profile. Add it in the future to subscribe e_stop.
@@ -50,6 +50,6 @@ public:
   }
 };
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
 #endif  // PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_BOOL_MSG_HPP_

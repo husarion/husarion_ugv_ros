@@ -22,10 +22,10 @@
 
 #include <opennav_docking_msgs/action/undock_robot.hpp>
 
-#include "panther_manager/plugins/action/undock_robot_node.hpp"
+#include "husarion_ugv_manager/plugins/action/undock_robot_node.hpp"
 #include "utils/plugin_test_utils.hpp"
 
-class TestUndockRobot : public panther_manager::plugin_test_utils::PluginTestUtils
+class TestUndockRobot : public husarion_ugv_manager::plugin_test_utils::PluginTestUtils
 {
 public:
   using Action = opennav_docking_msgs::action::UndockRobot;
@@ -71,7 +71,7 @@ TEST_F(TestUndockRobot, GoodLoadingUndockRobotPlugin)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
 
   ASSERT_NO_THROW({ CreateTree("UndockRobot", params); });
 }
@@ -84,7 +84,7 @@ TEST_F(TestUndockRobot, WrongLoadingUndockRobotPlugin)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
 
   EXPECT_THROW({ CreateTree("WrongUndockRobot", params); }, BT::RuntimeError);
 }
@@ -97,7 +97,7 @@ TEST_F(TestUndockRobot, WrongCallUndockRobotServerNotInitialized)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
 
   CreateTree("UndockRobot", params);
 
@@ -118,7 +118,7 @@ TEST_F(TestUndockRobot, WrongCallUndockRobotServerWithNoDockType)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
   CreateTree("UndockRobot", params);
 
   auto & tree = GetTree();
@@ -136,7 +136,7 @@ TEST_F(TestUndockRobot, CallUndockRobotServerFailure)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
   CreateTree("UndockRobot", params);
 
   auto & tree = GetTree();
@@ -155,7 +155,7 @@ TEST_F(TestUndockRobot, CallUndockRobotServerSuccess)
     {"max_undocking_time", "5.0"},
   };
 
-  RegisterNodeWithParams<panther_manager::UndockRobot>("UndockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::UndockRobot>("UndockRobot");
   CreateTree("UndockRobot", params);
 
   auto & tree = GetTree();

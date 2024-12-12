@@ -25,7 +25,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
-#include "panther_utils/tf2_utils.hpp"
+#include "husarion_ugv_utils/tf2_utils.hpp"
 
 static constexpr char kBaseFrame[] = "base_link";
 static constexpr char kOdomFrame[] = "odom";
@@ -73,7 +73,7 @@ TEST_F(TestTransformPose, EmptyFrame)
 {
   geometry_msgs::msg::PoseStamped pose;
   EXPECT_THROW(
-    { panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, ""); }, std::runtime_error);
+    { husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, ""); }, std::runtime_error);
 }
 
 TEST_F(TestTransformPose, TransformMissing)
@@ -81,11 +81,11 @@ TEST_F(TestTransformPose, TransformMissing)
   geometry_msgs::msg::PoseStamped pose;
 
   EXPECT_THROW(
-    { panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame); },
+    { husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame); },
     std::runtime_error);
   pose.header.frame_id = kOdomFrame;
   EXPECT_THROW(
-    { panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame); },
+    { husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame); },
     std::runtime_error);
 }
 
@@ -97,7 +97,7 @@ TEST_F(TestTransformPose, TransformWithinSameFrame)
   pose.header.stamp = clock_->now();
 
   ASSERT_NO_THROW(
-    { pose = panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kOdomFrame, 10.0); };);
+    { pose = husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kOdomFrame, 10.0); };);
   EXPECT_NEAR(pose.pose.position.x, 0.1, 0.01);
   EXPECT_NEAR(pose.pose.position.y, 0.0, 0.01);
   EXPECT_NEAR(pose.pose.position.z, 0.0, 0.01);
@@ -115,7 +115,7 @@ TEST_F(TestTransformPose, TransformToDifferentFrame)
   SetBaseLinkToOdomTransform(stamp);
 
   ASSERT_NO_THROW(
-    { pose = panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame, 10.0); };);
+    { pose = husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame, 10.0); };);
   EXPECT_NEAR(pose.pose.position.x, -0.2, 0.01);
   EXPECT_NEAR(pose.pose.position.y, -0.2, 0.01);
   EXPECT_NEAR(pose.pose.position.z, -0.1, 0.01);
@@ -133,7 +133,7 @@ TEST_F(TestTransformPose, TestTimeout)
   pose.header.stamp.sec += 5;
 
   EXPECT_THROW(
-    { panther_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame, 1.0); },
+    { husarion_ugv_utils::tf2_utils::TransformPose(tf2_buffer_, pose, kBaseFrame, 1.0); },
     std::runtime_error);
 }
 
@@ -148,7 +148,7 @@ TEST(OffsetPose, CheckDefaultPose)
   transform.setRotation(rotation);
 
   geometry_msgs::msg::PoseStamped pose;
-  auto offset_pose = panther_utils::tf2_utils::OffsetPose(pose, transform);
+  auto offset_pose = husarion_ugv_utils::tf2_utils::OffsetPose(pose, transform);
 
   EXPECT_NEAR(offset_pose.pose.position.x, translation.getX(), 0.01);
   EXPECT_NEAR(offset_pose.pose.position.y, translation.getY(), 0.01);
@@ -182,7 +182,7 @@ TEST(OffsetPose, CheckDefinedPose)
   pose_rotation.setRPY(M_PI, M_PI / 2.0, 0.0);
   pose.pose.orientation = tf2::toMsg(pose_rotation);
 
-  auto offset_pose = panther_utils::tf2_utils::OffsetPose(pose, transform);
+  auto offset_pose = husarion_ugv_utils::tf2_utils::OffsetPose(pose, transform);
 
   EXPECT_NEAR(offset_pose.pose.position.x, pose.pose.position.x - translation.getZ(), 0.01);
   EXPECT_NEAR(offset_pose.pose.position.y, pose.pose.position.y - translation.getY(), 0.01);
@@ -204,7 +204,7 @@ TEST(TestArePosesNear, EmptyFrame)
   geometry_msgs::msg::PoseStamped pose_2;
 
   EXPECT_THROW(
-    { panther_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.1); }, std::runtime_error);
+    { husarion_ugv_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.1); }, std::runtime_error);
 }
 
 TEST(TestArePosesNear, DifferentFrames)
@@ -215,7 +215,7 @@ TEST(TestArePosesNear, DifferentFrames)
   pose_2.header.frame_id = kOdomFrame;
 
   EXPECT_THROW(
-    { panther_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.1); }, std::runtime_error);
+    { husarion_ugv_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.1); }, std::runtime_error);
 }
 
 TEST(TestArePosesNear, TooFarDistance)
@@ -232,7 +232,7 @@ TEST(TestArePosesNear, TooFarDistance)
   pose_2.pose.position.y = 0.2;
   pose_2.pose.position.z = 0.0;
 
-  EXPECT_FALSE(panther_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.05, 0.05));
+  EXPECT_FALSE(husarion_ugv_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.05, 0.05));
 }
 
 TEST(TestArePosesNear, TooFarAngle)
@@ -249,7 +249,7 @@ TEST(TestArePosesNear, TooFarAngle)
   pose_2_rotation.setRPY(0.0, 0.0, 0.2);
   pose_2.pose.orientation = tf2::toMsg(pose_2_rotation);
 
-  EXPECT_FALSE(panther_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.05));
+  EXPECT_FALSE(husarion_ugv_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.1, 0.05));
 }
 
 TEST(TestArePosesNear, NearAngleAndDistance)
@@ -272,7 +272,7 @@ TEST(TestArePosesNear, NearAngleAndDistance)
   pose_2_rotation.setRPY(0.0, 0.0, 0.1);
   pose_2.pose.orientation = tf2::toMsg(pose_2_rotation);
 
-  EXPECT_TRUE(panther_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.2, 0.2));
+  EXPECT_TRUE(husarion_ugv_utils::tf2_utils::ArePosesNear(pose_1, pose_2, 0.2, 0.2));
 }
 
 int main(int argc, char ** argv)

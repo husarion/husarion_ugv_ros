@@ -85,11 +85,13 @@ add_executable(safety_manager_node src/safety_manager_node_main.cpp
 ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
-  panther_msgs
+  geometry_msgs
   husarion_ugv_utils
+  panther_msgs
   rclcpp
   sensor_msgs
-  std_msgs)
+  std_msgs
+  tf2_geometry_msgs)
 
 generate_parameter_library(safety_manager_parameters
                            config/safety_manager_parameters.yaml)
@@ -101,11 +103,13 @@ add_executable(lights_manager_node src/lights_manager_node_main.cpp
 ament_target_dependencies(
   lights_manager_node
   behaviortree_ros2
-  panther_msgs
+  geometry_msgs
   husarion_ugv_utils
+  panther_msgs
   rclcpp
   sensor_msgs
-  std_msgs)
+  std_msgs
+  tf2_geometry_msgs)
 
 generate_parameter_library(lights_manager_parameters
                            config/lights_manager_parameters.yaml)
@@ -222,7 +226,7 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(
     ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
-    husarion_ugv_utils)
+    husarion_ugv_utils geometry_msgs tf2_geometry_msgs)
 
   ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_manager
                   test/test_behavior_tree_manager.cpp)
@@ -243,11 +247,13 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_manager_node
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    geometry_msgs
     husarion_ugv_utils
+    panther_msgs
     rclcpp
     sensor_msgs
-    std_msgs)
+    std_msgs
+    tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_lights_manager_node
                         lights_manager_parameters)
 
@@ -262,11 +268,13 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_lights_behavior_tree
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    geometry_msgs
     husarion_ugv_utils
+    panther_msgs
     rclcpp
     sensor_msgs
-    std_msgs)
+    std_msgs
+    tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
                         lights_manager_parameters)
 
@@ -280,11 +288,13 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_manager_node
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    geometry_msgs
     husarion_ugv_utils
+    panther_msgs
     rclcpp
     sensor_msgs
-    std_msgs)
+    std_msgs
+    tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
                         safety_manager_parameters)
 
@@ -299,12 +309,14 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_behavior_tree
     behaviortree_cpp
     behaviortree_ros2
-    panther_msgs
+    geometry_msgs
     husarion_ugv_utils
+    panther_msgs
     rclcpp
     sensor_msgs
     std_msgs
-    std_srvs)
+    std_srvs
+    tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
                         safety_manager_parameters)
 endif()

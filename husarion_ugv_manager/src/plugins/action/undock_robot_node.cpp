@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_manager/plugins/action/undock_robot_node.hpp"
-#include "panther_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/plugins/action/undock_robot_node.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 bool UndockRobot::setGoal(Goal & goal)
@@ -60,7 +60,7 @@ void UndockRobot::onHalt()
   RCLCPP_INFO_STREAM(this->logger(), GetLoggerPrefix(name()) << ": onHalt");
 }
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
 #include "behaviortree_ros2/plugins.hpp"
-CreateRosNodePlugin(panther_manager::UndockRobot, "UndockRobot");
+CreateRosNodePlugin(husarion_ugv_manager::UndockRobot, "UndockRobot");

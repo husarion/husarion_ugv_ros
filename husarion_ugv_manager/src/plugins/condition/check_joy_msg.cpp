@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_manager/plugins/condition/check_joy_msg.hpp"
+#include "husarion_ugv_manager/plugins/condition/check_joy_msg.hpp"
 
-#include "panther_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 BT::NodeStatus CheckJoyMsg::onTick(const JoyMsg::SharedPtr & last_msg)
@@ -86,7 +86,7 @@ bool CheckJoyMsg::checkTimeout(const JoyMsg::SharedPtr & last_msg)
   return (max_timeout <= 0.0) || time_diff < rclcpp::Duration::from_seconds(max_timeout);
 }
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
 #include "behaviortree_ros2/plugins.hpp"
-CreateRosNodePlugin(panther_manager::CheckJoyMsg, "CheckJoyMsg");
+CreateRosNodePlugin(husarion_ugv_manager::CheckJoyMsg, "CheckJoyMsg");

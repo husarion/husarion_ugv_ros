@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_
-#define PANTHER_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_
+#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_
+#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_
 
 #include <memory>
 #include <string>
@@ -24,7 +24,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <opennav_docking_msgs/action/undock_robot.hpp>
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 class UndockRobot : public BT::RosActionNode<opennav_docking_msgs::action::UndockRobot>
@@ -61,6 +61,6 @@ public:
   }
 };
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
-#endif  // PANTHER_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_
+#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_UNDOCK_ROBOT_NODE_HPP_

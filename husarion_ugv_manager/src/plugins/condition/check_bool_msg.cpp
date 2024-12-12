@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "panther_manager/plugins/condition/check_bool_msg.hpp"
+#include "husarion_ugv_manager/plugins/condition/check_bool_msg.hpp"
 
-#include "panther_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 BT::NodeStatus CheckBoolMsg::onTick(const BoolMsg::SharedPtr & last_msg)
@@ -28,7 +28,7 @@ BT::NodeStatus CheckBoolMsg::onTick(const BoolMsg::SharedPtr & last_msg)
                                                        : BT::NodeStatus::FAILURE;
 }
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
 #include "behaviortree_ros2/plugins.hpp"
-CreateRosNodePlugin(panther_manager::CheckBoolMsg, "CheckBoolMsg");
+CreateRosNodePlugin(husarion_ugv_manager::CheckBoolMsg, "CheckBoolMsg");

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
-#define PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
+#ifndef HUSARION_UGV_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
+#define HUSARION_UGV_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
 
 #include <memory>
 #include <mutex>
@@ -24,9 +24,9 @@
 
 #include <sensor_msgs/msg/joy.hpp>
 
-#include "panther_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
 
-namespace panther_manager
+namespace husarion_ugv_manager
 {
 
 class CheckJoyMsg : public BT::RosTopicSubNode<sensor_msgs::msg::Joy>
@@ -63,6 +63,6 @@ private:
   bool checkTimeout(const JoyMsg::SharedPtr & last_msg);
 };
 
-}  // namespace panther_manager
+}  // namespace husarion_ugv_manager
 
-#endif  // PANTHER_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_
+#endif  // HUSARION_UGV_MANAGER_PLUGINS_CONDITION_CHECK_JOY_MSG_HPP_

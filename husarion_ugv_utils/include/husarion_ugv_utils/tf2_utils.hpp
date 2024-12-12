@@ -23,7 +23,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 
-namespace panther_utils::tf2_utils
+namespace husarion_ugv_utils::tf2_utils
 {
 
 /**
@@ -137,6 +137,6 @@ bool ArePosesNear(
          std::abs(pose_1_rpy.y - pose_2_rpy.y) < angle_tolerance &&
          std::abs(pose_1_rpy.z - pose_2_rpy.z) < angle_tolerance;
 }
-}  // namespace panther_utils::tf2_utils
+}  // namespace husarion_ugv_utils::tf2_utils
 
 #endif  // PANTHER_UTILS_TF2_UTILS_HPP_

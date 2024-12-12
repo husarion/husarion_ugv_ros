@@ -22,10 +22,10 @@
 
 #include <opennav_docking_msgs/action/dock_robot.hpp>
 
-#include "panther_manager/plugins/action/dock_robot_node.hpp"
+#include "husarion_ugv_manager/plugins/action/dock_robot_node.hpp"
 #include "utils/plugin_test_utils.hpp"
 
-class TestDockRobot : public panther_manager::plugin_test_utils::PluginTestUtils
+class TestDockRobot : public husarion_ugv_manager::plugin_test_utils::PluginTestUtils
 {
 public:
   using Action = opennav_docking_msgs::action::DockRobot;
@@ -72,7 +72,7 @@ TEST_F(TestDockRobot, GoodLoadingDockRobotPlugin)
     {"navigate_to_staging_pose", "false"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
 
   ASSERT_NO_THROW({ CreateTree("DockRobot", params); });
 }
@@ -85,7 +85,7 @@ TEST_F(TestDockRobot, WrongLoadingDockRobotPlugin)
     {"max_staging_time", "5.0"}, {"navigate_to_staging_pose", "false"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
 
   EXPECT_THROW({ CreateTree("WrongDockRobot", params); }, BT::RuntimeError);
 }
@@ -100,7 +100,7 @@ TEST_F(TestDockRobot, WrongCallDockRobotServerNotInitialized)
     {"max_staging_time", "5.0"},
     {"navigate_to_staging_pose", "false"},
   };
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
 
   CreateTree("DockRobot", params);
 
@@ -121,7 +121,7 @@ TEST_F(TestDockRobot, WrongCallDockRobotServerWithNoDockID)
     {"navigate_to_staging_pose", "false"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();
@@ -140,7 +140,7 @@ TEST_F(TestDockRobot, CallDockRobotServerWithoutDockID)
     {"navigate_to_staging_pose", "false"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();
@@ -162,7 +162,7 @@ TEST_F(TestDockRobot, CallDockRobotServerWithEmptyDockID)
     {"navigate_to_staging_pose", "true"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();
@@ -184,7 +184,7 @@ TEST_F(TestDockRobot, CallDockRobotServerWithEmptyDockType)
     {"navigate_to_staging_pose", "true"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();
@@ -205,7 +205,7 @@ TEST_F(TestDockRobot, CallDockRobotServerWithNavigateToStagingPoseFailure)
     {"navigate_to_staging_pose", "true"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();
@@ -227,7 +227,7 @@ TEST_F(TestDockRobot, CallDockRobotServerWithNavigateToStagingPoseSuccess)
     {"navigate_to_staging_pose", "true"},
   };
 
-  RegisterNodeWithParams<panther_manager::DockRobot>("DockRobot");
+  RegisterNodeWithParams<husarion_ugv_manager::DockRobot>("DockRobot");
   CreateTree("DockRobot", params);
 
   auto & tree = GetTree();

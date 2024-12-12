@@ -25,16 +25,16 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "packages-up-up": [
+                "packages-up-to": [
                     "husarion_ugv"
                 ],
                 "cmake-args": [
                     "-DCMAKE_BUILD_TYPE=Release",
-                    "-DTEST_INTEGRATION=OFF",
+                    "-DTEST_INTEGRATION=OFF"
                 ]
               },
               "test": {
-                "packages-up-up": [
+                "packages-up-to": [
                     "husarion_ugv"
                 ]
               }

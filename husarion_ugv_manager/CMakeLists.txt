@@ -270,4 +270,5 @@ if(BUILD_TESTING)
                         safety_manager_parameters)
 endif()
 
+ament_export_include_directories(include)
 ament_package()

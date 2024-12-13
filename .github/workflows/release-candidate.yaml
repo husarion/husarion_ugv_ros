@@ -37,29 +37,9 @@ jobs:
       - name: Run unit tests
         run: echo "Unit tests for panther_ros are not fully implemented yet -> SKIPPING!"
 
-  create_branches:
-    name: Create branches
+  docker:
+    name: Docker
     runs-on: ubuntu-22.04
-    needs:
-      - unit_tests
-    strategy:
-      matrix:
-        repo: [panther_ros, panther-rpi-os-img]
-    steps:
-      - name: Create release candidate branch
-        uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
-        with:
-          repository_owner: husarion
-          repository_name: ${{ matrix.repo }}
-          new_branch_name: ${{ env.RC_BRANCH_NAME }}
-          new_branch_ref: ros2-devel
-          access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
-
-  update_tags_in_compose:
-    name: Update tags in compose
-    runs-on: ubuntu-22.04
-    needs:
-      - create_branches
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,13 +59,8 @@ jobs:
           message: Update tags in compose files
           author_name: action-bot
           author_email: action-bot@action-bot.com
+          new_branch: ${{ env.RC_BRANCH_NAME }}
 
-  docker:
-    name: Docker
-    runs-on: ubuntu-22.04
-    needs:
-      - update_tags_in_compose
-    steps:
       - name: Build Docker
         uses: ./.github/workflows/build-docker.yml
         with:
@@ -93,10 +68,17 @@ jobs:
 
   os_image:
     name: OS image
-    needs:
-      - update_tags_in_compose
     runs-on: ubuntu-22.04
     steps:
+      - name: Create new branch
+        uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
+        with:
+          repository_owner: husarion
+          repository_name: panther-rpi-os-img
+          new_branch_name: ${{ env.RC_BRANCH_NAME }}
+          new_branch_ref: ros2-devel
+          access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
+
       - name: Build OS image
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
@@ -108,7 +90,7 @@ jobs:
           client_payload: |
             {
               "dev_image": "true",
-              "panther_codebase_version": "${{ env.RC_BRANCH_NAME }}",
+              "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
               "image_tag": "${{ github.event.inputs.version }}"
             }
 

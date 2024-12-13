@@ -77,7 +77,7 @@ jobs:
           client_payload: |
             {
               "dev_image": "false",
-              "panther_codebase_version": "${{ github.event.inputs.version }}",
+              "husarion_ugv_version": "${{ github.event.inputs.version }}",
               "image_tag": "${{ github.event.inputs.version }}"
             }
 

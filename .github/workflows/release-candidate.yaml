@@ -62,7 +62,7 @@ jobs:
           new_branch: ${{ env.RC_BRANCH_NAME }}
 
       - name: Build Docker
-        uses: ./.github/workflows/build-docker.yml
+        uses: ./.github/workflows/build-docker.yaml
         with:
           build_type: development
 

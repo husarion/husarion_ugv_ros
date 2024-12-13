@@ -1,0 +1,24 @@
+---
+name: Validate PR head branch
+on:
+  pull_request:
+    branches:
+      - ros2
+
+jobs:
+  check-head-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check allowed branches
+        run: |
+          pattern="^[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}$" # This regex matches the X.X.X-YYYYMMDD pattern
+          if [[ "${{ github.head_ref }}" == *"hotfix"* ]]; then
+            echo "PR from a branch containing 'hotfix' is allowed."
+            exit 0
+          elif [[ "${{ github.head_ref }}" =~ $pattern ]]; then
+            echo "PR from a branch matching X.X.X-YYYYMMDD pattern is allowed."
+            exit 0
+          else
+            echo "PRs must come from branches containing 'hotfix' phrase or matching X.X.X-YYYYMMDD pattern."
+            exit 1
+          fi

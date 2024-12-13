@@ -1,0 +1,105 @@
+---
+name: Release repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_candidate:
+        description: Branch name of the release candidate.
+        required: true
+      version:
+        description: New version (used for tag).
+        required: true
+      release_name:
+        description: Name of the release to be created. Version in the first place is recommended (e.g.
+          `2.0.0-alpha`).
+        required: true
+      automatic_mode:
+        type: boolean
+        default: false
+        description: Automatically merge PR and create release.
+      prerelease:
+        type: boolean
+        default: false
+        description: Mark the release as a prerelease.
+
+jobs:
+  release:
+    name: Release repository
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MAIN_BRANCH: ros2
+      DEVEL_BRANCH: ros2-devel
+    steps:
+      - name: Checkout to main branch
+        if: ${{ github.event.inputs.release_candidate != env.MAIN_BRANCH }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.MAIN_BRANCH }}
+          fetch-depth: 0
+
+      - name: Get git diff between main and release candidate
+        id: git_diff
+        run: |
+          git fetch origin ${{ github.event.inputs.release_candidate }}:${{ github.event.inputs.release_candidate }}
+          DIFF=$(git diff --name-only ${{ github.event.inputs.release_candidate }}) # Change to "master.." to diff against last common commit
+          if [ -z "$DIFF" ]; then
+            echo "DIFF=false" >> $GITHUB_ENV
+          else
+            echo "DIFF=true" >> $GITHUB_ENV
+          fi
+
+      - name: Create PR to main branch
+        if: ${{ github.event.inputs.release_candidate != env.MAIN_BRANCH && env.DIFF == 'true' }}
+        run: |
+          gh pr create \
+          --base ${{ env.MAIN_BRANCH }} \
+          --head ${{ github.event.inputs.release_candidate }} \
+          --title "Release ${{ github.event.inputs.version}} to ${{ env.MAIN_BRANCH }}" \
+          --body "This PR incorporates release updates."
+
+      - name: Merge PR to main branch
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true && github.event.inputs.release_candidate
+          != env.MAIN_BRANCH && env.DIFF == 'true' }}
+        run: |
+          gh pr merge ${{ github.event.inputs.release_candidate }} \
+          --merge --delete-branch
+
+      - name: Delete branch
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true && github.event.inputs.release_candidate
+          != env.MAIN_BRANCH && env.DIFF == 'false' }}
+        run: |
+          git push origin --delete ${{ github.event.inputs.release_candidate }}
+
+      - name: Create prerelease
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true && fromJSON(github.event.inputs.prerelease)
+          == true}}
+        run: |
+          gh release create ${{ github.event.inputs.version }} \
+          --target ${{ env.MAIN_BRANCH }} \
+          --title ${{ github.event.inputs.release_name }} \
+          --generate-notes \
+          --prerelease
+
+      - name: Create release
+        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true && fromJSON(github.event.inputs.prerelease)
+          == false}}
+        run: |
+          gh release create ${{ github.event.inputs.version }} \
+          --target ${{ env.MAIN_BRANCH }} \
+          --title ${{ github.event.inputs.release_name }} \
+          --generate-notes
+
+      - name: Checkout to devel branch
+        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEVEL_BRANCH }}
+          fetch-depth: 0
+
+      - name: Update devel branch
+        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true }}
+        run: |
+          git pull origin ${{ env.MAIN_BRANCH }}
+          git push origin ${{ env.DEVEL_BRANCH }}

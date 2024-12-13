@@ -1,0 +1,77 @@
+---
+name: Build/Publish ROS Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      panther_codebase_version:
+        description: Version of the panther_ros to be used in the docker image (branch/tag/commit).
+        required: true
+        type: string
+        default: ros2-devel
+      build_type:
+        description: Is it a "development" or a "stable" release?
+        required: true
+        default: development
+        type: choice
+        options:
+          - development
+          - stable
+      target_distro:
+        description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
+          humble)
+        type: string
+        default: humble
+      target_release:
+        description: In case of "stable" release specify the version of the existing docker image (eg.
+          1.0.12)
+        type: string
+        default: 0.0.0
+      target_date:
+        description: In case of "stable" release specify the date of the existing docker image in format
+          YYYYMMDD (eg. 20220124)
+        type: string
+        default: '20131206'
+      feature_branch_tag_suffix:
+        description: In case of "development" release from a feature branch specify the custom tag suffix
+          for the docker image
+        type: string
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: Dockerfile.hardware
+            platforms: linux/arm64
+            ros_distro: humble
+          - dockerfile: Dockerfile.simulation
+            repo_name: panther-gazebo
+            platforms: linux/amd64
+            ros_distro: humble
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        uses: husarion-ci/ros-docker-img-action@v0.8
+        with:
+          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+          main_branch_name: ros2
+          dockerfile: ${{ matrix.dockerfile }}
+          repo_name: ${{ matrix.repo_name }}
+          branch_name: ${{ inputs.panther_codebase_version }}
+          build_type: ${{ inputs.build_type }}
+          ros_distro: ${{ matrix.ros_distro }}
+          platforms: ${{ matrix.platforms }}
+          # variables important only for stable release
+          target_distro: ${{ inputs.target_distro }}
+          target_release: ${{ inputs.target_release }}
+          target_date: ${{ inputs.target_date }}
+          # variables important only for development release
+          feature_branch_tag_suffix: ${{ inputs.feature_branch_tag_suffix }}

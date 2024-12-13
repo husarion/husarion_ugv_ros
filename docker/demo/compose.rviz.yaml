@@ -1,0 +1,28 @@
+x-common-config:
+  &common-config
+  network_mode: host
+  ipc: host
+  environment:
+    - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp # Default FastDDS do not work
+    - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+
+x-cpu-config:
+  &cpu-config
+  env_file: .env.cpu
+
+x-gpu-config:
+  &gpu-config
+  runtime: nvidia
+  env_file: .env.gpu
+
+services:
+  rviz:
+    image: husarion/rviz2:humble-nightly
+    container_name: rviz2
+    <<:
+      - *common-config
+      - *cpu-config
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config/panther.rviz:/root/.rviz2/default.rviz
+    stop_signal: SIGINT

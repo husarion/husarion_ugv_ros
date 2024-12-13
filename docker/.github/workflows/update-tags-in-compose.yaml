@@ -1,0 +1,38 @@
+---
+name: Update tags in compose files
+
+on:
+    workflow_dispatch:
+        inputs:
+            branch_name:
+                description: Target branch for the update.
+                required: true
+            image_tag:
+                description: Docker image tag to be replaced with.
+                required: true
+
+jobs:
+    release:
+        name: Release repository
+        runs-on: ubuntu-22.04
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.inputs.branch_name }}
+
+            - name: Update docker image tag
+              uses: mikefarah/yq@v4.43.1
+              with:
+                  cmd: |
+                      yq -i '.services.panther_ros.image = "husarion/panther:${{ github.event.inputs.image_tag }}" | (... | select(tag == "!!merge")) tag = ""' demo/compose.minimal-setup.yaml
+                      yq -i '.services.panther_gazebo.image = "husarion/panther-gazebo:${{ github.event.inputs.image_tag }}" | (... | select(tag == "!!merge")) tag = ""' demo/compose.simulation.yaml
+
+            - name: Commit changes to target branch
+              uses: EndBug/add-and-commit@v9
+              with:
+                  message: Update docker image tag
+                  author_name: action-bot
+                  author_email: action-bot@action-bot.com

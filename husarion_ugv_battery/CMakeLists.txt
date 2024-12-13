@@ -9,7 +9,7 @@ set(PACKAGE_DEPENDENCIES
     ament_cmake
     diagnostic_updater
     generate_parameter_library
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp
     sensor_msgs)
@@ -54,7 +54,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery rclcpp sensor_msgs
-                            panther_msgs)
+                            husarion_ugv_msgs)
 
   ament_add_gtest(${PROJECT_NAME}_test_adc_battery
                   test/battery/test_adc_battery.cpp src/battery/adc_battery.cpp)
@@ -63,7 +63,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_adc_battery rclcpp sensor_msgs
-                            panther_msgs)
+                            husarion_ugv_msgs)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_roboteq_battery test/battery/test_roboteq_battery.cpp
@@ -72,8 +72,8 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_roboteq_battery
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_battery panther_msgs
-                            rclcpp sensor_msgs)
+  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_battery
+                            husarion_ugv_msgs rclcpp sensor_msgs)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_publisher

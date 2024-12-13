@@ -28,7 +28,7 @@ This node is of type rclcpp_components is responsible for processing animations 
 
 #### Service Servers
 
-- `lights/set_animation` [*panther_msgs/SetLEDAnimation*]: Allows setting animation on Bumper Lights based on animation ID.
+- `lights/set_animation` [*husarion_ugv_msgs/SetLEDAnimation*]: Allows setting animation on Bumper Lights based on animation ID.
 
 #### Parameters
 
@@ -51,7 +51,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 #### Service Servers
 
-- `lights/set_brightness` [*panther_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
+- `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
 
 #### Service Clients
 

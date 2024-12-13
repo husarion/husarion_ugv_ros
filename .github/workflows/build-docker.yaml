@@ -56,10 +56,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dockerfile: docker/Dockerfile.hardware
+          - dockerfile: ./docker/Dockerfile.hardware
             platforms: linux/arm64
             ros_distro: humble
-          - dockerfile: docker/Dockerfile.simulation
+          - dockerfile: ./docker/Dockerfile.simulation
             repo_name: panther-gazebo
             platforms: linux/amd64
             ros_distro: humble

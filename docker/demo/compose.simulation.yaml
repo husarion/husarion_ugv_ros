@@ -14,7 +14,7 @@ x-gpu-config: &gpu-config
 
 services:
   panther_gazebo:
-    image: husarion/panther-gazebo:humble-2.2.0-20241213
+    image: husarion/panther-gazebo:humble-2.1.2-20241125
     container_name: panther_gazebo
     <<:
       - *common-config

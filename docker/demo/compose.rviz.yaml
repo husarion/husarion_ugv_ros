@@ -16,9 +16,9 @@ x-gpu-config:
   env_file: .env.gpu
 
 services:
-  rviz2:
+  rviz:
     image: husarion/panther:humble-2.1.2-20241125
-    container_name: rviz2
+    container_name: rviz
     <<:
       - *common-config
       - *cpu-config

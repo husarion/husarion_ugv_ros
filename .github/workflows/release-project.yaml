@@ -34,7 +34,7 @@ jobs:
     name: Release project
     runs-on: ubuntu-22.04
     steps:
-      - name: Release panther_ros repository
+      - name: Release repository
         uses: ./.github/workflows/release-repository.yaml
         with:
           release_candidate: ${{ env.RC_BRANCH_NAME }}

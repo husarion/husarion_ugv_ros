@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Run unit tests
-        run: echo "Unit tests for panther_ros are not fully implemented yet -> SKIPPING!"
+        run: echo "Unit tests are not fully implemented yet -> SKIPPING!"
 
   docker:
     name: Docker
@@ -49,6 +49,7 @@ jobs:
         with:
           cmd: |
             sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+            sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
             sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes

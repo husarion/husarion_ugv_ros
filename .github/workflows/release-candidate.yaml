@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Check docs build
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: docs_new
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Build OS image
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: panther-rpi-os-img
@@ -113,7 +113,7 @@ jobs:
             }
 
       - name: Build flash OS image
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: panther-rpi-os-img

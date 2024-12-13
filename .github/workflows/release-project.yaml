@@ -49,7 +49,7 @@ jobs:
           build_type: development
 
       - name: Release panther-rpi-os-img repository
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: panther-rpi-os-img
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build OS image
         if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: panther-rpi-os-img
@@ -83,7 +83,7 @@ jobs:
 
       - name: Build flash OS image
         if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: panther-rpi-os-img
@@ -96,7 +96,7 @@ jobs:
             }
 
       - name: Rebuild documentation
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: docs_new

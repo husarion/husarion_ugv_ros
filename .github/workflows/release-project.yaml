@@ -1,5 +1,5 @@
 ---
-name: Release project
+name: Release Project
 
 on:
   workflow_dispatch:
@@ -51,37 +51,11 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-      - name: Rebuild panther docker images with new version
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Build development Docker
+        uses: ./.github/workflows/build-docker.yml
         with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: ros-docker-image.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "panther_codebase_version": "${{ github.event.inputs.version }}",
-              "build_type": "development",
-              "target_distro": "humble"
-            }
-
-      - name: Release panther-docker repository
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
+          codebase_version: ${{ github.event.inputs.version }}
+          build_type: development
 
       - name: Release panther-rpi-os-img repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1

@@ -1,5 +1,5 @@
 ---
-name: Release repository
+name: Release Repository
 
 on:
   workflow_dispatch:

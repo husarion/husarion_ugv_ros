@@ -1,5 +1,5 @@
 ---
-name: Release candidate
+name: Release Candidate
 
 on:
   workflow_dispatch:
@@ -44,7 +44,7 @@ jobs:
       - unit_test_panther_ros
     strategy:
       matrix:
-        repo: [panther_ros, panther-docker, panther-rpi-os-img]
+        repo: [panther_ros, panther-rpi-os-img]
     steps:
       - name: Create test branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
@@ -61,40 +61,36 @@ jobs:
     needs:
       - create_release_candidate_branches
     steps:
-      - name: Trigger repository build workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: update-tags-in-compose.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "branch_name": "${{ env.RC_BRANCH_NAME }}",
-              "image_tag": "humble-${{ env.RC_BRANCH_NAME }}"
-            }
+          ref: ${{ github.event.inputs.branch_name }}
 
-  build_and_push_docker_images:
-    name: Build panther docker images
+      - name: Update docker image tag
+        uses: mikefarah/yq@v4.43.1
+        with:
+          cmd: |
+            sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+            sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+
+      - name: Commit changes to target branch
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: Update docker image tag
+          author_name: action-bot
+          author_email: action-bot@action-bot.com
+
+  build_docker:
+    name: Build Docker
     runs-on: ubuntu-22.04
     needs:
       - update_tags_in_compose
     steps:
-      - name: Trigger repository build workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Build development Docker
+        uses: ./.github/workflows/build-docker.yml
         with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: ros-docker-image.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "panther_codebase_version": "${{ env.RC_BRANCH_NAME }}",
-              "build_type": "development",
-              "target_distro": "humble"
-            }
+          codebase_version: ${{ env.RC_BRANCH_NAME }}
+          build_type: development
 
   build_and_publish_rpi_image:
     name: Build panther system image

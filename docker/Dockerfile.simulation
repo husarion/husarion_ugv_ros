@@ -10,13 +10,13 @@ ENV HUSARION_ROS_BUILD_TYPE=simulation
 STOPSIGNAL SIGINT
 
 WORKDIR /ros2_ws
+COPY .. /ros2_ws/src/husarion_ugv
 
 RUN apt-get update  && \
     apt-get install -y \
         ros-dev-tools && \
     # Setup workspace
-    git clone -b ${BRANCH_NAME} https://github.com/husarion/panther_ros.git src/panther_ros && \
-    vcs import src < src/panther_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
+    vcs import src < src/husarion_ugv/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
     cp -r src/ros2_controllers/diff_drive_controller src && \
     cp -r src/ros2_controllers/imu_sensor_broadcaster src && \
     rm -rf src/ros2_controllers && \
@@ -28,8 +28,8 @@ RUN apt-get update  && \
     source /opt/ros/$ROS_DISTRO/setup.bash && \
     colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
     # Get version
-    echo $(cat /ros2_ws/src/panther_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
-    # Size optimalization
+    echo $(cat /ros2_ws/src/husarion_ugv/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
+    # Size optimization
     export SUDO_FORCE_REMOVE=yes && \
     apt-get remove -y \
         ros-dev-tools && \

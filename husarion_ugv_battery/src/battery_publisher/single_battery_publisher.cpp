@@ -32,8 +32,9 @@ namespace husarion_ugv_battery
 SingleBatteryPublisher::SingleBatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
   const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
-  const std::shared_ptr<Battery> & battery)
-: BatteryPublisher(std::move(node), std::move(diagnostic_updater)), battery_(std::move(battery))
+  const double battery_timeout, const std::shared_ptr<Battery> & battery)
+: BatteryPublisher(std::move(node), std::move(diagnostic_updater), battery_timeout),
+  battery_(std::move(battery))
 {
   battery_pub_ = node->create_publisher<BatteryStateMsg>("battery/battery_status", 5);
   battery_1_pub_ = node->create_publisher<BatteryStateMsg>("_battery/battery_1_status_raw", 5);

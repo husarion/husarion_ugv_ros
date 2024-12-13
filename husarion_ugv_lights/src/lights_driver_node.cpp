@@ -52,16 +52,15 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
 
-  this->declare_parameter<double>("global_brightness", 1.0);
-  this->declare_parameter<double>("frame_timeout", 0.1);
-  this->declare_parameter<int>("channel_1_num_led", 46);
-  this->declare_parameter<int>("channel_2_num_led", 46);
+  this->param_listener_ =
+    std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
+  this->params_ = this->param_listener_->get_params();
 
-  frame_timeout_ = this->get_parameter("frame_timeout").as_double();
-  channel_1_num_led_ = this->get_parameter("channel_1_num_led").as_int();
-  channel_2_num_led_ = this->get_parameter("channel_2_num_led").as_int();
+  frame_timeout_ = this->params_.frame_timeout;
+  channel_1_num_led_ = this->params_.channel_1_num_led;
+  channel_2_num_led_ = this->params_.channel_2_num_led;
 
-  const float global_brightness = this->get_parameter("global_brightness").as_double();
+  const float global_brightness = this->params_.global_brightness;
   channel_1_->SetGlobalBrightness(global_brightness);
   channel_2_->SetGlobalBrightness(global_brightness);
 

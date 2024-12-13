@@ -34,6 +34,47 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_controller_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_controller' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_controller"),
+            "'",
+        ]
+    )
+
+    robot_model = LaunchConfiguration("robot_model")
+    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
+    robot_description_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/",
+            robot_description_pkg,
+            "' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare(robot_description_pkg),
+            "'",
+        ]
+    )
+
+    declare_robot_model_arg = DeclareLaunchArgument(
+        "robot_model",
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
+        description="Specify robot model",
+        choices=["lynx", "panther"],
+    )
+
     battery_config_path = LaunchConfiguration("battery_config_path")
     declare_battery_config_path_arg = DeclareLaunchArgument(
         "battery_config_path",
@@ -48,7 +89,7 @@ def generate_launch_description():
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("panther_description"), "config", "components.yaml"]
+            [robot_description_common_dir, "config", "components.yaml"]
         ),
         description=(
             "Additional components configuration file. Components described in this file "
@@ -64,7 +105,7 @@ def generate_launch_description():
         "controller_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare("husarion_ugv_controller"),
+                husarion_ugv_controller_common_dir,
                 "config",
                 PythonExpression(["'", wheel_type, "_controller.yaml'"]),
             ]
@@ -94,16 +135,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    robot_model = LaunchConfiguration("robot_model")
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
-    declare_robot_model_arg = DeclareLaunchArgument(
-        "robot_model",
-        default_value=robot_model_dict[robot_model_env],
-        description="Specify robot model",
-        choices=["lynx", "panther"],
-    )
-
     use_sim = LaunchConfiguration("use_sim")
     declare_use_sim_arg = DeclareLaunchArgument(
         "use_sim",
@@ -112,7 +143,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
     wheel_config_path = LaunchConfiguration("wheel_config_path")
     declare_wheel_config_path_arg = DeclareLaunchArgument(
         "wheel_config_path",
@@ -143,7 +173,6 @@ def generate_launch_description():
     )
 
     # Get URDF via xacro
-    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
     robot_description_file = PythonExpression(["'", robot_model, ".urdf.xacro'"])
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
     imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
@@ -285,6 +314,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_battery_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path

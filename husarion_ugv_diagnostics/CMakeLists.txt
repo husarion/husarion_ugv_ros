@@ -37,7 +37,8 @@ set(ENV{PKG_CONFIG_PATH} "${CPPUPROFILE_PREFIX}/lib:$ENV{PKG_CONFIG_PATH}")
 
 pkg_check_modules(CPPUPROFILE REQUIRED IMPORTED_TARGET cppuprofile)
 
-generate_parameter_library(system_monitor_parameters config/system_monitor.yaml)
+generate_parameter_library(system_monitor_parameters
+                           src/system_monitor_parameters.yaml)
 
 add_executable(system_monitor_node src/main.cpp src/system_monitor_node.cpp)
 target_include_directories(system_monitor_node

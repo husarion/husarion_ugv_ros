@@ -44,6 +44,8 @@ protected:
   std::shared_ptr<husarion_ugv_battery::BatteryPublisher> battery_publisher_;
   BatteryStateMsg::SharedPtr battery_state_;
   BatteryStateMsg::SharedPtr battery_1_state_;
+
+  static constexpr double kBatteryTimeout = 0.2f;
 };
 
 TestSingleBatteryPublisher::TestSingleBatteryPublisher()
@@ -62,7 +64,7 @@ TestSingleBatteryPublisher::TestSingleBatteryPublisher()
     "/_battery/battery_1_status_raw", 10,
     [&](const BatteryStateMsg::SharedPtr msg) { battery_1_state_ = msg; });
   battery_publisher_ = std::make_shared<husarion_ugv_battery::SingleBatteryPublisher>(
-    node_, diagnostic_updater_, battery_);
+    node_, diagnostic_updater_, kBatteryTimeout, battery_);
 }
 
 TEST_F(TestSingleBatteryPublisher, CorrectTopicPublished)

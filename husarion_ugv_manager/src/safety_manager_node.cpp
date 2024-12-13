@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -42,10 +41,12 @@ SafetyManagerNode::SafetyManagerNode(
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
-  DeclareParameters();
+  this->param_listener_ =
+    std::make_shared<safety_manager::ParamListener>(this->get_node_parameters_interface());
+  this->params_ = this->param_listener_->get_params();
 
-  const auto battery_temp_window_len = this->get_parameter("battery.temp.window_len").as_int();
-  const auto cpu_temp_window_len = this->get_parameter("cpu.temp.window_len").as_int();
+  const auto battery_temp_window_len = this->params_.battery.temp.window_len;
+  const auto cpu_temp_window_len = this->params_.cpu.temp.window_len;
 
   battery_temp_ma_ =
     std::make_unique<husarion_ugv_utils::MovingAverage<double>>(battery_temp_window_len);
@@ -55,7 +56,7 @@ SafetyManagerNode::SafetyManagerNode(
   safety_tree_manager_ = std::make_unique<BehaviorTreeManager>(
     "Safety", safety_initial_blackboard, 6666);
 
-  const auto shutdown_hosts_path = this->get_parameter("shutdown_hosts_path").as_string();
+  const auto shutdown_hosts_path = this->params_.shutdown_hosts_path;
   const std::map<std::string, std::any> shutdown_initial_blackboard = {
     {"SHUTDOWN_HOSTS_FILE", shutdown_hosts_path},
   };
@@ -96,7 +97,7 @@ void SafetyManagerNode::Initialize()
   //   Timers
   // -------------------------------
 
-  const float timer_freq = this->get_parameter("timer_frequency").as_double();
+  const double timer_freq = this->params_.timer_frequency;
   const auto timer_period_ms =
     std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
 
@@ -106,43 +107,15 @@ void SafetyManagerNode::Initialize()
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
 
-void SafetyManagerNode::DeclareParameters()
-{
-  const auto husarion_ugv_manager_pkg_path =
-    ament_index_cpp::get_package_share_directory("husarion_ugv_manager");
-  const std::string default_bt_project_path = husarion_ugv_manager_pkg_path +
-                                              "/behavior_trees/SafetyBT.btproj";
-  const std::vector<std::string> default_plugin_libs = {};
-
-  this->declare_parameter<std::string>("bt_project_path", default_bt_project_path);
-  this->declare_parameter<std::string>("shutdown_hosts_path", "");
-  this->declare_parameter<std::vector<std::string>>("plugin_libs", default_plugin_libs);
-  this->declare_parameter<std::vector<std::string>>("ros_plugin_libs", default_plugin_libs);
-  this->declare_parameter<double>("ros_communication_timeout.availability", 1.0);
-  this->declare_parameter<double>("ros_communication_timeout.response", 1.0);
-
-  this->declare_parameter<int>("battery.temp.window_len", 6);
-  this->declare_parameter<int>("cpu.temp.window_len", 6);
-  this->declare_parameter<float>("cpu.temp.fan_on", 70.0);
-  this->declare_parameter<float>("cpu.temp.fan_off", 60.0);
-  this->declare_parameter<int>("driver.temp.window_len", 6);
-  this->declare_parameter<float>("driver.temp.fan_on", 45.0);
-  this->declare_parameter<float>("driver.temp.fan_off", 35.0);
-  this->declare_parameter<float>("timer_frequency", 10.0);
-  this->declare_parameter<float>("fan_turn_off_timeout", 60.0);
-}
-
 void SafetyManagerNode::RegisterBehaviorTree()
 {
-  const auto bt_project_path = this->get_parameter("bt_project_path").as_string();
+  const auto bt_project_path = this->params_.bt_project_path;
 
-  const auto plugin_libs = this->get_parameter("plugin_libs").as_string_array();
-  const auto ros_plugin_libs = this->get_parameter("ros_plugin_libs").as_string_array();
+  const auto plugin_libs = this->params_.plugin_libs;
+  const auto ros_plugin_libs = this->params_.ros_plugin_libs;
 
-  const auto service_availability_timeout =
-    this->get_parameter("ros_communication_timeout.availability").as_double();
-  const auto service_response_timeout =
-    this->get_parameter("ros_communication_timeout.response").as_double();
+  const auto service_availability_timeout = this->params_.ros_communication_timeout.availability;
+  const auto service_response_timeout = this->params_.ros_communication_timeout.response;
 
   BT::RosNodeParams params;
   params.nh = this->shared_from_this();
@@ -160,11 +133,11 @@ void SafetyManagerNode::RegisterBehaviorTree()
 
 std::map<std::string, std::any> SafetyManagerNode::CreateSafetyInitialBlackboard()
 {
-  const float cpu_fan_on_temp = this->get_parameter("cpu.temp.fan_on").as_double();
-  const float cpu_fan_off_temp = this->get_parameter("cpu.temp.fan_off").as_double();
-  const float driver_fan_on_temp = this->get_parameter("driver.temp.fan_on").as_double();
-  const float driver_fan_off_temp = this->get_parameter("driver.temp.fan_off").as_double();
-  const float fan_turn_off_timeout = this->get_parameter("fan_turn_off_timeout").as_double();
+  const double cpu_fan_on_temp = this->params_.cpu.temp.fan_on;
+  const double cpu_fan_off_temp = this->params_.cpu.temp.fan_off;
+  const double driver_fan_on_temp = this->params_.driver.temp.fan_on;
+  const double driver_fan_off_temp = this->params_.driver.temp.fan_off;
+  const float fan_turn_off_timeout = static_cast<float>(this->params_.fan_turn_off_timeout);
 
   const std::map<std::string, std::any> safety_initial_bb = {
     {"CPU_FAN_OFF_TEMP", cpu_fan_off_temp},
@@ -221,7 +194,7 @@ void SafetyManagerNode::RobotDriverStateCB(const RobotDriverStateMsg::SharedPtr 
     if (driver_temp_ma_.find(driver.name) == driver_temp_ma_.end()) {
       RCLCPP_DEBUG(
         this->get_logger(), "Creating moving average for driver '%s'", driver.name.c_str());
-      const auto driver_temp_window_len = this->get_parameter("driver.temp.window_len").as_int();
+      const auto driver_temp_window_len = this->params_.driver.temp.window_len;
       driver_temp_ma_[driver.name] =
         std::make_unique<husarion_ugv_utils::MovingAverage<double>>(driver_temp_window_len);
     }

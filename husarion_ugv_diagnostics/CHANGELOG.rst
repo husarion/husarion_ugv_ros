@@ -2,6 +2,13 @@
 Changelog for package panther_diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.2 (2024-12-02)
+------------------
+* Merge pull request `#408 <https://github.com/husarion/panther_ros/issues/408>`_ from husarion/ros2-lights-integration-tests
+* Change License in system monitor integration test
+* Merge branch 'ros2-devel' into ros2-lights-tests
+* Contributors: Dawid Kmak, pawelirh
+
 2.1.1 (2024-09-05)
 ------------------
 * Merge branch 'ros2-devel' into ros2-ns-refactor

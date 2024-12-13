@@ -2,6 +2,25 @@
 Changelog for package panther_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.1.2 (2024-12-02)
+------------------
+* Merge pull request `#408 <https://github.com/husarion/panther_ros/issues/408>`_ from husarion/ros2-lights-integration-tests
+* Avoid pre-commit complains
+* Add subscription verification
+* Add underscore prefix to private members
+* Rename test fixture
+* Merge branch 'ros2-devel' into ros2-lights-integration-tests
+* Merge pull request `#407 <https://github.com/husarion/panther_ros/issues/407>`_ from husarion/ros2-lights-tests
+* Address review suggestions
+* Fix comments
+* Implement panther_lights integration tests
+* Merge branch 'ros2-devel' into ros2-lights-tests
+* Make lights controller tests lightweight
+* Implement tests for lights driver
+* Test apa102
+* Implement APA102Interface remove spatial namespace
+* Contributors: Dawid Kmak, pawelirh
+
 2.1.1 (2024-09-05)
 ------------------
 * Merge branch 'ros2-devel' into ros2-ns-refactor

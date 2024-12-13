@@ -57,14 +57,14 @@ protected:
 
   float GetBatteryPercent(const float voltage) const
   {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       if (voltage > battery_approx_ranges[i]) {
         return std::clamp(
           (battery_approx_a_values[i] * voltage + battery_approx_b_values[i]) / 100, 0.0f, 1.0f);
       }
     }
     return std::clamp(
-      (battery_approx_a_values[4] * voltage + battery_approx_b_values[4]) / 100, 0.0f, 1.0f);
+      (battery_approx_a_values[5] * voltage + battery_approx_b_values[5]) / 100, 0.0f, 1.0f);
   }
 
   void ResetBatteryMsgs(const rclcpp::Time & header_stamp)
@@ -117,9 +117,10 @@ protected:
   static constexpr float kDesignedCapacity = 20.0;
   static constexpr std::string_view kLocation = "user_compartment";
 
-  static constexpr float battery_approx_ranges[4] = {41.25, 37, 35, 33.7};
-  static constexpr float battery_approx_a_values[5] = {1.733, 9.153, 19.8, 10.538, 0.989};
-  static constexpr float battery_approx_b_values[5] = {27.214, -278.861, -672.6, -351.47, -29.67};
+  static constexpr float battery_approx_ranges[5] = {41.25, 37.0, 36.0, 35.0, 33.7};
+  static constexpr float battery_approx_a_values[6] = {8.665, 9.153, 19.8, 22.84, 10.538, 0.989};
+  static constexpr float battery_approx_b_values[6] = {-258.73, -278.861, -672.6,
+                                                       -782.04, -351.47,  -29.669};
 
   std::string error_msg_;
   BatteryStateMsg battery_state_;

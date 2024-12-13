@@ -38,8 +38,8 @@ TEST_F(TestBatteryNodeADCDual, BatteryValues)
   EXPECT_FLOAT_EQ(35.05957, battery_state_->voltage);
   EXPECT_FLOAT_EQ(2.02, battery_state_->current);
   EXPECT_FLOAT_EQ(26.094543, battery_state_->temperature);
-  EXPECT_FLOAT_EQ(0.21579468, battery_state_->percentage);
-  EXPECT_FLOAT_EQ(8.6317873, battery_state_->charge);
+  EXPECT_FLOAT_EQ(0.18720642, battery_state_->percentage);
+  EXPECT_FLOAT_EQ(7.4882565, battery_state_->charge);
 
   // If both batteries have the same reading values they should have equal values
   EXPECT_FLOAT_EQ(battery_1_state_->voltage, battery_2_state_->voltage);

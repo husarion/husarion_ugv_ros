@@ -22,6 +22,7 @@
 
 #include "gtest/gtest.h"
 
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_cpp/basic_types.h"
 #include "rclcpp/rclcpp.hpp"
 
@@ -107,6 +108,10 @@ TestLightsBehaviorTree::TestLightsBehaviorTree()
 
 std::vector<rclcpp::Parameter> TestLightsBehaviorTree::CreateTestParameters() const
 {
+  const auto panther_manager_pkg_path =
+    ament_index_cpp::get_package_share_directory("husarion_ugv_manager");
+  const std::string bt_project_path = panther_manager_pkg_path + "/behavior_trees/LightsBT.btproj";
+
   std::vector<std::string> plugin_libs;
   plugin_libs.push_back("tick_after_timeout_bt_node");
 
@@ -114,11 +119,11 @@ std::vector<rclcpp::Parameter> TestLightsBehaviorTree::CreateTestParameters() co
   ros_plugin_libs.push_back("call_set_led_animation_service_bt_node");
 
   std::vector<rclcpp::Parameter> params;
+  params.push_back(rclcpp::Parameter("bt_project_path", bt_project_path));
   params.push_back(rclcpp::Parameter("plugin_libs", plugin_libs));
   params.push_back(rclcpp::Parameter("ros_plugin_libs", ros_plugin_libs));
-  params.push_back(rclcpp::Parameter("battery.animation_period.low", kLowBatteryAnimPeriod));
-  params.push_back(
-    rclcpp::Parameter("battery.animation_period.critical", kCriticalBatteryAnimPeriod));
+  params.push_back(rclcpp::Parameter("battery.anim_period.low", kLowBatteryAnimPeriod));
+  params.push_back(rclcpp::Parameter("battery.anim_period.critical", kCriticalBatteryAnimPeriod));
 
   return params;
 }

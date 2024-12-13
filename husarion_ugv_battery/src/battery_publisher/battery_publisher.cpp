@@ -26,12 +26,12 @@ namespace husarion_ugv_battery
 
 BatteryPublisher::BatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
-  const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater)
-: node_(std::move(node)), diagnostic_updater_(std::move(diagnostic_updater))
+  const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
+  const double battery_timeout)
+: node_(std::move(node)),
+  diagnostic_updater_(std::move(diagnostic_updater)),
+  battery_timeout_(battery_timeout)
 {
-  node->declare_parameter<float>("battery_timeout", 1.0);
-  battery_timeout_ = node->get_parameter("battery_timeout").as_double();
-
   charger_connected_ = false;
   last_battery_info_time_ = rclcpp::Time(std::int64_t(0), RCL_ROS_TIME);
 
@@ -49,12 +49,12 @@ void BatteryPublisher::Publish()
     this->Update();
     last_battery_info_time_ = GetClock()->now();
   } catch (const std::runtime_error & e) {
-    RCLCPP_ERROR_STREAM_THROTTLE(
+    RCLCPP_WARN_STREAM_THROTTLE(
       GetLogger(), *GetClock(), 1000,
       "An exception occurred while reading battery data: " << e.what());
 
     diagnostic_updater_->broadcast(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      diagnostic_msgs::msg::DiagnosticStatus::WARN,
       "Error reading battery data: " + std::string(e.what()));
   }
 

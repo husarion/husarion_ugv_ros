@@ -16,8 +16,13 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import (
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -28,10 +33,24 @@ def generate_launch_description():
         description="Add namespace to all launched nodes",
     )
 
+    system_monitor_config_path = LaunchConfiguration("system_monitor_config_path")
+    declare_system_monitor_config_path_arg = DeclareLaunchArgument(
+        "system_monitor_config_path",
+        default_value=PathJoinSubstitution(
+            [
+                FindPackageShare("husarion_ugv_diagnostics"),
+                "config",
+                "system_monitor.yaml",
+            ]
+        ),
+        description="Specify the path to the system monitor configuration file.",
+    )
+
     system_monitor_node = Node(
         package="husarion_ugv_diagnostics",
         executable="system_monitor_node",
         name="system_monitor",
+        parameters=[system_monitor_config_path],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
         emulate_tty=True,
@@ -39,6 +58,7 @@ def generate_launch_description():
 
     actions = [
         declare_namespace_arg,
+        declare_system_monitor_config_path_arg,
         system_monitor_node,
     ]
 

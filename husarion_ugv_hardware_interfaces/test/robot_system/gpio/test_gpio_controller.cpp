@@ -39,7 +39,13 @@ public:
     (override));
   MOCK_METHOD(bool, IsPinAvailable, (const GPIOPin pin), (const, override));
   MOCK_METHOD(bool, IsPinActive, (const GPIOPin pin), (override));
-  MOCK_METHOD(bool, SetPinValue, (const GPIOPin pin, const bool value), (override));
+  MOCK_METHOD(
+    bool, SetPinValue,
+    (const GPIOPin pin, const bool value,
+     const std::chrono::milliseconds & pin_validation_wait_time),
+    (override));
+
+  using NiceMock = testing::NiceMock<MockGPIODriver>;
 };
 
 class GPIOControllerWrapper : public husarion_ugv_hardware_interfaces::GPIOController
@@ -64,18 +70,19 @@ public:
 protected:
   float GetRobotVersion();
 
-  std::shared_ptr<MockGPIODriver> gpio_driver_;
+  std::shared_ptr<MockGPIODriver::NiceMock> gpio_driver_;
   std::unique_ptr<GPIOControllerWrapper> gpio_controller_wrapper_;
   static constexpr int watchdog_edges_per_100ms_ = 10;
 };
 
 TestGPIOController::TestGPIOController()
 {
-  gpio_driver_ = std::make_shared<MockGPIODriver>();
+  gpio_driver_ = std::make_shared<MockGPIODriver::NiceMock>();
 
   // Mock methods called during the initialization process
-  ON_CALL(*gpio_driver_, SetPinValue(GPIOPin::VMOT_ON, true)).WillByDefault(testing::Return(true));
-  ON_CALL(*gpio_driver_, SetPinValue(GPIOPin::DRIVER_EN, true))
+  ON_CALL(*gpio_driver_, SetPinValue(GPIOPin::VMOT_ON, true, testing::_))
+    .WillByDefault(testing::Return(true));
+  ON_CALL(*gpio_driver_, SetPinValue(GPIOPin::DRIVER_EN, true, testing::_))
     .WillByDefault(testing::Return(true));
   ON_CALL(*gpio_driver_, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
 
@@ -106,7 +113,7 @@ TEST(TestGPIOControllerInitialization, WatchdogPinNotAvailable)
 {
   auto gpio_driver = std::make_shared<MockGPIODriver>();
 
-  EXPECT_CALL(*gpio_driver, SetPinValue(testing::_, true))
+  EXPECT_CALL(*gpio_driver, SetPinValue(testing::_, true, testing::_))
     .Times(2)
     .WillRepeatedly(testing::Return(true));
   ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(false));
@@ -142,14 +149,16 @@ TEST_P(ParametrizedTestGPIOController, TestGPIOEnableDisable)
   auto const disable = !enable;
 
   // Enable GPIO
-  EXPECT_CALL(*gpio_driver_, SetPinValue(param.pin, enable)).WillOnce(testing::Return(true));
+  EXPECT_CALL(*gpio_driver_, SetPinValue(param.pin, enable, testing::_))
+    .WillOnce(testing::Return(true));
   EXPECT_CALL(*gpio_driver_, IsPinActive(param.pin)).WillOnce(testing::Return(enable));
 
   param.enable_method(gpio_controller_wrapper_.get(), true);
   EXPECT_EQ(enable, gpio_controller_wrapper_->IsPinActive(param.pin));
 
   // Disable GPIO
-  EXPECT_CALL(*gpio_driver_, SetPinValue(param.pin, disable)).WillOnce(testing::Return(true));
+  EXPECT_CALL(*gpio_driver_, SetPinValue(param.pin, disable, testing::_))
+    .WillOnce(testing::Return(true));
   EXPECT_CALL(*gpio_driver_, IsPinActive(param.pin)).WillOnce(testing::Return(disable));
 
   param.enable_method(gpio_controller_wrapper_.get(), false);

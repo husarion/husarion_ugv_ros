@@ -31,30 +31,21 @@ env:
 
 jobs:
   release_project:
-    name: Release Husarion UGV project
+    name: Release project
     runs-on: ubuntu-22.04
     steps:
       - name: Release panther_ros repository
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+        uses: ./.github/workflows/release-repository.yaml
         with:
-          owner: husarion
-          repo: panther_ros
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Use the default GITHUB_TOKEN for local repository
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
+          release_candidate: ${{ env.RC_BRANCH_NAME }}
+          version: ${{ github.event.inputs.version }}
+          release_name: ${{ github.event.inputs.release_name }}
+          automatic_mode: ${{ github.event.inputs.automatic_mode }}
+          prerelease: ${{ github.event.inputs.prerelease }}
 
       - name: Build development Docker
         uses: ./.github/workflows/build-docker.yml
         with:
-          codebase_version: ${{ github.event.inputs.version }}
           build_type: development
 
       - name: Release panther-rpi-os-img repository
@@ -74,7 +65,7 @@ jobs:
               "prerelease": "${{ github.event.inputs.prerelease }}"
             }
 
-      - name: Build panther system image
+      - name: Build OS image
         if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
@@ -90,7 +81,7 @@ jobs:
               "image_tag": "${{ github.event.inputs.version }}"
             }
 
-      - name: Build panther flash OS image
+      - name: Build flash OS image
         if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
@@ -104,7 +95,7 @@ jobs:
               "image_tag": "${{ github.event.inputs.version }}"
             }
 
-      - name: Trigger repository build workflow
+      - name: Rebuild documentation
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion

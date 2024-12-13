@@ -15,11 +15,11 @@ env:
   RC_BRANCH_NAME: ${{ github.event.inputs.version }}-${{ github.event.inputs.date }}
 
 jobs:
-  check_docs:
-    name: Check docs build
+  docs:
+    name: Docs
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger repository build workflow
+      - name: Check docs build
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -29,24 +29,24 @@ jobs:
           ref: master
           client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
 
-  # TODO: Add unit testing for panther_ros when ready
-  unit_test_panther_ros:
-    name: Run unit tests for panther_ros
+  # TODO: Add unit testing when ready
+  unit_tests:
+    name: Unit tests
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger repository build workflow
+      - name: Run unit tests
         run: echo "Unit tests for panther_ros are not fully implemented yet -> SKIPPING!"
 
-  create_release_candidate_branches:
-    name: Create release candidate branches
+  create_branches:
+    name: Create branches
     runs-on: ubuntu-22.04
     needs:
-      - unit_test_panther_ros
+      - unit_tests
     strategy:
       matrix:
         repo: [panther_ros, panther-rpi-os-img]
     steps:
-      - name: Create test branch
+      - name: Create release candidate branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
         with:
           repository_owner: husarion
@@ -56,10 +56,10 @@ jobs:
           access_token: ${{ secrets.GH_PAT}}
 
   update_tags_in_compose:
-    name: Update Docker image tags in compose
+    name: Update tags in compose
     runs-on: ubuntu-22.04
     needs:
-      - create_release_candidate_branches
+      - create_branches
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,32 +73,31 @@ jobs:
             sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
             sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
-      - name: Commit changes to target branch
+      - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
-          message: Update docker image tag
+          message: Update tags in compose files
           author_name: action-bot
           author_email: action-bot@action-bot.com
 
-  build_docker:
-    name: Build Docker
+  docker:
+    name: Docker
     runs-on: ubuntu-22.04
     needs:
       - update_tags_in_compose
     steps:
-      - name: Build development Docker
+      - name: Build Docker
         uses: ./.github/workflows/build-docker.yml
         with:
-          codebase_version: ${{ env.RC_BRANCH_NAME }}
           build_type: development
 
-  build_and_publish_rpi_image:
-    name: Build panther system image
+  os_image:
+    name: OS image
     needs:
       - update_tags_in_compose
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger repository build workflow
+      - name: Build OS image
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion
@@ -113,14 +112,7 @@ jobs:
               "image_tag": "${{ github.event.inputs.version }}"
             }
 
-  build_and_publish_rpi_flash_os_image:
-    name: Build panther flash OS image
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - build_and_publish_rpi_image
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository build workflow
+      - name: Build flash OS image
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: husarion

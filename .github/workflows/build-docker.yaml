@@ -4,11 +4,6 @@ name: Build Docker
 on:
   workflow_call:
     inputs:
-      codebase_version:
-        description: Version of the panther_ros to be used in the docker image (branch/tag/commit).
-        required: true
-        type: string
-        default: ros2-devel
       build_type:
         description: Is it a "development" or a "stable" release?
         required: true
@@ -31,11 +26,6 @@ on:
         default: '20131206'
   workflow_dispatch:
     inputs:
-      codebase_version:
-        description: Version of the panther_ros to be used in the docker image (branch/tag/commit).
-        required: true
-        type: string
-        default: ros2-devel
       build_type:
         description: Is it a "development" or a "stable" release?
         required: true
@@ -86,7 +76,6 @@ jobs:
           main_branch_name: ros2
           dockerfile: ${{ matrix.dockerfile }}
           repo_name: ${{ matrix.repo_name }}
-          branch_name: ${{ inputs.panther_codebase_version }}
           build_type: ${{ inputs.build_type }}
           ros_distro: ${{ matrix.ros_distro }}
           platforms: ${{ matrix.platforms }}

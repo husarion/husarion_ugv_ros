@@ -25,7 +25,7 @@ jobs:
           owner: husarion
           repo: docs_new
           github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
-          workflow_file_name: test-release.yml
+          workflow_file_name: parser-test.yaml
           ref: master
           client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
 

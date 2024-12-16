@@ -29,7 +29,7 @@
 
 #include "gpiod.hpp"
 
-#include "husarion_ugv_utils/configure_rt.hpp"
+#include "husarion_ugv_utils/realtime_helpers.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {

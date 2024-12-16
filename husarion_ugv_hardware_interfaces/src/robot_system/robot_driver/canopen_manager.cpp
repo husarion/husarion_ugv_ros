@@ -24,7 +24,7 @@
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
-#include "husarion_ugv_utils/configure_rt.hpp"
+#include "husarion_ugv_utils/realtime_helpers.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {

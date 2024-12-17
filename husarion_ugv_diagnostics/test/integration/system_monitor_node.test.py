@@ -23,7 +23,8 @@ from diagnostic_msgs.msg import DiagnosticArray
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch_testing_ros import WaitForTopics
-from panther_msgs.msg import SystemStatus
+
+from husarion_ugv_msgs.msg import SystemStatus
 
 
 @pytest.mark.launch_test

@@ -21,8 +21,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "panther_msgs/msg/driver_state_named.hpp"
-#include "panther_msgs/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msgs/msg/driver_state_named.hpp"
+#include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_utils/moving_average.hpp"
@@ -30,8 +30,8 @@
 namespace husarion_ugv_battery
 {
 
-using RobotDriverStateMsg = panther_msgs::msg::RobotDriverState;
-using DriverStateNamedMsg = panther_msgs::msg::DriverStateNamed;
+using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
+using DriverStateNamedMsg = husarion_ugv_msgs::msg::DriverStateNamed;
 
 struct RoboteqBatteryParams
 {

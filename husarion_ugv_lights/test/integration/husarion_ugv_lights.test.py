@@ -28,10 +28,11 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_testing_ros import WaitForTopics
-from panther_msgs.msg import LEDAnimation
-from panther_msgs.srv import SetLEDAnimation
 from sensor_msgs.msg import Image
 from std_srvs.srv import SetBool
+
+from husarion_ugv_msgs.msg import LEDAnimation
+from husarion_ugv_msgs.srv import SetLEDAnimation
 
 
 def generate_test_description():

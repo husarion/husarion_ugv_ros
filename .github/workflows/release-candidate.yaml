@@ -44,7 +44,7 @@ jobs:
       - unit_test_panther_ros
     strategy:
       matrix:
-        repo: [panther_ros, panther_msgs, panther-docker, panther-rpi-os-img]
+        repo: [panther_ros, panther-docker, panther-rpi-os-img]
     steps:
       - name: Create test branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5

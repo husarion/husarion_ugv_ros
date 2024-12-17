@@ -24,7 +24,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
-#include "panther_msgs/srv/set_led_brightness.hpp"
+#include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "lights_driver_parameters.hpp"
 
@@ -35,7 +35,7 @@ namespace husarion_ugv_lights
 
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
-using SetLEDBrightnessSrv = panther_msgs::srv::SetLEDBrightness;
+using SetLEDBrightnessSrv = husarion_ugv_msgs::srv::SetLEDBrightness;
 
 /**
  * @brief Class for controlling APA102 LEDs based on a ROS Image topic.

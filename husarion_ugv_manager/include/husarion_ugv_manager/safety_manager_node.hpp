@@ -25,9 +25,9 @@
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
-#include "panther_msgs/msg/io_state.hpp"
-#include "panther_msgs/msg/robot_driver_state.hpp"
-#include "panther_msgs/msg/system_status.hpp"
+#include "husarion_ugv_msgs/msg/io_state.hpp"
+#include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
+#include "husarion_ugv_msgs/msg/system_status.hpp"
 
 #include "safety_manager_parameters.hpp"
 
@@ -40,9 +40,9 @@ namespace husarion_ugv_manager
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
-using RobotDriverStateMsg = panther_msgs::msg::RobotDriverState;
-using IOStateMsg = panther_msgs::msg::IOState;
-using SystemStatusMsg = panther_msgs::msg::SystemStatus;
+using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
+using IOStateMsg = husarion_ugv_msgs::msg::IOState;
+using SystemStatusMsg = husarion_ugv_msgs::msg::SystemStatus;
 
 /**
  * @brief This class is responsible for creating a BehaviorTrees responsible for safety and shutdown

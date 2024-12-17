@@ -128,33 +128,33 @@ if(BUILD_TESTING)
        ${PROJECT_NAME}_test_call_set_led_animation_service_node)
 
   ament_add_gtest(
-    ${PROJECT_NAME}_test_signal_shutdown_node
-    test/plugins/action/test_signal_shutdown_node.cpp
-    src/plugins/action/signal_shutdown_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
-    test/plugins/action/test_shutdown_hosts_from_file_node.cpp
-    src/plugins/action/shutdown_hosts_from_file_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
-
-  ament_add_gtest(
     ${PROJECT_NAME}_test_tick_after_timeout_node
     test/plugins/decorator/test_tick_after_timeout_node.cpp
     src/plugins/decorator/tick_after_timeout_node.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_tick_after_timeout_node)
 
-  ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
-                  test/plugins/test_shutdown_host.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
+  option(TEST_ON_SELF_HOSTED_RUNNER "Run tests on self hosted runner" OFF)
+  if(TEST_ON_SELF_HOSTED_RUNNER)
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_signal_shutdown_node
+      test/plugins/action/test_signal_shutdown_node.cpp
+      src/plugins/action/signal_shutdown_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
 
-  ament_add_gtest(${PROJECT_NAME}_test_shutdown_hosts_node
-                  test/plugins/test_shutdown_hosts_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+    ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
+                    test/plugins/test_shutdown_host.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
 
-  option(TEST_INTEGRATION "Run integration tests" ON)
-  if(TEST_INTEGRATION)
+    ament_add_gtest(${PROJECT_NAME}_test_shutdown_hosts_node
+                    test/plugins/test_shutdown_hosts_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
+      test/plugins/action/test_shutdown_hosts_from_file_node.cpp
+      src/plugins/action/shutdown_hosts_from_file_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
+
     ament_add_gtest(
       ${PROJECT_NAME}_test_shutdown_single_host_node
       test/plugins/action/test_shutdown_single_host_node.cpp

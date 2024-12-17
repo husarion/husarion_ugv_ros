@@ -94,22 +94,14 @@ if(BUILD_TESTING)
 
   install(DIRECTORY test/config DESTINATION share/${PROJECT_NAME}/test)
 
-  ament_add_gtest(${PROJECT_NAME}_test_utils test/test_utils.cpp src/utils.cpp)
+  ament_add_gmock(${PROJECT_NAME}_test_utils test/test_utils.cpp src/utils.cpp)
 
-  ament_add_gtest(${PROJECT_NAME}_test_phidget_imu_sensor
-                  test/phidget_imu_sensor/test_phidget_imu_sensor.cpp)
-  ament_target_dependencies(
-    ${PROJECT_NAME}_test_phidget_imu_sensor hardware_interface rclcpp
-    husarion_ugv_utils husarion_ugv_msgs phidgets_api)
-  target_link_libraries(${PROJECT_NAME}_test_phidget_imu_sensor ${PROJECT_NAME}
-                        phidgets_spatial_parameters)
-
-  ament_add_gtest(
+  ament_add_gmock(
     ${PROJECT_NAME}_test_roboteq_error_filter
     test/unit/robot_system/robot_driver/test_roboteq_error_filter.cpp
     src/robot_system/robot_driver/roboteq_error_filter.cpp)
 
-  ament_add_gtest(
+  ament_add_gmock(
     ${PROJECT_NAME}_test_roboteq_data_converters
     test/unit/robot_system/robot_driver/test_roboteq_data_converters.cpp
     src/robot_system/robot_driver/roboteq_data_converters.cpp src/utils.cpp)
@@ -120,87 +112,6 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_roboteq_data_converters
                             husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_roboteq_data_converters
-                        PkgConfig::LIBLELY_COAPP)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_canopen_manager
-    test/unit/robot_system/robot_driver/test_canopen_manager.cpp
-    src/robot_system/robot_driver/canopen_manager.cpp src/utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_canopen_manager
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_canopen_manager rclcpp
-                            husarion_ugv_msgs husarion_ugv_utils)
-  target_link_libraries(${PROJECT_NAME}_test_canopen_manager
-                        PkgConfig::LIBLELY_COAPP)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_roboteq_driver
-    test/unit/robot_system/robot_driver/test_roboteq_driver.cpp
-    src/robot_system/robot_driver/canopen_manager.cpp
-    src/robot_system/robot_driver/roboteq_driver.cpp
-    src/utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_roboteq_driver
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_driver rclcpp
-                            husarion_ugv_msgs husarion_ugv_utils)
-  target_link_libraries(${PROJECT_NAME}_test_roboteq_driver
-                        PkgConfig::LIBLELY_COAPP)
-
-  ament_add_gmock(
-    ${PROJECT_NAME}_test_roboteq_robot_driver
-    test/unit/robot_system/robot_driver/test_roboteq_robot_driver.cpp
-    src/robot_system/robot_driver/canopen_manager.cpp
-    src/robot_system/robot_driver/roboteq_driver.cpp
-    src/robot_system/robot_driver/roboteq_data_converters.cpp
-    src/robot_system/robot_driver/roboteq_robot_driver.cpp
-    src/utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_roboteq_robot_driver
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_robot_driver rclcpp
-                            husarion_ugv_msgs husarion_ugv_utils)
-  target_link_libraries(${PROJECT_NAME}_test_roboteq_robot_driver
-                        PkgConfig::LIBLELY_COAPP)
-
-  ament_add_gmock(
-    ${PROJECT_NAME}_test_lynx_robot_driver
-    test/unit/robot_system/robot_driver/test_lynx_robot_driver.cpp
-    src/robot_system/robot_driver/canopen_manager.cpp
-    src/robot_system/robot_driver/roboteq_driver.cpp
-    src/robot_system/robot_driver/roboteq_data_converters.cpp
-    src/robot_system/robot_driver/roboteq_robot_driver.cpp
-    src/robot_system/robot_driver/lynx_robot_driver.cpp
-    src/utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_lynx_robot_driver
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_lynx_robot_driver rclcpp
-                            husarion_ugv_msgs husarion_ugv_utils)
-  target_link_libraries(${PROJECT_NAME}_test_lynx_robot_driver
-                        PkgConfig::LIBLELY_COAPP)
-
-  ament_add_gmock(
-    ${PROJECT_NAME}_test_panther_robot_driver
-    test/unit/robot_system/robot_driver/test_panther_robot_driver.cpp
-    src/robot_system/robot_driver/canopen_manager.cpp
-    src/robot_system/robot_driver/roboteq_driver.cpp
-    src/robot_system/robot_driver/roboteq_data_converters.cpp
-    src/robot_system/robot_driver/roboteq_robot_driver.cpp
-    src/robot_system/robot_driver/panther_robot_driver.cpp
-    src/utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_panther_robot_driver
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_panther_robot_driver rclcpp
-                            husarion_ugv_msgs husarion_ugv_utils)
-  target_link_libraries(${PROJECT_NAME}_test_panther_robot_driver
                         PkgConfig::LIBLELY_COAPP)
 
   ament_add_gmock(
@@ -330,14 +241,105 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_panther_system
                         PkgConfig::LIBLELY_COAPP PkgConfig::LIBGPIOD)
 
-  # Integration tests option(TEST_INTEGRATION "Run integration tests" OFF)
-  if(TEST_INTEGRATION) # Hardware integration
+  option(TEST_ON_SELF_HOSTED_RUNNER "Run tests on self hosted runner" OFF)
+  if(TEST_ON_SELF_HOSTED_RUNNER)
+
+    ament_add_gmock(${PROJECT_NAME}_test_phidget_imu_sensor
+                    test/phidget_imu_sensor/test_phidget_imu_sensor.cpp)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_phidget_imu_sensor hardware_interface rclcpp
+      husarion_ugv_utils husarion_ugv_msgs phidgets_api)
+    target_link_libraries(${PROJECT_NAME}_test_phidget_imu_sensor
+                          ${PROJECT_NAME} phidgets_spatial_parameters)
+
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_canopen_manager
+      test/unit/robot_system/robot_driver/test_canopen_manager.cpp
+      src/robot_system/robot_driver/canopen_manager.cpp src/utils.cpp)
+    target_include_directories(
+      ${PROJECT_NAME}_test_canopen_manager
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+             $<INSTALL_INTERFACE:include>)
+    ament_target_dependencies(${PROJECT_NAME}_test_canopen_manager rclcpp
+                              husarion_ugv_msgs husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_canopen_manager
+                          PkgConfig::LIBLELY_COAPP)
+
     ament_add_gtest(${PROJECT_NAME}_test_gpiod_driver
                     test/robot_system/gpio/test_gpio_driver.cpp)
     ament_target_dependencies(${PROJECT_NAME}_test_gpiod_driver
                               husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_gpiod_driver ${PROJECT_NAME}
                           PkgConfig::LIBGPIOD)
+
+    ament_add_gmock(
+      ${PROJECT_NAME}_test_lynx_robot_driver
+      test/unit/robot_system/robot_driver/test_lynx_robot_driver.cpp
+      src/robot_system/robot_driver/canopen_manager.cpp
+      src/robot_system/robot_driver/roboteq_driver.cpp
+      src/robot_system/robot_driver/roboteq_data_converters.cpp
+      src/robot_system/robot_driver/roboteq_robot_driver.cpp
+      src/robot_system/robot_driver/lynx_robot_driver.cpp
+      src/utils.cpp)
+    target_include_directories(
+      ${PROJECT_NAME}_test_lynx_robot_driver
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+             $<INSTALL_INTERFACE:include>)
+    ament_target_dependencies(${PROJECT_NAME}_test_lynx_robot_driver rclcpp
+                              husarion_ugv_msgs husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_lynx_robot_driver
+                          PkgConfig::LIBLELY_COAPP)
+
+    ament_add_gmock(
+      ${PROJECT_NAME}_test_panther_robot_driver
+      test/unit/robot_system/robot_driver/test_panther_robot_driver.cpp
+      src/robot_system/robot_driver/canopen_manager.cpp
+      src/robot_system/robot_driver/roboteq_driver.cpp
+      src/robot_system/robot_driver/roboteq_data_converters.cpp
+      src/robot_system/robot_driver/roboteq_robot_driver.cpp
+      src/robot_system/robot_driver/panther_robot_driver.cpp
+      src/utils.cpp)
+    target_include_directories(
+      ${PROJECT_NAME}_test_panther_robot_driver
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+             $<INSTALL_INTERFACE:include>)
+    ament_target_dependencies(${PROJECT_NAME}_test_panther_robot_driver rclcpp
+                              husarion_ugv_msgs husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_panther_robot_driver
+                          PkgConfig::LIBLELY_COAPP)
+
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_roboteq_driver
+      test/unit/robot_system/robot_driver/test_roboteq_driver.cpp
+      src/robot_system/robot_driver/canopen_manager.cpp
+      src/robot_system/robot_driver/roboteq_driver.cpp
+      src/utils.cpp)
+    target_include_directories(
+      ${PROJECT_NAME}_test_roboteq_driver
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+             $<INSTALL_INTERFACE:include>)
+    ament_target_dependencies(${PROJECT_NAME}_test_roboteq_driver rclcpp
+                              husarion_ugv_msgs husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_roboteq_driver
+                          PkgConfig::LIBLELY_COAPP)
+
+    ament_add_gmock(
+      ${PROJECT_NAME}_test_roboteq_robot_driver
+      test/unit/robot_system/robot_driver/test_roboteq_robot_driver.cpp
+      src/robot_system/robot_driver/canopen_manager.cpp
+      src/robot_system/robot_driver/roboteq_driver.cpp
+      src/robot_system/robot_driver/roboteq_data_converters.cpp
+      src/robot_system/robot_driver/roboteq_robot_driver.cpp
+      src/utils.cpp)
+    target_include_directories(
+      ${PROJECT_NAME}_test_roboteq_robot_driver
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+             $<INSTALL_INTERFACE:include>)
+    ament_target_dependencies(${PROJECT_NAME}_test_roboteq_robot_driver rclcpp
+                              husarion_ugv_msgs husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_roboteq_robot_driver
+                          PkgConfig::LIBLELY_COAPP)
+
   endif()
 
 endif()

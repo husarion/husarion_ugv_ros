@@ -96,7 +96,11 @@ def generate_launch_description():
     spawn_charging_docks = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("panther_gazebo"), "launch", "spawn_charging_docks.launch.py"]
+                [
+                    FindPackageShare("husarion_ugv_gazebo"),
+                    "launch",
+                    "spawn_charging_docks.launch.py",
+                ]
             )
         ),
     )

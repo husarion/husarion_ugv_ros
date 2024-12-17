@@ -32,10 +32,9 @@ def generate_apriltag_and_get_path(tag_id):
 
     tag_generator = TagGenerator2("tag36h11")
     tag_image = tag_generator.generate(tag_id, scale=1000)
-    temp_file = NamedTemporaryFile(suffix=f"_tag_{tag_id}.png", delete=False)
-
-    imageio.imwrite(temp_file.name, tag_image)
-    return temp_file.name
+    with NamedTemporaryFile(suffix=f"_tag_{tag_id}.png", delete=False) as temp_file:
+        imageio.imwrite(temp_file.name, tag_image)
+        return temp_file.name
 
 
 def spawn_stations(context, *args, **kwargs):

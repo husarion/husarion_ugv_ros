@@ -196,7 +196,7 @@ TEST(TestMeetsVersionRequirement, NaNVersionRequired)
   EXPECT_FALSE(is_met);
 }
 
-TEST(MeetsVersionRequirement, CorrectlyComparesVersions)
+TEST(TestMeetsVersionRequirement, CorrectlyComparesVersions)
 {
   float panther_version = 1.06;
   EXPECT_TRUE(husarion_ugv_utils::common_utilities::MeetsVersionRequirement(panther_version, 0.0));

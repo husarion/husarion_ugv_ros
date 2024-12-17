@@ -28,14 +28,14 @@ class TestCallSetLedAnimationService
 {
 public:
   void ServiceCallback(
-    const panther_msgs::srv::SetLEDAnimation::Request::SharedPtr request,
-    panther_msgs::srv::SetLEDAnimation::Response::SharedPtr response, const bool success,
+    const husarion_ugv_msgs::srv::SetLEDAnimation::Request::SharedPtr request,
+    husarion_ugv_msgs::srv::SetLEDAnimation::Response::SharedPtr response, const bool success,
     const std::size_t id, const bool repeating);
 };
 
 void TestCallSetLedAnimationService::ServiceCallback(
-  const panther_msgs::srv::SetLEDAnimation::Request::SharedPtr request,
-  panther_msgs::srv::SetLEDAnimation::Response::SharedPtr response, const bool success,
+  const husarion_ugv_msgs::srv::SetLEDAnimation::Request::SharedPtr request,
+  husarion_ugv_msgs::srv::SetLEDAnimation::Response::SharedPtr response, const bool success,
   const std::size_t id, const bool repeating)
 {
   response->message = success ? "Successfully callback pass!" : "Failed callback pass!";
@@ -98,7 +98,7 @@ TEST_F(TestCallSetLedAnimationService, GoodSetLedAnimationCallServiceSuccessWith
   CreateTree("CallSetLedAnimationService", service);
   auto & tree = GetTree();
 
-  using panther_msgs::srv::SetLEDAnimation;
+  using husarion_ugv_msgs::srv::SetLEDAnimation;
 
   CreateService<SetLEDAnimation>(
     "set_led_animation", [&](
@@ -121,7 +121,7 @@ TEST_F(TestCallSetLedAnimationService, GoodSetLedAnimationCallServiceSuccessWith
   CreateTree("CallSetLedAnimationService", service);
   auto & tree = GetTree();
 
-  using panther_msgs::srv::SetLEDAnimation;
+  using husarion_ugv_msgs::srv::SetLEDAnimation;
 
   CreateService<SetLEDAnimation>(
     "set_led_animation", [&](
@@ -144,7 +144,7 @@ TEST_F(TestCallSetLedAnimationService, GoodSetLedAnimationCallServiceSuccessWith
   CreateTree("CallSetLedAnimationService", service);
   auto & tree = GetTree();
 
-  using panther_msgs::srv::SetLEDAnimation;
+  using husarion_ugv_msgs::srv::SetLEDAnimation;
 
   CreateService<SetLEDAnimation>(
     "set_led_animation", [&](
@@ -167,7 +167,7 @@ TEST_F(TestCallSetLedAnimationService, WrongSetLedAnimationCallServiceFailure)
   CreateTree("CallSetLedAnimationService", service);
   auto & tree = GetTree();
 
-  using panther_msgs::srv::SetLEDAnimation;
+  using husarion_ugv_msgs::srv::SetLEDAnimation;
 
   CreateService<SetLEDAnimation>(
     "set_led_animation", [&](

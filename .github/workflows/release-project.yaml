@@ -34,23 +34,6 @@ jobs:
     name: Release Husarion UGV project
     runs-on: ubuntu-22.04
     steps:
-      - name: Release panther_msgs repository
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther_msgs
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
-
       - name: Release panther_ros repository
         uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:

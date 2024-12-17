@@ -1,0 +1,8 @@
+std_msgs/Header header
+
+husarion_ugv_msgs/DriverStateNamed[] driver_states
+
+bool error
+bool write_pdo_cmds_error
+bool read_pdo_motor_states_error
+bool read_pdo_driver_state_error

@@ -14,8 +14,8 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 
 - `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: System diagnostic messages.
 - `hardware/e_stop` [*std_msgs/Bool*]: Current E-stop state.
-- `hardware/io_state` [*panther_msgs/IOState*]: Current IO state.
-- `hardware/robot_driver_state` [*panther_msgs/RobotDriverState*]: Current motor controllers' state and error flags.
+- `hardware/io_state` [*husarion_ugv_msgs/IOState*]: Current IO state.
+- `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: Current motor controllers' state and error flags.
 
 #### Service Servers
 

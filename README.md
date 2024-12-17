@@ -136,7 +136,16 @@ pre-commit install
 
 ### Unit testing
 
+#### Running on laptop
+
 ```bash
-colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF -DTEST_ON_SELF_HOSTED_RUNNER=OFF
+colcon test --packages-up-to husarion_ugv
+```
+
+#### Running on the Built-In Computer
+
+```bash
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=ON -DTEST_ON_SELF_HOSTED_RUNNER=ON
 colcon test --packages-up-to husarion_ugv
 ```

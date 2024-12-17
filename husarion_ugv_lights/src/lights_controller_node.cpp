@@ -29,7 +29,7 @@
 
 #include "sensor_msgs/msg/image.hpp"
 
-#include "panther_msgs/srv/set_led_animation.hpp"
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "lights_controller_parameters.hpp"
 

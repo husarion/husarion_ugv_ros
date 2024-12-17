@@ -25,7 +25,7 @@
 
 #include "sensor_msgs/msg/image.hpp"
 
-#include "panther_msgs/srv/set_led_animation.hpp"
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "lights_controller_parameters.hpp"
 
@@ -38,7 +38,7 @@ namespace husarion_ugv_lights
 {
 
 using ImageMsg = sensor_msgs::msg::Image;
-using SetLEDAnimationSrv = panther_msgs::srv::SetLEDAnimation;
+using SetLEDAnimationSrv = husarion_ugv_msgs::srv::SetLEDAnimation;
 
 class LightsControllerNode : public rclcpp::Node
 {

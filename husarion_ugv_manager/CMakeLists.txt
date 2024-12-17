@@ -14,7 +14,7 @@ set(PACKAGE_DEPENDENCIES
     libssh
     geometry_msgs
     opennav_docking_msgs
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp
     rclcpp_action
@@ -86,8 +86,8 @@ ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
   geometry_msgs
+  husarion_ugv_msgs
   husarion_ugv_utils
-  panther_msgs
   rclcpp
   sensor_msgs
   std_msgs
@@ -104,8 +104,8 @@ ament_target_dependencies(
   lights_manager_node
   behaviortree_ros2
   geometry_msgs
+  husarion_ugv_msgs
   husarion_ugv_utils
-  panther_msgs
   rclcpp
   sensor_msgs
   std_msgs
@@ -250,8 +250,8 @@ if(BUILD_TESTING)
     behaviortree_cpp
     behaviortree_ros2
     geometry_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
-    panther_msgs
     rclcpp
     sensor_msgs
     std_msgs
@@ -271,8 +271,8 @@ if(BUILD_TESTING)
     behaviortree_cpp
     behaviortree_ros2
     geometry_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
-    panther_msgs
     rclcpp
     sensor_msgs
     std_msgs
@@ -291,8 +291,8 @@ if(BUILD_TESTING)
     behaviortree_cpp
     behaviortree_ros2
     geometry_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
-    panther_msgs
     rclcpp
     sensor_msgs
     std_msgs
@@ -312,8 +312,8 @@ if(BUILD_TESTING)
     behaviortree_cpp
     behaviortree_ros2
     geometry_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
-    panther_msgs
     rclcpp
     sensor_msgs
     std_msgs

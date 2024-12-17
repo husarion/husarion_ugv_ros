@@ -23,7 +23,7 @@ set(PACKAGE_DEPENDENCIES
     geometry_msgs
     hardware_interface
     imu_filter_madgwick
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     phidgets_api
     PkgConfig
@@ -100,7 +100,7 @@ if(BUILD_TESTING)
                   test/phidget_imu_sensor/test_phidget_imu_sensor.cpp)
   ament_target_dependencies(
     ${PROJECT_NAME}_test_phidget_imu_sensor hardware_interface rclcpp
-    husarion_ugv_utils panther_msgs phidgets_api)
+    husarion_ugv_utils husarion_ugv_msgs phidgets_api)
   target_link_libraries(${PROJECT_NAME}_test_phidget_imu_sensor ${PROJECT_NAME}
                         phidgets_spatial_parameters)
 
@@ -118,7 +118,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_roboteq_data_converters
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_roboteq_data_converters
                         PkgConfig::LIBLELY_COAPP)
 
@@ -131,7 +131,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_canopen_manager rclcpp
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_canopen_manager
                         PkgConfig::LIBLELY_COAPP)
 
@@ -146,7 +146,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_roboteq_driver rclcpp
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_roboteq_driver
                         PkgConfig::LIBLELY_COAPP)
 
@@ -163,7 +163,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_roboteq_robot_driver rclcpp
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_roboteq_robot_driver
                         PkgConfig::LIBLELY_COAPP)
 
@@ -181,7 +181,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_lynx_robot_driver rclcpp
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_lynx_robot_driver
                         PkgConfig::LIBLELY_COAPP)
 
@@ -199,7 +199,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_panther_robot_driver rclcpp
-                            panther_msgs husarion_ugv_utils)
+                            husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_panther_robot_driver
                         PkgConfig::LIBLELY_COAPP)
 
@@ -228,7 +228,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_system_ros_interface
     diagnostic_updater
     rclcpp
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     realtime_tools
     std_srvs)
@@ -256,7 +256,7 @@ if(BUILD_TESTING)
     diagnostic_updater
     hardware_interface
     rclcpp
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     std_msgs
     std_srvs)
@@ -289,7 +289,7 @@ if(BUILD_TESTING)
     diagnostic_updater
     hardware_interface
     rclcpp
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     std_msgs
     std_srvs)
@@ -323,7 +323,7 @@ if(BUILD_TESTING)
     diagnostic_updater
     hardware_interface
     rclcpp
-    panther_msgs
+    husarion_ugv_msgs
     husarion_ugv_utils
     std_msgs
     std_srvs)

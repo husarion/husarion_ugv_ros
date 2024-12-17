@@ -7,10 +7,6 @@ repositories:
     type: git
     url: https://github.com/husarion/husarion_controllers
     version: d184d9b5936ec3f51084b70dc7d3825fa5ecaee0
-  panther_msgs:
-    type: git
-    url: https://github.com/husarion/panther_msgs.git
-    version: ros2-devel
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git

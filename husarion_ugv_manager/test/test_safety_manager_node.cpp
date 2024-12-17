@@ -194,10 +194,10 @@ TEST_F(TestSafetyManagerNode, DriverStateCBBlackboardUpdate)
 {
   const float expected_temp = 21.0;
 
-  panther_msgs::msg::DriverStateNamed driver_state;
+  husarion_ugv_msgs::msg::DriverStateNamed driver_state;
   driver_state.state.temperature = expected_temp;
 
-  auto driver_state_msg = panther_msgs::msg::RobotDriverState();
+  auto driver_state_msg = husarion_ugv_msgs::msg::RobotDriverState();
   driver_state_msg.driver_states.push_back(driver_state);
 
   husarion_ugv_utils::test_utils::PublishAndSpin(
@@ -212,7 +212,7 @@ TEST_F(TestSafetyManagerNode, IOStateCBBlackboardUpdate)
   const bool expected_aux_state = true;
   const bool expected_fan_state = true;
 
-  auto io_state_msg = panther_msgs::msg::IOState();
+  auto io_state_msg = husarion_ugv_msgs::msg::IOState();
   io_state_msg.aux_power = expected_aux_state;
   io_state_msg.fan = expected_fan_state;
 
@@ -228,7 +228,7 @@ TEST_F(TestSafetyManagerNode, SystemStatusCBBlackboardUpdate)
 {
   const float expected_temp = 21.0;
 
-  auto system_status_msg = panther_msgs::msg::SystemStatus();
+  auto system_status_msg = husarion_ugv_msgs::msg::SystemStatus();
   system_status_msg.cpu_temp = expected_temp;
 
   husarion_ugv_utils::test_utils::PublishAndSpin(

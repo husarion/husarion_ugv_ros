@@ -23,13 +23,13 @@ Publishes battery state read from ADC unit.
 - `_battery/battery_1_status_raw` [*sensor_msgs/BatteryState*]: First battery raw state.
 - `_battery/battery_2_status_raw` [*sensor_msgs/BatteryState*]: Second battery raw state. Published if second battery detected.
 - `battery/battery_status` [*sensor_msgs/BatteryState*]: Mean values of both batteries if robot has two batteries. Otherwise, the state of the single battery will be published.
-- `battery/charging_status` [*panther_msgs/ChargingStatus*]: Battery charging status.
+- `battery/charging_status` [*husarion_ugv_msgs/ChargingStatus*]: Battery charging status.
 - `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: Battery diagnostic messages.
 
 #### Subscribers
 
-- `hardware/io_state` [*panther_msgs/IOState*]: Current state of IO.
-- `hardware/robot_driver_state` [*panther_msgs/RobotDriverState*]: Current motor controllers' state and error flags. Subscribed if using Roboteq motor controllers data.
+- `hardware/io_state` [*husarion_ugv_msgs/IOState*]: Current state of IO.
+- `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: Current motor controllers' state and error flags. Subscribed if using Roboteq motor controllers data.
 
 #### Parameters
 

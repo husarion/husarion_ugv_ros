@@ -8,7 +8,7 @@
   <maintainer email="support@husarion.com">Husarion</maintainer>
   <license>Apache License 2.0</license>
 
-  <url type="website">https://husarion.com/</url>
+  <url type="website">https://husarion.com</url>
   <url type="repository">https://github.com/husarion/panther_ros</url>
   <url type="bugtracker">https://github.com/husarion/panther_ros/issues</url>
 
@@ -21,12 +21,12 @@
   <depend>behaviortree_ros2</depend>
   <depend>generate_parameter_library</depend>
   <depend>geometry_msgs</depend>
+  <depend>husarion_ugv_msgs</depend>
   <depend>husarion_ugv_utils</depend>
   <depend>iputils-ping</depend>
   <depend>libboost-dev</depend>
   <depend>libssh-dev</depend>
   <depend>opennav_docking_msgs</depend>
-  <depend>panther_msgs</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sensor_msgs</depend>

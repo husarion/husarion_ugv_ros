@@ -62,7 +62,7 @@ public:
 
   float GetDiskUsage() const { return husarion_ugv_diagnostics::SystemMonitorNode::GetDiskUsage(); }
 
-  panther_msgs::msg::SystemStatus SystemStatusToMessage(
+  husarion_ugv_msgs::msg::SystemStatus SystemStatusToMessage(
     const husarion_ugv_diagnostics::SystemStatus & status)
 
   {

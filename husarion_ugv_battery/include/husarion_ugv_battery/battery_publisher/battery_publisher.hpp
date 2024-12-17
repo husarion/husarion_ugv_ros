@@ -22,15 +22,15 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
-#include "panther_msgs/msg/charging_status.hpp"
-#include "panther_msgs/msg/io_state.hpp"
+#include "husarion_ugv_msgs/msg/charging_status.hpp"
+#include "husarion_ugv_msgs/msg/io_state.hpp"
 
 namespace husarion_ugv_battery
 {
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
-using ChargingStatusMsg = panther_msgs::msg::ChargingStatus;
-using IOStateMsg = panther_msgs::msg::IOState;
+using ChargingStatusMsg = husarion_ugv_msgs::msg::ChargingStatus;
+using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 
 class BatteryPublisher
 {

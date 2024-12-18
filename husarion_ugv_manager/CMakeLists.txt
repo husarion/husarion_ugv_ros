@@ -73,7 +73,7 @@ ament_target_dependencies(
   std_msgs)
 
 generate_parameter_library(safety_manager_parameters
-                           config/safety_manager_parameters.yaml)
+                           src/safety_manager_parameters.yaml)
 target_link_libraries(safety_manager_node ${plugin_libs}
                       safety_manager_parameters)
 
@@ -89,7 +89,7 @@ ament_target_dependencies(
   std_msgs)
 
 generate_parameter_library(lights_manager_parameters
-                           config/lights_manager_parameters.yaml)
+                           src/lights_manager_parameters.yaml)
 target_link_libraries(lights_manager_node ${plugin_libs}
                       lights_manager_parameters)
 

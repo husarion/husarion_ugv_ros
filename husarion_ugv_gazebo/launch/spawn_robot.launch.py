@@ -84,7 +84,7 @@ def generate_launch_description():
     load_urdf = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_descriptions"), "launch", "load_urdf.launch.py"]
+                [FindPackageShare("husarion_ugv_description"), "launch", "load_urdf.launch.py"]
             )
         ),
         launch_arguments={

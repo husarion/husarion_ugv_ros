@@ -10,14 +10,14 @@
       <visual>
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/panther/base.dae" />
+          <mesh filename="package://husarion_ugv_description/meshes/panther/base.dae" />
         </geometry>
       </visual>
 
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/panther/base_collision.stl" />
+          <mesh filename="package://husarion_ugv_description/meshes/panther/base_collision.stl" />
         </geometry>
       </collision>
 

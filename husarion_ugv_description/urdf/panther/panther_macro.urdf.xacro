@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
 
   <xacro:macro
-    name="lynx_robot"
+    name="panther_robot"
     params="wheel_config_file
             controller_config_file
             battery_config_file
@@ -11,15 +11,20 @@
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''">
 
+    <xacro:if value="${use_sim}">
+      <xacro:property name="imu_xyz" value="-0.195 0.010 0.085" />
+      <xacro:property name="imu_rpy" value="0.000 -0.000 3.142" />
+    </xacro:if>
+
     <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <xacro:property name="wheel_config" value="${xacro.load_yaml(wheel_config_file)}" />
-    <xacro:property name="wheel_separation_x" value="0.35" />
+    <xacro:property name="wheel_separation_x" value="0.44" />
 
     <!-- INCLUDE ROBOT PARTS DEFINITIONS -->
-    <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/lynx/base.urdf.xacro" ns="body" />
-    <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/common/gazebo.urdf.xacro" ns="gazebo" />
-    <xacro:include filename="$(find husarion_ugv_descriptions)/urdf/common/wheel.urdf.xacro" ns="wheel" />
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/base.urdf.xacro" ns="body" />
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/common/gazebo.urdf.xacro" ns="gazebo" />
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/common/wheel.urdf.xacro" ns="wheel" />
 
     <!-- BODY DECLARATION -->
     <xacro:body.body
@@ -48,7 +53,7 @@
       wheel_separation_x="${wheel_separation_x}"
       prefix="rr" />
 
-    <ros2_control name="${ns}lynx_system" type="system">
+    <ros2_control name="${ns}panther_system" type="system">
       <hardware>
         <xacro:if value="${use_sim}">
           <plugin>husarion_ugv_gazebo/EStopSystem</plugin>
@@ -56,7 +61,7 @@
         </xacro:if>
 
         <xacro:unless value="${use_sim}">
-          <plugin>husarion_ugv_hardware_interfaces/LynxSystem</plugin>
+          <plugin>husarion_ugv_hardware_interfaces/PantherSystem</plugin>
 
           <param name="encoder_resolution">1600</param>
 
@@ -71,7 +76,8 @@
 
           <param name="can_interface_name">robot_can</param>
           <param name="master_can_id">3</param>
-          <param name="driver_can_id">1</param>
+          <param name="front_driver_can_id">1</param>
+          <param name="rear_driver_can_id">2</param>
           <param name="sdo_operation_timeout_ms">100</param>
 
           <!-- Depends on frequency of the controller, more critical motors state are sent with
@@ -176,9 +182,8 @@
       </xacro:if>
       <xacro:gazebo.controller config_file="${controller_config_file}" namespace="${namespace}" />
       <xacro:gazebo.imu reference_frame="imu_link" namespace="${namespace}" />
-      <!-- TODO Add lights visualization -->
-      <!-- <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" topic="lights/channel_1_frame" namespace="${namespace}" /> -->
-      <!-- <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" topic="lights/channel_2_frame" namespace="${namespace}" /> -->
+      <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" topic="lights/channel_1_frame" namespace="${namespace}" />
+      <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" topic="lights/channel_2_frame" namespace="${namespace}" />
     </xacro:if>
   </xacro:macro>
 

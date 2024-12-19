@@ -8,7 +8,7 @@
     <link name="base_link">
       <visual>
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/lynx/base.dae" />
+          <mesh filename="package://husarion_ugv_description/meshes/lynx/base.dae" />
         </geometry>
       </visual>
 
@@ -16,7 +16,7 @@
         <origin xyz="0.0 0.0 0.09" rpy="0.0 0.0 0.0" />
         <geometry>
           <!-- TODO change when models ready -->
-          <!-- <mesh filename="package://husarion_ugv_descriptions/meshes/panther/body_collision.stl" /> -->
+          <!-- <mesh filename="package://husarion_ugv_description/meshes/panther/body_collision.stl" /> -->
           <box size="0.64 0.34 0.28" />
         </geometry>
       </collision>
@@ -48,14 +48,14 @@
     <link name="user_compartment_link">
       <visual>
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/lynx/user_compartment.dae" />
+          <mesh filename="package://husarion_ugv_description/meshes/lynx/user_compartment.dae" />
         </geometry>
       </visual>
 
       <!-- TODO change when models ready -->
       <!-- <collision>
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/panther/user_compartment_collision.stl" />
+          <mesh filename="package://husarion_ugv_description/meshes/panther/user_compartment_collision.stl" />
         </geometry>
       </collision> -->
 
@@ -77,14 +77,14 @@
     <link name="battery_link">
       <visual>
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/lynx/battery.dae" />
+          <mesh filename="package://husarion_ugv_description/meshes/lynx/battery.dae" />
         </geometry>
       </visual>
 
       <!-- TODO change when models ready -->
       <!-- <collision>
         <geometry>
-          <mesh filename="package://husarion_ugv_descriptions/meshes/panther/battery_collision.stl" />
+          <mesh filename="package://husarion_ugv_description/meshes/panther/battery_collision.stl" />
         </geometry>
       </collision> -->
 

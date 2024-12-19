@@ -30,7 +30,7 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_controller</exec_depend>
-  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_descriptions</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_lights</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_localization</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_manager</exec_depend>

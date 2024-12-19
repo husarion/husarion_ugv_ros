@@ -9,7 +9,7 @@ ENV HUSARION_ROS_BUILD_TYPE=hardware
 STOPSIGNAL SIGINT
 
 WORKDIR /ros2_ws
-COPY .. /ros2_ws/src/husarion_ugv
+COPY . src/husarion_ugv
 
 RUN apt-get update  && \
     apt-get install -y \

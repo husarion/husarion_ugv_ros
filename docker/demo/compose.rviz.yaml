@@ -4,6 +4,7 @@ x-common-config:
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp # Default FastDDS do not work
+    - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
 x-cpu-config:

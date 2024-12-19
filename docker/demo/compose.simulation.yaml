@@ -3,6 +3,8 @@ x-common-config: &common-config
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    - ROBOT_MODEL=${ROBOT_MODEL:-panther}
+    - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
 x-cpu-config: &cpu-config
@@ -23,5 +25,3 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >
       ros2 launch panther_gazebo simulation.launch.py
-        namespace:=panther
-        robot_model:=panther

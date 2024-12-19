@@ -39,18 +39,17 @@ jobs:
 
   docker:
     name: Docker
+    needs: unit_tests
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Update docker image tag
-        uses: mikefarah/yq@v4.43.1
-        with:
-          cmd: |
-            sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-            sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-            sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+        run: |
+          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+          sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
@@ -67,6 +66,7 @@ jobs:
 
   os_image:
     name: OS image
+    needs: docker
     runs-on: ubuntu-22.04
     steps:
       - name: Create new branch

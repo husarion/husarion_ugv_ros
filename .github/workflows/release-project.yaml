@@ -43,7 +43,7 @@ jobs:
           automatic_mode: ${{ github.event.inputs.automatic_mode }}
           prerelease: ${{ github.event.inputs.prerelease }}
 
-      - name: Build development Docker
+      - name: Build Docker with new version
         uses: ./.github/workflows/build-docker.yaml
         with:
           build_type: development

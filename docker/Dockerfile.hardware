@@ -36,8 +36,8 @@ RUN apt-get update  && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY utils/update_config_directory.sh /usr/local/sbin/update_config_directory
-COPY utils/setup_environment.sh /usr/local/sbin/setup_environment
+COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
+COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
 
 # Setup envs from eeprom
 RUN sed -i "/# <additional-user-commands>/i set -e -a && source setup_environment" /*_entrypoint.sh

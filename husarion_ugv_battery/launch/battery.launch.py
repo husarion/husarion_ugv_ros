@@ -37,11 +37,7 @@ def generate_launch_description():
     declare_battery_config_path_arg = DeclareLaunchArgument(
         "battery_config_path",
         default_value=PathJoinSubstitution(
-            [
-                FindPackageShare("husarion_ugv_battery"),
-                "config",
-                "battery.yaml",
-            ]
+            [FindPackageShare("husarion_ugv_battery"), "config", "battery.yaml"]
         ),
         description="Specify the path to the system monitor configuration file.",
     )

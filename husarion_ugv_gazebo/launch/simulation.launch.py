@@ -93,18 +93,6 @@ def generate_launch_description():
         ),
     )
 
-    spawn_charging_docks = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("husarion_ugv_gazebo"),
-                    "launch",
-                    "spawn_charging_docks.launch.py",
-                ]
-            )
-        ),
-    )
-
     actions = [
         declare_gz_gui,
         declare_namespace_arg,
@@ -114,7 +102,6 @@ def generate_launch_description():
         gz_sim,
         rviz_launch,
         simulate_robots,
-        spawn_charging_docks,
     ]
 
     return LaunchDescription(actions)

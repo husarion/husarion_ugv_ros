@@ -131,7 +131,15 @@ def generate_launch_description():
                 ],
             ),
         ],
-        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
+            "--log-level",
+            "pluginlib.ClassLoader:=INFO",
+        ],
         emulate_tty=True,
         on_exit=Shutdown(),
     )

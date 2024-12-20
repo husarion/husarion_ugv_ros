@@ -70,7 +70,7 @@ def generate_launch_description():
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
         default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
-        description="Specify robot model",
+        description="Specify robot model.",
         choices=["lynx", "panther"],
     )
 

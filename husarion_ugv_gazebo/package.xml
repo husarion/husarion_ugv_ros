@@ -30,15 +30,14 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_controller</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_lights</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_localization</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_manager</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_utils</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">launch</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">launch_ros</exec_depend>
-  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">lynx_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">nav2_common</exec_depend>
-  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">panther_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">robot_state_publisher</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_components_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_gz_bridge</exec_depend>

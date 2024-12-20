@@ -86,6 +86,13 @@ def generate_launch_description():
         description="Path to the parameter_bridge configuration file.",
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -108,6 +115,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "add_wheel_joints": "False",
+            "log_level": log_level,
             "namespace": namespace,
         }.items(),
     )
@@ -118,7 +126,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_lights"), "launch", "lights.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "True",
+        }.items(),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -127,7 +139,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_manager"), "launch", "manager.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "True",
+        }.items(),
         condition=UnlessCondition(disable_manager),
     )
 
@@ -142,6 +158,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
+            "log_level": log_level,
             "namespace": namespace,
             "publish_robot_state": "False",
             "use_sim": "True",
@@ -158,7 +175,11 @@ def generate_launch_description():
                 ]
             )
         ),
-        launch_arguments={"namespace": namespace, "use_sim": "True"}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "use_sim": "True",
+        }.items(),
     )
 
     simulate_components = IncludeLaunchDescription(
@@ -191,6 +212,7 @@ def generate_launch_description():
         name="gz_bridge",
         parameters=[{"config_file": namespaced_gz_bridge_config_path}],
         namespace=namespace,
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
     )
 
@@ -217,6 +239,11 @@ def generate_launch_description():
             "world",
             "--child-frame-id",
             child_tf,
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -230,6 +257,7 @@ def generate_launch_description():
         declare_components_config_path_arg,
         declare_disable_manager_arg,
         declare_gz_bridge_config_path_arg,
+        declare_log_level_arg,
         declare_namespace_arg,
         SetUseSimTime(True),
         spawn_robot_launch,

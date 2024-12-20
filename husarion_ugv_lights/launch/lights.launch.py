@@ -60,6 +60,13 @@ def generate_launch_description():
         description="Path to a YAML file with a description of led configuration.",
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -124,6 +131,7 @@ def generate_launch_description():
                 ],
             ),
         ],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
         on_exit=Shutdown(),
     )
@@ -132,6 +140,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_user_led_animations_path_arg,

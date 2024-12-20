@@ -117,6 +117,13 @@ def generate_launch_description():
         ),
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -263,6 +270,11 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -277,6 +289,11 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -299,6 +316,11 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -324,6 +346,7 @@ def generate_launch_description():
         declare_publish_robot_state_arg,
         declare_use_sim_arg,
         declare_wheel_config_path_arg,
+        declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
         control_node,
         robot_state_pub_node,

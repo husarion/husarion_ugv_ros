@@ -21,6 +21,13 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -34,10 +41,12 @@ def generate_launch_description():
         name="battery_driver",
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
     )
 
     actions = [
+        declare_log_level_arg,
         declare_namespace_arg,
         battery_driver_node,
     ]

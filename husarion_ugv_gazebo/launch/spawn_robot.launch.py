@@ -30,6 +30,12 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
 
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
@@ -91,6 +97,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "add_wheel_joints": LaunchConfiguration("add_wheel_joints", default="True"),
+            "log_level": log_level,
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
@@ -116,12 +123,18 @@ def generate_launch_description():
             pitch,
             "-Y",
             yaw,
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,
     )
 
     actions = [
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_robot_model_arg,
         declare_x_arg,

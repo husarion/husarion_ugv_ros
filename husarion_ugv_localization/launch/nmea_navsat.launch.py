@@ -26,6 +26,12 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
 
     nmea_params_path = LaunchConfiguration("nmea_params_path")
     declare_nmea_params_path_arg = DeclareLaunchArgument(
@@ -62,12 +68,14 @@ def generate_launch_description():
             ("vel", [device_namespace, "/vel"]),
             ("heading", ["_", device_namespace, "/heading"]),
         ],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
     )
 
-    return LaunchDescription(
-        [
-            declare_nmea_params_path_arg,
-            declare_robot_namespace_arg,
-            nmea_driver_node,
-        ]
-    )
+    actions = [
+        declare_log_level_arg,
+        declare_nmea_params_path_arg,
+        declare_robot_namespace_arg,
+        nmea_driver_node,
+    ]
+
+    return LaunchDescription(actions)

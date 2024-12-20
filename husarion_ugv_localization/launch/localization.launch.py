@@ -57,6 +57,13 @@ def generate_launch_description():
         choices=["relative", "enu"],
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -125,6 +132,7 @@ def generate_launch_description():
             ("set_pose", "localization/set_pose"),
             ("toggle", "localization/toggle"),
         ],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         condition=IfCondition(use_ekf),
     )
 
@@ -134,7 +142,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_localization"), "launch", "nmea_navsat.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
         condition=IfCondition(launch_nmea_gps),
     )
 
@@ -149,6 +157,7 @@ def generate_launch_description():
             ("gps/fix", "gps/fix"),
             ("odometry/gps", "_odometry/gps"),
         ],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         condition=IfCondition(fuse_gps),
     )
 
@@ -158,6 +167,7 @@ def generate_launch_description():
         declare_launch_nmea_gps_arg,
         declare_localization_mode_arg,
         declare_localization_config_path_arg,  # localization_config_path use fuse_gps and localization_mode
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_ekf_arg,
         declare_use_sim_arg,

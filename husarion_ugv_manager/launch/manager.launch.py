@@ -58,6 +58,13 @@ def generate_launch_description():
         description="Path to BehaviorTree project file, responsible for lights management.",
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -103,6 +110,7 @@ def generate_launch_description():
             {"bt_project_path": lights_bt_project_path},
         ],
         namespace=namespace,
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
     )
 
@@ -118,12 +126,14 @@ def generate_launch_description():
             },
         ],
         namespace=namespace,
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
         condition=UnlessCondition(use_sim),
     )
 
     actions = [
         declare_common_dir_path_arg,
+        declare_log_level_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,
         declare_namespace_arg,

@@ -26,6 +26,13 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="info",
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -53,10 +60,12 @@ def generate_launch_description():
         parameters=[system_monitor_config_path],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
+        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
     )
 
     actions = [
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_system_monitor_config_path_arg,
         system_monitor_node,

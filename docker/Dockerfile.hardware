@@ -1,0 +1,43 @@
+ARG ROS_DISTRO=humble
+
+FROM husarnet/ros:${ROS_DISTRO}-ros-core
+
+ARG BUILD_TEST=OFF
+
+ENV HUSARION_ROS_BUILD_TYPE=hardware
+
+STOPSIGNAL SIGINT
+
+WORKDIR /ros2_ws
+COPY . src/husarion_ugv
+
+RUN apt-get update  && \
+    apt-get install -y \
+        ros-dev-tools && \
+    # Setup workspace
+    vcs import src < src/husarion_ugv/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
+    cp -r src/ros2_controllers/diff_drive_controller src && \
+    cp -r src/ros2_controllers/imu_sensor_broadcaster src && \
+    rm -rf src/ros2_controllers && \
+    # Install dependencies
+    rosdep init && \
+    rosdep update --rosdistro $ROS_DISTRO && \
+    rosdep install --from-paths src -y -i && \
+    # Build
+    source /opt/ros/$ROS_DISTRO/setup.bash && \
+    colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
+    # Get version
+    echo $(cat /ros2_ws/src/husarion_ugv/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
+    # Size optimization
+    export SUDO_FORCE_REMOVE=yes && \
+    apt-get remove -y \
+        ros-dev-tools && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
+COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
+
+# Setup envs from eeprom
+RUN sed -i "/# <additional-user-commands>/i set -e -a && source setup_environment" /*_entrypoint.sh

@@ -75,7 +75,7 @@ def generate_launch_description():
     use_joint_state_publisher = LaunchConfiguration("use_joint_state_publisher")
     declare_use_joint_state_publisher_arg = DeclareLaunchArgument(
         "use_joint_state_publisher",
-        default_value="True",
+        default_value="False",
         description="Flag enabling joint_state_publisher to publish information about joints positions. Should be false when there is a controller that sends this information.",
         choices=["True", "true", "False", "false"],
     )

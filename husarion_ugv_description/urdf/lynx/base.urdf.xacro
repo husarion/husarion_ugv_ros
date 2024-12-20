@@ -115,5 +115,13 @@
 
     <link name="cover_link" />
 
+    <joint name="cover_to_reling_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0215" rpy="0.0 0.0 0.0" />
+      <parent link="cover_link" />
+      <child link="reling_link" />
+    </joint>
+
+    <link name="reling_link" />
+
   </xacro:macro>
 </robot>

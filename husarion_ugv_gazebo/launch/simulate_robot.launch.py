@@ -54,12 +54,10 @@ def generate_launch_description():
     )
 
     components_config_path = LaunchConfiguration("components_config_path")
-    robot_model = LaunchConfiguration("robot_model")
-    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare(robot_description_pkg), "config", "components.yaml"]
+            [FindPackageShare("husarion_ugv_description"), "config", "components.yaml"]
         ),
         description=(
             "Additional components configuration file. Components described in this file "
@@ -100,10 +98,11 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
+    robot_model = LaunchConfiguration("robot_model")
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
         default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
-        description="Specify robot model",
+        description="Specify robot model.",
         choices=["lynx", "panther"],
     )
 
@@ -117,6 +116,7 @@ def generate_launch_description():
             "add_wheel_joints": "False",
             "log_level": log_level,
             "namespace": namespace,
+            "robot_model": robot_model,
         }.items(),
     )
 
@@ -131,6 +131,7 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
+        condition=UnlessCondition(PythonExpression(["'", robot_model, "' == 'lynx'"])),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -144,7 +145,9 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
-        condition=UnlessCondition(disable_manager),
+        condition=UnlessCondition(
+            PythonExpression(["'", robot_model, "' == 'lynx' or ", disable_manager])
+        ),
     )
 
     controller_launch = IncludeLaunchDescription(

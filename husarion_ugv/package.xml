@@ -15,7 +15,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>husarion_ugv_bringup</depend>
+  <depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_bringup</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_gazebo</depend>
 
   <export>

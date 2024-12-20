@@ -1,5 +1,5 @@
 ---
-name: Validate PR head branch
+name: Protect Default Branch
 on:
   pull_request:
     branches:

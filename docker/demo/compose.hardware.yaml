@@ -1,0 +1,53 @@
+x-common-config: &common-config
+  network_mode: host
+  ipc: host
+  restart: always
+  env_file:
+    - /home/husarion/config/common/.env # env configuration including namespace, domain id, DDS, etc.
+
+services:
+  husarion_ugv_ros:
+    image: husarion/panther:humble-2.1.2-20241125
+    container_name: husarion_ugv_ros
+    <<: *common-config
+    devices:
+      - /dev/bus/usb
+      - /dev/gpiochip0
+      - /dev/spiled-channel1
+      - /dev/spiled-channel2
+    device_cgroup_rules:
+      - 'c 189:* rmw' # USB devices
+      - 'c 254:0 rmw' # gpiochip0
+      - 'c 153:* rmw' # spiled-channel1, spiled-channel2
+    volumes:
+      - /run/husarion/robot_config.env:/run/husarion/robot_config.env
+      - /run/husarion/robot_config.yaml:/run/husarion/robot_config.yaml
+      - /sys/bus/iio/devices:/sys/bus/iio/devices:ro # Read-only access to IIO devices
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa
+      - /home/husarion/config:/config
+    # Realtime hardware (https://control.ros.org/master/doc/ros2_control/controller_manager/doc/userdoc.html#determinism)
+    ulimits:
+      rtprio:
+        soft: 99
+        hard: 99
+      memlock:
+        soft: 102400
+        hard: 102400
+    command: >
+      ros2 launch husarion_ugv_bringup bringup.launch.py
+        common_dir_path:=/config
+
+  gamepad_controller:
+    image: husarion/joy2twist:humble-1.0.0-20241003-stable
+    container_name: gamepad_controller
+    <<: *common-config
+    volumes:
+      - /home/husarion/config/common/joy2twist.yaml:/joy2twist.yaml
+    devices:
+      - /dev/input/js0
+    device_cgroup_rules:
+      - 'c 13:0 rmw' # gamepad
+    stop_signal: SIGINT
+    command: >
+      ros2 launch joy2twist gamepad_controller.launch.py
+        joy2twist_params_file:=/joy2twist.yaml

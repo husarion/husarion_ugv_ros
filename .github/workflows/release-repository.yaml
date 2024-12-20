@@ -1,19 +1,22 @@
 ---
-name: Release repository
+name: Release Repository
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       release_candidate:
         description: Branch name of the release candidate. WARNING This branch will be deleted!
         required: true
+        type: string
       version:
         description: New version (used for tag and package versioning).
         required: true
+        type: string
       release_name:
         description: Name of the release to be created. Version in the first place is recommended (e.g.
           `2.0.0-alpha`).
         required: true
+        type: string
       automatic_mode:
         type: boolean
         default: false

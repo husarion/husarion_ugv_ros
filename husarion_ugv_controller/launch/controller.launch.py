@@ -155,14 +155,14 @@ def generate_launch_description():
         "wheel_config_path",
         default_value=PathJoinSubstitution(
             [
-                FindPackageShare(robot_description_pkg),
+                FindPackageShare("husarion_ugv_description"),
                 "config",
                 PythonExpression(["'", wheel_type, ".yaml'"]),
             ]
         ),
         description=(
             "Path to wheel configuration file. By default, it is located in "
-            "'panther_description/config/{wheel_type}.yaml'. You can also specify the path "
+            "'husarion_ugv_description/config/{wheel_type}.yaml'. You can also specify the path "
             "to your custom wheel configuration file here. "
         ),
     )
@@ -180,23 +180,19 @@ def generate_launch_description():
     )
 
     # Get URDF via xacro
-    robot_description_file = PythonExpression(["'", robot_model, ".urdf.xacro'"])
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
     imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
     imu_pos_z = os.environ.get("ROBOT_IMU_LOCALIZATION_Z", "0.083")
     imu_rot_r = os.environ.get("ROBOT_IMU_ORIENTATION_R", "3.14")
     imu_rot_p = os.environ.get("ROBOT_IMU_ORIENTATION_P", "-1.57")
     imu_rot_y = os.environ.get("ROBOT_IMU_ORIENTATION_Y", "0.0")
+    urdf_file = PythonExpression(["'", robot_model, ".urdf.xacro'"])
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
             PathJoinSubstitution(
-                [
-                    FindPackageShare(robot_description_pkg),
-                    "urdf",
-                    robot_description_file,
-                ]
+                [FindPackageShare("husarion_ugv_description"), "urdf", urdf_file]
             ),
             " use_sim:=",
             use_sim,

@@ -56,13 +56,6 @@ add_library(shutdown_hosts_from_file_bt_node SHARED
 target_link_libraries(shutdown_hosts_from_file_bt_node ssh yaml-cpp)
 list(APPEND plugin_libs shutdown_hosts_from_file_bt_node)
 
-add_library(dock_robot_bt_node SHARED src/plugins/action/dock_robot_node.cpp)
-list(APPEND plugin_libs dock_robot_bt_node)
-
-add_library(undock_robot_bt_node SHARED
-            src/plugins/action/undock_robot_node.cpp)
-list(APPEND plugin_libs undock_robot_bt_node)
-
 add_library(check_bool_msg_bt_node SHARED
             src/plugins/condition/check_bool_msg.cpp)
 list(APPEND plugin_libs check_bool_msg_bt_node)
@@ -125,6 +118,7 @@ install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/)
+install(DIRECTORY test/utils DESTINATION include/test/utils)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -161,18 +155,6 @@ if(BUILD_TESTING)
     test/plugins/action/test_shutdown_hosts_from_file_node.cpp
     src/plugins/action/shutdown_hosts_from_file_node.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_dock_robot_node
-    test/plugins/action/test_dock_robot_node.cpp
-    src/plugins/action/dock_robot_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_dock_robot_node)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_undock_robot_node
-    test/plugins/action/test_undock_robot_node.cpp
-    src/plugins/action/undock_robot_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_undock_robot_node)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_check_bool_msg

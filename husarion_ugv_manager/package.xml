@@ -26,7 +26,6 @@
   <depend>iputils-ping</depend>
   <depend>libboost-dev</depend>
   <depend>libssh-dev</depend>
-  <depend>opennav_docking_msgs</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sensor_msgs</depend>

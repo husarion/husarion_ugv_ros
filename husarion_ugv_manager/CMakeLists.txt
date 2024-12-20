@@ -13,7 +13,6 @@ set(PACKAGE_DEPENDENCIES
     generate_parameter_library
     libssh
     geometry_msgs
-    opennav_docking_msgs
     husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp

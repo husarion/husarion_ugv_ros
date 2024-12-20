@@ -115,13 +115,13 @@
 
     <link name="cover_link" />
 
-    <joint name="cover_to_rails_joint" type="fixed">
+    <joint name="cover_to_mount_joint" type="fixed">
       <origin xyz="0.0 0.0 0.0315" rpy="0.0 0.0 0.0" />
       <parent link="cover_link" />
-      <child link="rails_link" />
+      <child link="mount_link" />
     </joint>
 
-    <link name="rails_link" />
+    <link name="mount_link" />
 
   </xacro:macro>
 </robot>

@@ -118,7 +118,7 @@ install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/)
-install(DIRECTORY test/ DESTINATION include/${PROJECT_NAME}/)
+install(DIRECTORY test/ DESTINATION include/${PROJECT_NAME}/test/)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

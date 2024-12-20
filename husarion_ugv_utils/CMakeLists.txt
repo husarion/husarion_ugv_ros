@@ -12,8 +12,6 @@ set(PACKAGE_DEPENDENCIES
     realtime_tools
     rclcpp
     std_msgs
-    tf2_geometry_msgs
-    tf2_ros
     yaml-cpp)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
@@ -66,14 +64,6 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_ros_test_utils rclcpp std_msgs)
-
-  ament_add_gtest(${PROJECT_NAME}_test_tf2_utils test/test_tf2_utils.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_tf2_utils
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_tf2_utils std_msgs tf2_ros
-                            tf2_geometry_msgs)
 
   ament_add_gtest(${PROJECT_NAME}_test_yaml_utils test/test_yaml_utils.cpp)
   target_include_directories(

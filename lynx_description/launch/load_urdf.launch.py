@@ -84,13 +84,6 @@ def generate_launch_description():
         ),
     )
 
-    log_level = LaunchConfiguration("log_level")
-    declare_log_level_arg = DeclareLaunchArgument(
-        "log_level",
-        default_value="info",
-        description="Logging level",
-    )
-
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -184,7 +177,6 @@ def generate_launch_description():
         package="joint_state_publisher",
         executable="joint_state_publisher",
         namespace=namespace,
-        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
         emulate_tty=True,
         condition=IfCondition(add_wheel_joints),
     )
@@ -195,7 +187,6 @@ def generate_launch_description():
         declare_components_config_path_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
-        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_wheel_config_path_arg,

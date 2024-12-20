@@ -218,6 +218,25 @@ def generate_launch_description():
     )
     robot_description = {"robot_description": robot_description_content}
 
+    joint_state_broadcaster_log_level = PythonExpression(
+        [
+            "'",
+            namespace,
+            "' + '.joint_state_broadcaster:=INFO' if '",
+            namespace,
+            "' else 'joint_state_broadcaster:=INFO'",
+        ]
+    )
+    controller_manager_log_level = PythonExpression(
+        [
+            "'",
+            namespace,
+            "' + '.controller_manager:=INFO' if '",
+            namespace,
+            "' else 'controller_manager:=INFO'",
+        ]
+    )
+
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -245,6 +264,19 @@ def generate_launch_description():
                 "joint_state_broadcaster/transition_event",
                 "_joint_state_broadcaster/transition_event",
             ),
+        ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            "rcl:=INFO",
+            "--log-level",
+            "pluginlib.ClassLoader:=INFO",
+            "--log-level",
+            joint_state_broadcaster_log_level,
+            "--log-level",
+            controller_manager_log_level,
         ],
         condition=UnlessCondition(use_sim),
         emulate_tty=True,
@@ -289,11 +321,6 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
-            "--ros-args",
-            "--log-level",
-            log_level,
-            "--log-level",
-            "rcl:=INFO",
         ],
         namespace=namespace,
         emulate_tty=True,

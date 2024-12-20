@@ -4,7 +4,7 @@ Package that implements SystemInterface from ros2_control for Husarion UGV.
 
 ## ROS Nodes
 
-This package doesn't contain any standalone nodes, only plugins that are loaded by the resource manager. To use this hardware interface, add it to your URDF. You can check how to do it in [lynx_description](https://github.com/husarion/panther_ros/tree/ros2/panther_description/) or [panther_description](https://github.com/husarion/panther_ros/tree/ros2/panther_description/).
+This package doesn't contain any standalone nodes, only plugins that are loaded by the resource manager. To use this hardware interface, add it to your URDF. You can check how to do it in [panther_macro.urdf.xacro](../husarion_ugv_description/urdf/panther/panther_macro.urdf.xacro) or [lynx_macro.urdf.xacro](../husarion_ugv_description/urdf/lynx/lynx_macro.urdf.xacro).
 
 ### UGVSystem (PantherSystem | LynxSystem)
 
@@ -30,7 +30,7 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 
 #### Parameters
 
-Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../panther_description/urdf/panther_macro.urdf.xacro) or [lynx_macro.urdf.xacro](../lynx_description/urdf/lynx_macro.urdf.xacro)).
+Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../husarion_ugv_description/urdf/panther/panther_macro.urdf.xacro) or [lynx_macro.urdf.xacro](../husarion_ugv_description/urdf/lynx/lynx_macro.urdf.xacro)).
 
 Physical properties
 
@@ -72,7 +72,7 @@ Plugin responsible for communicating with IMU and filtering data using Madgwick 
 
 #### Parameters
 
-Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../panther_description/urdf/panther_macro.urdf.xacro)).
+Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../husarion_ugv_description/urdf/panther/panther_macro.urdf.xacro) or [lynx_macro.urdf.xacro](../husarion_ugv_description/urdf/lynx/lynx_macro.urdf.xacro)).
 
 Physical properties
 

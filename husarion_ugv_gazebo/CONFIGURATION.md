@@ -8,7 +8,7 @@ The NavSat sensors requires the spherical coordinates of the world origin to be 
 
 To obtain GPS data in Ignition, follow these steps:
 
-- Include the [ANT02](https://github.com/husarion/ros_components_description/blob/ros2/urdf/teltonika_003R-00253.urdf.xacro) by adding the following lines to your [components.yaml](../panther_description/config/components.yaml) file inside the `components` list:
+- Include the [ANT02](https://github.com/husarion/ros_components_description/blob/ros2/urdf/teltonika_003R-00253.urdf.xacro) by adding the following lines to your [components.yaml](../husarion_ugv_description/config/components.yaml) file inside the `components` list:
 
 ```yaml
   - type: ANT02

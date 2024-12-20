@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="panther" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:arg name="use_sim" default="false" />
+  <xacro:arg name="imu_xyz" default="0.169 0.025 0.092" />
+  <xacro:arg name="imu_rpy" default="0.0 0.0 -1.57" />
+  <xacro:arg name="wheel_config_file"
+    default="$(find husarion_ugv_description)/config/WH01.yaml" />
+  <xacro:arg name="controller_config_file"
+    default="$(find husarion_ugv_controller)/config/WH01_controller.yaml" />
+  <xacro:arg name="battery_config_file"
+    default="" />
+  <xacro:arg name="namespace" default="" />
+
+
+  <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/panther_macro.urdf.xacro" ns="husarion" />
+  <xacro:husarion.panther_robot
+    use_sim="$(arg use_sim)"
+    imu_xyz="$(arg imu_xyz)"
+    imu_rpy="$(arg imu_rpy)"
+    wheel_config_file="$(arg wheel_config_file)"
+    controller_config_file="$(arg controller_config_file)"
+    battery_config_file="$(arg battery_config_file)"
+    namespace="$(arg namespace)" />
+
+  <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
+  <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />
+
+  <xacro:unless value="${components_config_path_property == 'None'}">
+    <xacro:include filename="$(find ros_components_description)/urdf/components.urdf.xacro"
+      ns="husarion_components" />
+
+    <xacro:husarion_components.create_components
+      components_config_path="${components_config_path_property}"
+      namespace="$(arg namespace)"
+    />
+  </xacro:unless>
+</robot>

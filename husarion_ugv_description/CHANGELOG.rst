@@ -1,6 +1,6 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package husarion_ugv_controller
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package husarion_ugv_description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 2.1.2 (2024-12-02)
 ------------------
@@ -9,62 +9,85 @@ Changelog for package husarion_ugv_controller
 
 2.1.1 (2024-09-05)
 ------------------
-* Merge pull request `#403 <https://github.com/husarion/panther_ros/issues/403>`_ from husarion/ros2-control-ns-fix
-* Remove deprecated --namespace arg
+* LEDStrip plugin to Gazebo (`#391 <https://github.com/husarion/panther_ros/issues/391>`_)
+* Merge pull request `#374 <https://github.com/husarion/panther_ros/issues/374>`_ from husarion/ros2-ns-refactor
+* Merge branch 'ros2-devel' into ros2-ns-refactor
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-add-nmea-gps
+* Merge pull request `#383 <https://github.com/husarion/panther_ros/issues/383>`_ from husarion/ros-sim-estop
 * Merge remote-tracking branch 'origin/ros2-devel' into ros2-testing-poc
+* Rename PantherSystem -> GzPantherSystem
+* Typos in Readme + estop publish on service call
 * Ros2 estop sim gui (`#384 <https://github.com/husarion/panther_ros/issues/384>`_)
 * Merge branch 'ros2-devel' into ros2-ns-refactor
 * unify CMakeLists.txt files (`#381 <https://github.com/husarion/panther_ros/issues/381>`_)
+* Add remapping
 * unify CMakeLists.txt files
+* Add EStop to Gazebo
 * New format of documentation  (`#369 <https://github.com/husarion/panther_ros/issues/369>`_)
-* Contributors: Dawid, Dawid Kmak, pawelirh, rafal-gorecki
+* Namespace refactor
+* Contributors: Dawid, Dawid Kmak, KmakD, Paweł Irzyk, pawelirh, rafal-gorecki
 
 2.1.0 (2024-08-02)
 ------------------
+* Fixed gazebo lights tfs (`#377 <https://github.com/husarion/panther_ros/issues/377>`_)
+* Ros2 system status tf namespace (`#372 <https://github.com/husarion/panther_ros/issues/372>`_)
 * Fix imu tf frame (`#373 <https://github.com/husarion/panther_ros/issues/373>`_)
-* Process noise update (`#361 <https://github.com/husarion/panther_ros/issues/361>`_)
+* Ros2 fix wheels friction (`#370 <https://github.com/husarion/panther_ros/issues/370>`_)
 * Merge pull request `#362 <https://github.com/husarion/panther_ros/issues/362>`_ from husarion/ros2-api-reorganization
 * Enhance ROS API names in the stack
-* Contributors: Dawid Kmak, pawelirh, rafal-gorecki
+* Contributors: Dawid Kmak, Jakub Delicat, pawelirh, rafal-gorecki
 
 2.0.4 (2024-06-28)
 ------------------
+* Delete unnecessary dependency
 * Add EKF GPS configuration (`#351 <https://github.com/husarion/panther_ros/issues/351>`_)
-* Merge pull request `#343 <https://github.com/husarion/panther_ros/issues/343>`_ from husarion/ros2-gpio-controller-revision
+* Merge pull request `#337 <https://github.com/husarion/panther_ros/issues/337>`_ from husarion/ros2-gz-lights
+* Move antenna to ros-components-description (`#340 <https://github.com/husarion/panther_ros/issues/340>`_)
+* Add manager
 * Merge branch 'ros2-devel' into ros2-gz-lights
+* Apply some Dawid suggestions
 * Merge remote-tracking branch 'origin/ros2-devel' into ros2-gpio-controller-revision
 * Merge branch 'ros2' into ros2-build-in-animation
-* Implement changes in driver node
+* Simplify and add cmd_vel
+* Use default components
 * Merge branch 'ros2' into ros2-gz-lights
+* Steering lights from channel topics
+* Add light macro
+* Add lights to urdf
 * Contributors: Dawid Kmak, pawelirh, rafal-gorecki
 
 2.0.3 (2024-06-06)
 ------------------
 * Merge pull request `#320 <https://github.com/husarion/panther_ros/issues/320>`_ from husarion/ros2-clear-logs
-* Organize logs: panther_system and panther_imu
+* Organize logs in panther_diagnostics and panther_description
 * Contributors: Dawid Kmak, pawelirh
 
 2.0.2 (2024-06-05)
 ------------------
+* Merge pull request `#318 <https://github.com/husarion/panther_ros/issues/318>`_ from husarion/fix-default-path
+* Fix default components config path
 * Launch refactor (`#307 <https://github.com/husarion/panther_ros/issues/307>`_)
 * Merge branch 'ros2' of https://github.com/husarion/panther_ros into ros2-manager-refactor
-* added diagnostics remapping and namespace to system_status (`#306 <https://github.com/husarion/panther_ros/issues/306>`_)
-* added remappings to diagnostics
 * Ros2 add components (`#277 <https://github.com/husarion/panther_ros/issues/277>`_)
 * Merge pull request `#304 <https://github.com/husarion/panther_ros/issues/304>`_ from husarion/ros2-control-fix
-* Merge branch 'ros2' into ros2-control-fix
-* fix ekf
 * Merge pull request `#303 <https://github.com/husarion/panther_ros/issues/303>`_ from husarion/ros2-controler-patch
 * Patch
-* Fix controller with namespace
+* Remove const name
 * Merge branch 'ros2' of https://github.com/husarion/panther_ros into ros2-manager-refactor
 * Multi robot spawn working (`#256 <https://github.com/husarion/panther_ros/issues/256>`_)
-* Contributors: Dawid, Jakub Delicat, Paweł Irzyk, rafal-gorecki
+* Merge pull request `#300 <https://github.com/husarion/panther_ros/issues/300>`_ from husarion/rename_package
+* Merge branch 'ros2' into rename_package
+* Merge pull request `#299 <https://github.com/husarion/panther_ros/issues/299>`_ from husarion/ros2-diagnose-charging-current
+* use new launch
+* Fix typo in comment
+* Contributors: Dawid, Dawid Kmak, Jakub Delicat, Paweł Irzyk, pawelirh, rafal-gorecki
 
 2.0.1 (2024-05-01)
 ------------------
+* Merge pull request `#273 <https://github.com/husarion/panther_ros/issues/273>`_ from husarion/ros2-sim-battery
+* Update panther_description/urdf/gazebo.urdf.xacro
+* Fix battery discharge
 * Merge pull request `#261 <https://github.com/husarion/panther_ros/issues/261>`_ from husarion/ros2-readme
-* Pawel sugestions
 * Merge branch 'ros2-devel' into ros2-readme
 * Merge remote-tracking branch 'origin/ros2-devel' into ros2-os-diagnostics
 * Ros2 control imu hardware (`#236 <https://github.com/husarion/panther_ros/issues/236>`_)
@@ -97,38 +120,17 @@ Changelog for package husarion_ugv_controller
   ---------
   Co-authored-by: Jakub Delicat <109142865+delihus@users.noreply.github.com>
   Co-authored-by: Jakub Delicat <jakub.delicat@husarion.com>
-* Merge pull request `#257 <https://github.com/husarion/panther_ros/issues/257>`_ from husarion/ros2-headers
-  Divide Headers into std and local liblaries
-* Headers + Copyright
-* Merge pull request `#246 <https://github.com/husarion/panther_ros/issues/246>`_ from husarion/ros2-panther-manager
-  ROS 2 panther_manager
-* Add launch behavior
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-panther-manager
 * Merge pull request `#240 <https://github.com/husarion/panther_ros/issues/240>`_ from husarion/ekf_optimalization
   Ekf optimalization
 * Merge branch 'ros2-devel' into ros2-ekf-optimalization
 * Merge branch 'ros2-devel' into ros2-lights-tests
 * Merge branch 'ros2-manager-plugins' of https://github.com/husarion/panther_ros into ros2-panther-manager
-* Update panther_controller/config/WH04_controller.yaml
-* Update panther_controller/config/WH04_controller.yaml
 * Add comments
-* update covariances
-* Merge pull request `#251 <https://github.com/husarion/panther_ros/issues/251>`_ from husarion/ros2-build-depend
-  Hardware / Sim Dependencies
-* Add Readme
-* Add Readme
-* HW/SIM Dependencies
-* Changed controllers spawn timeout to 10 (`#248 <https://github.com/husarion/panther_ros/issues/248>`_)
 * Merge remote-tracking branch 'origin/ros2-devel' into ros2-manager-plugins
-* Update covariance
-* Merge pull request `#235 <https://github.com/husarion/panther_ros/issues/235>`_ from husarion/ros2-dependencies
-  Fix dependencies
-* Update panther_controller/package.xml
-  Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Fix dependency
-* Merge pull request `#227 <https://github.com/husarion/panther_ros/issues/227>`_ from husarion/ros2-add-mecanum-controller
-  Add mecanum controller
-* update
+* update  params (`#243 <https://github.com/husarion/panther_ros/issues/243>`_)
+* fix imu topic
+* fix controller topic
 * Merge remote-tracking branch 'origin/ros2-devel' into ros2-add-mecanum-controller
 * Merge pull request `#208 <https://github.com/husarion/panther_ros/issues/208>`_ from husarion/ros2-control
   Add ROS 2 control
@@ -202,13 +204,19 @@ Changelog for package husarion_ugv_controller
   * Update panther_bringup/config/ekf.yaml
   * Update panther_bringup/config/ekf.yaml
   * Format
-* update
-* update
-* update
-* clean
-* Add mecanum controller
+* Merge branch 'ros2-devel' into ros2-add-mecanum-controller
+* Gazebo - fix collisions (`#225 <https://github.com/husarion/panther_ros/issues/225>`_)
+  * Fix collisions
+  * remove parent dir
+  * Clean up suggestions
+  * Clean up suggestions
+  * Undo changes
+  * Undo commit
+* Fix collisions
 * Merge pull request `#219 <https://github.com/husarion/panther_ros/issues/219>`_ from husarion/ros2-control-pdo-commands
   ros2_control PDO commands
+* CR suggestions
+* Fix comment in the urdf
 * Merge branch 'ros2-control' into ros2-control-pdo-commands
   Conflicts:
   panther_controller/config/WH01_controller.yaml
@@ -241,18 +249,18 @@ Changelog for package husarion_ugv_controller
   panther_controller/config/WH01_controller.yaml
   panther_controller/config/WH02_controller.yaml
   panther_controller/config/WH04_controller.yaml
+* CR suggestions - add ms to timeouts
 * Manuall merge of ros2-prealpha to ros2-dev (`#218 <https://github.com/husarion/panther_ros/issues/218>`_)
   * manually merge prealpha with ros2-dev
   * typo and formatting
   * change locks and simplify code
   * add missing library
   * fix build
-* CR suggestions
-* CR suggestions - remove effort controller
-* Remove todos
-* Update controllers config
+* Update communication parameters
 * Change to 100Hz and increase allowed number of errors
+* Update documentation
 * Change frequency to 125hz
+* Add configurable driver states update frequency
 * Merge branch 'ros2-control' into ros2-control-pdo-commands
   Conflicts:
   panther_hardware_interfaces/README.md
@@ -263,20 +271,10 @@ Changelog for package husarion_ugv_controller
   panther_hardware_interfaces/src/motors_controller.cpp
   panther_hardware_interfaces/src/panther_system.cpp
   panther_hardware_interfaces/src/roboteq_driver.cpp
-* Merge branch 'ros2-devel' into ros2-control
-  Conflicts:
-  panther_bringup/launch/bringup.launch.py
-* Fix launches
-* fix controller launch
-* Add odom topic remap
-* Update todo comments
+* Update whole system to use new pdo communication and add proper timeouts
+* Move can interface name to parameter
 * Change controller frequency to 50hz
-* Fix update rates in controllers
-* Merge pull request `#212 <https://github.com/husarion/panther_ros/issues/212>`_ from husarion/ros2-imu-node
-  ROS 2 imu node
-* Update controller configs
-* add use_sim condition
-* read imu position from env
+* Fix roboteq naming
 * Precommit changes
 * Merge branch 'ros2-devel' into ros2-control
   Conflicts:
@@ -310,39 +308,48 @@ Changelog for package husarion_ugv_controller
   panther_description/urdf/panther.urdf.xacro
   panther_description/urdf/panther_macro.urdf.xacro
   panther_description/urdf/wheel.urdf.xacro
-* Add comment to controller
+* Fix urdf
 * Add pre-commit, clang-format and license to files (`#207 <https://github.com/husarion/panther_ros/issues/207>`_)
   Add pre-commit, clang-format and license to files
+* [WIP] Refactor panther system
+* Refactor can controller
+* Increase max pdo errors count
+* Increase initialization/activation attempts
+* Move timeouts and attempts to parameters
+* Merge pull request `#203 <https://github.com/husarion/panther_ros/issues/203>`_ from husarion/ros2-ign-add-gps
+  Update external_antenna.urdf.xacro
+* Update external_antenna.urdf.xacro
 * Merge pull request `#201 <https://github.com/husarion/panther_ros/issues/201>`_ from husarion/ros2-gazebo
   Ros2 gazebo
-* review fixes
-* add puslish_robot_state param in all files
+* rename ekf node
+* small fixes
 * add new launch params
 * review fixes
-* Update panther_controller/package.xml
+* Update panther_description/urdf/panther_macro.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/launch/controller.launch.py
+* Update panther_description/urdf/panther_macro.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/launch/controller.launch.py
+* Update panther_description/urdf/components/external_antenna.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/launch/controller.launch.py
+* Update panther_description/urdf/body.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/config/WH04_controller.yaml
+* Update panther_description/package.xml
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/config/WH02_controller.yaml
+* Update panther_description/urdf/panther_macro.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/config/WH02_controller.yaml
+* Update panther_description/urdf/panther_macro.urdf.xacro
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/config/WH02_controller.yaml
+* Update panther_description/CMakeLists.txt
   Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* Update panther_controller/config/WH02_controller.yaml
-  Co-authored-by: Dawid Kmak <73443304+KmakD@users.noreply.github.com>
-* fix controller and ekf covariance
-* fix deps
+* fix ekf
+* add mesh path parsing
 * grammar fixes
 * add battery plugin
 * add wheel params in launches
 * add imu filter and ekf
 * initial sim configuration draft
+* Read single sdo value every read cycle
+* Add reading other roboteq driver feedback
+* Remove torque control code
 * Add ros2 control
-* Contributors: Dawid, Dawid Kmak, Jakub Delicat, Krzysztof Wojciechowski, Maciej Stępień, Paweł Irzyk, Paweł Kowalski, rafal-gorecki
+* Contributors: Dawid, Dawid Kmak, Jakub Delicat, Krzysztof Wojciechowski, Maciej Stępień, Paweł Kowalski, rafal-gorecki

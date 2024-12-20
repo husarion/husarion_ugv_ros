@@ -1,5 +1,5 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package panther_utils
+Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 2.1.2 (2024-12-02)

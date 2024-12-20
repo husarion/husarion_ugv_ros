@@ -106,7 +106,6 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "add_wheel_joints": "False",
             "namespace": namespace,
             "robot_model": robot_model,
         }.items(),

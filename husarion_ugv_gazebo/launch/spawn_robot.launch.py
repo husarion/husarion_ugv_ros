@@ -88,7 +88,6 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "add_wheel_joints": LaunchConfiguration("add_wheel_joints", default="True"),
             "namespace": namespace,
             "robot_model": robot_model,
             "use_sim": "True",

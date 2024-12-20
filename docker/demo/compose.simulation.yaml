@@ -3,7 +3,7 @@ x-common-config: &common-config
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-    - ROBOT_MODEL=${ROBOT_MODEL:-panther}
+    - ROBOT_MODEL=${ROBOT_MODEL_NAME:-panther}
     - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 

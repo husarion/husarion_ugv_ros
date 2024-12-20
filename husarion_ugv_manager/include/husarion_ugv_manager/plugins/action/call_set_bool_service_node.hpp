@@ -36,7 +36,8 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return providedBasicPorts({BT::InputPort<bool>("data", "true / false value")});
+    return providedBasicPorts(
+      {BT::InputPort<bool>("data", "Boolean value to send with the service request.")});
   }
 
   virtual bool setRequest(typename Request::SharedPtr & request) override;

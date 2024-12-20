@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS__ROS_UTILS_HPP_
-#define HUSARION_UGV_UTILS__ROS_UTILS_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_ROS_UTILS_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_ROS_UTILS_HPP_
 
 #include <chrono>
 
-#include "std_msgs/msg/header.hpp"
+#include <std_msgs/msg/header.hpp>
 
 namespace husarion_ugv_utils::ros
 {
@@ -90,6 +90,16 @@ std_msgs::msg::Header MergeHeaders(
   return merged_header;
 }
 
+/**
+ * @brief Adds a namespace to a frame ID.
+ *
+ * This function adds a namespace to a frame ID. The namespace is added as a prefix to the frame ID.
+ *
+ * @param frame_id The frame ID to which the namespace should be added.
+ * @param node_namespace The namespace to be added to the frame ID.
+ *
+ * @return The frame ID with the namespace added as a prefix.
+ */
 std::string AddNamespaceToFrameID(const std::string & frame_id, const std::string & node_namespace)
 {
   std::string tf_prefix = node_namespace;
@@ -107,4 +117,4 @@ std::string AddNamespaceToFrameID(const std::string & frame_id, const std::strin
 
 }  // namespace husarion_ugv_utils::ros
 
-#endif  // HUSARION_UGV_UTILS__ROS_UTILS_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_ROS_UTILS_HPP_

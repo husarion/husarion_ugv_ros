@@ -7,7 +7,7 @@ x-common-config: &common-config
 
 services:
   husarion_ugv_ros:
-    image: husarion/panther:humble-ros2-devel
+    image: husarion/panther:humble-2.1.2-20241125
     container_name: husarion_ugv_ros
     <<: *common-config
     devices:
@@ -34,7 +34,8 @@ services:
         soft: 102400
         hard: 102400
     command: >
-      ros2 launch husarion_ugv_bringup bringup.launch.py common_dir_path:=/config
+      ros2 launch husarion_ugv_bringup bringup.launch.py
+        common_dir_path:=/config
 
   gamepad_controller:
     image: husarion/joy2twist:humble-1.0.0-20241003-stable
@@ -48,4 +49,5 @@ services:
       - 'c 13:0 rmw' # gamepad
     stop_signal: SIGINT
     command: >
-      ros2 launch joy2twist gamepad_controller.launch.py joy2twist_params_file:=/joy2twist.yaml
+      ros2 launch joy2twist gamepad_controller.launch.py
+        joy2twist_params_file:=/joy2twist.yaml

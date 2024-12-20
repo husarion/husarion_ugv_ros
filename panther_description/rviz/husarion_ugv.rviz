@@ -73,7 +73,7 @@ Visualization Manager:
             Inertia: false
             Mass: false
           Name: RobotModel
-          TF Prefix: <robot_namespace>
+          TF Prefix: <namespace>
           Update Interval: 0
           Value: true
           Visual Enabled: true
@@ -135,7 +135,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: <robot_namespace>/odom
+    Fixed Frame: <namespace>/odom
     Frame Rate: 30
   Name: root
   Tools:

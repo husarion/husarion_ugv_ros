@@ -1,19 +1,36 @@
 ---
-name: Build/Publish ROS Docker Image
+name: Build Docker
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      panther_codebase_version:
-        description: Version of the panther_ros to be used in the docker image (branch/tag/commit).
-        required: true
-        type: string
-        default: ros2-devel
       build_type:
         description: Is it a "development" or a "stable" release?
         required: true
+        type: string
         default: development
+      target_distro:
+        description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
+          humble)
+        type: string
+        default: humble
+      target_release:
+        description: In case of "stable" release specify the version of the existing docker image (eg.
+          1.0.12)
+        type: string
+        default: 0.0.0
+      target_date:
+        description: In case of "stable" release specify the date of the existing docker image in format
+          YYYYMMDD (eg. 20220124)
+        type: string
+        default: '20131206'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: Is it a "development" or a "stable" release?
+        required: true
         type: choice
+        default: development
         options:
           - development
           - stable
@@ -32,12 +49,6 @@ on:
           YYYYMMDD (eg. 20220124)
         type: string
         default: '20131206'
-      feature_branch_tag_suffix:
-        description: In case of "development" release from a feature branch specify the custom tag suffix
-          for the docker image
-        type: string
-        default: ''
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -45,17 +56,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - dockerfile: Dockerfile.hardware
+          - dockerfile: ./docker/Dockerfile.hardware
             platforms: linux/arm64
             ros_distro: humble
-          - dockerfile: Dockerfile.simulation
+          - dockerfile: ./docker/Dockerfile.simulation
             repo_name: panther-gazebo
             platforms: linux/amd64
             ros_distro: humble
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build Docker Image
         uses: husarion-ci/ros-docker-img-action@v0.8
@@ -65,7 +76,6 @@ jobs:
           main_branch_name: ros2
           dockerfile: ${{ matrix.dockerfile }}
           repo_name: ${{ matrix.repo_name }}
-          branch_name: ${{ inputs.panther_codebase_version }}
           build_type: ${{ inputs.build_type }}
           ros_distro: ${{ matrix.ros_distro }}
           platforms: ${{ matrix.platforms }}
@@ -73,5 +83,3 @@ jobs:
           target_distro: ${{ inputs.target_distro }}
           target_release: ${{ inputs.target_release }}
           target_date: ${{ inputs.target_date }}
-          # variables important only for development release
-          feature_branch_tag_suffix: ${{ inputs.feature_branch_tag_suffix }}

@@ -1,4 +1,4 @@
-# panther-docker
+# Docker
 
 Docker images dedicated to Husarion Panther ROS system and simulation.
 
@@ -26,8 +26,7 @@ ssh husarion@10.15.20.2
 Depending on your needs, you can run Docker to quickly launch the physical robot or run a simulation. To do this, clone this repository to your robot or computer.
 
 ```bash
-git clone -b ros2 https://github.com/husarion/panther-docker.git
-cd panther-docker/demo
+cd docker/demo
 ```
 
 ### 🤖 Robot
@@ -44,7 +43,7 @@ cd panther-docker/demo
 2. Activate Panther
 
    ```bash
-   docker compose -f compose.minimal-setup.yaml up
+   docker compose -f compose.hardware.yaml up
    ```
 
 3. Launch Visualization on PC

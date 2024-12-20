@@ -58,7 +58,7 @@ def generate_launch_description():
 
     rviz_config = ReplaceString(
         source_file=rviz_config,
-        replacements={"<robot_namespace>/": ns_ext, "<robot_namespace>": namespace},
+        replacements={"<namespace>/": ns_ext, "<namespace>": namespace},
     )
 
     rviz_node = Node(

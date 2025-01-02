@@ -1,0 +1,29 @@
+x-common-config:
+  &common-config
+  network_mode: host
+  ipc: host
+  environment:
+    - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp # Default FastDDS do not work
+    - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
+    - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+
+x-cpu-config:
+  &cpu-config
+  env_file: .env.cpu
+
+x-gpu-config:
+  &gpu-config
+  runtime: nvidia
+  env_file: .env.gpu
+
+services:
+  rviz:
+    image: husarion/panther:humble-2.1.2-20241125
+    container_name: rviz
+    <<:
+      - *common-config
+      - *cpu-config
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    command: >
+      ros2 launch husarion_ugv_description rviz.launch.py

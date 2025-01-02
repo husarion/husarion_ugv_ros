@@ -44,6 +44,12 @@ lights_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
+  bt_server_port:
+    type: int
+    default_value: 5555
+    description: Port number for the BehaviorTree server.
+    validation: { gt<>: 0 }
+
   plugin_libs:
     type: string_array
     default_value: []

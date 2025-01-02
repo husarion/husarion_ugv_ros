@@ -12,6 +12,12 @@ safety_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
+  bt_server_port:
+    type: int
+    default_value: 6666
+    description: Port number for the BehaviorTree server.
+    validation: { gt<>: 0 }
+
   cpu:
     temp:
       fan_off:

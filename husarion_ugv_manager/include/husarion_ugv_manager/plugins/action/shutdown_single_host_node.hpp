@@ -38,14 +38,17 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::string>("ip", "ip of the host to shutdown"),
-      BT::InputPort<std::string>("username", "user to log into while executing shutdown command"),
-      BT::InputPort<unsigned>("port", "SSH communication port"),
-      BT::InputPort<std::string>("command", "command to execute on shutdown"),
-      BT::InputPort<float>("timeout", "time in seconds to wait for host to shutdown"),
+      BT::InputPort<std::string>("ip", "IP address of the host to shut down."),
+      BT::InputPort<std::string>(
+        "username", "Username to use for logging in and executing the shutdown command."),
+      BT::InputPort<unsigned>("port", "SSH port used for communication (default is usually 22)."),
+      BT::InputPort<std::string>("command", "A command to execute on the remote host."),
+      BT::InputPort<float>(
+        "timeout", "Maximum time (in seconds) to wait for the host to shut down."),
       BT::InputPort<bool>(
-        "ping_for_success", "ping host until it is not available or timeout is reached"),
-    };
+        "ping_for_success",
+        "Whether to continuously ping the host until it becomes unreachable or the timeout is "
+        "reached.")};
   }
 
 private:

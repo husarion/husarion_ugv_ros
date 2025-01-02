@@ -14,7 +14,7 @@ Package containing nodes monitoring and publishing the Built-in Computer status 
 
 ### system_monitor_node
 
-Publishes the built-in computer system status, monitoring parameters as such as CPU usage, RAM usage, disk usage, and CPU temperature.
+Publishes the built-in computer system status, monitoring parameters such as CPU usage, RAM usage, disk usage, and CPU temperature.
 
 #### Publishes
 

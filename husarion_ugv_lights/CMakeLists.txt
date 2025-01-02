@@ -45,7 +45,7 @@ ament_target_dependencies(
   std_srvs)
 
 generate_parameter_library(lights_driver_parameters
-                           config/lights_driver_parameters.yaml)
+                           src/lights_driver_parameters.yaml)
 target_link_libraries(lights_driver_node_component lights_driver_parameters)
 
 add_library(
@@ -63,7 +63,7 @@ ament_target_dependencies(
   sensor_msgs)
 
 generate_parameter_library(lights_controller_parameters
-                           config/lights_controller_parameters.yaml)
+                           src/lights_controller_parameters.yaml)
 target_link_libraries(lights_controller_node_component yaml-cpp
                       lights_controller_parameters)
 

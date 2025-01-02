@@ -31,12 +31,12 @@ add_executable(
   src/battery_publisher/single_battery_publisher.cpp)
 ament_target_dependencies(battery_driver_node ${PACKAGE_DEPENDENCIES})
 
-generate_parameter_library(battery_parameters config/battery_parameters.yaml)
+generate_parameter_library(battery_parameters src/battery_parameters.yaml)
 target_link_libraries(battery_driver_node battery_parameters)
 
 install(TARGETS battery_driver_node DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

@@ -60,7 +60,7 @@ void LEDStrip::PreUpdate(const gz::sim::UpdateInfo & info, gz::sim::EntityCompon
     VisualizeLights(ecm, image);
 
     auto light_pose = ecm.Component<gz::sim::components::Pose>(light_entity_)->Data();
-    // VisualizeMarkers(image, light_pose);
+    VisualizeMarkers(image, light_pose);
 
     last_update_time_ = current_time;
   }

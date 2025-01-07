@@ -42,10 +42,10 @@ Visualization Manager:
           Offset:
             X: 0
             Y: 0
-            Z: 0
+            Z: -0.18
           Plane: XY
           Plane Cell Count: 10
-          Reference Frame: <namespace>/base_footprint
+          Reference Frame: <Fixed Frame>
           Value: true
       Enabled: true
       Name: Map

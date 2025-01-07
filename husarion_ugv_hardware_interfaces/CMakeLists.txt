@@ -42,7 +42,7 @@ endforeach()
 include_directories(include)
 
 generate_parameter_library(phidgets_spatial_parameters
-                           config/phidgets_spatial_parameters.yaml)
+                           src/phidgets_spatial_parameters.yaml)
 
 set(ENV{PKG_CONFIG_PATH}
     "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")

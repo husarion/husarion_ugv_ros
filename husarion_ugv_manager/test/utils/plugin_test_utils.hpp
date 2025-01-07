@@ -26,6 +26,7 @@
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #include "std_srvs/srv/set_bool.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -106,10 +107,30 @@ public:
       void(const typename ServiceT::Request::SharedPtr, typename ServiceT::Response::SharedPtr)>
       service_callback)
   {
-    service_server_node_ = std::make_shared<rclcpp::Node>("test_node_for_" + service_name);
-    service = service_server_node_->create_service<ServiceT>(service_name, service_callback);
+    server_node_ = std::make_shared<rclcpp::Node>("test_node_for_" + service_name);
+    service_server_ = server_node_->create_service<ServiceT>(service_name, service_callback);
     executor_ = std::make_unique<rclcpp::executors::SingleThreadedExecutor>();
-    executor_->add_node(service_server_node_);
+    executor_->add_node(server_node_);
+    executor_thread_ = std::make_unique<std::thread>([this]() { executor_->spin(); });
+  }
+
+  template <typename ActionT>
+  void CreateAction(
+    const std::string & action_name,
+    std::function<rclcpp_action::GoalResponse(
+      const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const typename ActionT::Goal> goal)>
+      handle_goal,
+    std::function<rclcpp_action::CancelResponse(
+      const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle)>
+      handle_cancel,
+    std::function<void(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle)>
+      handle_accepted)
+  {
+    server_node_ = std::make_shared<rclcpp::Node>("test_node_for_" + action_name);
+    action_server_ = rclcpp_action::create_server<ActionT>(
+      server_node_, action_name, handle_goal, handle_cancel, handle_accepted);
+    executor_ = std::make_unique<rclcpp::executors::SingleThreadedExecutor>();
+    executor_->add_node(server_node_);
     executor_thread_ = std::make_unique<std::thread>([this]() { executor_->spin(); });
   }
 
@@ -133,10 +154,11 @@ protected:
   BT::BehaviorTreeFactory factory_;
   BT::Tree tree_;
 
-  rclcpp::Node::SharedPtr service_server_node_;
+  rclcpp::Node::SharedPtr server_node_;
   rclcpp::executors::SingleThreadedExecutor::UniquePtr executor_;
 
-  rclcpp::ServiceBase::SharedPtr service;
+  rclcpp::ServiceBase::SharedPtr service_server_;
+  rclcpp_action::ServerBase::SharedPtr action_server_;
   std::unique_ptr<std::thread> executor_thread_;
 
   inline void SpinExecutor() { executor_->spin(); }

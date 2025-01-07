@@ -44,7 +44,7 @@ Plugin based on `ign_system` is responsible for handling sensor interfaces (only
 
 #### Parameters
 
-Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../panther_description/urdf/panther_macro.urdf.xacro)).
+Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../husarion_ugv_description/urdf/panther_macro.urdf.xacro)).
 
 - `e_stop_initial_state` [*bool*, default: **true**]: Initial state of E-stop.
 
@@ -65,7 +65,7 @@ Required parameters are defined when including the interface in the URDF (you ca
 
 #### Parameters
 
-The following parameters are required when including this interface in the URDF (you can refer to the [gazebo.urdf.xacro](../panther_description/urdf/gazebo.urdf.xacro) file for details).
+The following parameters are required when including this interface in the URDF (you can refer to the [gazebo.urdf.xacro](../husarion_ugv_description/urdf/panther/common/gazebo.urdf.xacro) file for details).
 
 - `light_name` [*string*, default: **""**]: The name of the light entity. The visualization will be attached to this entity.
 - `topic` [*string*, default: **""**]: The name of the topic from which the Image message is received.

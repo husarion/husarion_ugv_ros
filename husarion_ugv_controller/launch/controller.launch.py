@@ -53,17 +53,16 @@ def generate_launch_description():
     )
 
     robot_model = LaunchConfiguration("robot_model")
-    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
-    robot_description_common_dir = PythonExpression(
+    description_pkg = FindPackageShare("husarion_ugv_description")
+    description_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
-            "/",
-            robot_description_pkg,
+            "/husarion_ugv_description",
             "' if '",
             common_dir_path,
             "' else '",
-            FindPackageShare(robot_description_pkg),
+            description_pkg,
             "'",
         ]
     )
@@ -88,9 +87,7 @@ def generate_launch_description():
     components_config_path = LaunchConfiguration("components_config_path")
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
-        default_value=PathJoinSubstitution(
-            [robot_description_common_dir, "config", "components.yaml"]
-        ),
+        default_value=PathJoinSubstitution([description_common_dir, "config", "components.yaml"]),
         description=(
             "Additional components configuration file. Components described in this file "
             "are dynamically included in robot's URDF."
@@ -147,15 +144,11 @@ def generate_launch_description():
     declare_wheel_config_path_arg = DeclareLaunchArgument(
         "wheel_config_path",
         default_value=PathJoinSubstitution(
-            [
-                FindPackageShare(robot_description_pkg),
-                "config",
-                PythonExpression(["'", wheel_type, ".yaml'"]),
-            ]
+            [description_pkg, "config", PythonExpression(["'", wheel_type, ".yaml'"])]
         ),
         description=(
             "Path to wheel configuration file. By default, it is located in "
-            "'panther_description/config/{wheel_type}.yaml'. You can also specify the path "
+            "'husarion_ugv_description/config/{wheel_type}.yaml'. You can also specify the path "
             "to your custom wheel configuration file here. "
         ),
     )
@@ -173,24 +166,18 @@ def generate_launch_description():
     )
 
     # Get URDF via xacro
-    robot_description_file = PythonExpression(["'", robot_model, ".urdf.xacro'"])
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
     imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
     imu_pos_z = os.environ.get("ROBOT_IMU_LOCALIZATION_Z", "0.083")
     imu_rot_r = os.environ.get("ROBOT_IMU_ORIENTATION_R", "3.14")
     imu_rot_p = os.environ.get("ROBOT_IMU_ORIENTATION_P", "-1.57")
     imu_rot_y = os.environ.get("ROBOT_IMU_ORIENTATION_Y", "0.0")
+    urdf_file = PythonExpression(["'", robot_model, ".urdf.xacro'"])
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
-            PathJoinSubstitution(
-                [
-                    FindPackageShare(robot_description_pkg),
-                    "urdf",
-                    robot_description_file,
-                ]
-            ),
+            PathJoinSubstitution([description_pkg, "urdf", urdf_file]),
             " use_sim:=",
             use_sim,
             " wheel_config_file:=",

@@ -14,7 +14,7 @@ Package containing nodes monitoring and publishing the Built-in Computer status 
 
 ### system_monitor_node
 
-Publishes the built-in computer system status , monitoring parameters as such as CPU usage, RAM usage, disk usage, and  CPU temperature.
+Publishes the built-in computer system status, monitoring parameters such as CPU usage, RAM usage, disk usage, and CPU temperature.
 
 #### Publishes
 
@@ -25,6 +25,6 @@ Publishes the built-in computer system status , monitoring parameters as such as
 
 - `cpu_usage_warn_threshold` [*float*, default: **95.0**]: Threshold for CPU usage warning in percentage.
 - `cpu_temperature_warn_threshold` [*float*, default: **80.0**]: Threshold for CPU temperature warning in degrees Celsius.
-- `ram_usage_warn_threshold` [*float*, default: **95.0**]: Threshold for memory usage warning in percentage.
-- `disk_usage_warn_threshold` [*float*, default: **95.0**]: Threshold for disk usage warning in percentage.
+- `ram_usage_warn_threshold` [*float*, default: **90.0**]: Threshold for memory usage warning in percentage.
+- `disk_usage_warn_threshold` [*float*, default: **90.0**]: Threshold for disk usage warning in percentage.
 - `publish_frequency` [*double*, default: **5.0**]: System status publishing frequency [Hz].

@@ -539,7 +539,6 @@ void UGVSystem::MotorsPowerEnable(const bool enable)
     }
 
     e_stop_->TriggerEStop();
-    gpio_controller_->MotorPowerEnable(enable);
 
     roboteq_error_filter_->SetClearErrorsFlag();
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);

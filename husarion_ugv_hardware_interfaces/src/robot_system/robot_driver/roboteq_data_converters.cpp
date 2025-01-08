@@ -269,6 +269,10 @@ std::string DriverData::GetFlagErrorLog() const
     error_log += "Channel 2 Motor Runtime Flags: " + channel_2_runtime_error_.GetErrorLog() + "\n";
   }
 
+  if (!error_log.empty() && error_log.back() == '\n') {
+    error_log.pop_back();
+  }
+
   return error_log;
 }
 

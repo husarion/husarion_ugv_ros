@@ -16,9 +16,9 @@
 
 #include <memory>
 
-#include <ignition/gui/Application.hh>
-#include <ignition/gui/MainWindow.hh>
-#include <ignition/plugin/Register.hh>
+#include <gz/gui/Application.hh>
+#include <gz/gui/MainWindow.hh>
+#include <gz/plugin/Register.hh>
 #include <rclcpp/rclcpp.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
@@ -26,7 +26,7 @@
 namespace husarion_ugv_gazebo
 {
 
-EStop::EStop() : ignition::gui::Plugin() { rclcpp::init(0, nullptr); }
+EStop::EStop() : gz::gui::Plugin() { rclcpp::init(0, nullptr); }
 
 EStop::~EStop() { rclcpp::shutdown(); }
 
@@ -92,4 +92,4 @@ void EStop::SetNamespace(const QString & ns)
 
 }  // namespace husarion_ugv_gazebo
 
-IGNITION_ADD_PLUGIN(husarion_ugv_gazebo::EStop, ignition::gui::Plugin)
+GZ_ADD_PLUGIN(husarion_ugv_gazebo::EStop, gz::gui::Plugin)

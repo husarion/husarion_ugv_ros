@@ -17,8 +17,8 @@
 
 #include <string>
 
-#include <ignition/gui/qt.h>
-#include <ignition/gui/Plugin.hh>
+#include <gz/gui/qt.h>
+#include <gz/gui/Plugin.hh>
 #include <rclcpp/rclcpp.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
@@ -26,7 +26,7 @@
 namespace husarion_ugv_gazebo
 {
 
-class EStop : public ignition::gui::Plugin
+class EStop : public gz::gui::Plugin
 {
   Q_OBJECT
 

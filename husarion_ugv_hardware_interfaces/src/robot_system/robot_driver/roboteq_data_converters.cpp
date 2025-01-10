@@ -251,10 +251,29 @@ const RuntimeError & DriverData::GetRuntimeError(const std::uint8_t channel) con
 
 std::string DriverData::GetFlagErrorLog() const
 {
-  return "Fault flags: " + fault_flags_.GetErrorLog() +
-         "Script flags: " + script_flags_.GetErrorLog() +
-         "Channel 1 motor runtime flags: " + channel_1_runtime_error_.GetErrorLog() +
-         "Channel 2 motor runtime flags: " + channel_2_runtime_error_.GetErrorLog();
+  std::string error_log;
+
+  if (!fault_flags_.GetErrorLog().empty()) {
+    error_log += "Fault Flags: " + fault_flags_.GetErrorLog() + "\n";
+  }
+
+  if (!script_flags_.GetErrorLog().empty()) {
+    error_log += "Script Flags: " + script_flags_.GetErrorLog() + "\n";
+  }
+
+  if (!channel_1_runtime_error_.GetErrorLog().empty()) {
+    error_log += "Channel 1 Motor Runtime Flags: " + channel_1_runtime_error_.GetErrorLog() + "\n";
+  }
+
+  if (!channel_2_runtime_error_.GetErrorLog().empty()) {
+    error_log += "Channel 2 Motor Runtime Flags: " + channel_2_runtime_error_.GetErrorLog() + "\n";
+  }
+
+  if (!error_log.empty() && error_log.back() == '\n') {
+    error_log.pop_back();
+  }
+
+  return error_log;
 }
 
 std::map<std::string, bool> DriverData::GetFlagErrorMap() const

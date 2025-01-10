@@ -104,7 +104,8 @@ void LynxSystem::UpdateFlagErrors()
   if (driver_data.IsFlagError()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
-      "Error state on the default driver: " << driver_data.GetFlagErrorLog());
+      "Driver in error state:\n"
+        << driver_data.GetFlagErrorLog());
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true);
 
     HandleRobotDriverWriteOperation([this] { robot_driver_->AttemptErrorFlagReset(); });

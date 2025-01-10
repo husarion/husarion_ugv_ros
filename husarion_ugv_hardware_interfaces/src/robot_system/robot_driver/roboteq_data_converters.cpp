@@ -102,7 +102,7 @@ FaultFlag::FaultFlag()
     "overvoltage",
     "undervoltage",
     "short_circuit",
-    "emergency_stop",
+    "emergency_stop (torque disabled)",  // Roboteq E-stop differs from ROS E-stop
     "motor_or_sensor_setup_fault",
     "mosfet_failure",
     "default_config_loaded_at_startup",

@@ -129,7 +129,8 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
     "~/led_control_enable",
     std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/motor_power_enable", std::bind(&UGVSystem::MotorsPowerEnable, this, std::placeholders::_1));
+    "~/e_stop_torque_enable",
+    std::bind(&UGVSystem::EStopTorqueEnable, this, std::placeholders::_1));
 
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
     "~/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,
@@ -525,8 +526,14 @@ bool UGVSystem::AreVelocityCommandsNearZero()
   return true;
 }
 
-void UGVSystem::MotorsPowerEnable(const bool enable)
+void UGVSystem::EStopTorqueEnable(const bool enable)
 {
+  const bool e_stop = e_stop_->ReadEStopState();
+  if (!e_stop) {
+    RCLCPP_WARN_STREAM(logger_, "Can't enable/disable torque when E-Stop is not triggered.");
+    return;
+  }
+
   try {
     {
       std::lock_guard<std::mutex> lck_g(*robot_driver_write_mtx_);
@@ -537,8 +544,6 @@ void UGVSystem::MotorsPowerEnable(const bool enable)
         robot_driver_->TurnOffEStop();
       }
     }
-
-    e_stop_->TriggerEStop();
 
     roboteq_error_filter_->SetClearErrorsFlag();
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);

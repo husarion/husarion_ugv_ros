@@ -530,8 +530,7 @@ void UGVSystem::EStopTorqueEnable(const bool enable)
 {
   const bool e_stop = e_stop_->ReadEStopState();
   if (!e_stop) {
-    RCLCPP_WARN_STREAM(logger_, "Can't enable/disable torque when E-Stop is not triggered.");
-    return;
+    throw std::runtime_error("Can't enable/disable torque when E-Stop is not triggered.");
   }
 
   try {
@@ -548,7 +547,8 @@ void UGVSystem::EStopTorqueEnable(const bool enable)
     roboteq_error_filter_->SetClearErrorsFlag();
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
   } catch (const std::runtime_error & e) {
-    RCLCPP_WARN_STREAM(logger_, "An exception occurred while enabling motors power: " << e.what());
+    RCLCPP_WARN_STREAM(
+      logger_, "An exception occurred while changing the torque state of the motors: " << e.what());
   }
 }
 

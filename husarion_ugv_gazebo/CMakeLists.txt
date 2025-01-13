@@ -56,8 +56,7 @@ target_link_libraries(
 
 add_library(LEDStrip SHARED src/led_strip.cpp)
 ament_target_dependencies(LEDStrip realtime_tools)
-target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2
-                      gz-transport13)
+target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2 gz-transport13)
 
 install(
   TARGETS estop_system

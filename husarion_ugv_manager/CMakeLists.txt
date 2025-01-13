@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(husarion_ugv_manager)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -116,7 +116,8 @@ install(TARGETS safety_manager_node lights_manager_node
 install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})
 
-install(DIRECTORY include/ DESTINATION include/)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+
 install(DIRECTORY test/ DESTINATION include/${PROJECT_NAME}/test/)
 
 if(BUILD_TESTING)
@@ -304,5 +305,7 @@ if(BUILD_TESTING)
                         safety_manager_parameters)
 endif()
 
-ament_export_include_directories(include)
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+
 ament_package()

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 project(husarion_ugv_lights)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -24,8 +24,6 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
 endforeach()
 
 include_directories(include)
-
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 add_library(animation_plugins SHARED src/animation/image_animation.cpp
                                      src/animation/charging_animation.cpp)
@@ -75,26 +73,19 @@ rclcpp_components_register_node(
   lights_controller_node_component PLUGIN
   "husarion_ugv_lights::LightsControllerNode" EXECUTABLE lights_controller_node)
 
-ament_export_targets(export_lights_driver_node_component)
 install(
-  TARGETS lights_driver_node_component lights_driver_parameters
-  EXPORT export_lights_driver_node_component
+  TARGETS animation_plugins lights_driver_node_component
+          lights_driver_parameters lights_controller_node_component
+          lights_controller_parameters
+  EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
-
-ament_export_targets(export_lights_controller_node_component)
-install(
-  TARGETS lights_controller_node_component lights_controller_parameters
-  EXPORT export_lights_controller_node_component
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin)
-
-install(TARGETS animation_plugins LIBRARY DESTINATION lib)
 
 install(DIRECTORY animations config launch test
         DESTINATION share/${PROJECT_NAME})
+
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -242,7 +233,10 @@ if(BUILD_TESTING)
 
 endif()
 
-ament_export_include_directories(include)
-ament_export_libraries(animation_plugins)
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 ament_package()

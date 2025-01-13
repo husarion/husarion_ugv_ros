@@ -17,6 +17,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>ament_index_cpp</depend>
   <depend>behaviortree_cpp</depend>
   <depend>behaviortree_ros2</depend>
   <depend>generate_parameter_library</depend>

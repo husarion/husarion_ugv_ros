@@ -223,7 +223,8 @@ TestPhidgetImuSensor::~TestPhidgetImuSensor() { rclcpp::shutdown(); }
 
 void TestPhidgetImuSensor::CreateResourceManagerFromUrdf(const std::string & urdf)
 {
-  rm_ = std::make_unique<hardware_interface::ResourceManager>(urdf, node_->get_node_clock_interface(), node_->get_node_logging_interface());
+  rm_ = std::make_unique<hardware_interface::ResourceManager>(
+    urdf, node_->get_node_clock_interface(), node_->get_node_logging_interface());
 }
 
 hardware_interface::return_type TestPhidgetImuSensor::ConfigurePhidgetImu()

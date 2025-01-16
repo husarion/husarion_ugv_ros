@@ -51,10 +51,14 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       HUSARION_ROS_BUILD_TYPE: hardware
+      TMPDIR: /tmp
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set temporary directory
+        run: mkdir -p /tmp/gtest_temp
 
       - uses: ros-tooling/setup-ros@v0.7
         with:

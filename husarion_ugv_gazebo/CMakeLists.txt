@@ -44,7 +44,7 @@ qt5_add_resources(resources_rcc src/gui/EStop.qrc)
 
 add_library(EStop SHARED include/husarion_ugv_gazebo/gui/e_stop.hpp
                          src/gui/e_stop.cpp ${resources_rcc})
-ament_target_dependencies(EStop rclcpp std_srvs)
+ament_target_dependencies(EStop rclcpp std_msgs std_srvs)
 target_link_libraries(
   EStop
   ignition-gazebo6

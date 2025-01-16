@@ -14,28 +14,30 @@
 
 #include "husarion_ugv_gazebo/gui/e_stop.hpp"
 
-#include <memory>
-
+#include <ignition/common/Console.hh>
 #include <ignition/gui/Application.hh>
-#include <ignition/gui/MainWindow.hh>
 #include <ignition/plugin/Register.hh>
-#include <rclcpp/rclcpp.hpp>
-
-#include <std_srvs/srv/trigger.hpp>
 
 namespace husarion_ugv_gazebo
 {
 
-EStop::EStop() : ignition::gui::Plugin() { rclcpp::init(0, nullptr); }
+EStop::EStop() : ignition::gui::Plugin()
+{
+  rclcpp::init(0, nullptr);
+  node_ = std::make_shared<rclcpp::Node>("gz_estop_gui");
+
+  e_stop_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+    topic_name_, e_stop_qos_, std::bind(&EStop::OnEStopStatus, this, std::placeholders::_1));
+  e_stop_reset_client_ = node_->create_client<std_srvs::srv::Trigger>(reset_srv_name_);
+  e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(trigger_srv_name_);
+
+  std::thread([this]() { rclcpp::spin(node_); }).detach();
+}
 
 EStop::~EStop() { rclcpp::shutdown(); }
 
 void EStop::LoadConfig(const tinyxml2::XMLElement * plugin_elem)
 {
-  node_ = rclcpp::Node::make_shared("gz_estop_gui");
-  e_stop_reset_client_ = node_->create_client<std_srvs::srv::Trigger>(e_stop_reset_service_);
-  e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(e_stop_trigger_service_);
-
   if (title.empty()) {
     title = "E-stop";
   }
@@ -48,47 +50,52 @@ void EStop::LoadConfig(const tinyxml2::XMLElement * plugin_elem)
   }
 }
 
-void EStop::ButtonPressed(bool pressed)
+void EStop::ButtonPressed(bool e_stop)
 {
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-
-  auto client = pressed ? e_stop_trigger_client_ : e_stop_reset_client_;
+  auto client = e_stop ? e_stop_reset_client_ : e_stop_trigger_client_;
 
   if (!client->service_is_ready()) {
-    ignwarn << "Unavailable service: "
-            << (pressed ? e_stop_reset_service_ : e_stop_trigger_service_) << std::endl;
+    ignwarn << "Unavailable service: " << (e_stop ? reset_srv_name_ : trigger_srv_name_)
+            << std::endl;
     return;
   }
-
   auto result_future = client->async_send_request(request);
-  if (
-    rclcpp::spin_until_future_complete(node_, result_future, std::chrono::seconds(1)) !=
-    rclcpp::FutureReturnCode::SUCCESS) {
-    ignwarn << "Failed to call service '" << client->get_service_name() << "'!" << std::endl;
-    return;
-  }
 
-  const auto result = result_future.get();
-  if (!result->success) {
-    ignwarn << "Service call did not succeed: " << result->message << std::endl;
+  try {
+    const auto result = result_future.get();
+    if (!result->success) {
+      ignwarn << "Service call did not succeed: " << result->message << std::endl;
+    }
+  } catch (const std::exception & e) {
+    ignerr << "Exception while waiting for service response: " << e.what() << std::endl;
   }
-  ignmsg << "EStop: " << result->message << std::endl;
 }
-
-QString EStop::GetNamespace() const { return QString::fromStdString(namespace_); }
 
 void EStop::SetNamespace(const QString & ns)
 {
   namespace_ = ns.toStdString();
-  e_stop_reset_service_ = namespace_ + kDefaultEStopResetService;
-  e_stop_trigger_service_ = namespace_ + kDefaultEStopTriggerService;
 
-  e_stop_reset_client_ = node_->create_client<std_srvs::srv::Trigger>(e_stop_reset_service_);
-  e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(e_stop_trigger_service_);
+  topic_name_ = namespace_ + kDefaultTopicName;
+  reset_srv_name_ = namespace_ + kDefaultResetSrvName;
+  trigger_srv_name_ = namespace_ + kDefaultTriggerSrvName;
 
-  ChangedNamespace();
-  ignmsg << "Changed namespace to: " << namespace_ << std::endl;
+  e_stop_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
+    topic_name_, e_stop_qos_, std::bind(&EStop::OnEStopStatus, this, std::placeholders::_1));
+  e_stop_reset_client_ = node_->create_client<std_srvs::srv::Trigger>(reset_srv_name_);
+  e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(trigger_srv_name_);
+
+  emit OnNamespaceChange();
+  ignmsg << "Namespace changed to: " << namespace_ << std::endl;
 }
+
+void EStop::SetEStop(bool value)
+{
+  e_stop_ = value;
+  emit OnEStopChange();
+}
+
+void EStop::OnEStopStatus(const std_msgs::msg::Bool::SharedPtr msg) { SetEStop(msg->data); }
 
 }  // namespace husarion_ugv_gazebo
 

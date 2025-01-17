@@ -129,8 +129,7 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
     "~/led_control_enable",
     std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/e_stop_torque_enable",
-    std::bind(&UGVSystem::EStopTorqueEnable, this, std::placeholders::_1));
+    "~/motor_torque_enable", std::bind(&UGVSystem::EStopTorqueEnable, this, std::placeholders::_1));
 
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
     "~/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,
@@ -547,8 +546,10 @@ void UGVSystem::EStopTorqueEnable(const bool enable)
     roboteq_error_filter_->SetClearErrorsFlag();
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
   } catch (const std::runtime_error & e) {
-    RCLCPP_WARN_STREAM(
-      logger_, "An exception occurred while changing the torque state of the motors: " << e.what());
+    auto warn = "An exception occurred while changing the torque state of the motors: " +
+                std::string(e.what());
+    RCLCPP_WARN_STREAM(logger_, warn);
+    throw std::runtime_error(warn);
   }
 }
 

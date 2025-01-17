@@ -15,6 +15,7 @@
 # limitations under the License.
 
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from husarion_ugv_utils.messages import welcome_msg
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -126,7 +127,7 @@ def generate_launch_description():
             "--log-level",
             log_level,
             "--log-level",
-            "rcl:=INFO",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,

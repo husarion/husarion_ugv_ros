@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import UnlessCondition
@@ -110,7 +111,13 @@ def generate_launch_description():
             {"bt_project_path": lights_bt_project_path},
         ],
         namespace=namespace,
-        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         emulate_tty=True,
     )
 
@@ -126,7 +133,13 @@ def generate_launch_description():
             },
         ],
         namespace=namespace,
-        arguments=["--ros-args", "--log-level", log_level, "--log-level", "rcl:=INFO"],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         emulate_tty=True,
         condition=UnlessCondition(use_sim),
     )

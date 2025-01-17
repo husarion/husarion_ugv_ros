@@ -17,6 +17,7 @@
 
 import os
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.conditions import IfCondition, UnlessCondition
@@ -214,22 +215,22 @@ def generate_launch_description():
     )
     robot_description = {"robot_description": robot_description_content}
 
-    joint_state_broadcaster_log_level = PythonExpression(
+    joint_state_broadcaster_log_unit = PythonExpression(
         [
             "'",
             namespace,
-            "' + '.joint_state_broadcaster:=INFO' if '",
+            "' + '.joint_state_broadcaster' if '",
             namespace,
-            "' else 'joint_state_broadcaster:=INFO'",
+            "' else 'joint_state_broadcaster'",
         ]
     )
-    controller_manager_log_level = PythonExpression(
+    controller_manager_log_unit = PythonExpression(
         [
             "'",
             namespace,
-            "' + '.controller_manager:=INFO' if '",
+            "' + '.controller_manager' if '",
             namespace,
-            "' else 'controller_manager:=INFO'",
+            "' else 'controller_manager'",
         ]
     )
 
@@ -266,13 +267,13 @@ def generate_launch_description():
             "--log-level",
             log_level,
             "--log-level",
-            "rcl:=INFO",
+            limit_log_level_to_info("rcl", log_level),
             "--log-level",
-            "pluginlib.ClassLoader:=INFO",
+            limit_log_level_to_info("pluginlib.ClassLoader", log_level),
             "--log-level",
-            joint_state_broadcaster_log_level,
+            limit_log_level_to_info(joint_state_broadcaster_log_unit, log_level),
             "--log-level",
-            controller_manager_log_level,
+            limit_log_level_to_info(controller_manager_log_unit, log_level),
         ],
         condition=UnlessCondition(use_sim),
         emulate_tty=True,
@@ -302,7 +303,7 @@ def generate_launch_description():
             "--log-level",
             log_level,
             "--log-level",
-            "rcl:=INFO",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -343,7 +344,7 @@ def generate_launch_description():
             "--log-level",
             log_level,
             "--log-level",
-            "rcl:=INFO",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,

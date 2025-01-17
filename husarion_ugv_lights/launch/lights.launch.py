@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.conditions import UnlessCondition
@@ -136,9 +137,9 @@ def generate_launch_description():
             "--log-level",
             log_level,
             "--log-level",
-            "rcl:=INFO",
+            limit_log_level_to_info("rcl", log_level),
             "--log-level",
-            "pluginlib.ClassLoader:=INFO",
+            limit_log_level_to_info("pluginlib.ClassLoader", log_level),
         ],
         emulate_tty=True,
         on_exit=Shutdown(),

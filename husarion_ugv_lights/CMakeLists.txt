@@ -7,6 +7,7 @@ endif()
 
 set(PACKAGE_DEPENDENCIES
     ament_cmake
+    ament_index_cpp
     diagnostic_updater
     generate_parameter_library
     image_transport

@@ -129,7 +129,8 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
     "~/led_control_enable",
     std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/motor_torque_enable", std::bind(&UGVSystem::EStopTorqueEnable, this, std::placeholders::_1));
+    "~/e_stop_torque_enable",
+    std::bind(&UGVSystem::EStopTorqueEnable, this, std::placeholders::_1));
 
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
     "~/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,

@@ -12,7 +12,7 @@ else()
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -79,5 +79,7 @@ if(BUILD_TESTING)
   endif()
 
 endif()
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 
 ament_package()

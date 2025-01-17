@@ -12,11 +12,12 @@ else()
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
     ament_cmake
+    ament_index_cpp
     controller_interface
     diagnostic_updater
     generate_parameter_library
@@ -75,14 +76,14 @@ target_link_libraries(${PROJECT_NAME} PkgConfig::LIBLELY_COAPP
 target_compile_definitions(
   ${PROJECT_NAME} PRIVATE "HUSARION_UGV_HARDWARE_INTERFACES_BUILDING_DLL")
 
-pluginlib_export_plugin_description_file(hardware_interface
-                                         husarion_ugv_hardware_interfaces.xml)
-
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} phidgets_spatial_parameters
+  EXPORT export_${PROJECT_NAME}
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib)
+
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
@@ -197,6 +198,7 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(
     ${PROJECT_NAME}_test_lynx_system
+    ament_index_cpp
     diagnostic_updater
     hardware_interface
     rclcpp
@@ -231,6 +233,7 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(
     ${PROJECT_NAME}_test_panther_system
+    ament_index_cpp
     diagnostic_updater
     hardware_interface
     rclcpp
@@ -344,8 +347,11 @@ if(BUILD_TESTING)
 
 endif()
 
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+pluginlib_export_plugin_description_file(hardware_interface
+                                         husarion_ugv_hardware_interfaces.xml)
 
 ament_package()

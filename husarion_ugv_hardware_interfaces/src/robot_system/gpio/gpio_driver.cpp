@@ -137,9 +137,9 @@ void GPIODriver::ChangePinDirection(const GPIOPin pin, const gpiod::line::direct
 
   auto line_config = gpiod::line_config();
 
-  for (const auto & gpio_info : gpio_info_storage_) {
-    gpiod::line_settings settings = GenerateLineSettings(gpio_info);
-    line_config.add_line_settings(gpio_info.offset, settings);
+  for (const auto & info : gpio_info_storage_) {
+    gpiod::line_settings settings = GenerateLineSettings(info);
+    line_config.add_line_settings(info.offset, settings);
   }
 
   line_request_->reconfigure_lines(line_config);

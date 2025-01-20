@@ -40,7 +40,7 @@ led_animations:
 
   - id: 2
     name: ERROR
-    priority: 1
+    priority: 0
     animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
@@ -71,7 +71,7 @@ led_animations:
 
   - id: 5
     name: GOAL_ACHIEVED
-    priority: 2
+    priority: 1
     animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
@@ -107,7 +107,7 @@ led_animations:
 
   - id: 9
     name: CHARGING_BATTERY
-    priority: 3
+    priority: 2
     animations:
       - type: husarion_ugv_lights::ChargingAnimation
         segments: all

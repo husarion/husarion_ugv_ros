@@ -71,7 +71,7 @@ LightsControllerNode::LightsControllerNode(const rclcpp::NodeOptions & options)
 
   segment_converter_ = std::make_shared<SegmentConverter>();
 
-  animations_queue_ = std::make_shared<LEDAnimationsQueue>(10);
+  // animations_queue_ = std::make_shared<LEDAnimationsQueue>(10);
 
   set_led_animation_server_ = this->create_service<SetLEDAnimationSrv>(
     "lights/set_animation", std::bind(&LightsControllerNode::SetLEDAnimationCB, this, _1, _2));
@@ -247,7 +247,11 @@ void LightsControllerNode::SetLEDAnimationCB(
   SetLEDAnimationSrv::Response::SharedPtr response)
 {
   try {
-    AddAnimationToQueue(request->animation.id, request->repeating, request->animation.param);
+    // AddAnimationToQueue(request->animation.id, request->repeating, request->animation.param);
+
+
+    AddAnimationToLayer(request->animation.id, request->repeating, request->animation.param);
+
     response->success = true;
   } catch (const std::exception & e) {
     response->success = false;
@@ -275,35 +279,38 @@ void LightsControllerNode::PublishPanelFrame(const std::size_t channel)
 
 void LightsControllerNode::ControllerTimerCB()
 {
-  if (animation_finished_) {
-    animations_queue_->Validate(this->get_clock()->now());
+  // if (animation_finished_) {
+  //   animations_queue_->Validate(this->get_clock()->now());
 
-    if (!animations_queue_->Empty()) {
-      try {
-        SetLEDAnimation(animations_queue_->Get());
-      } catch (const std::runtime_error & e) {
-        RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to Set LED animation: " << e.what());
-      }
-    }
-  }
+  //   if (!animations_queue_->Empty()) {
+  //     try {
+  //       SetLEDAnimation(animations_queue_->Get());
+  //     } catch (const std::runtime_error & e) {
+  //       RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to Set LED animation: " << e.what());
+  //     }
+  //   }
+  // }
 
-  if (!current_animation_) {
-    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Waiting for animation.");
-    return;
-  }
+  // if (!current_animation_) {
+  //   RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Waiting for animation.");
+  //   return;
+  // }
 
-  if (current_animation_->GetPriority() > animations_queue_->GetFirstAnimationPriority()) {
-    if (current_animation_->GetProgress() < 0.65f) {
-      current_animation_->Reset(this->get_clock()->now());
-      animations_queue_->Put(current_animation_, this->get_clock()->now());
-    }
-    animation_finished_ = true;
-    return;
-  }
+  // if (current_animation_->GetPriority() > animations_queue_->GetFirstAnimationPriority()) {
+  //   if (current_animation_->GetProgress() < 0.65f) {
+  //     current_animation_->Reset(this->get_clock()->now());
+  //     animations_queue_->Put(current_animation_, this->get_clock()->now());
+  //   }
+  //   animation_finished_ = true;
+  //   return;
+  // }
+
+  
 
   UpdateAndPublishAnimation();
 
-  animation_finished_ = current_animation_->IsFinished();
+  // animation_finished_ = current_animation_->IsFinished();
+  
 }
 
 void LightsControllerNode::UpdateAndPublishAnimation()
@@ -334,7 +341,22 @@ void LightsControllerNode::UpdateAndPublishAnimation()
   }
 }
 
-void LightsControllerNode::AddAnimationToQueue(
+// void LightsControllerNode::AddAnimationToQueue(
+//   const std::size_t animation_id, const bool repeating, const std::string & param)
+// {
+//   if (animations_descriptions_.find(animation_id) == animations_descriptions_.end()) {
+//     throw std::runtime_error("No animation with ID: " + std::to_string(animation_id));
+//   }
+
+//   auto animation_description = animations_descriptions_.at(animation_id);
+//   auto animation = std::make_shared<LEDAnimation>(
+//     animation_description, segments_, this->get_clock()->now());
+//   animation->SetRepeating(repeating);
+//   animation->SetParam(param);
+//   animations_queue_->Put(animation, this->get_clock()->now());
+// }
+
+void LightsControllerNode::AddAnimationToLayer(
   const std::size_t animation_id, const bool repeating, const std::string & param)
 {
   if (animations_descriptions_.find(animation_id) == animations_descriptions_.end()) {
@@ -346,7 +368,11 @@ void LightsControllerNode::AddAnimationToQueue(
     animation_description, segments_, this->get_clock()->now());
   animation->SetRepeating(repeating);
   animation->SetParam(param);
-  animations_queue_->Put(animation, this->get_clock()->now());
+
+  animation->GetPriority();
+
+  // animations_queue_->Put(animation, this->get_clock()->now());
+  SetLEDAnimation(animation);
 }
 
 void LightsControllerNode::SetLEDAnimation(const std::shared_ptr<LEDAnimation> & led_animation)
@@ -361,7 +387,7 @@ void LightsControllerNode::SetLEDAnimation(const std::shared_ptr<LEDAnimation> &
       try {
         segments_.at(segment)->SetAnimation(
           animation.type, animation.animation, led_animation->IsRepeating(),
-          led_animation->GetParam());
+          led_animation->GetPriority(), led_animation->GetParam());
       } catch (const std::runtime_error & e) {
         throw std::runtime_error(
           "Failed to set '" + led_animation->GetName() + "' animation: " + std::string(e.what()));
@@ -369,8 +395,8 @@ void LightsControllerNode::SetLEDAnimation(const std::shared_ptr<LEDAnimation> &
     }
   }
 
-  current_animation_.reset();
-  current_animation_ = std::move(led_animation);
+  // current_animation_.reset();
+  // current_animation_ = std::move(led_animation);
 }
 
 }  // namespace husarion_ugv_lights

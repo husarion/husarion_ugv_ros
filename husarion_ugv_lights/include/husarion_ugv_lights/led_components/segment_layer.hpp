@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_SEGMENT_HPP_
-#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_SEGMENT_HPP_
+#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
+#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
 
-#include <cstddef>
 #include <cstdint>
-#include <rclcpp/time.hpp>
 #include <vector>
 
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
@@ -33,7 +31,7 @@ namespace husarion_ugv_lights
 /**
  * @brief Class that represents virtual LED segment of the robot
  */
-class LEDSegment
+class SegmentLayer: public SegmentLayerInterface 
 {
 public:
   /**
@@ -47,9 +45,9 @@ public:
    * @exception std::runtime_error or std::invalid_argument if missing required description key or
    * key couldn't be parsed
    */
-  LEDSegment(const YAML::Node & segment_description, const float controller_frequency);
+  SegmentLayer(const YAML::Node & segment_description, const float controller_frequency);
 
-  ~LEDSegment();
+  ~SegmentLayer();
 
   /**
    * @brief Overwrite current animation
@@ -63,7 +61,7 @@ public:
    */
   void SetAnimation(
     const std::string & type, const YAML::Node & animation_description, const bool repeating,
-    const std::uint8_t priority, const std::string & param = "");
+    const std::string & param = "");
 
   /**
    * @brief Update animation frame
@@ -115,26 +113,26 @@ public:
 
   std::size_t GetFirstLEDPosition() const;
 
-  std::size_t GetChannel() const { return channel_; }
+  // std::size_t GetChannel() const { return channel_; }
 
-  bool HasAnimation() const {return true;} //FIXME: how to define if it has an animation { return animation_; }
+  // bool HasAnimation() const { return animation_ || default_animation_; }
 
 protected:
-  std::shared_ptr<husarion_ugv_lights::Animation> animation_;
+  // std::shared_ptr<husarion_ugv_lights::Animation> animation_;
+  // std::shared_ptr<husarion_ugv_lights::Animation> default_animation_;
 
-private:
-  const float controller_frequency_;
-  bool invert_led_order_ = false;
-  bool animation_finished_ = true;
-  std::size_t channel_;
-  std::size_t first_led_iterator_;
-  std::size_t last_led_iterator_;
-  std::size_t num_led_;
-  std::vector<std::unique_ptr<SegmentLayerInterface>> layers_;
+  // const float controller_frequency_;
+  // bool invert_led_order_ = false;
+  // bool animation_finished_ = true;
+  // std::size_t channel_;
+  // std::size_t first_led_iterator_;
+  // std::size_t last_led_iterator_;
+  // std::size_t num_led_;
+  bool repeating_ = false;
 
   std::shared_ptr<pluginlib::ClassLoader<husarion_ugv_lights::Animation>> animation_loader_;
 };
 
 }  // namespace husarion_ugv_lights
 
-#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_SEGMENT_HPP_
+#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_

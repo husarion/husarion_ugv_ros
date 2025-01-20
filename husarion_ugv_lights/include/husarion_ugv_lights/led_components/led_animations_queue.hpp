@@ -114,7 +114,7 @@ public:
 
   static constexpr std::uint8_t kDefaultPriority = 3;
   static constexpr float kDefaultTimeout = 120.0f;
-  static constexpr std::array<std::uint8_t, 3> kValidPriorities = {1, 2, 3};
+  static constexpr std::array<std::uint8_t, 4> kValidPriorities = {0, 1, 2, 3};
 
 private:
   const LEDAnimationDescription led_animation_description_;

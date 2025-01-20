@@ -40,7 +40,8 @@ void SegmentConverter::Convert(
 
       auto frame = segment->GetAnimationFrame();
       for (std::size_t i = 3; i < frame.size(); i += 4) {
-        frame[i] = segment->GetAnimationBrightness();
+        // FIXME: how to handle brightness?
+        // frame[i] = segment->GetAnimationBrightness();
       }
 
       panel->UpdateFrame(segment->GetFirstLEDPosition(), frame);

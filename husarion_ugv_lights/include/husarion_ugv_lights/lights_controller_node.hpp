@@ -112,16 +112,20 @@ protected:
    */
   void UpdateAndPublishAnimation();
 
-  /**
-   * @brief Add animation to LED animations queue
-   *
-   * @param animation_id ID of the animations
-   * @param repeating Whether animations should repeat
-   * @param param Optional animation parameter
-   *
-   * @exception std::runtime_error if no animation with given ID exists
-   */
-  void AddAnimationToQueue(
+  // /**
+  //  * @brief Add animation to LED animations queue
+  //  *
+  //  * @param animation_id ID of the animations
+  //  * @param repeating Whether animations should repeat
+  //  * @param param Optional animation parameter
+  //  *
+  //  * @exception std::runtime_error if no animation with given ID exists
+  //  */
+  // void AddAnimationToQueue(
+  //   const std::size_t animation_id, const bool repeating, const std::string & param);
+
+
+  void AddAnimationToLayer(
     const std::size_t animation_id, const bool repeating, const std::string & param);
 
   /**
@@ -133,8 +137,7 @@ protected:
    */
   void SetLEDAnimation(const std::shared_ptr<LEDAnimation> & led_animation);
 
-  std::shared_ptr<LEDAnimation> current_animation_;
-  std::shared_ptr<LEDAnimationsQueue> animations_queue_;
+  // std::shared_ptr<LEDAnimation> current_animation_;
 
 private:
   void PublishPanelFrame(const std::size_t channel);

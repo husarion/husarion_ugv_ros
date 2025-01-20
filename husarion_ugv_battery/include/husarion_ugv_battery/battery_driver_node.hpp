@@ -38,7 +38,8 @@ class BatteryDriverNode : public rclcpp::Node
 {
 public:
   BatteryDriverNode(
-    const std::string & node_name, const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+    const std::string & node_name, const std::string & ns = "/",
+    const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
 private:
   void BatteryPubTimerCB();

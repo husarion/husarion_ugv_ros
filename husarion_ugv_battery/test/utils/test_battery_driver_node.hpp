@@ -103,7 +103,7 @@ TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_bat
   options.parameter_overrides(params);
 
   battery_driver_node_ = std::make_shared<husarion_ugv_battery::BatteryDriverNode>(
-    "battery_driver", options);
+    "battery_driver", "/battery_test", options);
 
   battery_sub_ = battery_driver_node_->create_subscription<BatteryStateMsg>(
     "battery/battery_status", 10,

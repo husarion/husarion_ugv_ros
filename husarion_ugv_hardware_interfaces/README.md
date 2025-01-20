@@ -26,7 +26,7 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 - `hardware/e_stop_trigger` [*std_srvs/Trigger*]: Triggers E-stop.
 - `hardware/fan_enable` [*std_srvs/SetBool*]: Enables or disables fan.
 - `hardware/led_control_enable` [*std_srvs/SetBool*]: Enables or disables SBC (Single Board Computer) control over the LEDs.
-- `hardware/motor_power_enable` [*std_srvs/SetBool*]: Enables or disables motor power.
+- `hardware/motor_torque_enable` [*std_srvs/SetBool*]: Allows to enable/disable motor torque when the E-Stop is triggered.
 
 #### Parameters
 

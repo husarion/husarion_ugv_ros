@@ -125,10 +125,10 @@ TestBatteryNode::~TestBatteryNode()
 {
   // Delete the devices directories
   if (std::filesystem::exists(device0_path_)) {
-    std::filesystem::remove(device0_path_);
+    std::filesystem::remove_all(device0_path_);
   }
   if (std::filesystem::exists(device1_path_)) {
-    std::filesystem::remove(device1_path_);
+    std::filesystem::remove_all(device1_path_);
   }
 }
 

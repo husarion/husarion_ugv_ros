@@ -37,7 +37,7 @@ jobs:
               },
               "test": {
                 "packages-up-to": ["husarion_ugv"],
-                "event-handlers": ["console_cohesion-"],
+                "event-handlers": ["console_direct-"]
               }
             }
 

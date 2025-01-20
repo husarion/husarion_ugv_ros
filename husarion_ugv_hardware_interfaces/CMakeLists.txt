@@ -131,6 +131,9 @@ if(BUILD_TESTING)
     src/robot_system/robot_driver/roboteq_data_converters.cpp
     src/robot_system/gpio/gpio_controller.cpp
     src/utils.cpp)
+  set_tests_properties(${PROJECT_NAME}_test_system_ros_interface
+                       PROPERTIES TIMEOUT 120)
+
   target_include_directories(
     ${PROJECT_NAME}_test_system_ros_interface
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>

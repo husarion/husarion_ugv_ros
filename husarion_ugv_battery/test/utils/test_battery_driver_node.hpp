@@ -136,11 +136,13 @@ template <typename T>
 void TestBatteryNode::WriteNumberToFile(const T number, const std::string & file_path)
 {
   std::ofstream file(file_path);
-  if (file.is_open()) {
-    file << number;
-    file.close();
-  } else {
+  if (!file) {
     throw std::runtime_error("Failed to create file: " + file_path);
+  }
+
+  file << number;
+  if (!file) {
+    throw std::runtime_error("Failed to write to file: " + file_path);
   }
 }
 

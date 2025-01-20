@@ -29,7 +29,6 @@ jobs:
             {
               "build": {
                 "packages-up-to": ["husarion_ugv"],
-                "event-handlers": ["console_cohesion-"],
                 "cmake-args": [
                     "-DCMAKE_BUILD_TYPE=Release",
                     "-DTEST_INTEGRATION=OFF",
@@ -37,9 +36,8 @@ jobs:
                 ]
               },
               "test": {
-                "packages-up-to": [
-                    "husarion_ugv"
-                ]
+                "packages-up-to": ["husarion_ugv"],
+                "event-handlers": ["console_cohesion-"],
               }
             }
 
@@ -67,7 +65,6 @@ jobs:
             {
               "build": {
                 "packages-up-to": ["husarion_ugv"],
-                "event-handlers": ["console_cohesion-"],
                 "cmake-args": [
                     "-DCMAKE_BUILD_TYPE=Release",
                     "-DTEST_INTEGRATION=OFF",
@@ -75,8 +72,7 @@ jobs:
                 ]
               },
               "test": {
-                "packages-up-to": [
-                    "husarion_ugv"
-                ]
+                "packages-up-to": ["husarion_ugv"],
+                "event-handlers": ["console_direct-"],
               }
             }

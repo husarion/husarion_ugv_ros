@@ -68,7 +68,7 @@ jobs:
             {
               "build": {
                 "packages-up-to": [
-                    "husarion_ugv_battery"
+                    "husarion_ugv"
                 ],
                 "cmake-args": [
                     "-DCMAKE_BUILD_TYPE=Release",
@@ -78,7 +78,7 @@ jobs:
               },
               "test": {
                 "packages-up-to": [
-                    "husarion_ugv_battery"
+                    "husarion_ugv"
                 ]
               }
             }

@@ -29,11 +29,7 @@ jobs:
             {
               "build": {
                 "packages-up-to": ["husarion_ugv"],
-                "cmake-args": [
-                    "-DCMAKE_BUILD_TYPE=Release",
-                    "-DTEST_INTEGRATION=OFF",
-                    "-DTEST_ON_SELF_HOSTED_RUNNER=OFF"
-                ]
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
                 "packages-up-to": ["husarion_ugv"],
@@ -65,11 +61,7 @@ jobs:
             {
               "build": {
                 "packages-up-to": ["husarion_ugv"],
-                "cmake-args": [
-                    "-DCMAKE_BUILD_TYPE=Release",
-                    "-DTEST_INTEGRATION=OFF",
-                    "-DTEST_ON_SELF_HOSTED_RUNNER=OFF"
-                ]
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
                 "packages-up-to": ["husarion_ugv"],

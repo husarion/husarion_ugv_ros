@@ -161,8 +161,8 @@ if(BUILD_TESTING)
     src/plugins/decorator/tick_after_timeout_node.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_tick_after_timeout_node)
 
-  option(TEST_ON_SELF_HOSTED_RUNNER "Run tests on self hosted runner" OFF)
-  if(TEST_ON_SELF_HOSTED_RUNNER)
+  option(TEST_INTEGRATION "Run tests on self hosted runner" OFF)
+  if(TEST_INTEGRATION)
     ament_add_gtest(
       ${PROJECT_NAME}_test_signal_shutdown_node
       test/plugins/action/test_signal_shutdown_node.cpp

@@ -49,10 +49,35 @@ public:
 protected:
   std::unique_ptr<SystemROSInterfaceWrapper> system_ros_interface_;
 };
+
 TEST(TestSystemROSInterfaceInitialization, NodeCreation)
 {
-  ASSERT_NO_THROW(
-    std::make_unique<husarion_ugv_hardware_interfaces::SystemROSInterface>("hardware_controller"));
+  using husarion_ugv_hardware_interfaces::SystemROSInterface;
+
+  std::vector<std::string> node_names;
+  const std::string system_node_name = "hardware_controller";
+  const std::string system_node_name_with_ns = "/" + system_node_name;
+
+  rclcpp::Node::SharedPtr test_node = std::make_shared<rclcpp::Node>("test_system_node");
+
+  std::unique_ptr<SystemROSInterface> system_ros_interface;
+
+  system_ros_interface = std::make_unique<SystemROSInterface>(system_node_name);
+
+  node_names = test_node->get_node_names();
+  ASSERT_TRUE(
+    std::find(node_names.begin(), node_names.end(), system_node_name_with_ns) != node_names.end());
+
+  system_ros_interface.reset();
+  node_names = test_node->get_node_names();
+  ASSERT_FALSE(
+    std::find(node_names.begin(), node_names.end(), system_node_name_with_ns) != node_names.end());
+
+  // Check if it is possible to create a node once again (if everything was cleaned up properly)
+  system_ros_interface = std::make_unique<SystemROSInterface>(system_node_name);
+  node_names = test_node->get_node_names();
+  ASSERT_TRUE(
+    std::find(node_names.begin(), node_names.end(), system_node_name_with_ns) != node_names.end());
 }
 
 TEST_F(TestSystemROSInterface, UpdateMsgErrorFlags)

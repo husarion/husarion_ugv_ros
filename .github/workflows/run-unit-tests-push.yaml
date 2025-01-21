@@ -73,7 +73,6 @@ jobs:
               },
               "test": {
                 "packages-up-to": ["husarion_ugv"],
-                "event-handlers": ["console_direct-"],
-                "retest-until-pass": 2
+                "event-handlers": ["console_direct-"]
               }
             }

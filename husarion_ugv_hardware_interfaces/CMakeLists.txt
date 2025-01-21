@@ -160,7 +160,6 @@ if(BUILD_TESTING)
     src/robot_system/system_ros_interface.cpp
     src/robot_system/ugv_system.cpp
     src/utils.cpp)
-  set_tests_properties(${PROJECT_NAME}_test_ugv_system PROPERTIES TIMEOUT 120)
   target_include_directories(
     ${PROJECT_NAME}_test_ugv_system
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>

@@ -117,7 +117,6 @@ std::vector<std::uint8_t> SegmentLayer::GetAnimationFrame() const
 {
   if (animation_finished_ || !animation_) {
     return std::vector<std::uint8_t>(4 * num_led_, 0);
-    ;
   }
 
   return animation_->GetFrame(invert_led_order_);

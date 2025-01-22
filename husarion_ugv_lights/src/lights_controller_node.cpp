@@ -314,8 +314,6 @@ void LightsControllerNode::AddAnimationToLayer(
   animation->SetRepeating(repeating);
   animation->SetParam(param);
 
-  animation->GetPriority();
-
   SetLEDAnimation(animation);
 }
 

@@ -48,8 +48,6 @@ public:
   SegmentLayerInterface(const YAML::Node & segment_description, const float controller_frequency)
   : controller_frequency_(controller_frequency) {};
 
-  // virtual ~SegmentLayerInterface() = 0;
-
   /**
    * @brief Overwrite current animation
    *

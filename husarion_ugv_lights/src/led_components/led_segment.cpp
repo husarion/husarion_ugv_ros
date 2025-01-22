@@ -100,7 +100,6 @@ void LEDSegment::UpdateAnimation()
 std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
 {
   std::vector<std::uint8_t> output_frame(4 * num_led_, 0);
-  ;
 
   for (auto & layer : layers_) {
     if (layer->HasAnimation()) {

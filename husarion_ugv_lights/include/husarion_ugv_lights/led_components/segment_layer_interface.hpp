@@ -45,7 +45,8 @@ public:
    * @exception std::runtime_error or std::invalid_argument if missing required description key or
    * key couldn't be parsed
    */
-  SegmentLayerInterface(const YAML::Node & segment_description, const float controller_frequency): controller_frequency_(controller_frequency){};
+  SegmentLayerInterface(const YAML::Node & segment_description, const float controller_frequency)
+  : controller_frequency_(controller_frequency) {};
 
   // virtual ~SegmentLayerInterface() = 0;
 
@@ -86,7 +87,7 @@ public:
    * animation is finished
    * @exception std::runtime_error if segment animation is not defined
    */
-  virtual std::vector<std::uint8_t> GetAnimationFrame() const  = 0 ;
+  virtual std::vector<std::uint8_t> GetAnimationFrame() const = 0;
 
   /**
    * @brief Get current animation progress
@@ -95,7 +96,7 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  virtual float GetAnimationProgress() const  = 0;
+  virtual float GetAnimationProgress() const = 0;
 
   /**
    * @brief Reset current animation
@@ -109,13 +110,14 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-//   virtual std::uint8_t GetAnimationBrightness() const; //TODO: maybe implement brightness? it might complicate the alpha blending 😭😭😭
+  //   virtual std::uint8_t GetAnimationBrightness() const; //TODO: maybe implement brightness? it
+  //   might complicate the alpha blending 😭😭😭
 
   virtual std::size_t GetFirstLEDPosition() const = 0;
 
   virtual std::size_t GetChannel() const { return channel_; }
 
-  bool HasAnimation() const { return static_cast<bool>(animation_);}
+  bool HasAnimation() const { return static_cast<bool>(animation_); }
 
 protected:
   std::shared_ptr<husarion_ugv_lights::Animation> animation_;

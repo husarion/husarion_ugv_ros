@@ -28,9 +28,9 @@
 namespace husarion_ugv_lights
 {
 
-SegmentLayer::SegmentLayer(const YAML::Node & segment_description, const float controller_frequency): SegmentLayerInterface(segment_description, controller_frequency)
+SegmentLayer::SegmentLayer(const YAML::Node & segment_description, const float controller_frequency)
+: SegmentLayerInterface(segment_description, controller_frequency)
 {
-  
   channel_ = husarion_ugv_utils::GetYAMLKeyValue<std::size_t>(segment_description, "channel");
   const auto led_range = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
     segment_description, "led_range");
@@ -67,8 +67,8 @@ SegmentLayer::~SegmentLayer()
 }
 
 void SegmentLayer::SetAnimation(
-    const std::string & type, const YAML::Node & animation_description, const bool repeating,
-    const std::string & param) 
+  const std::string & type, const YAML::Node & animation_description, const bool repeating,
+  const std::string & param)
 {
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
   try {
@@ -101,7 +101,6 @@ void SegmentLayer::UpdateAnimation()
     animation_finished_ = true;
   }
 
-
   if (animation_finished_ && animation_ && repeating_) {
     animation_->Reset();
     animation_finished_ = false;
@@ -116,8 +115,9 @@ void SegmentLayer::UpdateAnimation()
 
 std::vector<std::uint8_t> SegmentLayer::GetAnimationFrame() const
 {
-   if (animation_finished_ || !animation_) {
-    return std::vector<std::uint8_t>(4 * num_led_, 0);;
+  if (animation_finished_ || !animation_) {
+    return std::vector<std::uint8_t>(4 * num_led_, 0);
+    ;
   }
 
   return animation_->GetFrame(invert_led_order_);

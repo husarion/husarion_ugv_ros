@@ -271,12 +271,7 @@ void LightsControllerNode::PublishPanelFrame(const std::size_t channel)
   panel_publishers_.at(channel)->publish(std::move(image));
 }
 
-void LightsControllerNode::ControllerTimerCB()
-{
-
-  UpdateAndPublishAnimation();
-
-}
+void LightsControllerNode::ControllerTimerCB() { UpdateAndPublishAnimation(); }
 
 void LightsControllerNode::UpdateAndPublishAnimation()
 {

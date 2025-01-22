@@ -50,9 +50,12 @@ target_link_libraries(lights_driver_node_component lights_driver_parameters)
 
 add_library(
   lights_controller_node_component SHARED
-  src/lights_controller_node.cpp src/led_components/led_segment.cpp
-  src/led_components/led_panel.cpp src/led_components/segment_converter.cpp
-  src/led_components/led_animations_queue.cpp src/led_components/segment_layer.cpp
+  src/lights_controller_node.cpp
+  src/led_components/led_segment.cpp
+  src/led_components/led_panel.cpp
+  src/led_components/segment_converter.cpp
+  src/led_components/led_animations_queue.cpp
+  src/led_components/segment_layer.cpp
   src/led_components/segment_queue_layer.cpp)
 ament_target_dependencies(
   lights_controller_node_component

@@ -33,7 +33,7 @@ namespace husarion_ugv_lights
 /**
  * @brief Class that represents virtual LED segment of the robot
  */
-class SegmentQueueLayer: public SegmentLayerInterface 
+class SegmentQueueLayer : public SegmentLayerInterface
 {
 public:
   /**
@@ -114,7 +114,6 @@ public:
   std::uint8_t GetAnimationBrightness() const;
 
   std::size_t GetFirstLEDPosition() const;
-
 
 protected:
   std::deque<std::shared_ptr<husarion_ugv_lights::Animation>> animations_queue_;

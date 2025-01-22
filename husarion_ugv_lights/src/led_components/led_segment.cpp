@@ -19,8 +19,8 @@
 #include <rclcpp/logging.hpp>
 #include <stdexcept>
 
-#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer.hpp"
+#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "husarion_ugv_lights/led_components/segment_queue_layer.hpp"
 #include "yaml-cpp/yaml.h"
 
@@ -80,34 +80,36 @@ void LEDSegment::SetAnimation(
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
 
   try {
-   layers_.at(layers_.size() - 1 - priority)->SetAnimation(type, animation_description, repeating, param);
+    layers_.at(layers_.size() - 1 - priority)
+      ->SetAnimation(type, animation_description, repeating, param);
   } catch (std::out_of_range & e) {
-    throw std::runtime_error("Failed to set animation, out of range priority/layer: " + std::string(e.what()));
-  
+    throw std::runtime_error(
+      "Failed to set animation, out of range priority/layer: " + std::string(e.what()));
   }
-
 }
 
 void LEDSegment::UpdateAnimation()
 {
-  for(auto & layer : layers_){
+  for (auto & layer : layers_) {
     if (layer->HasAnimation()) {
-    layer->UpdateAnimation();
+      layer->UpdateAnimation();
     }
   }
 }
 
 std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
 {
-  
-  std::vector<std::uint8_t> output_frame(4 * num_led_, 0);;
+  std::vector<std::uint8_t> output_frame(4 * num_led_, 0);
+  ;
 
-  for( auto & layer : layers_){
-    if(layer->HasAnimation()){
+  for (auto & layer : layers_) {
+    if (layer->HasAnimation()) {
       auto frame = layer->GetAnimationFrame();
-      for(std::size_t i = 0; i < num_led_; i++){
-        for(std::size_t j = 0; j < 3; j++){
-          output_frame[i * 4 + j] = (frame[i * 4 + j]*frame[i * 4 + 3] + output_frame[i * 4 + j]*(255 - frame[i * 4 + 3]))/255;
+      for (std::size_t i = 0; i < num_led_; i++) {
+        for (std::size_t j = 0; j < 3; j++) {
+          output_frame[i * 4 + j] = (frame[i * 4 + j] * frame[i * 4 + 3] +
+                                     output_frame[i * 4 + j] * (255 - frame[i * 4 + 3])) /
+                                    255;
         }
       }
     }
@@ -149,9 +151,10 @@ std::size_t LEDSegment::GetFirstLEDPosition() const
   return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
 }
 
-bool LEDSegment::HasAnimation() const {
-  for(auto & layer : layers_){
-    if(layer->HasAnimation()){
+bool LEDSegment::HasAnimation() const
+{
+  for (auto & layer : layers_) {
+    if (layer->HasAnimation()) {
       return true;
     }
   }

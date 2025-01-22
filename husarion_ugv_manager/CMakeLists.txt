@@ -119,7 +119,7 @@ install(DIRECTORY behavior_trees config launch
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 # Access via `husarion_ugv_manager/test/**` instead of `test/**`
-install(DIRECTORY test/utils
+install(DIRECTORY test/utils/
         DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}/test/utils)
 
 if(BUILD_TESTING)

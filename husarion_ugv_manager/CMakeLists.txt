@@ -118,9 +118,9 @@ install(DIRECTORY behavior_trees config launch
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
-# To be able to access the test utils files by `husarion_ugv_manager/test/**` instead of `test/**`
-install(DIRECTORY test/
-        DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}/test/)
+# Access via `husarion_ugv_manager/test/**` instead of `test/**`
+install(DIRECTORY test/utils
+        DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}/test/utils)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

@@ -86,54 +86,10 @@ void LEDSegment::SetAnimation(
   
   }
 
-  // try {
-  //   animation = animation_loader_->createSharedInstance(type);
-  // } catch (pluginlib::PluginlibException & e) {
-  //   throw std::runtime_error("The plugin failed to load. Error: " + std::string(e.what()));
-  // }
-
-  // try {
-  //   animation->Initialize(animation_description, num_led_, controller_frequency_);
-  //   animation->SetParam(param);
-  // } catch (const std::runtime_error & e) {
-  //   throw std::runtime_error("Failed to initialize animation: " + std::string(e.what()));
-  // } catch (const std::out_of_range & e) {
-  //   throw std::runtime_error("Failed to initialize animation: " + std::string(e.what()));
-  // }
-
-  // animation_ = std::move(animation);
-  // animation_finished_ = false;
-
-  // if (repeating) {
-  //   default_animation_ = animation_;
-  //   animation_finished_ = true;
-  // }
-  // if (default_animation_) {
-  //   default_animation_->Reset();
-  // }
 }
 
 void LEDSegment::UpdateAnimation()
 {
-  // if (!animation_) {
-  //   throw std::runtime_error("Segment animation not defined.");
-  // }
-
-  // if (animation_->IsFinished()) {
-  //   animation_finished_ = true;
-  // }
-
-  // std::shared_ptr<husarion_ugv_lights::Animation> animation_to_update =
-  //   animation_finished_ && default_animation_ ? default_animation_ : animation_;
-
-
-  // try {
-  //   animation_to_update->Update();
-  // } catch (const std::runtime_error & e) {
-  //   throw std::runtime_error("Failed to update animation: " + std::string(e.what()));
-  // }
-
-  //TODO: update all layers
   for(auto & layer : layers_){
     if (layer->HasAnimation()) {
     layer->UpdateAnimation();
@@ -143,17 +99,6 @@ void LEDSegment::UpdateAnimation()
 
 std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
 {
-  
-  // TODO: merge all layers into one frame
-  
-  // if (!animation_) {
-  //   throw std::runtime_error("Segment animation not defined.");
-  // }
-
-  // if (default_animation_ && animation_finished_) {
-  //   return default_animation_->GetFrame(invert_led_order_);
-  // }
-
   
   std::vector<std::uint8_t> output_frame(4 * num_led_, 0);;
 
@@ -202,6 +147,15 @@ std::uint8_t LEDSegment::GetAnimationBrightness() const
 std::size_t LEDSegment::GetFirstLEDPosition() const
 {
   return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
+}
+
+bool LEDSegment::HasAnimation() const {
+  for(auto & layer : layers_){
+    if(layer->HasAnimation()){
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace husarion_ugv_lights

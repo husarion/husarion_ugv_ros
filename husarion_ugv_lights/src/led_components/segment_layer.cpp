@@ -67,8 +67,8 @@ SegmentLayer::~SegmentLayer()
 }
 
 void SegmentLayer::SetAnimation(
-  const std::string & type, const YAML::Node & animation_description, const bool repeating,
-  const std::string & param)
+    const std::string & type, const YAML::Node & animation_description, const bool repeating,
+    const std::string & param) 
 {
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
   try {
@@ -89,10 +89,6 @@ void SegmentLayer::SetAnimation(
   animation_ = std::move(animation);
   animation_finished_ = false;
   repeating_ = repeating;
-
-  // if (default_animation_) {
-  //   default_animation_->Reset();
-  // }
 }
 
 void SegmentLayer::UpdateAnimation()

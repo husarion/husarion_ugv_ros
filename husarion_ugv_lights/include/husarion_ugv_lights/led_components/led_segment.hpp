@@ -117,7 +117,7 @@ public:
 
   std::size_t GetChannel() const { return channel_; }
 
-  bool HasAnimation() const {return true;} //FIXME: how to define if it has an animation { return animation_; }
+  bool HasAnimation() const;
 
 protected:
   std::shared_ptr<husarion_ugv_lights::Animation> animation_;

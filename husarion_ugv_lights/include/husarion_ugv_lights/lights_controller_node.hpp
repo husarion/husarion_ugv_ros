@@ -112,19 +112,15 @@ protected:
    */
   void UpdateAndPublishAnimation();
 
-  // /**
-  //  * @brief Add animation to LED animations queue
-  //  *
-  //  * @param animation_id ID of the animations
-  //  * @param repeating Whether animations should repeat
-  //  * @param param Optional animation parameter
-  //  *
-  //  * @exception std::runtime_error if no animation with given ID exists
-  //  */
-  // void AddAnimationToQueue(
-  //   const std::size_t animation_id, const bool repeating, const std::string & param);
-
-
+  /**
+   * @brief Add animation to LED animations queue
+   *
+   * @param animation_id ID of the animations
+   * @param repeating Whether animations should repeat
+   * @param param Optional animation parameter
+   *
+   * @exception std::runtime_error if no animation with given ID exists
+   */
   void AddAnimationToLayer(
     const std::size_t animation_id, const bool repeating, const std::string & param);
 

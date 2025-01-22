@@ -113,24 +113,9 @@ public:
 
   std::size_t GetFirstLEDPosition() const;
 
-  // std::size_t GetChannel() const { return channel_; }
-
-  // bool HasAnimation() const { return animation_ || default_animation_; }
 
 protected:
-  // std::shared_ptr<husarion_ugv_lights::Animation> animation_;
-  // std::shared_ptr<husarion_ugv_lights::Animation> default_animation_;
-
-  // const float controller_frequency_;
-  // bool invert_led_order_ = false;
-  // bool animation_finished_ = true;
-  // std::size_t channel_;
-  // std::size_t first_led_iterator_;
-  // std::size_t last_led_iterator_;
-  // std::size_t num_led_;
   bool repeating_ = false;
-
-  std::shared_ptr<pluginlib::ClassLoader<husarion_ugv_lights::Animation>> animation_loader_;
 };
 
 }  // namespace husarion_ugv_lights

@@ -103,7 +103,7 @@ TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_bat
   options.parameter_overrides(params);
 
   battery_driver_node_ = std::make_shared<husarion_ugv_battery::BatteryDriverNode>(
-    "battery_driver", options);
+    "battery_driver", "/test_battery", options);
 
   battery_sub_ = battery_driver_node_->create_subscription<BatteryStateMsg>(
     "battery/battery_status", 10,
@@ -136,11 +136,13 @@ template <typename T>
 void TestBatteryNode::WriteNumberToFile(const T number, const std::string & file_path)
 {
   std::ofstream file(file_path);
-  if (file.is_open()) {
-    file << number;
-    file.close();
-  } else {
+  if (!file) {
     throw std::runtime_error("Failed to create file: " + file_path);
+  }
+
+  file << number;
+  if (!file) {
+    throw std::runtime_error("Failed to write to file: " + file_path);
   }
 }
 

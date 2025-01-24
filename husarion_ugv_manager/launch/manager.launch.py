@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import UnlessCondition
@@ -56,6 +57,14 @@ def generate_launch_description():
             [husarion_ugv_manager_common_dir, "behavior_trees", "LightsBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for lights management.",
+    )
+
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
     )
 
     namespace = LaunchConfiguration("namespace")
@@ -103,6 +112,13 @@ def generate_launch_description():
             {"bt_project_path": lights_bt_project_path},
         ],
         namespace=namespace,
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         emulate_tty=True,
     )
 
@@ -118,12 +134,20 @@ def generate_launch_description():
             },
         ],
         namespace=namespace,
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         emulate_tty=True,
         condition=UnlessCondition(use_sim),
     )
 
     actions = [
         declare_common_dir_path_arg,
+        declare_log_level_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,
         declare_namespace_arg,

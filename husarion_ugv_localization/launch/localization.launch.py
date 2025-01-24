@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
@@ -55,6 +56,14 @@ def generate_launch_description():
             "\t- 'enu' odometry/filtered data is relative to initial position and ENU (East North Up) orientation."
         ),
         choices=["relative", "enu"],
+    )
+
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
     )
 
     namespace = LaunchConfiguration("namespace")
@@ -125,6 +134,13 @@ def generate_launch_description():
             ("set_pose", "localization/set_pose"),
             ("toggle", "localization/toggle"),
         ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         condition=IfCondition(use_ekf),
     )
 
@@ -134,7 +150,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_localization"), "launch", "nmea_navsat.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
         condition=IfCondition(launch_nmea_gps),
     )
 
@@ -149,6 +165,13 @@ def generate_launch_description():
             ("gps/fix", "gps/fix"),
             ("odometry/gps", "_odometry/gps"),
         ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         condition=IfCondition(fuse_gps),
     )
 
@@ -158,6 +181,7 @@ def generate_launch_description():
         declare_launch_nmea_gps_arg,
         declare_localization_mode_arg,
         declare_localization_config_path_arg,  # localization_config_path use fuse_gps and localization_mode
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_ekf_arg,
         declare_use_sim_arg,

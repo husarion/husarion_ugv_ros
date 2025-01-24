@@ -15,6 +15,7 @@
 # limitations under the License.
 
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from husarion_ugv_utils.messages import welcome_msg
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -29,6 +30,13 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
+    )
 
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
@@ -90,6 +98,7 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "robot_model": robot_model,
+            "log_level": log_level,
             "use_sim": "True",
         }.items(),
     )
@@ -114,12 +123,18 @@ def generate_launch_description():
             pitch,
             "-Y",
             yaw,
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,
     )
 
     actions = [
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_robot_model_arg,
         declare_x_arg,

@@ -15,6 +15,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>husarion_ugv_utils</exec_depend>
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>nmea_navsat_driver</exec_depend>
   <exec_depend>python3-transforms3d</exec_depend>

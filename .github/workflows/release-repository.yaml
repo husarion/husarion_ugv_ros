@@ -58,27 +58,25 @@ jobs:
           --body "This PR incorporates package(s) version and changelog update."
 
       - name: Catkin release - merge PR
-        if: ${{ fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         run: |
           gh pr merge ${{ steps.catkin_release.outputs.created_branch }} \
           --merge --delete-branch
 
       - name: Grant permissions # Required permission grant after at-wat/catkin-release-action@v1 action
-        if: ${{ fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         run: |
           sudo chmod -R ugo+rwX .
 
       - name: Checkout to main branch
-        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true
-          }}
+        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         uses: actions/checkout@v4
         with:
           ref: ${{ env.MAIN_BRANCH }}
           fetch-depth: 0
 
       - name: Create PR to main branch
-        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true
-          }}
+        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           gh pr create \
           --base ${{ env.MAIN_BRANCH }} \
@@ -87,14 +85,13 @@ jobs:
           --body "This PR incorporates package(s) version and changelog update."
 
       - name: Merge PR to main branch
-        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true
-          }}
+        if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           gh pr merge ${{ inputs.release_candidate }} \
           --merge --delete-branch
 
       - name: Create prerelease
-        if: ${{ fromJSON(inputs.automatic_mode) == true && fromJSON(inputs.prerelease) == true}}
+        if: ${{ inputs.automatic_mode && inputs.prerelease}}
         run: |
           gh release create ${{ steps.catkin_release.outputs.version }} \
           --target ${{ env.MAIN_BRANCH }} \
@@ -103,7 +100,7 @@ jobs:
           --prerelease
 
       - name: Create release
-        if: ${{ fromJSON(inputs.automatic_mode) == true && fromJSON(inputs.prerelease) == false}}
+        if: ${{ inputs.automatic_mode && !inputs.prerelease }}
         run: |
           gh release create ${{ steps.catkin_release.outputs.version }} \
           --target ${{ env.MAIN_BRANCH }} \
@@ -111,14 +108,14 @@ jobs:
           --generate-notes
 
       - name: Checkout to devel branch
-        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && inputs.automatic_mode }}
         uses: actions/checkout@v4
         with:
           ref: ${{ env.DEVEL_BRANCH }}
           fetch-depth: 0
 
       - name: Update devel branch
-        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           git pull origin ${{ env.MAIN_BRANCH }}
           git push origin ${{ env.DEVEL_BRANCH }}

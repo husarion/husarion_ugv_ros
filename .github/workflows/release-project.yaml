@@ -79,7 +79,7 @@ jobs:
             }
 
       - name: Build OS image
-        if: ${{ fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
@@ -95,7 +95,7 @@ jobs:
             }
 
       - name: Build flash OS image
-        if: ${{ fromJSON(inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion

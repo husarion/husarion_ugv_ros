@@ -61,7 +61,7 @@ jobs:
   build_docker:
     name: Build Docker
     needs: update_compose_files
-    uses: .github/workflows/build-docker.yaml
+    uses: ./.github/workflows/build-docker.yaml
     with:
       branch_name: ${{ env.RC_BRANCH_NAME }}
       build_type: development

@@ -32,7 +32,7 @@ env:
 jobs:
   release_repository:
     name: Release repository
-    uses: .github/workflows/release-repository.yaml
+    uses: ./.github/workflows/release-repository.yaml
     with:
       release_candidate: ${{ env.RC_BRANCH_NAME }}
       version: ${{ github.event.inputs.version }}
@@ -43,14 +43,14 @@ jobs:
   build_docker:
     name: Build Docker
     needs: release_repository
-    uses: .github/workflows/build-docker.yaml
+    uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: development
 
   tag_docker_as_stable:
     name: Tag Docker as stable
     needs: build_docker
-    uses: .github/workflows/build-docker.yaml
+    uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: stable
       target_distro: humble

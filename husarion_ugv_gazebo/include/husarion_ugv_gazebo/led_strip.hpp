@@ -18,7 +18,7 @@
 #include <chrono>
 #include <string>
 
-#include <realtime_tools/realtime_box.h>
+#include <realtime_tools/realtime_box.hpp>
 
 #include <gz/math/Color.hh>
 #include <gz/math/Pose3.hh>

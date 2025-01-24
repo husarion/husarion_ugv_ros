@@ -12,11 +12,8 @@ on:
       build_type:
         description: Is it a "development" or a "stable" release?
         required: true
-        type: choice
+        type: string
         default: development
-        options:
-          - development
-          - stable
       target_distro:
         description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
           humble)

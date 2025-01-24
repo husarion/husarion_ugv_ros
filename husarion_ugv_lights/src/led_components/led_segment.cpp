@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <rclcpp/logging.hpp>
 #include <stdexcept>
+#include <string>
 
 #include "husarion_ugv_lights/led_components/segment_layer.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
@@ -101,7 +102,9 @@ void LEDSegment::UpdateAnimation()
       try {
         layer->UpdateAnimation();
       } catch (const std::runtime_error & e) {
-        throw std::runtime_error("Failed to update animation: " + std::string(e.what()));
+        throw std::runtime_error(
+          "Failed to update animation at layer of priority " + std::to_string(priority) + ": " +
+          std::string(e.what()));
       }
     }
   }

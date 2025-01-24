@@ -56,14 +56,14 @@ jobs:
           message: Update tags in compose files
           author_name: action-bot
           author_email: action-bot@action-bot.com
-          new_branch: ${{ inputs.version }}-${{ inputs.date }}
+          new_branch: ${{ env.RC_BRANCH_NAME }}
 
   build_docker:
     name: Build Docker
     needs: update_compose_files
     uses: ./.github/workflows/build-docker.yaml
     with:
-      branch_name: ${{ env.RC_BRANCH_NAME }}
+      branch_name: ${{ inputs.version }}-${{ inputs.date }}
       build_type: development
   os_image:
     name: OS image

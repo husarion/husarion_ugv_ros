@@ -60,7 +60,7 @@ jobs:
           new_branch: ${{ env.RC_BRANCH_NAME }}
 
       - name: Build Docker
-        uses: .github/workflows/build-docker.yaml@ros2
+        uses: .github/workflows/build-docker.yaml
         with:
           build_type: development
 

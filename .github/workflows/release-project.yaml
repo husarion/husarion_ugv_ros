@@ -44,8 +44,7 @@ jobs:
           prerelease: ${{ github.event.inputs.prerelease }}
 
       - name: Build Docker with new version
-        uses: .github/workflows/build-docker.yaml@ros2
-
+        uses: .github/workflows/build-docker.yaml
         with:
           build_type: development
 

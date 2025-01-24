@@ -37,16 +37,29 @@ public:
   /**
    * @brief Parses basic parameters of the LED segment
    *
-   * @param segment_description YAML description of the segment. Must contain given keys:
-   * - led_range (string) - two numbers nwith hyphen in between, eg.: '0-45',
-   * - channel (int) - id of physical LED channel to which segment is assigned.
+   * @param num_led number of LEDs
+   * @param invert_led_order if true will invert the order of LEDs
    * @param controller_frequency frequency at which animation will be updated.
    *
    * @exception std::runtime_error or std::invalid_argument if missing required description key or
    * key couldn't be parsed
    */
-  SegmentLayerInterface(const YAML::Node & segment_description, const float controller_frequency)
-  : controller_frequency_(controller_frequency) {};
+  SegmentLayerInterface(
+    const std::size_t num_led, const bool invert_led_order, const float controller_frequency)
+  : controller_frequency_(controller_frequency),
+    invert_led_order_(invert_led_order),
+    num_led_(num_led)
+  {
+    animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
+      "husarion_ugv_lights", "husarion_ugv_lights::Animation");
+  }
+
+  virtual ~SegmentLayerInterface()
+  {
+    // make sure that animations are destroyed before pluginlib loader
+    animation_.reset();
+    animation_loader_.reset();
+  }
 
   /**
    * @brief Overwrite current animation
@@ -59,8 +72,8 @@ public:
    * animation fails to initialize
    */
   virtual void SetAnimation(
-    const std::string & type, const YAML::Node & animation_description, const bool repeating,
-    const std::string & param = "") = 0;
+    const std::string & type, const YAML::Node & animation_description,
+    [[maybe_unused]] const bool repeating, const std::string & param = "") = 0;
 
   /**
    * @brief Update animation frame
@@ -108,12 +121,7 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  //   virtual std::uint8_t GetAnimationBrightness() const; //TODO: maybe implement brightness? it
-  //   might complicate the alpha blending 😭😭😭
-
-  virtual std::size_t GetFirstLEDPosition() const = 0;
-
-  virtual std::size_t GetChannel() const { return channel_; }
+  virtual std::uint8_t GetAnimationBrightness() const = 0;
 
   bool HasAnimation() const { return static_cast<bool>(animation_); }
 
@@ -123,9 +131,6 @@ protected:
   const float controller_frequency_;
   bool invert_led_order_ = false;
   bool animation_finished_ = true;
-  std::size_t channel_;
-  std::size_t first_led_iterator_;
-  std::size_t last_led_iterator_;
   std::size_t num_led_;
 
   std::shared_ptr<pluginlib::ClassLoader<husarion_ugv_lights::Animation>> animation_loader_;

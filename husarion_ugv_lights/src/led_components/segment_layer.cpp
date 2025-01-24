@@ -28,42 +28,10 @@
 namespace husarion_ugv_lights
 {
 
-SegmentLayer::SegmentLayer(const YAML::Node & segment_description, const float controller_frequency)
-: SegmentLayerInterface(segment_description, controller_frequency)
+SegmentLayer::SegmentLayer(
+  const std::size_t num_led, const bool invert_led_order, const float controller_frequency)
+: SegmentLayerInterface(num_led, invert_led_order, controller_frequency)
 {
-  channel_ = husarion_ugv_utils::GetYAMLKeyValue<std::size_t>(segment_description, "channel");
-  const auto led_range = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-    segment_description, "led_range");
-
-  const std::size_t split_char = led_range.find('-');
-
-  if (split_char == std::string::npos) {
-    throw std::invalid_argument("No '-' character found in the led_range expression.");
-  }
-
-  try {
-    first_led_iterator_ = std::stoi(led_range.substr(0, split_char));
-    last_led_iterator_ = std::stoi(led_range.substr(split_char + 1));
-
-    if (first_led_iterator_ > last_led_iterator_) {
-      invert_led_order_ = true;
-    }
-  } catch (const std::invalid_argument & e) {
-    throw std::invalid_argument("Error converting string to integer.");
-  }
-
-  num_led_ = std::abs(int(last_led_iterator_ - first_led_iterator_)) + 1;
-
-  animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
-    "husarion_ugv_lights", "husarion_ugv_lights::Animation");
-}
-
-SegmentLayer::~SegmentLayer()
-{
-  // make sure that animations are destroyed before pluginlib loader
-  animation_.reset();
-  // default_animation_.reset();
-  animation_loader_.reset();
 }
 
 void SegmentLayer::SetAnimation(
@@ -148,11 +116,6 @@ std::uint8_t SegmentLayer::GetAnimationBrightness() const
   }
 
   return animation_->GetBrightness();
-}
-
-std::size_t SegmentLayer::GetFirstLEDPosition() const
-{
-  return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
 }
 
 }  // namespace husarion_ugv_lights

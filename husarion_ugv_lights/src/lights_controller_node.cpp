@@ -31,7 +31,7 @@
 
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
-#include "lights_controller_parameters.hpp"
+#include <husarion_ugv_lights/lights_controller_parameters.hpp>
 
 #include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
 #include "husarion_ugv_lights/led_components/led_panel.hpp"

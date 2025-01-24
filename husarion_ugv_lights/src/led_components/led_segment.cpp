@@ -59,17 +59,20 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
   animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
     "husarion_ugv_lights", "husarion_ugv_lights::Animation");
 
-  layers_.push_back(std::make_unique<SegmentLayer>(segment_description, controller_frequency));
-  layers_.push_back(std::make_unique<SegmentLayer>(segment_description, controller_frequency));
-  layers_.push_back(std::make_unique<SegmentQueueLayer>(segment_description, controller_frequency));
-  layers_.push_back(std::make_unique<SegmentLayer>(segment_description, controller_frequency));
+  layers_[ERROR] = std::make_unique<SegmentLayer>(
+    num_led_, invert_led_order_, controller_frequency);
+  layers_[ALERT] = std::make_unique<SegmentQueueLayer>(
+    num_led_, invert_led_order_, controller_frequency);
+  layers_[BATTERY] = std::make_unique<SegmentLayer>(
+    num_led_, invert_led_order_, controller_frequency);
+  layers_[STATE] = std::make_unique<SegmentLayer>(
+    num_led_, invert_led_order_, controller_frequency);
 }
 
 LEDSegment::~LEDSegment()
 {
   // make sure that animations are destroyed before pluginlib loader
   animation_.reset();
-  // default_animation_.reset();
   animation_loader_.reset();
 }
 
@@ -80,8 +83,11 @@ void LEDSegment::SetAnimation(
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
 
   try {
-    layers_.at(layers_.size() - 1 - priority)
-      ->SetAnimation(type, animation_description, repeating, param);
+    if (priority < ERROR || priority > STATE) {
+      throw std::invalid_argument("Invalid priority value");
+    }
+    auto animationPriority = static_cast<AnimationPriority>(priority);
+    layers_.at(animationPriority)->SetAnimation(type, animation_description, repeating, param);
   } catch (std::out_of_range & e) {
     throw std::runtime_error(
       "Failed to set animation, out of range priority/layer: " + std::string(e.what()));
@@ -90,19 +96,30 @@ void LEDSegment::SetAnimation(
 
 void LEDSegment::UpdateAnimation()
 {
-  for (auto & layer : layers_) {
-    if (layer->HasAnimation()) {
-      layer->UpdateAnimation();
+  for (auto & [priority, layer] : layers_) {
+    if (layer && layer->HasAnimation()) {
+      try {
+        layer->UpdateAnimation();
+      } catch (const std::runtime_error & e) {
+        throw std::runtime_error("Failed to update animation: " + std::string(e.what()));
+      }
     }
   }
 }
 
 std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
 {
-  std::vector<std::uint8_t> output_frame(4 * num_led_, 0);
+  auto output_frame = MergeFrames();
+  return output_frame;
+}
 
-  for (auto & layer : layers_) {
-    if (layer->HasAnimation()) {
+std::vector<std::uint8_t> LEDSegment::MergeFrames() const
+{
+  std::vector<std::uint8_t> output_frame(4 * num_led_, 0);
+  for (auto it = layers_.rbegin(); it != layers_.rend();
+       ++it) {  // reverse the order of layers for merging
+    auto & [priority, layer] = *it;
+    if (layer && layer->HasAnimation()) {
       auto frame = layer->GetAnimationFrame();
       for (std::size_t i = 0; i < num_led_; i++) {
         for (std::size_t j = 0; j < 3; j++) {
@@ -113,7 +130,6 @@ std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
       }
     }
   }
-
   return output_frame;
 }
 
@@ -152,12 +168,9 @@ std::size_t LEDSegment::GetFirstLEDPosition() const
 
 bool LEDSegment::HasAnimation() const
 {
-  for (auto & layer : layers_) {
-    if (layer->HasAnimation()) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(layers_.begin(), layers_.end(), [](const auto & pair) {
+    return pair.second->HasAnimation();
+  });  // Can't capture structured bindings inside lambda in c++17 😔😔😔😔
 }
 
 }  // namespace husarion_ugv_lights

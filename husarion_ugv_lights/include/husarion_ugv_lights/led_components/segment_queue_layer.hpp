@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "yaml-cpp/yaml.h"
 
@@ -39,17 +38,15 @@ public:
   /**
    * @brief Parses basic parameters of the LED segment
    *
-   * @param segment_description YAML description of the segment. Must contain given keys:
-   * - led_range (string) - two numbers with hyphen in between, eg.: '0-45',
-   * - channel (int) - id of physical LED channel to which segment is assigned.
+   * @param num_led number of LEDs
+   * @param invert_led_order if true will invert the order of LEDs
    * @param controller_frequency frequency at which animation will be updated.
    *
    * @exception std::runtime_error or std::invalid_argument if missing required description key or
    * key couldn't be parsed
    */
-  SegmentQueueLayer(const YAML::Node & segment_description, const float controller_frequency);
-
-  ~SegmentQueueLayer();
+  SegmentQueueLayer(
+    const std::size_t num_led, const bool invert_led_order, const float controller_frequency);
 
   /**
    * @brief Overwrite current animation
@@ -63,7 +60,7 @@ public:
    */
   void SetAnimation(
     const std::string & type, const YAML::Node & animation_description, const bool repeating,
-    const std::string & param = "");
+    const std::string & param = "") override;
 
   /**
    * @brief Update animation frame
@@ -72,14 +69,7 @@ public:
    *
    * @exception std::runtime_error if fails to update animation
    */
-  void UpdateAnimation();
-
-  /**
-   * @brief Check if animation is finished. This does not return state of the default animation
-   *
-   * @return True if animation is finished, false otherwise
-   */
-  bool IsAnimationFinished() const { return animation_finished_; }
+  void UpdateAnimation() override;
 
   /**
    * @brief Get current animation frame
@@ -88,7 +78,7 @@ public:
    * animation is finished
    * @exception std::runtime_error if segment animation is not defined
    */
-  std::vector<std::uint8_t> GetAnimationFrame() const;
+  std::vector<std::uint8_t> GetAnimationFrame() const override;
 
   /**
    * @brief Get current animation progress
@@ -97,23 +87,21 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  float GetAnimationProgress() const;
+  float GetAnimationProgress() const override;
 
   /**
    * @brief Reset current animation
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  void ResetAnimation();
+  void ResetAnimation() override;
 
   /**
    * @brief Get current animation brightness
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  std::uint8_t GetAnimationBrightness() const;
-
-  std::size_t GetFirstLEDPosition() const;
+  std::uint8_t GetAnimationBrightness() const override;
 
 protected:
   std::deque<std::shared_ptr<husarion_ugv_lights::Animation>> animations_queue_;

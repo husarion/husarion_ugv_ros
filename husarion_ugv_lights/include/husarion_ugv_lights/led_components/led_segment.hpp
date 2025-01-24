@@ -20,15 +20,22 @@
 #include <rclcpp/time.hpp>
 #include <vector>
 
-#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "yaml-cpp/yaml.h"
 
 #include "pluginlib/class_loader.hpp"
 
 #include "husarion_ugv_lights/animation/animation.hpp"
+#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 
 namespace husarion_ugv_lights
 {
+
+enum AnimationPriority {
+  ERROR = 0,
+  ALERT,
+  BATTERY,
+  STATE,
+};
 
 /**
  * @brief Class that represents virtual LED segment of the robot
@@ -120,6 +127,13 @@ public:
   bool HasAnimation() const;
 
 protected:
+  /**
+   * @brief Merge all layers animations into one frame
+   *
+   * @return Merged frame
+   */
+  std::vector<std::uint8_t> MergeFrames() const;
+
   std::shared_ptr<husarion_ugv_lights::Animation> animation_;
 
 private:
@@ -130,7 +144,7 @@ private:
   std::size_t first_led_iterator_;
   std::size_t last_led_iterator_;
   std::size_t num_led_;
-  std::vector<std::unique_ptr<SegmentLayerInterface>> layers_;
+  std::map<AnimationPriority, std::unique_ptr<SegmentLayerInterface>> layers_;
 
   std::shared_ptr<pluginlib::ClassLoader<husarion_ugv_lights::Animation>> animation_loader_;
 };

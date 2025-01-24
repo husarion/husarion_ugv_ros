@@ -29,49 +29,14 @@ namespace husarion_ugv_lights
 {
 
 SegmentQueueLayer::SegmentQueueLayer(
-  const YAML::Node & segment_description, const float controller_frequency)
-: SegmentLayerInterface(segment_description, controller_frequency)
+  const std::size_t num_led, const bool invert_led_order, const float controller_frequency)
+: SegmentLayerInterface(num_led, invert_led_order, controller_frequency)
 {
-  channel_ = husarion_ugv_utils::GetYAMLKeyValue<std::size_t>(segment_description, "channel");
-  const auto led_range = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-    segment_description, "led_range");
-
-  const std::size_t split_char = led_range.find('-');
-
-  if (split_char == std::string::npos) {
-    throw std::invalid_argument("No '-' character found in the led_range expression.");
-  }
-
-  try {
-    first_led_iterator_ = std::stoi(led_range.substr(0, split_char));
-    last_led_iterator_ = std::stoi(led_range.substr(split_char + 1));
-
-    if (first_led_iterator_ > last_led_iterator_) {
-      invert_led_order_ = true;
-    }
-  } catch (const std::invalid_argument & e) {
-    throw std::invalid_argument("Error converting string to integer.");
-  }
-
-  num_led_ = std::abs(int(last_led_iterator_ - first_led_iterator_)) + 1;
-
-  animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
-    "husarion_ugv_lights", "husarion_ugv_lights::Animation");
-
-  // animations_queue_ = std::make_shared<LEDAnimationsQueue>(10);
-}
-
-SegmentQueueLayer::~SegmentQueueLayer()
-{
-  // make sure that animations are destroyed before pluginlib loader
-  animation_.reset();
-  // default_animation_.reset();
-  animation_loader_.reset();
 }
 
 void SegmentQueueLayer::SetAnimation(
-  const std::string & type, const YAML::Node & animation_description, const bool repeating,
-  const std::string & param)
+  const std::string & type, const YAML::Node & animation_description,
+  [[maybe_unused]] const bool repeating, const std::string & param)
 {
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
   try {
@@ -102,14 +67,6 @@ void SegmentQueueLayer::SetAnimation(
   }
 
   animation_finished_ = false;
-
-  // if (repeating) {
-  //   default_animation_ = animation_;
-  //   animation_finished_ = true;
-  // }
-  // if (default_animation_) {
-  //   default_animation_->Reset();
-  // }
 }
 
 void SegmentQueueLayer::UpdateAnimation()
@@ -179,11 +136,6 @@ std::uint8_t SegmentQueueLayer::GetAnimationBrightness() const
   }
 
   return animation_->GetBrightness();
-}
-
-std::size_t SegmentQueueLayer::GetFirstLEDPosition() const
-{
-  return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
 }
 
 }  // namespace husarion_ugv_lights

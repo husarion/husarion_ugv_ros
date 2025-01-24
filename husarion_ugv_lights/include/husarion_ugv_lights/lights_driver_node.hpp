@@ -26,7 +26,7 @@
 
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
-#include "lights_driver_parameters.hpp"
+#include <husarion_ugv_lights/lights_driver_parameters.hpp>
 
 #include "husarion_ugv_lights/apa102.hpp"
 

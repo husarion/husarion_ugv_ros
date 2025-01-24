@@ -110,7 +110,7 @@ protected:
   void HandleRobotDriverWriteOperation(std::function<void()> write_operation);
   virtual std::vector<float> GetSpeedCommands() const = 0;
 
-  void MotorsPowerEnable(const bool enable);
+  void MotorTorqueEnable(const bool enable);
 
   virtual void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;

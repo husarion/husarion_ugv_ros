@@ -54,17 +54,16 @@ def generate_launch_description():
     )
 
     robot_model = LaunchConfiguration("robot_model")
-    robot_description_pkg = PythonExpression(["'", robot_model, "_description'"])
-    robot_description_common_dir = PythonExpression(
+    description_pkg = FindPackageShare("husarion_ugv_description")
+    description_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
-            "/",
-            robot_description_pkg,
+            "/husarion_ugv_description",
             "' if '",
             common_dir_path,
             "' else '",
-            FindPackageShare(robot_description_pkg),
+            description_pkg,
             "'",
         ]
     )
@@ -89,9 +88,7 @@ def generate_launch_description():
     components_config_path = LaunchConfiguration("components_config_path")
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
-        default_value=PathJoinSubstitution(
-            [robot_description_common_dir, "config", "components.yaml"]
-        ),
+        default_value=PathJoinSubstitution([description_common_dir, "config", "components.yaml"]),
         description=(
             "Additional components configuration file. Components described in this file "
             "are dynamically included in robot's URDF."
@@ -156,11 +153,7 @@ def generate_launch_description():
     declare_wheel_config_path_arg = DeclareLaunchArgument(
         "wheel_config_path",
         default_value=PathJoinSubstitution(
-            [
-                FindPackageShare("husarion_ugv_description"),
-                "config",
-                PythonExpression(["'", wheel_type, ".yaml'"]),
-            ]
+            [description_pkg, "config", PythonExpression(["'", wheel_type, ".yaml'"])]
         ),
         description=(
             "Path to wheel configuration file. By default, it is located in "
@@ -193,9 +186,7 @@ def generate_launch_description():
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
-            PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_description"), "urdf", urdf_file]
-            ),
+            PathJoinSubstitution([description_pkg, "urdf", urdf_file]),
             " use_sim:=",
             use_sim,
             " wheel_config_file:=",
@@ -255,7 +246,7 @@ def generate_launch_description():
             ("hardware_controller/io_state", "hardware/io_state"),
             ("hardware_controller/led_control_enable", "hardware/led_control_enable"),
             ("hardware_controller/robot_driver_state", "hardware/robot_driver_state"),
-            ("hardware_controller/motor_power_enable", "hardware/motor_power_enable"),
+            ("hardware_controller/motor_torque_enable", "hardware/motor_torque_enable"),
             ("imu_broadcaster/imu", "imu/data"),
             ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
             (

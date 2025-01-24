@@ -48,8 +48,10 @@ LightsManagerNode::LightsManagerNode(
   battery_percent_ma_ = std::make_unique<husarion_ugv_utils::MovingAverage<double>>(
     battery_percent_window_len, 1.0);
 
+  const auto bt_server_port = this->get_parameter("bt_server_port").as_int();
   const auto initial_blackboard = CreateLightsInitialBlackboard();
-  lights_tree_manager_ = std::make_unique<BehaviorTreeManager>("Lights", initial_blackboard, 5555);
+  lights_tree_manager_ = std::make_unique<BehaviorTreeManager>(
+    "Lights", initial_blackboard, bt_server_port);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -70,11 +72,10 @@ void LightsManagerNode::Initialize()
     std::bind(&LightsManagerNode::EStopCB, this, _1));
 
   const double timer_freq = this->params_.timer_frequency;
-  const auto timer_period_ms =
-    std::chrono::milliseconds(static_cast<unsigned>(1.0f / timer_freq * 1000));
+  const auto timer_period = std::chrono::duration<double>(1.0 / timer_freq);
 
   lights_tree_timer_ = this->create_wall_timer(
-    timer_period_ms, std::bind(&LightsManagerNode::LightsTreeTimerCB, this));
+    timer_period, std::bind(&LightsManagerNode::LightsTreeTimerCB, this));
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
@@ -91,16 +92,17 @@ void LightsManagerNode::RegisterBehaviorTree()
 
   BT::RosNodeParams params;
   params.nh = this->shared_from_this();
+  auto wait_for_server_timeout_s = std::chrono::duration<double>(service_availability_timeout);
   params.wait_for_server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_availability_timeout * 1000));
-  params.server_timeout =
-    std::chrono::milliseconds(static_cast<int>(service_response_timeout * 1000));
+    std::chrono::duration_cast<std::chrono::milliseconds>(wait_for_server_timeout_s);
+  auto server_timeout_s = std::chrono::duration<double>(service_response_timeout);
+  params.server_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(server_timeout_s);
 
   behavior_tree_utils::RegisterBehaviorTree(
     factory_, bt_project_path, plugin_libs, params, ros_plugin_libs);
 
-  RCLCPP_INFO(
-    this->get_logger(), "BehaviorTree registered from path '%s'", bt_project_path.c_str());
+  RCLCPP_INFO_STREAM(
+    this->get_logger(), "BehaviorTree registered from path '" << bt_project_path << "'");
 }
 
 std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard()
@@ -144,7 +146,6 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"POWER_SUPPLY_STATUS_FULL", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_FULL)},
     // battery health constants
     {"POWER_SUPPLY_HEALTH_OVERHEAT", unsigned(BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT)},
-
   };
 
   RCLCPP_INFO(this->get_logger(), "Blackboard created.");

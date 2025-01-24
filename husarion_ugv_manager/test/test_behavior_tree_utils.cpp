@@ -26,6 +26,8 @@
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
 
+#include "geometry_msgs/msg/pose_stamped.hpp"
+
 #include "husarion_ugv_manager/behavior_tree_utils.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
 
@@ -119,6 +121,61 @@ TEST_F(TestRegisterBT, RegisterBehaviorTreeROS)
   EXPECT_TRUE(std::find(trees.begin(), trees.end(), "TestTree") != trees.end());
 
   rclcpp::shutdown();
+}
+
+TEST(TestConvertFromStringPoseStamped, GoodInput)
+{
+  constexpr double time_threshold = 0.1;
+  constexpr float epsilon = 1e-3;
+
+  auto str = "1;2;3;0.1;0.2;0.1;pose";
+  auto result = BT::convertFromString<geometry_msgs::msg::PoseStamped>(str);
+
+  auto time_diff = rclcpp::Clock().now() - rclcpp::Time(result.header.stamp, RCL_SYSTEM_TIME);
+  EXPECT_LE(time_diff.seconds(), time_threshold);
+  EXPECT_EQ(result.header.frame_id, "pose");
+
+  EXPECT_NEAR(result.pose.position.x, 1, epsilon);
+  EXPECT_NEAR(result.pose.position.y, 2, epsilon);
+  EXPECT_NEAR(result.pose.position.z, 3, epsilon);
+
+  EXPECT_NEAR(result.pose.orientation.x, 0.0447, epsilon);
+  EXPECT_NEAR(result.pose.orientation.y, 0.1021, epsilon);
+  EXPECT_NEAR(result.pose.orientation.z, 0.0447, epsilon);
+  EXPECT_NEAR(result.pose.orientation.w, 0.9928, epsilon);
+}
+
+TEST(TestConvertFromStringPoseStamped, WrongInput)
+{
+  auto str = "";
+  EXPECT_THROW(BT::convertFromString<geometry_msgs::msg::PoseStamped>(str), BT::RuntimeError);
+  str = "1;2;3;0.1;0.2;0.1;";
+  EXPECT_THROW(BT::convertFromString<geometry_msgs::msg::PoseStamped>(str), BT::RuntimeError);
+  str = "1;2;3;0.1;0.2;0.1;pose;0.1";
+  EXPECT_THROW(BT::convertFromString<geometry_msgs::msg::PoseStamped>(str), BT::RuntimeError);
+  str = "pose;1;2;3;0.1;0.2;0.1;";
+  EXPECT_THROW(BT::convertFromString<geometry_msgs::msg::PoseStamped>(str), BT::RuntimeError);
+}
+
+TEST(TestConvertFromStringVectorOfDouble, GoodInput)
+{
+  constexpr float epsilon = 1e-6;
+
+  auto str = "1;2;3;0.1;0.2;0.1";
+  auto result = BT::convertFromString<std::vector<float>>(str);
+
+  EXPECT_NEAR(result[0], 1, epsilon);
+  EXPECT_NEAR(result[1], 2, epsilon);
+  EXPECT_NEAR(result[2], 3, epsilon);
+  EXPECT_NEAR(result[3], 0.1, epsilon);
+  EXPECT_NEAR(result[4], 0.2, epsilon);
+  EXPECT_NEAR(result[5], 0.1, epsilon);
+}
+
+TEST(TestConvertFromStringVectorOfFloat, WrongInput)
+{
+  auto str = "1;2;3;0.1;a;0.2";
+  EXPECT_THROW(BT::convertFromString<std::vector<float>>(str), std::invalid_argument);
 }
 
 int main(int argc, char ** argv)

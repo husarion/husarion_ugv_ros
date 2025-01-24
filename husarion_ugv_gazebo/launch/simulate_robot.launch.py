@@ -115,10 +115,9 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "add_wheel_joints": "False",
-            "log_level": log_level,
             "namespace": namespace,
             "robot_model": robot_model,
+            "log_level": log_level,
         }.items(),
     )
 

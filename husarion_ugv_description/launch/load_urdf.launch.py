@@ -19,7 +19,6 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
     EnvironmentVariable,
@@ -33,15 +32,6 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    add_wheel_joints = LaunchConfiguration("add_wheel_joints")
-    declared_add_wheel_joints_arg = DeclareLaunchArgument(
-        "add_wheel_joints",
-        default_value="True",
-        description="Flag enabling joint_state_publisher to publish information about the wheel "
-        "position. Should be false when there is a controller that sends this information.",
-        choices=["True", "true", "False", "false"],
-    )
-
     battery_config_path = LaunchConfiguration("battery_config_path")
     declare_battery_config_path_arg = DeclareLaunchArgument(
         "battery_config_path",
@@ -183,16 +173,7 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    joint_state_publisher_node = Node(
-        package="joint_state_publisher",
-        executable="joint_state_publisher",
-        namespace=namespace,
-        emulate_tty=True,
-        condition=IfCondition(add_wheel_joints),
-    )
-
     actions = [
-        declared_add_wheel_joints_arg,
         declare_battery_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
@@ -203,7 +184,6 @@ def generate_launch_description():
         declare_wheel_config_path_arg,
         SetParameter(name="use_sim_time", value=use_sim),
         robot_state_pub_node,
-        joint_state_publisher_node,  # do not publish, when use_sim is true
     ]
 
     return LaunchDescription(actions)

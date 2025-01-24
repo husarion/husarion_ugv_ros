@@ -17,8 +17,13 @@
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration
+from launch.substitutions import (
+    EnvironmentVariable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+)
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -37,10 +42,20 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
+    battery_config_path = LaunchConfiguration("battery_config_path")
+    declare_battery_config_path_arg = DeclareLaunchArgument(
+        "battery_config_path",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("husarion_ugv_battery"), "config", "battery.yaml"]
+        ),
+        description="Specify the path to the system monitor configuration file.",
+    )
+
     battery_driver_node = Node(
         package="husarion_ugv_battery",
         executable="battery_driver_node",
         name="battery_driver",
+        parameters=[battery_config_path],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
         arguments=[
@@ -56,6 +71,7 @@ def generate_launch_description():
     actions = [
         declare_log_level_arg,
         declare_namespace_arg,
+        declare_battery_config_path_arg,
         battery_driver_node,
     ]
 

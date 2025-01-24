@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 project(husarion_ugv_battery)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -31,12 +31,12 @@ add_executable(
   src/battery_publisher/single_battery_publisher.cpp)
 ament_target_dependencies(battery_driver_node ${PACKAGE_DEPENDENCIES})
 
-generate_parameter_library(battery_parameters config/battery_parameters.yaml)
+generate_parameter_library(battery_parameters src/battery_parameters.yaml)
 target_link_libraries(battery_driver_node battery_parameters)
 
 install(TARGETS battery_driver_node DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -173,5 +173,7 @@ if(BUILD_TESTING)
                         battery_parameters)
 
 endif()
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 
 ament_package()

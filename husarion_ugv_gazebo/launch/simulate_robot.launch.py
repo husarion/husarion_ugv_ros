@@ -88,7 +88,8 @@ def generate_launch_description():
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
-        default_value="info",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
         description="Logging level",
     )
 

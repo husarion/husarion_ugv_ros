@@ -4,11 +4,19 @@ name: Build Docker
 on:
   workflow_call:
     inputs:
+      branch_name:
+        description: Tag used in the docker image (branch/tag/commit).
+        required: true
+        type: string
+        default: ros2-devel
       build_type:
         description: Is it a "development" or a "stable" release?
         required: true
-        type: string
+        type: choice
         default: development
+        options:
+          - development
+          - stable
       target_distro:
         description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
           humble)
@@ -76,6 +84,7 @@ jobs:
           main_branch_name: ros2
           dockerfile: ${{ matrix.dockerfile }}
           repo_name: ${{ matrix.repo_name }}
+          branch_name: ${{ inputs.branch_name }}
           build_type: ${{ inputs.build_type }}
           ros_distro: ${{ matrix.ros_distro }}
           platforms: ${{ matrix.platforms }}

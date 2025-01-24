@@ -16,7 +16,7 @@ ROS 2 packages for Husarion UGV (Unmanned Ground Vehicle). The repository is a c
 ```bash
 mkdir ~/husarion_ws
 cd ~/husarion_ws
-git clone -b ros2 https://github.com/husarion/panther_ros.git src/husarion_ugv
+git clone -b ros2 https://github.com/husarion/panther_ros.git src/husarion_ugv_ros
 ```
 
 ### Configure environment
@@ -38,9 +38,8 @@ export HUSARION_ROS_BUILD_TYPE=simulation
 ### Build
 
 ``` bash
-vcs import src < src/husarion_ugv/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos
+vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos
 
-cp -r src/ros2_controllers/diff_drive_controller src
 cp -r src/ros2_controllers/imu_sensor_broadcaster src
 rm -rf src/ros2_controllers
 
@@ -49,7 +48,7 @@ rosdep update --rosdistro $ROS_DISTRO
 rosdep install --from-paths src -y -i
 
 source /opt/ros/$ROS_DISTRO/setup.bash
-colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 
 source install/setup.bash
 ```

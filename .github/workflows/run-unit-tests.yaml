@@ -40,3 +40,22 @@ jobs:
                 "packages-up-to": ["husarion_ugv"]
               }
             }
+
+        continue-on-error: true
+
+      - name: Retry Build and test (if failed)
+        if: steps.build_test_1.outcome == 'failure'
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"]
+              }
+            }

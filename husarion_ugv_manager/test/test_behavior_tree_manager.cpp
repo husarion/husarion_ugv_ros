@@ -23,7 +23,6 @@
 #include "gtest/gtest.h"
 
 #include "behaviortree_cpp/tree_node.h"
-#include "rclcpp/rclcpp.hpp"
 
 #include "husarion_ugv_manager/behavior_tree_manager.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
@@ -134,5 +133,8 @@ TEST_F(TestBehaviorTreeManager, Initialize)
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+
+  auto run_tests = RUN_ALL_TESTS();
+
+  return run_tests;
 }

@@ -73,7 +73,7 @@ if(BUILD_TESTING)
                             ${PACKAGE_DEPENDENCIES})
 
   # Integration tests
-  option(TEST_INTEGRATION "Run integration tests" ON)
+  option(TEST_INTEGRATION "Run integration tests" OFF)
   if(TEST_INTEGRATION)
     add_ros_test(test/integration/system_monitor_node.test.py)
   endif()

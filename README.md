@@ -115,7 +115,7 @@ Launch arguments are largely common to both simulation and physical robot. Howev
 | ✅   | ✅   | `wheel_config_path`          | Path to wheel configuration file. <br/> ***string:*** [`{wheel_type}.yaml`](./husarion_ugv_description/config)                                                                                                                                                                                                          |
 | ✅   | ✅   | `wheel_type`                 | Specify the wheel type. If the selected wheel type is not 'custom', the wheel_config_path and controller_config_path arguments will be automatically adjusted and can be omitted. <br/> ***string:*** `WH01` (for Panther), `WH05` (for Lynx) (choices: `WH01`, `WH02`, `WH04`, `WH05`, `custom`)                  |
 | ❌   | ✅   | `x`                          | Initial robot position in the global 'x' axis. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                            |
-| ❌   | ✅   | `y`                          | Initial robot position in the global 'y' axis. <br/> ***float:***` -2.0`                                                                                                                                                                                                                                           |
+| ❌   | ✅   | `y`                          | Initial robot position in the global 'y' axis. <br/> ***float:*** `-2.0`                                                                                                                                                                                                                                           |
 | ❌   | ✅   | `z`                          | Initial robot position in the global 'z' axis. <br/> ***float:*** `0.2`                                                                                                                                                                                                                                            |
 | ❌   | ✅   | `roll`                       | Initial robot 'roll' orientation. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                                         |
 | ❌   | ✅   | `pitch`                      | Initial robot 'pitch' orientation. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                                        |
@@ -137,7 +137,16 @@ pre-commit install
 
 ### Unit testing
 
+#### Running on laptop
+
 ```bash
 colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF
+colcon test --packages-up-to husarion_ugv
+```
+
+#### Running on the Built-In Computer
+
+```bash
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=ON
 colcon test --packages-up-to husarion_ugv
 ```

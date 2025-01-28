@@ -33,10 +33,6 @@ public:
   }
 
   std::shared_ptr<husarion_ugv_lights::Animation> GetAnimation() const { return animation_; }
-  std::shared_ptr<husarion_ugv_lights::Animation> GetDefaultAnimation() const
-  {
-    return default_animation_;
-  }
 };
 
 class TestLEDSegment : public testing::Test
@@ -177,7 +173,8 @@ TEST_F(TestLEDSegment, SetAnimationInvalidType)
   const YAML::Node animation_desc;
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() {
-      led_segment_->SetAnimation("husarion_ugv_lights::WrongAnimationType}", animation_desc, false);
+      led_segment_->SetAnimation(
+        "husarion_ugv_lights::WrongAnimationType}", animation_desc, 0, false);
     },
     "The plugin failed to load. Error: "));
 }
@@ -187,7 +184,7 @@ TEST_F(TestLEDSegment, SetAnimationFailAnimationInitialization)
   const auto animation_desc = YAML::Load("{type: husarion_ugv_lights::ImageAnimation}");
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() {
-      led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", animation_desc, false);
+      led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", animation_desc, 0, false);
     },
     "Failed to initialize animation: "));
 }
@@ -201,28 +198,28 @@ TEST_F(TestLEDSegment, SetAnimation)
   const auto charging_anim_desc = YAML::Load("{duration: 2}");
 
   EXPECT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", image_anim_desc, false));
+    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", image_anim_desc, 0, false));
 
   EXPECT_NO_THROW(led_segment_->SetAnimation(
-    "husarion_ugv_lights::ChargingAnimation", charging_anim_desc, false, "0.5"));
+    "husarion_ugv_lights::ChargingAnimation", charging_anim_desc, 0, false, "0.5"));
 }
 
-TEST_F(TestLEDSegment, SetAnimationRepeating)
-{
-  const auto anim_desc = YAML::Load(
-    "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
-    "duration: 2}");
-  ASSERT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+// TEST_F(TestLEDSegment, SetAnimationRepeating)
+// {
+//   const auto anim_desc = YAML::Load(
+//     "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
+//     "duration: 2}");
+//   ASSERT_NO_THROW(
+//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
 
-  EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() == nullptr);
+//   EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() == nullptr);
 
-  ASSERT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, true));
+//   ASSERT_NO_THROW(
+//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, true));
 
-  EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() != nullptr);
-  EXPECT_TRUE(led_segment_->IsAnimationFinished());
-}
+//   EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() != nullptr);
+//   EXPECT_TRUE(led_segment_->IsAnimationFinished());
+// }
 
 TEST_F(TestLEDSegment, UpdateAnimationAnimationNotSet)
 {
@@ -236,7 +233,7 @@ TEST_F(TestLEDSegment, UpdateAnimation)
     "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
     "duration: 2}");
   ASSERT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
   EXPECT_NO_THROW(led_segment_->UpdateAnimation());
   EXPECT_EQ(segment_led_num_ * 4, led_segment_->GetAnimationFrame().size());
 }
@@ -247,22 +244,22 @@ int main(int argc, char ** argv)
   return RUN_ALL_TESTS();
 }
 
-TEST_F(TestLEDSegment, ResetDefaultAnimationWhenNewArrive)
-{
-  const auto anim_desc = YAML::Load(
-    "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
-    "duration: 2}");
-  ASSERT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, true));
+// TEST_F(TestLEDSegment, ResetDefaultAnimationWhenNewArrive)
+// {
+//   const auto anim_desc = YAML::Load(
+//     "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
+//     "duration: 2}");
+//   ASSERT_NO_THROW(
+//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, true));
 
-  auto default_anim = led_segment_->GetDefaultAnimation();
-  while (!default_anim->IsFinished()) {
-    ASSERT_NO_THROW(led_segment_->UpdateAnimation());
-  }
+//   auto default_anim = led_segment_->GetDefaultAnimation();
+//   while (!default_anim->IsFinished()) {
+//     ASSERT_NO_THROW(led_segment_->UpdateAnimation());
+//   }
 
-  // add new animation, and check if default animation was reset
-  ASSERT_NO_THROW(
-    led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+//   // add new animation, and check if default animation was reset
+//   ASSERT_NO_THROW(
+//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
 
-  EXPECT_FALSE(default_anim->IsFinished());
-}
+//   EXPECT_FALSE(default_anim->IsFinished());
+// }

@@ -73,7 +73,7 @@ void TestLEDAnimation::SetSegmentAnimations()
   for (auto & animation : animations) {
     for (auto & segment : animation.segments) {
       segments_.at(segment)->SetAnimation(
-        animation.type, animation.animation, led_anim_->IsRepeating(), led_anim_->GetParam());
+        animation.type, animation.animation, 0, led_anim_->IsRepeating(), led_anim_->GetParam());
     }
   }
 }

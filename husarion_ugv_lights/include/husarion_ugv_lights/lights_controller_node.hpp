@@ -133,8 +133,6 @@ protected:
    */
   void SetLEDAnimation(const std::shared_ptr<LEDAnimation> & led_animation);
 
-  // std::shared_ptr<LEDAnimation> current_animation_;
-
 private:
   void PublishPanelFrame(const std::size_t channel);
   void SetLEDAnimationCB(

@@ -233,7 +233,7 @@ def generate_launch_description():
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
-            ("drive_controller/cmd_vel_unstamped", "cmd_vel"),
+            ("drive_controller/cmd_vel", "cmd_vel"),
             ("drive_controller/odom", "odometry/wheels"),
             ("drive_controller/transition_event", "_drive_controller/transition_event"),
             ("hardware_controller/aux_power_enable", "hardware/aux_power_enable"),

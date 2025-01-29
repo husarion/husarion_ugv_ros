@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 project(husarion_ugv_utils)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -18,7 +18,7 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -73,8 +73,9 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_yaml_utils yaml-cpp)
 endif()
 
-ament_export_include_directories(include)
-ament_export_dependencies(realtime_tools)
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+
 ament_python_install_package(${PROJECT_NAME})
 
 ament_package()

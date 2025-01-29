@@ -55,6 +55,7 @@ void EStop::TriggerEStop()
 
 void EStop::ResetEStop()
 {
+  robot_driver_->TurnOffEStop();
   if (e_stop_manipulation_mtx_.try_lock()) {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
 

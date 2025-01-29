@@ -26,28 +26,41 @@ on:
         description: Mark the release as a prerelease.
 
 env:
-  RC_BRANCH_NAME: ${{ github.event.inputs.version }}-${{ github.event.inputs.date }}
+  RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
   MAIN_BRANCH: ros2
 
 jobs:
+  release_repository:
+    name: Release repository
+    uses: ./.github/workflows/release-repository.yaml
+    with:
+      release_candidate: ${{ env.RC_BRANCH_NAME }}
+      version: ${{ inputs.version }}
+      release_name: ${{ inputs.release_name }}
+      automatic_mode: ${{ inputs.automatic_mode }}
+      prerelease: ${{ inputs.prerelease }}
+
+  build_docker:
+    name: Build Docker
+    needs: release_repository
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: development
+
+  tag_docker_as_stable:
+    name: Tag Docker as stable
+    needs: build_docker
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: stable
+      target_distro: humble
+      target_release: ${{ inputs.version }}
+      target_date: ${{ inputs.date }}
+
   release_project:
     name: Release project
     runs-on: ubuntu-22.04
     steps:
-      - name: Release repository
-        uses: ./.github/workflows/release-repository.yaml
-        with:
-          release_candidate: ${{ env.RC_BRANCH_NAME }}
-          version: ${{ github.event.inputs.version }}
-          release_name: ${{ github.event.inputs.release_name }}
-          automatic_mode: ${{ github.event.inputs.automatic_mode }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-
-      - name: Build Docker with new version
-        uses: ./.github/workflows/build-docker.yaml
-        with:
-          build_type: development
-
       - name: Release panther-rpi-os-img repository
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
@@ -59,14 +72,14 @@ jobs:
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
+              "version": "${{ inputs.version }}",
+              "release_name": "${{ inputs.release_name }}",
+              "automatic_mode": "${{ inputs.automatic_mode }}",
+              "prerelease": "${{ inputs.prerelease }}"
             }
 
       - name: Build OS image
-        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
@@ -77,12 +90,12 @@ jobs:
           client_payload: |
             {
               "dev_image": "false",
-              "husarion_ugv_version": "${{ github.event.inputs.version }}",
-              "image_tag": "${{ github.event.inputs.version }}"
+              "husarion_ugv_version": "${{ inputs.version }}",
+              "image_tag": "${{ inputs.version }}"
             }
 
       - name: Build flash OS image
-        if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
+        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
@@ -92,9 +105,13 @@ jobs:
           ref: ${{ env.MAIN_BRANCH }}
           client_payload: |
             {
-              "image_tag": "${{ github.event.inputs.version }}"
+              "image_tag": "${{ inputs.version }}"
             }
 
+  docs:
+    name: Docs
+    runs-on: ubuntu-22.04
+    steps:
       - name: Rebuild documentation
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:

@@ -62,27 +62,27 @@ Rectangle {
     anchors.topMargin: 10
     anchors.horizontalCenter: widgetRectangle.horizontalCenter
     checkable: true
-    checked: false
+    checked: EStop.checked
     width: 100
     height: 100
     contentItem: Rectangle {
       width: parent.width
       height: parent.height
       radius: 50
-      color: eStopButton.checked ? "#d70000" : "#66b849"
+      color: EStop.e_stop ? "#66b849" : "#d70000"
       border.width: 2
       border.color: "#909090"
 
       Text {
         anchors.centerIn: parent
-        text: eStopButton.checked ? "STOP" : "GO"
+        text: EStop.e_stop ? "GO" : "STOP"
         font.bold: true
         color: "white"
         font.pixelSize: 24
       }
     }
     onPressed: {
-      EStop.ButtonPressed(eStopButton.checked);
+      EStop.ButtonPressed(EStop.e_stop);
     }
   }
 }

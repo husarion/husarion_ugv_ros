@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.conditions import UnlessCondition
@@ -58,6 +59,14 @@ def generate_launch_description():
         "animations_config_path",
         default_value=PathJoinSubstitution([husarion_ugv_lights_pkg, "config", animations_config]),
         description="Path to a YAML file with a description of led configuration.",
+    )
+
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
     )
 
     namespace = LaunchConfiguration("namespace")
@@ -124,6 +133,15 @@ def generate_launch_description():
                 ],
             ),
         ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+            "--log-level",
+            limit_log_level_to_info("pluginlib.ClassLoader", log_level),
+        ],
         emulate_tty=True,
         on_exit=Shutdown(),
     )
@@ -132,6 +150,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_user_led_animations_path_arg,

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 project(husarion_ugv_gazebo)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -44,7 +44,7 @@ qt5_add_resources(resources_rcc src/gui/EStop.qrc)
 
 add_library(EStop SHARED include/husarion_ugv_gazebo/gui/e_stop.hpp
                          src/gui/e_stop.cpp ${resources_rcc})
-ament_target_dependencies(EStop rclcpp std_srvs)
+ament_target_dependencies(EStop rclcpp std_msgs std_srvs)
 target_link_libraries(
   EStop
   gz-sim8
@@ -59,22 +59,13 @@ ament_target_dependencies(LEDStrip realtime_tools)
 target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2 gz-transport13)
 
 install(
-  TARGETS estop_system
+  TARGETS estop_system EStop LEDStrip
+  EXPORT export_${PROJECT_NAME}
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
-install(
-  TARGETS EStop
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
-
-install(
-  TARGETS LEDStrip
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 
@@ -83,10 +74,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_include_directories(include)
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/setup_envs.sh.in")
+
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 pluginlib_export_plugin_description_file(gz_ros2_control plugins.xml)
-
-ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/setup_envs.sh.in")
 
 ament_package()

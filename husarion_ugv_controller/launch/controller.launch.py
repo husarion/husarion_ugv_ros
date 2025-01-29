@@ -17,6 +17,7 @@
 
 import os
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.conditions import IfCondition, UnlessCondition
@@ -114,6 +115,14 @@ def generate_launch_description():
         ),
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -198,6 +207,25 @@ def generate_launch_description():
     )
     robot_description = {"robot_description": robot_description_content}
 
+    joint_state_broadcaster_log_unit = PythonExpression(
+        [
+            "'",
+            namespace,
+            "' + '.joint_state_broadcaster' if '",
+            namespace,
+            "' else 'joint_state_broadcaster'",
+        ]
+    )
+    controller_manager_log_unit = PythonExpression(
+        [
+            "'",
+            namespace,
+            "' + '.controller_manager' if '",
+            namespace,
+            "' else 'controller_manager'",
+        ]
+    )
+
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -205,7 +233,7 @@ def generate_launch_description():
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
-            ("drive_controller/cmd_vel_unstamped", "cmd_vel"),
+            ("drive_controller/cmd_vel", "cmd_vel"),
             ("drive_controller/odom", "odometry/wheels"),
             ("drive_controller/transition_event", "_drive_controller/transition_event"),
             ("hardware_controller/aux_power_enable", "hardware/aux_power_enable"),
@@ -218,13 +246,26 @@ def generate_launch_description():
             ("hardware_controller/io_state", "hardware/io_state"),
             ("hardware_controller/led_control_enable", "hardware/led_control_enable"),
             ("hardware_controller/robot_driver_state", "hardware/robot_driver_state"),
-            ("hardware_controller/motor_power_enable", "hardware/motor_power_enable"),
+            ("hardware_controller/motor_torque_enable", "hardware/motor_torque_enable"),
             ("imu_broadcaster/imu", "imu/data"),
             ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
             (
                 "joint_state_broadcaster/transition_event",
                 "_joint_state_broadcaster/transition_event",
             ),
+        ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+            "--log-level",
+            limit_log_level_to_info("pluginlib.ClassLoader", log_level),
+            "--log-level",
+            limit_log_level_to_info(joint_state_broadcaster_log_unit, log_level),
+            "--log-level",
+            limit_log_level_to_info(controller_manager_log_unit, log_level),
         ],
         condition=UnlessCondition(use_sim),
         emulate_tty=True,
@@ -250,6 +291,11 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -286,6 +332,11 @@ def generate_launch_description():
             "controller_manager",
             "--controller-manager-timeout",
             "10",
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
         emulate_tty=True,
@@ -311,6 +362,7 @@ def generate_launch_description():
         declare_publish_robot_state_arg,
         declare_use_sim_arg,
         declare_wheel_config_path_arg,
+        declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
         control_node,
         robot_state_pub_node,

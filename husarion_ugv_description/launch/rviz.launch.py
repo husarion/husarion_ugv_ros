@@ -54,7 +54,7 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    ns_ext = PythonExpression(["'' if '", namespace, "' else '", namespace, "' + '/'"])
+    ns_ext = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
 
     rviz_config = ReplaceString(
         source_file=rviz_config,

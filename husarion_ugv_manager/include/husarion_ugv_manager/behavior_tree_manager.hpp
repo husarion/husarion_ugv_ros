@@ -22,7 +22,6 @@
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/loggers/groot2_publisher.h"
-#include "rclcpp/rclcpp.hpp"
 
 namespace husarion_ugv_manager
 {

@@ -39,6 +39,7 @@
       imu0_remove_gravitational_acceleration: false
 
       use_control: true
+      stamped_control: true
       control_timeout: 0.5
       control_config: [true, true, false, false, false, true]
       acceleration_limits: [2.7, 1.5, 0.0, 0.0, 0.0, 5.7] # Values taken from WH01_controller.yaml and WH02_controller.yaml inside husarion_ugv_controller/config

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import (
@@ -26,6 +27,14 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -49,10 +58,18 @@ def generate_launch_description():
         parameters=[battery_config_path],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+        ],
         emulate_tty=True,
     )
 
     actions = [
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_battery_config_path_arg,
         battery_driver_node,

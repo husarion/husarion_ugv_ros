@@ -39,6 +39,14 @@ def generate_launch_description():
         description="Run simulation with specific GUI layout.",
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -91,10 +99,12 @@ def generate_launch_description():
                 ]
             )
         ),
+        launch_arguments={"log_level": log_level}.items(),
     )
 
     actions = [
         declare_gz_gui,
+        declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,
         # Sets use_sim_time for all nodes started below (doesn't work for nodes started from ignition gazebo)

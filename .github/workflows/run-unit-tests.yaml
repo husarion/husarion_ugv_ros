@@ -1,0 +1,62 @@
+---
+name: Run unit tests
+
+on:
+  push:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Run unit tests ${{ matrix.build_type }} build type
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        build_type: [simulation, hardware]
+
+    env:
+      HUSARION_ROS_BUILD_TYPE: ${{ matrix.build_type }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: ros-tooling/setup-ros@v0.7
+        with:
+          use-ros2-testing: true
+
+      - name: Build and test
+        uses: ros-tooling/action-ros-ci@v0.3
+        id: build_test_1
+        with:
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"]
+              }
+            }
+
+        continue-on-error: true
+
+      - name: Retry Build and test (if failed)
+        if: steps.build_test_1.outcome == 'failure'
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"]
+              }
+            }

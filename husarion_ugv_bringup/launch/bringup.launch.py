@@ -44,6 +44,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    log_level = LaunchConfiguration("log_level")
+    declare_log_level_arg = DeclareLaunchArgument(
+        "log_level",
+        default_value="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        description="Logging level",
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -62,7 +70,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_controller"), "launch", "controller.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
     )
 
     system_monitor_launch = IncludeLaunchDescription(
@@ -75,7 +87,7 @@ def generate_launch_description():
                 ]
             ),
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
     )
 
     lights_launch = IncludeLaunchDescription(
@@ -84,7 +96,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_lights"), "launch", "lights.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
     )
 
     battery_launch = IncludeLaunchDescription(
@@ -93,7 +109,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_battery"), "launch", "battery.launch.py"]
             ),
         ),
-        launch_arguments={"namespace": namespace}.items(),
+        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
     )
 
     ekf_launch = IncludeLaunchDescription(
@@ -102,7 +118,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_localization"), "launch", "localization.launch.py"]
             )
         ),
-        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -112,7 +132,11 @@ def generate_launch_description():
             )
         ),
         condition=UnlessCondition(disable_manager),
-        launch_arguments={"namespace": namespace, "common_dir_path": common_dir_path}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            "common_dir_path": common_dir_path,
+        }.items(),
     )
 
     delayed_action = TimerAction(
@@ -128,6 +152,7 @@ def generate_launch_description():
     actions = [
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,
         controller_launch,

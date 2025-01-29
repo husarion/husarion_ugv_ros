@@ -125,11 +125,20 @@ void PantherSystem::UpdateFlagErrors()
   const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
   const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
   if (front_driver_data.IsFlagError() || rear_driver_data.IsFlagError()) {
-    RCLCPP_WARN_STREAM_THROTTLE(
-      logger_, steady_clock_, 1000,
-      "Error state on one of the drivers:\n"
-        << "\tFront: " << front_driver_data.GetFlagErrorLog()
-        << "\tRear: " << rear_driver_data.GetFlagErrorLog());
+    if (front_driver_data.IsFlagError()) {
+      RCLCPP_WARN_STREAM_THROTTLE(
+        logger_, steady_clock_, 1000,
+        "Front driver in error state:\n"
+          << front_driver_data.GetFlagErrorLog());
+    }
+
+    if (rear_driver_data.IsFlagError()) {
+      RCLCPP_WARN_STREAM_THROTTLE(
+        logger_, steady_clock_, 1000,
+        "Rear driver in error state:\n"
+          << rear_driver_data.GetFlagErrorLog());
+    }
+
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true);
 
     HandleRobotDriverWriteOperation([this] { robot_driver_->AttemptErrorFlagReset(); });

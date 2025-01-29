@@ -36,8 +36,9 @@ namespace husarion_ugv_battery
 {
 
 BatteryDriverNode::BatteryDriverNode(
-  const std::string & node_name, const rclcpp::NodeOptions & options)
-: Node(node_name, options), diagnostic_updater_(std::make_shared<diagnostic_updater::Updater>(this))
+  const std::string & node_name, const std::string & ns, const rclcpp::NodeOptions & options)
+: Node(node_name, ns, options),
+  diagnostic_updater_(std::make_shared<diagnostic_updater::Updater>(this))
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 

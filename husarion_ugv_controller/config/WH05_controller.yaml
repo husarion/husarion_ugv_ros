@@ -34,7 +34,7 @@
 
       # For skid drive kinematics it will act as ICR coefficient, kinematic model with ICR
       # coefficient isn't totally accurate and this coefficient can differ for various ground types
-      wheel_separation_multiplier: 1.5
+      wheel_separation_multiplier: 1.37
 
       left_wheel_radius_multiplier: 1.0
       right_wheel_radius_multiplier: 1.0

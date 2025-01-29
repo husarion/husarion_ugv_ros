@@ -65,8 +65,8 @@
           min_velocity: -1.5 # m/s
           max_acceleration: 2.1 # m/s^2
           max_deceleration: -2.1 # m/s^2
-          max_acceleration_reverse: 2.1 # m/s^2
-          max_deceleration_reverse: -2.1 # m/s^2
+          max_acceleration_reverse: -2.1 # m/s^2
+          max_deceleration_reverse: 2.1 # m/s^2
           max_jerk: .NAN # m/s^3
           min_jerk: .NAN # m/s^3
 
@@ -76,7 +76,7 @@
           min_velocity: -4.0 # rad/s
           max_acceleration: 5.74 # rad/s^2
           max_deceleration: -5.74 # rad/s^2
-          max_acceleration_reverse: 5.74 # rad/s^2
-          max_deceleration_reverse: -5.74 # rad/s^2
+          max_acceleration_reverse: -5.74 # rad/s^2
+          max_deceleration_reverse: 5.74 # rad/s^2
           max_jerk: .NAN # rad/s^3
           min_jerk: .NAN # rad/s^3

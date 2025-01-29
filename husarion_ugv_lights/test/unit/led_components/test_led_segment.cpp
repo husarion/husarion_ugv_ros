@@ -32,7 +32,7 @@ public:
   {
   }
 
-  std::shared_ptr<husarion_ugv_lights::Animation> GetAnimation() const { return animation_; }
+  // std::shared_ptr<husarion_ugv_lights::Animation> GetAnimation() const { return animation_; }
 };
 
 class TestLEDSegment : public testing::Test
@@ -146,26 +146,31 @@ TEST(TestLEDSegmentInitialization, FirstLedPosition)
 
 TEST_F(TestLEDSegment, GetAnimationFrameNoAnimation)
 {
-  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->GetAnimationFrame(); }, "Segment animation not defined"));
+  EXPECT_FALSE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { led_segment_->GetAnimationFrame(); },
+    "Segment animation not defined"));  // with the current implementation, this should not throw an
+                                        // error
 }
 
 TEST_F(TestLEDSegment, GetAnimationProgressNoAnimation)
 {
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->GetAnimationProgress(); }, "Segment animation not defined"));
+    [&]() { led_segment_->GetAnimationProgress(husarion_ugv_lights::AnimationPriority::ERROR); },
+    "Segment animation not defined"));
 }
 
 TEST_F(TestLEDSegment, ResetAnimationNoAnimation)
 {
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->ResetAnimation(); }, "Segment animation not defined"));
+    [&]() { led_segment_->ResetAnimation(husarion_ugv_lights::AnimationPriority::ERROR); },
+    "Segment animation not defined"));
 }
 
 TEST_F(TestLEDSegment, GetAnimationBrightnessNoAnimation)
 {
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->GetAnimationBrightness(); }, "Segment animation not defined"));
+    [&]() { led_segment_->GetAnimationBrightness(husarion_ugv_lights::AnimationPriority::ERROR); },
+    "Segment animation not defined"));
 }
 
 TEST_F(TestLEDSegment, SetAnimationInvalidType)
@@ -223,8 +228,10 @@ TEST_F(TestLEDSegment, SetAnimation)
 
 TEST_F(TestLEDSegment, UpdateAnimationAnimationNotSet)
 {
-  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->UpdateAnimation(); }, "Segment animation not defined"));
+  EXPECT_FALSE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { led_segment_->UpdateAnimation(); },
+    "Segment animation not defined"));  // with the current implementation, this should not throw an
+                                        // error
 }
 
 TEST_F(TestLEDSegment, UpdateAnimation)

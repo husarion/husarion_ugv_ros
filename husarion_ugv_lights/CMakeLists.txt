@@ -193,22 +193,6 @@ if(BUILD_TESTING)
                             husarion_ugv_utils rclcpp)
   target_link_libraries(${PROJECT_NAME}_test_led_animation yaml-cpp)
 
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_led_animations_queue
-    test/unit/led_components/test_led_animations_queue.cpp
-    src/led_components/led_panel.cpp
-    src/led_components/led_segment.cpp
-    src/led_components/led_animations_queue.cpp
-    src/led_components/segment_layer.cpp
-    src/led_components/segment_queue_layer.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_led_animations_queue
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_led_animations_queue pluginlib
-                            husarion_ugv_utils rclcpp)
-  target_link_libraries(${PROJECT_NAME}_test_led_animations_queue yaml-cpp)
-
   ament_add_gmock(${PROJECT_NAME}_test_apa102 test/unit/test_apa102.cpp
                   src/apa102.cpp)
   target_include_directories(

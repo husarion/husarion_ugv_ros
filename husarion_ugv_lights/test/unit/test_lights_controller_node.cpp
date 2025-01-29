@@ -207,7 +207,7 @@ TEST_F(TestLightsControllerNode, LoadAnimationInvalidPriority)
 {
   YAML::Node led_animation_desc;
   led_animation_desc["id"] = 11;
-  led_animation_desc["priority"] = 0;
+  led_animation_desc["priority"] = 40;
 
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() { lights_controller_node_->LoadAnimation(led_animation_desc); },

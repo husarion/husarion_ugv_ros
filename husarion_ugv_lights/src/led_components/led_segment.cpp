@@ -73,7 +73,7 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
 LEDSegment::~LEDSegment()
 {
   // make sure that animations are destroyed before pluginlib loader
-  animation_.reset();
+  // animation_.reset();
   animation_loader_.reset();
 }
 
@@ -110,6 +110,11 @@ void LEDSegment::UpdateAnimation()
   }
 }
 
+bool LEDSegment::IsAnimationFinished(AnimationPriority layer) const
+{
+  return layers_.at(layer)->IsAnimationFinished();
+}
+
 std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
 {
   auto output_frame = MergeFrames();
@@ -128,7 +133,7 @@ std::vector<std::uint8_t> LEDSegment::MergeFrames() const
         for (std::size_t j = 0; j < 3; j++) {
           output_frame[i * 4 + j] = (frame[i * 4 + j] * frame[i * 4 + 3] +
                                      output_frame[i * 4 + j] * (255 - frame[i * 4 + 3])) /
-                                    255;
+                                    255;  // value * alpha + background_value * (1 - alpha)
         }
       }
     }
@@ -136,37 +141,29 @@ std::vector<std::uint8_t> LEDSegment::MergeFrames() const
   return output_frame;
 }
 
-float LEDSegment::GetAnimationProgress() const
+float LEDSegment::GetAnimationProgress(AnimationPriority layer) const
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  return animation_->GetProgress();
+  return layers_.at(layer)->GetAnimationProgress();
 }
 
-void LEDSegment::ResetAnimation()
+void LEDSegment::ResetAnimation(AnimationPriority layer)
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  animation_->Reset();
-  animation_finished_ = false;
+  return layers_.at(layer)->ResetAnimation();
 }
 
-std::uint8_t LEDSegment::GetAnimationBrightness() const
+std::uint8_t LEDSegment::GetAnimationBrightness(AnimationPriority layer) const
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  return animation_->GetBrightness();
+  return layers_.at(layer)->GetAnimationBrightness();
 }
 
 std::size_t LEDSegment::GetFirstLEDPosition() const
 {
   return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
+}
+
+bool LEDSegment::LayerHasAnimation(AnimationPriority layer) const
+{
+  return layers_.at(layer)->HasAnimation();
 }
 
 bool LEDSegment::HasAnimation() const

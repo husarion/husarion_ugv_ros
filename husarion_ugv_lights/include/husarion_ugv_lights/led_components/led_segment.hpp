@@ -86,7 +86,7 @@ public:
    *
    * @return True if animation is finished, false otherwise
    */
-  bool IsAnimationFinished() const { return animation_finished_; }
+  bool IsAnimationFinished(AnimationPriority layer) const;
 
   /**
    * @brief Get current animation frame
@@ -104,25 +104,27 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  float GetAnimationProgress() const;
+  float GetAnimationProgress(AnimationPriority layer) const;
 
   /**
    * @brief Reset current animation
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  void ResetAnimation();
+  void ResetAnimation(AnimationPriority layer);
 
   /**
    * @brief Get current animation brightness
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  std::uint8_t GetAnimationBrightness() const;
+  std::uint8_t GetAnimationBrightness(AnimationPriority layer) const;
 
   std::size_t GetFirstLEDPosition() const;
 
   std::size_t GetChannel() const { return channel_; }
+
+  bool LayerHasAnimation(AnimationPriority layer) const;
 
   bool HasAnimation() const;
 
@@ -134,12 +136,9 @@ protected:
    */
   std::vector<std::uint8_t> MergeFrames() const;
 
-  std::shared_ptr<husarion_ugv_lights::Animation> animation_;
-
 private:
   const float controller_frequency_;
   bool invert_led_order_ = false;
-  bool animation_finished_ = true;
   std::size_t channel_;
   std::size_t first_led_iterator_;
   std::size_t last_led_iterator_;

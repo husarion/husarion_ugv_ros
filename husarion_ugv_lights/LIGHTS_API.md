@@ -26,7 +26,6 @@ Setters:
 
 Getters:
 
-- `GetBrightness` [*std::uint8_t*]: returns animation brightness.
 - `IsFinished` [*bool*]: returns a value indicating if the animation execution process has finished.
 - `GetNumberOfLeds` [*std::size_t*]: returns the number of LEDs.
 - `GetProgress` [*float*]: returns animation execution progress.

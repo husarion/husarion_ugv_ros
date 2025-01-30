@@ -151,11 +151,6 @@ void LEDSegment::ResetAnimation(AnimationPriority layer)
   return layers_.at(layer)->ResetAnimation();
 }
 
-std::uint8_t LEDSegment::GetAnimationBrightness(AnimationPriority layer) const
-{
-  return layers_.at(layer)->GetAnimationBrightness();
-}
-
 std::size_t LEDSegment::GetFirstLEDPosition() const
 {
   return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;

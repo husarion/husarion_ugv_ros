@@ -90,13 +90,6 @@ public:
    */
   void ResetAnimation() override;
 
-  /**
-   * @brief Get current animation brightness
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  std::uint8_t GetAnimationBrightness() const override;
-
 protected:
   bool repeating_ = false;
 };

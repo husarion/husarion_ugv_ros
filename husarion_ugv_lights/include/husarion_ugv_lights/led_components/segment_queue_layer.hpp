@@ -96,13 +96,6 @@ public:
    */
   void ResetAnimation() override;
 
-  /**
-   * @brief Get current animation brightness
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  std::uint8_t GetAnimationBrightness() const override;
-
 protected:
   std::deque<std::shared_ptr<husarion_ugv_lights::Animation>> animations_queue_;
   std::size_t max_queue_size_ = 10;

@@ -64,14 +64,6 @@ public:
       throw std::runtime_error("Animation display duration (duration * repeat) exceeds 10 seconds");
     }
 
-    if (animation_description["brightness"]) {
-      auto brightness = animation_description["brightness"].as<float>();
-      if (brightness < 0.0 || brightness > 1.0) {
-        throw std::out_of_range("Brightness has to be in range <0,1>");
-      }
-      brightness_ = static_cast<std::uint8_t>(round(brightness * 255));
-    }
-
     anim_len_ = int(round(duration * controller_frequency));
     full_anim_len_ = anim_len_ * loops_;
 
@@ -145,7 +137,6 @@ public:
 
   bool IsFinished() const { return finished_; }
   std::size_t GetNumberOfLeds() const { return num_led_; }
-  std::uint8_t GetBrightness() const { return brightness_; }
   float GetProgress() const { return progress_; }
 
   static constexpr std::size_t kRGBAColorLen = 4;
@@ -181,7 +172,6 @@ private:
   std::size_t loops_;
   std::size_t current_cycle_ = 0;
   std::size_t anim_iteration_ = 0;
-  std::uint8_t brightness_ = 255;
 
   std::string param_;
   std::vector<std::uint8_t> frame_;

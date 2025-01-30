@@ -113,13 +113,6 @@ public:
    */
   void ResetAnimation(AnimationPriority layer);
 
-  /**
-   * @brief Get current animation brightness
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  std::uint8_t GetAnimationBrightness(AnimationPriority layer) const;
-
   std::size_t GetFirstLEDPosition() const;
 
   std::size_t GetChannel() const { return channel_; }

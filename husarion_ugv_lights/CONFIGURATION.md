@@ -61,7 +61,6 @@ The `led_animations` section contains a list with definitions for various animat
 
 Basic animation definition. Keys are inherited from the basic **Animation** class by all animations. Supported keys are:
 
-- `brightness` [*float*, default: **1.0**]: animation brightness relative to APA102C driver `global_brightness`. The range between **[0.0, 1.0]**.
 - `duration` [*float*, default: **None**]: duration of the animation.
 - `repeat` [*int*, default: **1**]: number of times the animation will be repeated.
 

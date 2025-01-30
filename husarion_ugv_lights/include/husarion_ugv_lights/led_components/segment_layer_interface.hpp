@@ -116,13 +116,6 @@ public:
    */
   virtual void ResetAnimation() = 0;
 
-  /**
-   * @brief Get current animation brightness
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  virtual std::uint8_t GetAnimationBrightness() const = 0;
-
   bool HasAnimation() const { return static_cast<bool>(animation_); }
 
 protected:

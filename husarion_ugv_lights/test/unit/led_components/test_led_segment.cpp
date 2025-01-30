@@ -166,13 +166,6 @@ TEST_F(TestLEDSegment, ResetAnimationNoAnimation)
     "Segment animation not defined"));
 }
 
-TEST_F(TestLEDSegment, GetAnimationBrightnessNoAnimation)
-{
-  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->GetAnimationBrightness(husarion_ugv_lights::AnimationPriority::ERROR); },
-    "Segment animation not defined"));
-}
-
 TEST_F(TestLEDSegment, SetAnimationInvalidType)
 {
   const YAML::Node animation_desc;

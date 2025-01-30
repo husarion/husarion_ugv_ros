@@ -129,13 +129,4 @@ void SegmentQueueLayer::ResetAnimation()
   animation_finished_ = false;
 }
 
-std::uint8_t SegmentQueueLayer::GetAnimationBrightness() const
-{
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  return animation_->GetBrightness();
-}
-
 }  // namespace husarion_ugv_lights

@@ -27,8 +27,10 @@ include_directories(include)
 
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
-add_library(animation_plugins SHARED src/animation/image_animation.cpp
-                                     src/animation/charging_animation.cpp)
+add_library(
+  animation_plugins SHARED
+  src/animation/image_animation.cpp src/animation/moving_image_animation.cpp
+  src/animation/charging_animation.cpp)
 ament_target_dependencies(animation_plugins husarion_ugv_utils pluginlib)
 target_link_libraries(animation_plugins png yaml-cpp)
 

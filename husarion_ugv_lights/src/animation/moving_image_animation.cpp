@@ -91,6 +91,14 @@ void MovingImageAnimation::Initialize(
       "Missing start_offset in animation description, using image height");
     splash_duration_ = 0;
   }
+  try {
+    image_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(animation_description, "mirrored");
+  } catch (const std::invalid_argument & /*e*/) {
+    RCLCPP_WARN(
+      rclcpp::get_logger("MovingImageAnimation"),
+      "Missing image_mirrored in animation description, assuming false");
+    image_mirrored_ = false;
+  }
 
   gil::rgba8_image_t base_image;
   gil::read_and_convert_image(std::string(image_path), base_image, gil::png_tag());
@@ -137,9 +145,14 @@ void MovingImageAnimation::SetParam(const std::string & param)
 
 std::vector<std::uint8_t> MovingImageAnimation::UpdateFrame()
 {
-  int16_t left_edge_position =
-    (int)(image_position_ * (int)(GetNumberOfLeds() - (image_object_width_))) -
-    image_center_offset_;
+  int16_t left_edge_position;
+  if (image_mirrored_) {
+    left_edge_position = (int)(image_position_ * (int)(GetNumberOfLeds() - (image_object_width_))) -
+                         (image_.width() - image_center_offset_ - image_object_width_);
+  } else {
+    left_edge_position = (int)(image_position_ * (int)(GetNumberOfLeds() - (image_object_width_))) -
+                         image_center_offset_;
+  }
   int16_t right_edge_position = left_edge_position + (image_.width());
   int16_t top_edge_position = image_start_offset_;
   int16_t bottom_edge_position = top_edge_position + splash_duration_;
@@ -158,12 +171,22 @@ std::vector<std::uint8_t> MovingImageAnimation::UpdateFrame()
     if (
       i >= left_range && i < right_range && GetAnimationIteration() >= top_range &&
       GetAnimationIteration() < bottom_range) {
-      auto pixel = gil::const_view(image_)(
-        i - left_edge_position, GetAnimationIteration() - top_edge_position);
-      frame.push_back(pixel[0]);
-      frame.push_back(pixel[1]);
-      frame.push_back(pixel[2]);
-      frame.push_back(pixel[3]);
+      if (image_mirrored_) {
+        auto pixel = gil::const_view(image_)(
+          image_.width() - (i - left_edge_position) - 1,
+          GetAnimationIteration() - top_edge_position);
+        frame.push_back(pixel[0]);
+        frame.push_back(pixel[1]);
+        frame.push_back(pixel[2]);
+        frame.push_back(pixel[3]);
+      } else {
+        auto pixel = gil::const_view(image_)(
+          i - left_edge_position, GetAnimationIteration() - top_edge_position);
+        frame.push_back(pixel[0]);
+        frame.push_back(pixel[1]);
+        frame.push_back(pixel[2]);
+        frame.push_back(pixel[3]);
+      }
     } else {
       frame.push_back(0);
       frame.push_back(0);

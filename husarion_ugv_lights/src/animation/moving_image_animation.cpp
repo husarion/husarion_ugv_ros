@@ -171,22 +171,19 @@ std::vector<std::uint8_t> MovingImageAnimation::UpdateFrame()
     if (
       i >= left_range && i < right_range && GetAnimationIteration() >= top_range &&
       GetAnimationIteration() < bottom_range) {
+      size_t pixel_index;
       if (image_mirrored_) {
-        auto pixel = gil::const_view(image_)(
-          image_.width() - (i - left_edge_position) - 1,
-          GetAnimationIteration() - top_edge_position);
-        frame.push_back(pixel[0]);
-        frame.push_back(pixel[1]);
-        frame.push_back(pixel[2]);
-        frame.push_back(pixel[3]);
+        pixel_index = image_.width() - (i - left_edge_position) - 1;
       } else {
-        auto pixel = gil::const_view(image_)(
-          i - left_edge_position, GetAnimationIteration() - top_edge_position);
-        frame.push_back(pixel[0]);
-        frame.push_back(pixel[1]);
-        frame.push_back(pixel[2]);
-        frame.push_back(pixel[3]);
+        pixel_index = i - left_edge_position;
       }
+
+      auto pixel = gil::const_view(image_)(
+        pixel_index, GetAnimationIteration() - top_edge_position);
+      frame.push_back(pixel[0]);
+      frame.push_back(pixel[1]);
+      frame.push_back(pixel[2]);
+      frame.push_back(pixel[3]);
     } else {
       frame.push_back(0);
       frame.push_back(0);

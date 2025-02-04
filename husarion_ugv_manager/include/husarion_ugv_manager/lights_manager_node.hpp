@@ -22,6 +22,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "sensor_msgs/msg/battery_state.hpp"
+#include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 #include "husarion_ugv_msgs/msg/led_animation.hpp"
@@ -71,6 +72,7 @@ protected:
 private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
   void EStopCB(const BoolMsg::SharedPtr e_stop);
+  void JoyCB(const sensor_msgs::msg::Joy::SharedPtr joy);
   void LightsTreeTimerCB();
 
   float update_charging_anim_step_;
@@ -80,6 +82,7 @@ private:
 
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
   rclcpp::TimerBase::SharedPtr lights_tree_timer_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<double>> battery_percent_ma_;

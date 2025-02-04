@@ -24,6 +24,7 @@
 
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joy.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
@@ -70,6 +71,8 @@ void LightsManagerNode::Initialize()
   e_stop_sub_ = this->create_subscription<BoolMsg>(
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
+  joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
+    "joy", 10, std::bind(&LightsManagerNode::JoyCB, this, _1));
 
   const double timer_freq = this->params_.timer_frequency;
   const auto timer_period = std::chrono::duration<double>(1.0 / timer_freq);
@@ -122,6 +125,7 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
   const std::map<std::string, std::any> lights_initial_bb = {
     {"charging_anim_percent", undefined_charging_anim_percent},
     {"current_anim_id", undefined_anim_id},
+    {"drive_state", false},
     {"CRITICAL_BATTERY_ANIM_PERIOD", critical_battery_anim_period},
     {"CRITICAL_BATTERY_THRESHOLD_PERCENT", critical_battery_threshold_percent},
     {"LOW_BATTERY_ANIM_PERIOD", low_battery_anim_period},
@@ -178,6 +182,11 @@ void LightsManagerNode::BatteryCB(const BatteryStateMsg::SharedPtr battery_state
 void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
 {
   lights_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
+}
+
+void LightsManagerNode::JoyCB(const sensor_msgs::msg::Joy::SharedPtr joy)
+{
+  lights_tree_manager_->GetBlackboard()->set<bool>("drive_state", joy->buttons[4]);
 }
 
 void LightsManagerNode::LightsTreeTimerCB()

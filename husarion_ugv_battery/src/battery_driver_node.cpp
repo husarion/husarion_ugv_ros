@@ -28,6 +28,7 @@
 #include "husarion_ugv_battery/battery/adc_battery.hpp"
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_battery/battery/roboteq_battery.hpp"
+#include "husarion_ugv_battery/battery_parameters.hpp"
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 #include "husarion_ugv_battery/battery_publisher/dual_battery_publisher.hpp"
 #include "husarion_ugv_battery/battery_publisher/single_battery_publisher.hpp"

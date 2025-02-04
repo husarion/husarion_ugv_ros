@@ -94,9 +94,9 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 }
 
 RoboteqDriver::RoboteqDriver(
-  const std::shared_ptr<lely::canopen::AsyncMaster> & master, const std::uint8_t id,
+  const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
   const std::chrono::milliseconds & sdo_operation_timeout_ms)
-: lely::canopen::LoopDriver(*master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
+: lely::canopen::LoopDriver(*async_master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
 {
 }
 

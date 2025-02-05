@@ -15,20 +15,67 @@
 # limitations under the License.
 
 
-from husarion_ugv_utils.messages import welcome_msg
+import os
+import re
+
+from husarion_ugv_utils.messages import (
+    ErrorMessages,
+    error_msg,
+    warning_msg,
+    welcome_msg,
+)
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
-from launch.conditions import UnlessCondition
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    GroupAction,
+    IncludeLaunchDescription,
+    TimerAction,
+)
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.substitutions import FindPackageShare
 
+MIN_REQUIRED_OS_VERSION = [2, 2, 0]
+
+
+def check_os_version_compatibility(version_string: str, min_required_version: list[int]) -> bool:
+    match = re.search(r"v(\d+\.\d+\.\d+)", version_string)
+
+    if not match:
+        return False
+
+    version_str = match.group(1)
+    version = version_str.split(".")
+
+    if int(version[0]) > min_required_version[0]:
+        return True
+
+    if int(version[0]) == min_required_version[0]:
+        if int(version[1]) > min_required_version[1]:
+            return True
+
+        if int(version[1]) == min_required_version[1]:
+            return int(version[2]) >= min_required_version[2]
+
+    return False
+
 
 def generate_launch_description():
+    exit_on_wrong_hw = LaunchConfiguration("exit_on_wrong_hw")
+    declare_exit_on_wrong_hw_arg = DeclareLaunchArgument(
+        "exit_on_wrong_hw",
+        default_value="false",
+        description="Exit if hardware configuration is incorrect.",
+        choices=["True", "true", "False", "false"],
+    )
+
     common_dir_path = LaunchConfiguration("common_dir_path")
     declare_common_dir_path_arg = DeclareLaunchArgument(
         "common_dir_path",
@@ -139,6 +186,37 @@ def generate_launch_description():
         }.items(),
     )
 
+    hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")
+
+    prevent_exit_action = ExecuteProcess(
+        cmd=["sleep", "infinity"],
+        condition=UnlessCondition(exit_on_wrong_hw),
+    )
+
+    incorrect_hw_config_action = GroupAction(
+        actions=[
+            error_msg(ErrorMessages.INCORRECT_HW_CONFIG),
+            prevent_exit_action,
+        ],
+        condition=UnlessCondition(hw_config_correct),
+    )
+
+    os_version = os.environ.get("SYSTEM_BUILD_VERSION", "v0.0.0")
+    os_version_correct = PythonExpression(
+        f"{check_os_version_compatibility(os_version, MIN_REQUIRED_OS_VERSION)}"
+    )
+
+    incorrect_os_version_action = GroupAction(
+        [
+            warning_msg(
+                ErrorMessages.INCORRECT_OS_VERSION
+                + f"Current version: {os_version},"
+                + f" required: v{MIN_REQUIRED_OS_VERSION[0]}.{MIN_REQUIRED_OS_VERSION[1]}.{MIN_REQUIRED_OS_VERSION[2]}\n"
+            )
+        ],
+        condition=UnlessCondition(os_version_correct),
+    )
+
     delayed_action = TimerAction(
         period=10.0,
         actions=[
@@ -149,15 +227,25 @@ def generate_launch_description():
         ],
     )
 
+    driver_actions = GroupAction(
+        [
+            controller_launch,
+            system_monitor_launch,
+            delayed_action,
+        ],
+        condition=IfCondition(hw_config_correct),
+    )
+
     actions = [
+        declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,
-        controller_launch,
-        system_monitor_launch,
-        delayed_action,
+        incorrect_hw_config_action,
+        incorrect_os_version_action,
+        driver_actions,
     ]
 
     return LaunchDescription(actions)

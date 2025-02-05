@@ -19,7 +19,8 @@
     <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 
     <xacro:property name="wheel_config" value="${xacro.load_yaml(wheel_config_file)}" />
-    <xacro:property name="wheel_separation_x" value="0.44" />
+    <xacro:property name="wheelbase" value="0.44" />
+    <xacro:property name="wheel_mount_point_y" value="0.2575" />
 
     <!-- INCLUDE ROBOT PARTS DEFINITIONS -->
     <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/base.urdf.xacro" ns="body" />
@@ -35,22 +36,26 @@
     <!-- WHEEL DECLARATION -->
     <xacro:wheel.wheel
       wheel_config="${wheel_config}"
-      wheel_separation_x="${wheel_separation_x}"
+      wheel_mount_point_x="${wheelbase/2.0}"
+      wheel_mount_point_y="${wheel_mount_point_y}"
       prefix="fl" />
 
     <xacro:wheel.wheel
       wheel_config="${wheel_config}"
-      wheel_separation_x="${wheel_separation_x}"
+      wheel_mount_point_x="${wheelbase/2.0}"
+      wheel_mount_point_y="${wheel_mount_point_y}"
       prefix="fr" />
 
     <xacro:wheel.wheel
       wheel_config="${wheel_config}"
-      wheel_separation_x="${wheel_separation_x}"
+      wheel_mount_point_x="${wheelbase/2.0}"
+      wheel_mount_point_y="${wheel_mount_point_y}"
       prefix="rl" />
 
     <xacro:wheel.wheel
       wheel_config="${wheel_config}"
-      wheel_separation_x="${wheel_separation_x}"
+      wheel_mount_point_x="${wheelbase/2.0}"
+      wheel_mount_point_y="${wheel_mount_point_y}"
       prefix="rr" />
 
     <ros2_control name="${ns}panther_system" type="system">

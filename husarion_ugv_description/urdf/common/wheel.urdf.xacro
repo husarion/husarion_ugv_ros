@@ -2,36 +2,49 @@
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
 
   <!-- wheel defining macro -->
-  <xacro:macro name="wheel" params="wheel_config wheel_separation_x prefix">
+  <xacro:macro name="wheel"
+    params="wheel_config prefix wheel_mount_point_x wheel_mount_point_y">
 
     <xacro:if value="${prefix == 'fl'}">
-      <xacro:property name="x" value="${wheel_separation_x/2.0}" />
-      <xacro:property name="y" value="${wheel_config['wheel_separation']/2.0}" />
+      <xacro:property name="x" value="${wheel_mount_point_x}" />
+      <xacro:property name="y" value="${wheel_mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="${wheel_config['mount_point_offset']}" />
       <xacro:property name="inertia_y_offset" value="${wheel_config['inertia_y_offset']}" />
       <xacro:property name="fdir" value="1 -1 0" />
     </xacro:if>
     <xacro:if value="${prefix == 'fr'}">
-      <xacro:property name="x" value="${wheel_separation_x/2.0}" />
-      <xacro:property name="y" value="-${wheel_config['wheel_separation']/2.0}" />
+      <xacro:property name="x" value="${wheel_mount_point_x}" />
+      <xacro:property name="y" value="-${wheel_mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="-${wheel_config['mount_point_offset']}" />
       <xacro:property name="inertia_y_offset" value="${-wheel_config['inertia_y_offset']}" />
       <xacro:property name="fdir" value="1 1 0" />
     </xacro:if>
     <xacro:if value="${prefix == 'rl'}">
-      <xacro:property name="x" value="-${wheel_separation_x/2.0}" />
-      <xacro:property name="y" value="${wheel_config['wheel_separation']/2.0}" />
+      <xacro:property name="x" value="-${wheel_mount_point_x}" />
+      <xacro:property name="y" value="${wheel_mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="${wheel_config['mount_point_offset']}" />
       <xacro:property name="inertia_y_offset" value="${wheel_config['inertia_y_offset']}" />
       <xacro:property name="fdir" value="1 1 0" />
     </xacro:if>
     <xacro:if value="${prefix == 'rr'}">
-      <xacro:property name="x" value="-${wheel_separation_x/2.0}" />
-      <xacro:property name="y" value="-${wheel_config['wheel_separation']/2.0}" />
+      <xacro:property name="x" value="-${wheel_mount_point_x}" />
+      <xacro:property name="y" value="-${wheel_mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="-${wheel_config['mount_point_offset']}" />
       <xacro:property name="inertia_y_offset" value="${-wheel_config['inertia_y_offset']}" />
       <xacro:property name="fdir" value="1 -1 0" />
     </xacro:if>
 
-    <joint name="${prefix}_wheel_joint" type="continuous">
+    <joint name="base_to_${prefix}_wheel_base_joint" type="fixed">
       <origin xyz="${x} ${y} 0.0" rpy="0.0 0.0 0.0" />
       <parent link="base_link" />
+      <child link="${prefix}_wheel_base_link" />
+    </joint>
+
+    <link name="${prefix}_wheel_base_link" />
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <origin xyz="0.0 ${mount_point_offset} 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="${prefix}_wheel_base_link" />
       <child link="${prefix}_wheel_link" />
       <axis xyz="0.0 1.0 0.0" />
 

@@ -22,10 +22,9 @@
       <inertial>
         <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
         <mass value="30.656" />
-        <!-- TODO calculate real interia -->
-        <inertia ixx="0.46856"  ixy="0.0"     ixz="0.0"
-                                iyy="1.22285" iyz="0.0"
-                                              izz="1.51185" />
+        <inertia ixx="0.6572" ixy="0.0334"  ixz="0.1739"
+                              iyy="1.443"   iyz="0.0082"
+                                            izz="1.598" />
       </inertial>
     </link>
 
@@ -46,8 +45,7 @@
     <link name="imu_link" />
 
     <joint name="base_to_cover_joint" type="fixed">
-      <!-- TODO change to real value -->
-      <origin xyz="0.0 0.0 0.2085" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.0 0.0 0.2098" rpy="0.0 0.0 0.0" />
       <parent link="base_link" />
       <child link="cover_link" />
     </joint>
@@ -55,7 +53,7 @@
     <link name="cover_link" />
 
     <joint name="cover_to_mount_joint" type="fixed">
-      <origin xyz="0.0 0.0 0.02" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.0 0.0 0.0217" rpy="0.0 0.0 0.0" />
       <parent link="cover_link" />
       <child link="mount_link" />
     </joint>

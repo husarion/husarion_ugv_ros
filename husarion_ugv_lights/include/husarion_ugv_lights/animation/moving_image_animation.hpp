@@ -80,6 +80,7 @@ private:
   gil::rgba8_image_t image_;
   float image_position_ = 0.0;
   bool image_mirrored_ = false;
+  bool position_mirrored_ = false;
   size_t image_center_offset_ = 0;
   size_t image_object_width_ = 0;
   int32_t image_start_offset_ = 0;

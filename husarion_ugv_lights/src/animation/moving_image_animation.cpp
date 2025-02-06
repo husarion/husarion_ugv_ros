@@ -50,8 +50,8 @@ void MovingImageAnimation::Initialize(
     image_center_offset_ =
       static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
         animation_description, "center_offset")));  // in pixels
-  } catch (const std::invalid_argument & /*e*/) {
-    RCLCPP_WARN(
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing center_offset in animation description, using default value 0");
     image_center_offset_ = 0;
@@ -61,8 +61,8 @@ void MovingImageAnimation::Initialize(
     image_object_width_ =
       static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
         animation_description, "object_width")));  // in pixels
-  } catch (const std::invalid_argument & /*e*/) {
-    RCLCPP_WARN(
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing object_width in animation description, using default value 0");
     image_object_width_ = 0;
@@ -73,8 +73,8 @@ void MovingImageAnimation::Initialize(
         husarion_ugv_utils::GetYAMLKeyValue<std::string>(animation_description, "start_offset")),
       -20.0f, 20.0f);  // in seconds
     image_start_offset_ = int(round(image_start_offset_time * controller_frequency));
-  } catch (const std::invalid_argument & /*e*/) {
-    RCLCPP_WARN(
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing start_offset in animation description, using default value 0");
     image_start_offset_ = 0;
@@ -85,19 +85,29 @@ void MovingImageAnimation::Initialize(
         husarion_ugv_utils::GetYAMLKeyValue<std::string>(animation_description, "splash_duration")),
       0.0f, 20.0f);  // in seconds
     splash_duration_ = int(round(splash_duration_time * controller_frequency));
-  } catch (const std::invalid_argument & /*e*/) {
-    RCLCPP_WARN(
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing start_offset in animation description, using image height");
     splash_duration_ = 0;
   }
   try {
-    image_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(animation_description, "mirrored");
-  } catch (const std::invalid_argument & /*e*/) {
-    RCLCPP_WARN(
+    image_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(
+      animation_description, "image_mirrored");
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing image_mirrored in animation description, assuming false");
     image_mirrored_ = false;
+  }
+  try {
+    position_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(
+      animation_description, "position_mirrored");
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_INFO(
+      rclcpp::get_logger("MovingImageAnimation"),
+      "Missing position_mirrored in animation description, assuming false");
+    position_mirrored_ = false;
   }
 
   gil::rgba8_image_t base_image;
@@ -123,6 +133,9 @@ void MovingImageAnimation::SetParam(const std::string & param)
 
   try {
     image_position_ = std::clamp(std::stof(param), 0.0f, 1.0f);
+    if (position_mirrored_) {
+      image_position_ = 1.0f - image_position_;
+    }
   } catch (const std::invalid_argument & /*e*/) {
     throw std::runtime_error("Can not cast param to float!");
   }

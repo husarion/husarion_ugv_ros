@@ -88,7 +88,6 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: false
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
@@ -99,7 +98,8 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: true
+          image_mirrored: true
+          position_mirrored: true
 
   - id: 5
     name: CRITICAL_BATTERY
@@ -115,7 +115,6 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: false
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
@@ -126,7 +125,8 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: true
+          image_mirrored: true
+          position_mirrored: true
 
   - id: 6
     name: CHARGING_BATTERY
@@ -142,7 +142,6 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: false
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
@@ -153,7 +152,9 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: true
+          image_mirrored: true
+          position_mirrored: true
+
 
   - id: 7
     name: BATTERY_CHARGED
@@ -169,7 +170,6 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: false
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
@@ -180,7 +180,8 @@ led_animations:
           object_width: 1
           start_offset: 0.0
           splash_duration: 10.0
-          mirrored: true
+          image_mirrored: true
+          position_mirrored: true
 
   - id: 9
     name: CHARGER_INSERTED
@@ -190,12 +191,12 @@ led_animations:
         segments: front
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_plugged_front.png
-          duration: 5
+          duration: 8
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_plugged_rear.png
-          duration: 5
+          duration: 8
 
   - id: 10
     name: BATTERY_NOMINAL

@@ -17,20 +17,22 @@
                     failure_count="1"
                     success_count="-1"
                     _skipIf="battery_health == POWER_SUPPLY_HEALTH_OVERHEAT">
-            <CallSetLedAnimationService name="SetChargerInsertedAnimation"
-                                        id="{CHARGER_INSERTED_ANIM_ID}"
-                                        param=""
-                                        repeating="false"
-                                        service_name="lights/set_animation"
-                                        _skipIf="current_anim_id == CHARGING_BATTERY_ANIM_ID"/>
-            <Delay delay_msec="150">
+            <Delay delay_msec="300">
+              <CallSetLedAnimationService name="SetChargerInsertedAnimation"
+                                          id="{CHARGER_INSERTED_ANIM_ID}"
+                                          param=""
+                                          repeating="false"
+                                          service_name="lights/set_animation"
+                                          _skipIf="current_battery_anim_id == CHARGING_BATTERY_ANIM_ID"/>
+            </Delay>
+            <Delay delay_msec="1500">
               <CallSetLedAnimationService name="SetChargingAnimation"
                                           id="{CHARGING_BATTERY_ANIM_ID}"
                                           param="{battery_percent_round}"
                                           repeating="true"
                                           service_name="lights/set_animation"
-                                          _skipIf="battery_percent_round == charging_anim_percent \&#10;&amp;&amp; current_anim_id == CHARGING_BATTERY_ANIM_ID"
-                                          _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_anim_id = CHARGING_BATTERY_ANIM_ID"/>
+                                          _skipIf="battery_percent_round == charging_anim_percent \&#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID"
+                                          _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = CHARGING_BATTERY_ANIM_ID"/>
             </Delay>
           </Parallel>
         </Sequence>
@@ -59,6 +61,13 @@
                                         service_name="lights/set_animation"
                                         _skipIf="battery_percent &gt;= CRITICAL_BATTERY_THRESHOLD_PERCENT \&#10;|| current_battery_anim_id == CRITICAL_BATTERY_ANIM_ID"
                                         _onSuccess="current_battery_anim_id = CRITICAL_BATTERY_ANIM_ID"/>
+            <CallSetLedAnimationService name="SetNominalBatteryAnimation"
+                                        id="{BATTERY_NOMINAL_ANIM_ID}"
+                                        param=""
+                                        repeating="true"
+                                        service_name="lights/set_animation"
+                                        _skipIf="battery_percent &lt; LOW_BATTERY_THRESHOLD_PERCENT  \&#10;|| current_battery_anim_id == BATTERY_NOMINAL_ANIM_ID"
+                                        _onSuccess="current_battery_anim_id = BATTERY_NOMINAL_ANIM_ID"/>
           </Sequence>
         </Sequence>
       </Sequence>

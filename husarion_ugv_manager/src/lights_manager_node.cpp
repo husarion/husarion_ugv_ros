@@ -125,7 +125,7 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
   const std::map<std::string, std::any> lights_initial_bb = {
     {"charging_anim_percent", undefined_charging_anim_percent},
     {"current_anim_id", undefined_anim_id},
-    {"current_bettery_anim_id", undefined_anim_id},
+    {"current_battery_anim_id", undefined_anim_id},
     {"drive_state", false},
     {"CRITICAL_BATTERY_ANIM_PERIOD", critical_battery_anim_period},
     {"CRITICAL_BATTERY_THRESHOLD_PERCENT", critical_battery_threshold_percent},

@@ -18,18 +18,20 @@
                     success_count="-1"
                     _skipIf="battery_health == POWER_SUPPLY_HEALTH_OVERHEAT">
             <CallSetLedAnimationService name="SetChargerInsertedAnimation"
-                                        id="{LOW_BATTERY_ANIM_ID}"
+                                        id="{CHARGER_INSERTED_ANIM_ID}"
                                         param=""
                                         repeating="false"
                                         service_name="lights/set_animation"
                                         _skipIf="current_anim_id == CHARGING_BATTERY_ANIM_ID"/>
-            <CallSetLedAnimationService name="SetChargingAnimation"
-                                        id="{CHARGING_BATTERY_ANIM_ID}"
-                                        param="{battery_percent_round}"
-                                        repeating="true"
-                                        service_name="lights/set_animation"
-                                        _skipIf="battery_percent_round == charging_anim_percent \&#10;&amp;&amp; current_anim_id == CHARGING_BATTERY_ANIM_ID"
-                                        _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_anim_id = CHARGING_BATTERY_ANIM_ID"/>
+            <Delay delay_msec="150">
+              <CallSetLedAnimationService name="SetChargingAnimation"
+                                          id="{CHARGING_BATTERY_ANIM_ID}"
+                                          param="{battery_percent_round}"
+                                          repeating="true"
+                                          service_name="lights/set_animation"
+                                          _skipIf="battery_percent_round == charging_anim_percent \&#10;&amp;&amp; current_anim_id == CHARGING_BATTERY_ANIM_ID"
+                                          _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_anim_id = CHARGING_BATTERY_ANIM_ID"/>
+            </Delay>
           </Parallel>
         </Sequence>
         <CallSetLedAnimationService name="SerErrorAnimation"

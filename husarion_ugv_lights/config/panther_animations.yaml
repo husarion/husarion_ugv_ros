@@ -25,12 +25,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_estop.png
+          image: $(find husarion_ugv_lights)/animations/panther/estop_front.png
           duration: 6
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_estop.png
+          image: $(find husarion_ugv_lights)/animations/panther/estop_rear.png
           duration: 6
 
   - id: 1
@@ -40,12 +40,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_idle.png
+          image: $(find husarion_ugv_lights)/animations/panther/ready_front.png
           duration: 6
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_idle.png
+          image: $(find husarion_ugv_lights)/animations/panther/ready_rear.png
           duration: 6
 
   - id: 2
@@ -55,7 +55,7 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_error.png
+          image: $(find husarion_ugv_lights)/animations/panther/error.png
           duration: 2
           repeat: 2
 
@@ -66,12 +66,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/manual_action_front.png
           duration: 6
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/manual_action_rear.png
           duration: 6
 
   - id: 4
@@ -81,21 +81,21 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_low_battery.png
+          image: $(find husarion_ugv_lights)/animations/panther/low_battery.png
           duration: 10
           repeat: 1
-          center_offset: 38
-          object_width: 1
+          center_offset: 24
+          object_width: 2
           start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_low_battery.png
+          image: $(find husarion_ugv_lights)/animations/panther/low_battery.png
           duration: 10
           repeat: 1
-          center_offset: 38
-          object_width: 1
+          center_offset: 24
+          object_width: 2
           start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
@@ -108,21 +108,21 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_critical_battery.png
+          image: $(find husarion_ugv_lights)/animations/panther/critical_battery.png
           duration: 10
           repeat: 1
-          center_offset: 38
-          object_width: 1
+          center_offset: 24
+          object_width: 2
           start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_critical_battery.png
+          image: $(find husarion_ugv_lights)/animations/panther/critical_battery.png
           duration: 10
           repeat: 1
-          center_offset: 38
-          object_width: 1
+          center_offset: 24
+          object_width: 2
           start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
@@ -135,7 +135,7 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_charging.png
+          image: $(find husarion_ugv_lights)/animations/panther/charging_battery_front.png
           duration: 10
           repeat: 1
           center_offset: 38
@@ -145,7 +145,7 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_charging.png
+          image: $(find husarion_ugv_lights)/animations/panther/charging_battery_rear.png
           duration: 10
           repeat: 1
           center_offset: 38
@@ -163,7 +163,7 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_charged.png
+          image: $(find husarion_ugv_lights)/animations/panther/battery_charged_front.png
           duration: 10
           repeat: 1
           center_offset: 38
@@ -173,7 +173,7 @@ led_animations:
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_charged.png
+          image: $(find husarion_ugv_lights)/animations/panther/battery_charged_rear.png
           duration: 10
           repeat: 1
           center_offset: 38
@@ -190,12 +190,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_plugged_front.png
+          image: $(find husarion_ugv_lights)/animations/panther/charger_inserted_front.png
           duration: 8
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_plugged_rear.png
+          image: $(find husarion_ugv_lights)/animations/panther/charger_inserted_rear.png
           duration: 8
 
   - id: 10
@@ -205,7 +205,7 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_empty.png
+          image: $(find husarion_ugv_lights)/animations/panther/empty.png
           duration: 1
           repeat: 1
 
@@ -216,12 +216,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_auto_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_front.png
           duration: 10
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_auto_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_rear.png
           duration: 10
 
 
@@ -232,12 +232,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_front_auto_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_front.png
           duration: 10
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_rear_auto_work.png
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_rear.png
           duration: 10
 
   - id: 13
@@ -247,12 +247,12 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_goal_front.png
+          image: $(find husarion_ugv_lights)/animations/panther/goal_achieved_front.png
           duration: 10
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_goal_rear.png
+          image: $(find husarion_ugv_lights)/animations/panther/goal_achieved_rear.png
           duration: 10
 
 
@@ -264,7 +264,7 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_blinker_left.png
+          image: $(find husarion_ugv_lights)/animations/panther/blinker.png
           duration: 1
           repeat: 1
 
@@ -275,6 +275,6 @@ led_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/animacje-2025-02_blinker_right.png
+          image: $(find husarion_ugv_lights)/animations/panther/blinker.png
           duration: 1
           repeat: 1

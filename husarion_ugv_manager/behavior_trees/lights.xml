@@ -23,7 +23,7 @@
                                           param=""
                                           repeating="false"
                                           service_name="lights/set_animation"
-                                          _skipIf="current_battery_anim_id == CHARGING_BATTERY_ANIM_ID"/>
+                                          _skipIf="current_battery_anim_id == CHARGING_BATTERY_ANIM_ID ||&#10;current_battery_anim_id == BATTERY_CHARGED_ANIM_ID"/>
             </Delay>
             <Delay delay_msec="1500">
               <CallSetLedAnimationService name="SetChargingAnimation"
@@ -31,8 +31,17 @@
                                           param="{battery_percent_round}"
                                           repeating="true"
                                           service_name="lights/set_animation"
-                                          _skipIf="battery_percent_round == charging_anim_percent \&#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID"
+                                          _skipIf="(battery_percent_round == charging_anim_percent  \&#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID\&#10;|| battery_percent_round == 1.0)"
                                           _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = CHARGING_BATTERY_ANIM_ID"/>
+            </Delay>
+            <Delay delay_msec="1500">
+              <CallSetLedAnimationService name="SetChargedAnimation"
+                                          id="{BATTERY_CHARGED_ANIM_ID}"
+                                          param="{battery_percent_round}"
+                                          repeating="true"
+                                          service_name="lights/set_animation"
+                                          _skipIf="battery_percent_round != 1.0 \&#10;|| current_battery_anim_id == BATTERY_CHARGED_ANIM_ID"
+                                          _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = BATTERY_CHARGED_ANIM_ID"/>
             </Delay>
           </Parallel>
         </Sequence>
@@ -77,8 +86,15 @@
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
-                                    _skipIf="e_stop_state || current_anim_id == READY_ANIM_ID"
+                                    _skipIf="drive_state || e_stop_state || current_anim_id == READY_ANIM_ID"
                                     _onSuccess="current_anim_id = READY_ANIM_ID"/>
+        <CallSetLedAnimationService name="SetManualActionAnimation"
+                                    id="{MANUAL_ACTION_ANIM_ID}"
+                                    param=""
+                                    repeating="true"
+                                    service_name="lights/set_animation"
+                                    _skipIf="e_stop_state || (!drive_state) || current_anim_id == MANUAL_ACTION_ANIM_ID"
+                                    _onSuccess="current_anim_id = MANUAL_ACTION_ANIM_ID"/>
         <CallSetLedAnimationService name="SetEStopAnimation"
                                     id="{E_STOP_ANIM_ID}"
                                     param=""

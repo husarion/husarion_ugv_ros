@@ -175,7 +175,7 @@ led_animations:
           image_mirrored: true
           position_mirrored: true
 
-  - id: 9
+  - id: 8
     name: CHARGER_INSERTED
     priority: 1
     animations:
@@ -190,7 +190,7 @@ led_animations:
           image: $(find husarion_ugv_lights)/animations/panther/charger_inserted_rear.png
           duration: 8
 
-  - id: 10
+  - id: 9
     name: BATTERY_NOMINAL
     priority: 2
     animations:
@@ -201,7 +201,7 @@ led_animations:
           duration: 1
           repeat: 1
 
-  - id: 11
+  - id: 10
     name: AUTONOMOUS_READY
     priority: 3
     animations:
@@ -217,7 +217,7 @@ led_animations:
           duration: 10
 
 
-  - id: 12
+  - id: 11
     name: AUTONOMOUS_ACTION
     priority: 3
     animations:
@@ -232,7 +232,7 @@ led_animations:
           image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_rear.png
           duration: 10
 
-  - id: 13
+  - id: 12
     name: GOAL_ACHIEVED
     priority: 1
     animations:
@@ -249,7 +249,7 @@ led_animations:
 
 
 
-  - id: 14
+  - id: 13
     name: BLINKER_LEFT
     priority: 1
     animations:
@@ -266,7 +266,7 @@ led_animations:
           image_mirrored: true
           position_mirrored: true
 
-  - id: 15
+  - id: 14
     name: BLINKER_RIGHT
     priority: 1
     animations:

@@ -25,7 +25,7 @@
                                           service_name="lights/set_animation"
                                           _skipIf="current_battery_anim_id == CHARGING_BATTERY_ANIM_ID ||&#10;current_battery_anim_id == BATTERY_CHARGED_ANIM_ID"/>
             </Delay>
-            <Delay delay_msec="1500">
+            <Delay delay_msec="2500">
               <CallSetLedAnimationService name="SetChargingAnimation"
                                           id="{CHARGING_BATTERY_ANIM_ID}"
                                           param="{battery_percent_round}"
@@ -34,7 +34,7 @@
                                           _skipIf="(battery_percent_round == charging_anim_percent  \&#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID\&#10;|| battery_percent_round == 1.0)"
                                           _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = CHARGING_BATTERY_ANIM_ID"/>
             </Delay>
-            <Delay delay_msec="1500">
+            <Delay delay_msec="2500">
               <CallSetLedAnimationService name="SetChargedAnimation"
                                           id="{BATTERY_CHARGED_ANIM_ID}"
                                           param="{battery_percent_round}"

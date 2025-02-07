@@ -86,7 +86,6 @@ led_animations:
           repeat: 1
           center_offset: 24
           object_width: 2
-          start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
@@ -96,7 +95,6 @@ led_animations:
           repeat: 1
           center_offset: 24
           object_width: 2
-          start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
           position_mirrored: true
@@ -113,7 +111,6 @@ led_animations:
           repeat: 1
           center_offset: 24
           object_width: 2
-          start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
@@ -123,7 +120,6 @@ led_animations:
           repeat: 1
           center_offset: 24
           object_width: 2
-          start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
           position_mirrored: true
@@ -140,7 +136,6 @@ led_animations:
           repeat: 1
           center_offset: 38
           object_width: 1
-          start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
@@ -150,7 +145,6 @@ led_animations:
           repeat: 1
           center_offset: 38
           object_width: 1
-          start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
           position_mirrored: true
@@ -168,7 +162,6 @@ led_animations:
           repeat: 1
           center_offset: 38
           object_width: 1
-          start_offset: 0.0
           splash_duration: 10.0
       - type: husarion_ugv_lights::MovingImageAnimation
         segments: rear
@@ -178,7 +171,6 @@ led_animations:
           repeat: 1
           center_offset: 38
           object_width: 1
-          start_offset: 0.0
           splash_duration: 10.0
           image_mirrored: true
           position_mirrored: true
@@ -261,20 +253,30 @@ led_animations:
     name: BLINKER_LEFT
     priority: 1
     animations:
-      - type: husarion_ugv_lights::ImageAnimation
+      - type: husarion_ugv_lights::MovingImageAnimation
         segments: all
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/blinker.png
-          duration: 1
-          repeat: 1
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0
+          image_mirrored: true
+          position_mirrored: true
 
   - id: 15
     name: BLINKER_RIGHT
     priority: 1
     animations:
-      - type: husarion_ugv_lights::ImageAnimation
+      - type: husarion_ugv_lights::MovingImageAnimation
         segments: all
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/blinker.png
-          duration: 1
-          repeat: 1
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0

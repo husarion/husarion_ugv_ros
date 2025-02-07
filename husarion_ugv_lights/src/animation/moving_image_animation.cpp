@@ -51,7 +51,7 @@ void MovingImageAnimation::Initialize(
       static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
         animation_description, "center_offset")));  // in pixels
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing center_offset in animation description, using default value 0");
     image_center_offset_ = 0;
@@ -62,7 +62,7 @@ void MovingImageAnimation::Initialize(
       static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
         animation_description, "object_width")));  // in pixels
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing object_width in animation description, using default value 0");
     image_object_width_ = 0;
@@ -74,7 +74,7 @@ void MovingImageAnimation::Initialize(
       -20.0f, 20.0f);  // in seconds
     image_start_offset_ = int(round(image_start_offset_time * controller_frequency));
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing start_offset in animation description, using default value 0");
     image_start_offset_ = 0;
@@ -86,7 +86,7 @@ void MovingImageAnimation::Initialize(
       0.0f, 20.0f);  // in seconds
     splash_duration_ = int(round(splash_duration_time * controller_frequency));
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing start_offset in animation description, using image height");
     splash_duration_ = 0;
@@ -95,7 +95,7 @@ void MovingImageAnimation::Initialize(
     image_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(
       animation_description, "image_mirrored");
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing image_mirrored in animation description, assuming false");
     image_mirrored_ = false;
@@ -104,10 +104,22 @@ void MovingImageAnimation::Initialize(
     position_mirrored_ = husarion_ugv_utils::GetYAMLKeyValue<bool>(
       animation_description, "position_mirrored");
   } catch (const std::runtime_error & /*e*/) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
       "Missing position_mirrored in animation description, assuming false");
     position_mirrored_ = false;
+  }
+  try {
+    default_image_position_ = std::clamp(
+      std::stof(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
+        animation_description, "default_image_position")),
+      0.0f, 1.0f);
+    default_image_position_set_ = true;
+  } catch (const std::runtime_error & /*e*/) {
+    RCLCPP_DEBUG(
+      rclcpp::get_logger("MovingImageAnimation"),
+      "Missing default_image_position in animation description, will throw if no param is "
+      "provided");
   }
 
   gil::rgba8_image_t base_image;
@@ -130,6 +142,17 @@ void MovingImageAnimation::SetParam(const std::string & param)
   // } catch (const std::invalid_argument & /*e*/) {
   //   throw std::runtime_error("Can not cast param to int!");
   // }
+
+  if (default_image_position_set_) {
+    image_position_ = default_image_position_;
+    if (position_mirrored_) {
+      image_position_ = 1.0f - image_position_;
+    }
+    RCLCPP_DEBUG(
+      rclcpp::get_logger("MovingImageAnimation"), "Setting image position to default: %f",
+      default_image_position_);
+    return;
+  }
 
   try {
     image_position_ = std::clamp(std::stof(param), 0.0f, 1.0f);

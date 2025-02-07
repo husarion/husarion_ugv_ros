@@ -79,6 +79,8 @@ protected:
 private:
   gil::rgba8_image_t image_;
   float image_position_ = 0.0;
+  float default_image_position_ = 0.0;
+  bool default_image_position_set_ = false;
   bool image_mirrored_ = false;
   bool position_mirrored_ = false;
   size_t image_center_offset_ = 0;

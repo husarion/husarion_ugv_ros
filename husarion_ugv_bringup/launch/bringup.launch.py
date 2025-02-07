@@ -16,7 +16,6 @@
 
 
 import os
-import re
 
 from husarion_ugv_utils.messages import (
     ErrorMessages,
@@ -24,6 +23,7 @@ from husarion_ugv_utils.messages import (
     warning_msg,
     welcome_msg,
 )
+from husarion_ugv_utils.version_check import check_version_compatibility
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -42,29 +42,7 @@ from launch.substitutions import (
 )
 from launch_ros.substitutions import FindPackageShare
 
-MIN_REQUIRED_OS_VERSION = [2, 2, 0]
-
-
-def check_os_version_compatibility(version_string: str, min_required_version: list[int]) -> bool:
-    match = re.search(r"v(\d+\.\d+\.\d+)", version_string)
-
-    if not match:
-        return False
-
-    version_str = match.group(1)
-    version = version_str.split(".")
-
-    if int(version[0]) > min_required_version[0]:
-        return True
-
-    if int(version[0]) == min_required_version[0]:
-        if int(version[1]) > min_required_version[1]:
-            return True
-
-        if int(version[1]) == min_required_version[1]:
-            return int(version[2]) >= min_required_version[2]
-
-    return False
+MIN_REQUIRED_OS_VERSION = "v2.2.0"
 
 
 def generate_launch_description():
@@ -203,7 +181,7 @@ def generate_launch_description():
 
     os_version = os.environ.get("SYSTEM_BUILD_VERSION", "v0.0.0")
     os_version_correct = PythonExpression(
-        f"{check_os_version_compatibility(os_version, MIN_REQUIRED_OS_VERSION)}"
+        f"{check_version_compatibility(os_version, MIN_REQUIRED_OS_VERSION)}"
     )
 
     incorrect_os_version_action = GroupAction(
@@ -211,7 +189,7 @@ def generate_launch_description():
             warning_msg(
                 ErrorMessages.INCORRECT_OS_VERSION
                 + f"Current version: {os_version},"
-                + f" required: v{MIN_REQUIRED_OS_VERSION[0]}.{MIN_REQUIRED_OS_VERSION[1]}.{MIN_REQUIRED_OS_VERSION[2]}\n"
+                + f" required: {MIN_REQUIRED_OS_VERSION}\n"
             )
         ],
         condition=UnlessCondition(os_version_correct),

@@ -22,24 +22,22 @@
 #include <string>
 #include <vector>
 
-#include "geometry_msgs/msg/quaternion.hpp"
-#include "geometry_msgs/msg/vector3.hpp"
 #include "imu_filter_madgwick/imu_filter.h"
-#include "imu_filter_madgwick/stateless_orientation.h"
 #include "imu_filter_madgwick/world_frame.h"
 #include "phidgets_api/spatial.hpp"
 
 #include "rclcpp/rclcpp.hpp"
-
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
 #include "hardware_interface/handle.hpp"
-#include "hardware_interface/lexical_casts.hpp"
 #include "hardware_interface/sensor_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 
-#include "phidgets_spatial_parameters.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
+
+#include "husarion_ugv_hardware_interfaces/phidgets_spatial_parameters.hpp"
 
 using namespace std::placeholders;
 

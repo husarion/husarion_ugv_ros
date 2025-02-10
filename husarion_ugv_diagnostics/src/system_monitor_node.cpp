@@ -24,11 +24,11 @@
 
 #include "husarion_ugv_msgs/msg/system_status.hpp"
 
+#include "husarion_ugv_diagnostics/filesystem.hpp"
+#include "husarion_ugv_diagnostics/system_monitor_parameters.hpp"
+#include "husarion_ugv_diagnostics/types.hpp"
 #include "husarion_ugv_utils/common_utilities.hpp"
 #include "husarion_ugv_utils/ros_utils.hpp"
-
-#include "husarion_ugv_diagnostics/filesystem.hpp"
-#include "husarion_ugv_diagnostics/types.hpp"
 
 namespace husarion_ugv_diagnostics
 {

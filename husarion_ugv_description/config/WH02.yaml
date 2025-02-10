@@ -1,6 +1,6 @@
 wheel_radius: 0.1016
 wheel_width: 0.08
-wheel_separation: 0.6785
+mount_point_offset: 0.08165
 mass: 2.4
 inertia: { ixx: 0.010050, iyy: 0.016496, izz: 0.010068 }
 inertia_y_offset: 0.0

@@ -5,7 +5,15 @@
     name="body"
     params="wheel_radius imu_xyz imu_rpy">
 
-    <link name="base_link">
+    <joint name="base_to_body_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="base_link" />
+      <child link="body_link" />
+    </joint>
+
+    <link name="base_link" />
+
+    <link name="body_link">
       <visual>
         <geometry>
           <mesh filename="package://husarion_ugv_description/meshes/lynx/base.dae" />
@@ -28,25 +36,25 @@
       </inertial>
     </link>
 
-    <joint name="base_to_footprint_joint" type="fixed">
+    <joint name="body_to_footprint_joint" type="fixed">
       <origin xyz="0.0 0.0 -${wheel_radius}" rpy="0.0 0.0 0.0" />
-      <parent link="base_link" />
+      <parent link="body_link" />
       <child link="base_footprint" />
     </joint>
 
     <link name="base_footprint" />
 
-    <joint name="base_to_imu_joint" type="fixed">
+    <joint name="body_to_imu_joint" type="fixed">
       <origin xyz="${imu_xyz}" rpy="${imu_rpy}" />
-      <parent link="base_link" />
+      <parent link="body_link" />
       <child link="imu_link" />
     </joint>
 
     <link name="imu_link" />
 
-    <joint name="base_to_cover_joint" type="fixed">
+    <joint name="body_to_cover_joint" type="fixed">
       <origin xyz="0.0 0.0 0.2098" rpy="0.0 0.0 0.0" />
-      <parent link="base_link" />
+      <parent link="body_link" />
       <child link="cover_link" />
     </joint>
 

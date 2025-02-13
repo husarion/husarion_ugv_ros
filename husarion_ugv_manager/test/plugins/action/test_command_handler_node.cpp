@@ -23,6 +23,9 @@
 #include "husarion_ugv_manager/plugins/action/command_handler_node.hpp"
 #include "utils/plugin_test_utils.hpp"
 
+// The simplest way to test the CommandHandlerInterface would be to create a mock which would be
+// identical to the CommandHandler. Instead use the CommandHandler itself to test both classes.
+
 typedef husarion_ugv_manager::plugin_test_utils::PluginTestUtils TestCommandHandler;
 
 TEST_F(TestCommandHandler, RegisterAndCreateTree)
@@ -30,6 +33,30 @@ TEST_F(TestCommandHandler, RegisterAndCreateTree)
   ASSERT_NO_THROW(
     RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
   ASSERT_NO_THROW(CreateTree("CommandHandler", {}));
+}
+
+TEST_F(TestCommandHandler, MissingCommandPort)
+{
+  std::map<std::string, std::string> bb_ports = {{"timeout", "1.0"}};
+  ASSERT_NO_THROW(
+    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
+  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+
+  auto & tree = GetTree();
+  const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+}
+
+TEST_F(TestCommandHandler, MissingTimeoutPort)
+{
+  std::map<std::string, std::string> bb_ports = {{"command", "echo 'Test command'"}};
+  ASSERT_NO_THROW(
+    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
+  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+
+  auto & tree = GetTree();
+  const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
 TEST_F(TestCommandHandler, CallSimpleCommand)

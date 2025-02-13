@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "behaviortree_cpp/loggers/bt_cout_logger.h"
 
 #include "husarion_ugv_manager/plugins/action/command_handler_node.hpp"
 #include "utils/plugin_test_utils.hpp"
@@ -70,6 +71,19 @@ TEST_F(TestCommandHandler, CommandReturnsFailure)
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
+TEST_F(TestCommandHandler, MultipleCommands)
+{
+  std::map<std::string, std::string> bb_ports = {
+    {"command", "echo 'Test command' && echo 'Test command 2'"}, {"timeout", "1.0"}};
+  ASSERT_NO_THROW(
+    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
+  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+
+  auto & tree = GetTree();
+  const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
+  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+}
+
 TEST_F(TestCommandHandler, CommandTimeout)
 {
   std::map<std::string, std::string> bb_ports = {{"command", "sleep infinity"}, {"timeout", "0.1"}};
@@ -80,4 +94,19 @@ TEST_F(TestCommandHandler, CommandTimeout)
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+}
+
+TEST_F(TestCommandHandler, TreeHalted)
+{
+  std::map<std::string, std::string> bb_ports = {{"command", "sleep infinity"}, {"timeout", "1.0"}};
+  ASSERT_NO_THROW(
+    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
+  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+
+  auto & tree = GetTree();
+  auto status = tree.tickOnce();
+
+  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
+  EXPECT_NO_THROW(tree.haltTree());
+  EXPECT_TRUE(tree.rootNode()->isHalted());
 }

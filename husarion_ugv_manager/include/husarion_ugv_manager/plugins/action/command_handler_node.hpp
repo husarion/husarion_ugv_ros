@@ -15,15 +15,13 @@
 #ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_EXECUTE_COMMAND_NODE_HPP_
 #define HUSARION_UGV_MANAGER_PLUGINS_ACTION_EXECUTE_COMMAND_NODE_HPP_
 
-#include <future>
+#include <chrono>
 #include <memory>
 #include <string>
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/basic_types.h"
 #include "rclcpp/logger.hpp"
-
-#include <iostream>
 
 namespace husarion_ugv_manager
 {
@@ -53,28 +51,28 @@ protected:
   void onHalted() override;
 
   /**
-   * @brief Executes a given command.
+   * @brief Orders execution of a command in a child process.
    *
-   * @param command The command to be executed as a string.
-   * @return int The result of the command execution. Typically, 0 indicates success, while non-zero
-   * values indicate errors.
+   * @param command The command to be executed.
+   * @return true if the command execution was ordered successfully, false otherwise.
    */
-  // int ExecuteCommand(const std::string & command);
+  bool ExecuteCommandInChildProcess(const std::string & command);
 
+  /**
+   * @brief Logs the output of the command execution.
+   *
+   * @return true if it was possible to read and log the command output, false otherwise.
+   */
+  bool ReadAndLogCommandOutput();
+
+  void KillChildProcess();
   bool TimeoutExceeded();
 
+  int pipefd_[2];
+  pid_t m_child_pid_;
   std::shared_ptr<rclcpp::Logger> logger_;
-  // std::string result_;
-  // FILE * pipe_;
-
   std::chrono::milliseconds timeout_ms_;
   std::chrono::time_point<std::chrono::steady_clock> command_time_;
-  // std::future<int> command_future_;
-  // std::thread command_therad_;
-  // std::atomic<bool> command_running_;
-  // std::atomic<bool> command_timeout_;
-
-  pid_t m_child_pid_;
 };
 
 }  // namespace husarion_ugv_manager

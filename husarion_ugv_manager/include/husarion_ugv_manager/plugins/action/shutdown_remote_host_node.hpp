@@ -43,6 +43,7 @@ public:
   }
 
 protected:
+  BT::NodeStatus onRunning() override;
   std::string GetCommand() override;
   float GetTimeout() override;
 };

@@ -23,8 +23,32 @@
 
 #include "behaviortree_cpp/exceptions.h"
 
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+
 namespace husarion_ugv_manager
 {
+
+BT::NodeStatus ShutdownRemoteHost::onRunning()
+{
+  const auto command_status = this->CheckCommandExecution();
+
+  if (command_status == BT::NodeStatus::RUNNING) {
+    return command_status;
+  }
+
+  const auto output = this->GetOutput();
+  // Output may have multiple lines. We are interested in the last one.
+  const auto http_return_code = output.substr(output.find_last_of('\n') + 1);
+  if (http_return_code != "200") {
+    RCLCPP_ERROR_STREAM(
+      *this->logger_, GetLoggerPrefix(this->name())
+                        << "Failed to shutdown remote host. Server return code: "
+                        << http_return_code);
+    return BT::NodeStatus::FAILURE;
+  }
+
+  return command_status;
+}
 
 std::string ShutdownRemoteHost::GetCommand()
 {
@@ -62,10 +86,9 @@ std::string ShutdownRemoteHost::GetCommand()
   }
   std::string sig = ss.str();
 
-  command = "curl 'http://" + server_ip + ":" + server_port + "/shutdown?ts=" + time_now +
-            "&sig=" + sig + "'";
+  command = "curl -s -w '%{errormsg}\\n%{http_code}' 'http://" + server_ip + ":" + server_port +
+            "/shutdown?ts=" + time_now + "&sig=" + sig + "'";
 
-  std::cout << "Command: " << command << std::endl;
   return command;
 }
 

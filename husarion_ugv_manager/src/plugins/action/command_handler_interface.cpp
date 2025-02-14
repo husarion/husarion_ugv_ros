@@ -36,7 +36,7 @@ BT::NodeStatus CommandHandlerInterface::onStart()
     command = GetCommand();
     timeout = GetTimeout();
   } catch (const BT::RuntimeError & e) {
-    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(name()) << e.what());
+    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(this->name()) << e.what());
     return BT::NodeStatus::FAILURE;
   }
 
@@ -63,11 +63,13 @@ BT::NodeStatus CommandHandlerInterface::CheckCommandExecution()
   if (waitpid(m_child_pid_, &status, WNOHANG) == m_child_pid_) {
     close(pipefd_[0]);  // Close read end after reading
 
-    RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command output: \n" << output_);
+    RCLCPP_INFO_STREAM(
+      *this->logger_, GetLoggerPrefix(this->name()) << "Command output: \n"
+                                                    << output_);
 
     if (WEXITSTATUS(status) != 0) {
       RCLCPP_ERROR_STREAM(
-        *this->logger_, GetLoggerPrefix(name())
+        *this->logger_, GetLoggerPrefix(this->name())
                           << "Command failed with status: " << WEXITSTATUS(status));
       return BT::NodeStatus::FAILURE;
     }
@@ -76,8 +78,10 @@ BT::NodeStatus CommandHandlerInterface::CheckCommandExecution()
   }
 
   if (TimeoutExceeded()) {
-    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command timed out");
-    RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command output: \n" << output_);
+    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(this->name()) << "Command timed out");
+    RCLCPP_INFO_STREAM(
+      *this->logger_, GetLoggerPrefix(this->name()) << "Command output: \n"
+                                                    << output_);
     KillChildProcess();
     return BT::NodeStatus::FAILURE;
   }
@@ -89,7 +93,7 @@ bool CommandHandlerInterface::ExecuteCommandInChildProcess(const std::string & c
 {
   // Create a pipe
   if (pipe(pipefd_) == -1) {
-    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Failed to create pipe");
+    RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(this->name()) << "Failed to create pipe");
     return false;
   }
 
@@ -98,7 +102,8 @@ bool CommandHandlerInterface::ExecuteCommandInChildProcess(const std::string & c
   fcntl(pipefd_[0], F_SETFL, flags | O_NONBLOCK);
 
   // Create a child process that will execute the command
-  RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Executing command: " << command);
+  RCLCPP_INFO_STREAM(
+    *this->logger_, GetLoggerPrefix(this->name()) << "Executing command: " << command);
   m_child_pid_ = fork();
   command_time_ = std::chrono::steady_clock::now();
 

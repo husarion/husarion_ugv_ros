@@ -144,7 +144,7 @@ TEST_F(TestShutdownRemoteHost, MissingTimeoutPort)
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestShutdownRemoteHost, CallShutdownRemoteHostHTTPServerNotAvailable)
+TEST_F(TestShutdownRemoteHost, HTTPServerNotAvailable)
 {
   const std::string server_ip = "localhost";
   const std::string server_port = "8080";
@@ -185,7 +185,29 @@ TEST_F(TestShutdownRemoteHost, CallShutdownRemoteHost)
   EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
 }
 
-TEST_F(TestShutdownRemoteHost, CallShutdownRemoteHostHTTPServerReturnFailure)
+TEST_F(TestShutdownRemoteHost, HTTPServerReturnSuccessWithMessage)
+{
+  const std::string server_ip = "localhost";
+  const std::string server_port = "8080";
+  std::map<std::string, std::string> bb_ports = {
+    {"server_ip", server_ip},
+    {"server_port", server_port},
+    {"secret", "husarion"},
+    {"timeout", "1.0"},
+  };
+
+  ASSERT_NO_THROW(
+    RegisterNodeWithoutParams<husarion_ugv_manager::ShutdownRemoteHost>("ShutdownRemoteHost"));
+  ASSERT_NO_THROW(CreateTree("ShutdownRemoteHost", bb_ports));
+
+  ASSERT_NO_THROW(this->CreateServer(
+    server_ip, server_port, "200 OK\\r\\nContent-Type: text/plain\\r\\n\\r\\nSuccess"));
+  auto & tree = GetTree();
+  const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
+  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+}
+
+TEST_F(TestShutdownRemoteHost, HTTPServerReturnFailure)
 {
   const std::string server_ip = "localhost";
   const std::string server_port = "8080";

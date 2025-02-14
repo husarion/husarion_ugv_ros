@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
-#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
+#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_SHUTDOWN_REMOTE_HOST_NODE_HPP_
+#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_SHUTDOWN_REMOTE_HOST_NODE_HPP_
 
 #include <string>
 
@@ -24,20 +24,20 @@
 namespace husarion_ugv_manager
 {
 
-class CommandHandler : public CommandHandlerInterface
+class ShutdownRemoteHost : public CommandHandlerInterface
 {
 public:
-  CommandHandler(const std::string & name, const BT::NodeConfig & conf)
+  explicit ShutdownRemoteHost(const std::string & name, const BT::NodeConfig & conf)
   : CommandHandlerInterface(name, conf)
   {
   }
 
-  ~CommandHandler() = default;
-
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::string>("command", "Command to execute."),
+      BT::InputPort<std::string>("server_ip", "IP address of the server to shutdown."),
+      BT::InputPort<std::string>("server_port", "Port of the server to shutdown."),
+      BT::InputPort<std::string>("secret", "Secret key for HMAC."),
       BT::InputPort<float>("timeout", "Command timeout in seconds."),
     };
   }
@@ -49,4 +49,4 @@ protected:
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
+#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_SHUTDOWN_REMOTE_HOST_NODE_HPP_

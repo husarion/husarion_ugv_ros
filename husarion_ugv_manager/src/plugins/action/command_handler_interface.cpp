@@ -49,15 +49,21 @@ BT::NodeStatus CommandHandlerInterface::onStart()
   return BT::NodeStatus::FAILURE;
 }
 
-BT::NodeStatus CommandHandlerInterface::onRunning()
+BT::NodeStatus CommandHandlerInterface::onRunning() { return CheckCommandExecution(); }
+
+void CommandHandlerInterface::onHalted() { KillChildProcess(); }
+
+BT::NodeStatus CommandHandlerInterface::CheckCommandExecution()
 {
-  if (ReadAndLogCommandOutput()) {
+  if (ReadCommandOutput()) {
     return BT::NodeStatus::RUNNING;
   }
 
   int status;
   if (waitpid(m_child_pid_, &status, WNOHANG) == m_child_pid_) {
     close(pipefd_[0]);  // Close read end after reading
+
+    RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command output: \n" << output_);
 
     if (WEXITSTATUS(status) != 0) {
       RCLCPP_ERROR_STREAM(
@@ -71,14 +77,13 @@ BT::NodeStatus CommandHandlerInterface::onRunning()
 
   if (TimeoutExceeded()) {
     RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command timed out");
+    RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << "Command output: \n" << output_);
     KillChildProcess();
     return BT::NodeStatus::FAILURE;
   }
 
   return BT::NodeStatus::RUNNING;
 }
-
-void CommandHandlerInterface::onHalted() { KillChildProcess(); }
 
 bool CommandHandlerInterface::ExecuteCommandInChildProcess(const std::string & command)
 {
@@ -116,7 +121,7 @@ bool CommandHandlerInterface::ExecuteCommandInChildProcess(const std::string & c
   return true;
 }
 
-bool CommandHandlerInterface::ReadAndLogCommandOutput()
+bool CommandHandlerInterface::ReadCommandOutput()
 {
   char buffer[128];
   ssize_t bytes_read;
@@ -124,7 +129,7 @@ bool CommandHandlerInterface::ReadAndLogCommandOutput()
   bytes_read = read(pipefd_[0], buffer, sizeof(buffer) - 1);
   if ((bytes_read) > 0) {
     buffer[bytes_read] = '\0';
-    RCLCPP_INFO_STREAM(*this->logger_, GetLoggerPrefix(name()) << buffer);
+    output_ += buffer;
     return true;
   }
 

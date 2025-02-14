@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <map>
 #include <string>
 
 #include "gtest/gtest.h"
 
 #include "behaviortree_cpp/bt_factory.h"
-#include "behaviortree_cpp/loggers/bt_cout_logger.h"
 
 #include "husarion_ugv_manager/plugins/action/command_handler_node.hpp"
 #include "utils/plugin_test_utils.hpp"

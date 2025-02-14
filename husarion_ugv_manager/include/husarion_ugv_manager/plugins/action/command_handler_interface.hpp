@@ -43,6 +43,14 @@ protected:
   void onHalted() override;
 
   /**
+   * @brief Checks the execution status of the command.
+   *
+   * @return RUNNING if the command is still being executed, SUCCESS if the command was executed
+   * successfully or FAILURE if the command execution failed or timeout was exceeded.
+   */
+  BT::NodeStatus CheckCommandExecution();
+
+  /**
    * @brief Returns the command to be executed.
    *
    * @return The command to be executed.
@@ -59,6 +67,8 @@ protected:
    */
   virtual float GetTimeout() = 0;
 
+  std::string GetOutput() const { return output_; }
+
   std::shared_ptr<rclcpp::Logger> logger_;
 
 private:
@@ -71,17 +81,18 @@ private:
   bool ExecuteCommandInChildProcess(const std::string & command);
 
   /**
-   * @brief Logs the output of the command execution.
+   * @brief Read command output and save it to the output_ variable.
    *
-   * @return true if it was possible to read and log the command output, false otherwise.
+   * @return true if it was possible to read the command output, false otherwise.
    */
-  bool ReadAndLogCommandOutput();
+  bool ReadCommandOutput();
 
   void KillChildProcess();
   bool TimeoutExceeded();
 
   int pipefd_[2];
   pid_t m_child_pid_;
+  std::string output_;
   std::chrono::milliseconds timeout_ms_;
   std::chrono::time_point<std::chrono::steady_clock> command_time_;
 };

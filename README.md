@@ -16,7 +16,7 @@ ROS 2 packages for Husarion UGV (Unmanned Ground Vehicle). The repository is a c
 ```bash
 mkdir ~/husarion_ws
 cd ~/husarion_ws
-git clone -b ros2 https://github.com/husarion/panther_ros.git src/husarion_ugv
+git clone -b ros2 https://github.com/husarion/panther_ros.git src/husarion_ugv_ros
 ```
 
 ### Configure environment
@@ -38,9 +38,8 @@ export HUSARION_ROS_BUILD_TYPE=simulation
 ### Build
 
 ``` bash
-vcs import src < src/husarion_ugv/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos
+vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos
 
-cp -r src/ros2_controllers/diff_drive_controller src
 cp -r src/ros2_controllers/imu_sensor_broadcaster src
 rm -rf src/ros2_controllers
 
@@ -49,7 +48,7 @@ rosdep update --rosdistro $ROS_DISTRO
 rosdep install --from-paths src -y -i
 
 source /opt/ros/$ROS_DISTRO/setup.bash
-colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
 
 source install/setup.bash
 ```
@@ -101,6 +100,7 @@ Launch arguments are largely common to both simulation and physical robot. Howev
 | ✅   | ✅   | `lights_bt_project_path`     | Path to BehaviorTree project file, responsible for lights management. <br/> ***string:*** [`LightsBT.btproj`](./husarion_ugv_manager/behavior_trees/LightsBT.btproj)                                                                                                                                 |
 | ✅   | ✅   | `localization_config_path`   | Specify the path to the localization configuration file. <br/> ***string:*** [`relative_localization.yaml`](./husarion_ugv_localization/config/relative_localization.yaml)                                                                                                                                         |
 | ✅   | ✅   | `localization_mode`          | Specifies the localization mode:  <br/>- 'relative' `odometry/filtered` data is relative to the initial position and orientation. <br/>- 'enu' `odometry/filtered` data is relative to initial position and ENU (East North Up) orientation. <br/> ***string:*** `relative` (choices: `relative`, `enu`)           |
+| ✅   | ✅   | `log_level`                  | Sets verbosity of launched nodes. <br/> ***string:*** `INFO`
 | ✅   | ✅   | `namespace`                  | Add namespace to all launched nodes. <br/> ***string:*** `env(ROBOT_NAMESPACE)`                                                                                                                                                                                                                                    |
 | ✅   | ✅   | `publish_robot_state`        | Whether to publish the default URDF of specified robot. <br/> ***bool:*** `True`                                                                                                                                                                                                                                   |
 | ❌   | ✅   | `robot_model`                | Specify robot model type. <br/> ***string:*** `env(ROBOT_MODEL_NAME)` (choices: `lynx`, `panther`)                                                                                                                                                                                                                      |
@@ -115,7 +115,7 @@ Launch arguments are largely common to both simulation and physical robot. Howev
 | ✅   | ✅   | `wheel_config_path`          | Path to wheel configuration file. <br/> ***string:*** [`{wheel_type}.yaml`](./husarion_ugv_description/config)                                                                                                                                                                                                          |
 | ✅   | ✅   | `wheel_type`                 | Specify the wheel type. If the selected wheel type is not 'custom', the wheel_config_path and controller_config_path arguments will be automatically adjusted and can be omitted. <br/> ***string:*** `WH01` (for Panther), `WH05` (for Lynx) (choices: `WH01`, `WH02`, `WH04`, `WH05`, `custom`)                  |
 | ❌   | ✅   | `x`                          | Initial robot position in the global 'x' axis. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                            |
-| ❌   | ✅   | `y`                          | Initial robot position in the global 'y' axis. <br/> ***float:***` -2.0`                                                                                                                                                                                                                                           |
+| ❌   | ✅   | `y`                          | Initial robot position in the global 'y' axis. <br/> ***float:*** `-2.0`                                                                                                                                                                                                                                           |
 | ❌   | ✅   | `z`                          | Initial robot position in the global 'z' axis. <br/> ***float:*** `0.2`                                                                                                                                                                                                                                            |
 | ❌   | ✅   | `roll`                       | Initial robot 'roll' orientation. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                                         |
 | ❌   | ✅   | `pitch`                      | Initial robot 'pitch' orientation. <br/> ***float:*** `0.0`                                                                                                                                                                                                                                                        |
@@ -137,7 +137,16 @@ pre-commit install
 
 ### Unit testing
 
+#### Running on laptop
+
 ```bash
 colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=OFF
+colcon test --packages-up-to husarion_ugv
+```
+
+#### Running on the Built-In Computer
+
+```bash
+colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DTEST_INTEGRATION=ON
 colcon test --packages-up-to husarion_ugv
 ```

@@ -28,8 +28,9 @@
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
-#include <husarion_ugv_manager/behavior_tree_manager.hpp>
-#include <husarion_ugv_manager/behavior_tree_utils.hpp>
+#include "husarion_ugv_manager/behavior_tree_manager.hpp"
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/lights_manager_parameters.hpp"
 
 namespace husarion_ugv_manager
 {

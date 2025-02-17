@@ -32,6 +32,7 @@
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
+#include "husarion_ugv_lights/lights_controller_parameters.hpp"
 
 namespace husarion_ugv_lights
 {
@@ -213,8 +214,8 @@ void LightsDriverNode::FrameCB(
   } else if (msg->height != 1) {
     message = "Incorrect image height " + std::to_string(msg->height);
   } else if (
-    msg->width !=
-    (std::uint32_t)(panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
+    msg->width != static_cast<std::uint32_t>(
+                    panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
     message = "Incorrect image width " + std::to_string(msg->width);
   }
 

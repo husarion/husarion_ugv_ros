@@ -29,11 +29,10 @@
 #include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 #include "husarion_ugv_msgs/msg/system_status.hpp"
 
-#include "safety_manager_parameters.hpp"
-
 #include "husarion_ugv_utils/moving_average.hpp"
 
-#include <husarion_ugv_manager/behavior_tree_manager.hpp>
+#include "husarion_ugv_manager/behavior_tree_manager.hpp"
+#include "husarion_ugv_manager/safety_manager_parameters.hpp"
 
 namespace husarion_ugv_manager
 {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(husarion_ugv_manager)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
 endif()
 
 set(PACKAGE_DEPENDENCIES
@@ -116,8 +116,11 @@ install(TARGETS safety_manager_node lights_manager_node
 install(DIRECTORY behavior_trees config launch
         DESTINATION share/${PROJECT_NAME})
 
-install(DIRECTORY include/ DESTINATION include/)
-install(DIRECTORY test/ DESTINATION include/${PROJECT_NAME}/test/)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+
+# Access via `husarion_ugv_manager/test/**` instead of `test/**`
+install(DIRECTORY test/utils/
+        DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}/test/utils)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -144,18 +147,6 @@ if(BUILD_TESTING)
        ${PROJECT_NAME}_test_call_set_led_animation_service_node)
 
   ament_add_gtest(
-    ${PROJECT_NAME}_test_signal_shutdown_node
-    test/plugins/action/test_signal_shutdown_node.cpp
-    src/plugins/action/signal_shutdown_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
-    test/plugins/action/test_shutdown_hosts_from_file_node.cpp
-    src/plugins/action/shutdown_hosts_from_file_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
-
-  ament_add_gtest(
     ${PROJECT_NAME}_test_check_bool_msg
     test/plugins/condition/test_check_bool_msg.cpp
     src/plugins/condition/check_bool_msg.cpp)
@@ -173,16 +164,28 @@ if(BUILD_TESTING)
     src/plugins/decorator/tick_after_timeout_node.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_tick_after_timeout_node)
 
-  ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
-                  test/plugins/test_shutdown_host.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
-
-  ament_add_gtest(${PROJECT_NAME}_test_shutdown_hosts_node
-                  test/plugins/test_shutdown_hosts_node.cpp)
-  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
-
-  option(TEST_INTEGRATION "Run integration tests" ON)
+  option(TEST_INTEGRATION "Run tests on self hosted runner" OFF)
   if(TEST_INTEGRATION)
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_signal_shutdown_node
+      test/plugins/action/test_signal_shutdown_node.cpp
+      src/plugins/action/signal_shutdown_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
+
+    ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
+                    test/plugins/test_shutdown_host.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
+
+    ament_add_gtest(${PROJECT_NAME}_test_shutdown_hosts_node
+                    test/plugins/test_shutdown_hosts_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+
+    ament_add_gtest(
+      ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
+      test/plugins/action/test_shutdown_hosts_from_file_node.cpp
+      src/plugins/action/shutdown_hosts_from_file_node.cpp)
+    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
+
     ament_add_gtest(
       ${PROJECT_NAME}_test_shutdown_single_host_node
       test/plugins/action/test_shutdown_single_host_node.cpp
@@ -304,5 +307,7 @@ if(BUILD_TESTING)
                         safety_manager_parameters)
 endif()
 
-ament_export_include_directories(include)
+ament_export_dependencies(${PACKAGE_DEPENDENCIES})
+ament_export_include_directories(include/${PROJECT_NAME})
+
 ament_package()

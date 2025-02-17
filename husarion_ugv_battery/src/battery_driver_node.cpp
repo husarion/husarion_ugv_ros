@@ -28,6 +28,7 @@
 #include "husarion_ugv_battery/battery/adc_battery.hpp"
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_battery/battery/roboteq_battery.hpp"
+#include "husarion_ugv_battery/battery_parameters.hpp"
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 #include "husarion_ugv_battery/battery_publisher/dual_battery_publisher.hpp"
 #include "husarion_ugv_battery/battery_publisher/single_battery_publisher.hpp"
@@ -36,8 +37,9 @@ namespace husarion_ugv_battery
 {
 
 BatteryDriverNode::BatteryDriverNode(
-  const std::string & node_name, const rclcpp::NodeOptions & options)
-: Node(node_name, options), diagnostic_updater_(std::make_shared<diagnostic_updater::Updater>(this))
+  const std::string & node_name, const std::string & ns, const rclcpp::NodeOptions & options)
+: Node(node_name, ns, options),
+  diagnostic_updater_(std::make_shared<diagnostic_updater::Updater>(this))
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 

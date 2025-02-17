@@ -38,7 +38,7 @@ services:
         common_dir_path:=/config
 
   gamepad_controller:
-    image: husarion/joy2twist:humble-1.0.0-20241003-stable
+    image: husarion/joy2twist:humble-1.0.0-20250131
     container_name: gamepad_controller
     <<: *common-config
     volumes:

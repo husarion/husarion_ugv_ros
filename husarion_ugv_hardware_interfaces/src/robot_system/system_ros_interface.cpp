@@ -20,7 +20,7 @@
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "realtime_tools/realtime_publisher.h"
+#include "realtime_tools/realtime_publisher.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 

@@ -12,7 +12,7 @@ on:
         required: true
 
 env:
-  RC_BRANCH_NAME: ${{ github.event.inputs.version }}-${{ github.event.inputs.date }}
+  RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
 
 jobs:
   docs:
@@ -29,7 +29,6 @@ jobs:
           ref: master
           client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
 
-  # TODO: Add unit testing when ready
   unit_tests:
     name: Unit tests
     runs-on: ubuntu-22.04
@@ -37,8 +36,8 @@ jobs:
       - name: Run unit tests
         run: echo "Unit tests are not fully implemented yet -> SKIPPING!"
 
-  docker:
-    name: Docker
+  update_compose_files:
+    name: Update compose files
     needs: unit_tests
     runs-on: ubuntu-22.04
     steps:
@@ -59,14 +58,17 @@ jobs:
           author_email: action-bot@action-bot.com
           new_branch: ${{ env.RC_BRANCH_NAME }}
 
-      - name: Build Docker
-        uses: ./.github/workflows/build-docker.yaml
-        with:
-          build_type: development
+  build_docker:
+    name: Build Docker
+    needs: update_compose_files
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      branch_name: ${{ inputs.version }}-${{ inputs.date }}
+      build_type: development
 
   os_image:
     name: OS image
-    needs: docker
+    needs: update_compose_files
     runs-on: ubuntu-22.04
     steps:
       - name: Create new branch
@@ -90,7 +92,7 @@ jobs:
             {
               "dev_image": "true",
               "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
-              "image_tag": "${{ github.event.inputs.version }}"
+              "image_tag": "${{ inputs.version }}"
             }
 
       - name: Build flash OS image
@@ -103,5 +105,5 @@ jobs:
           ref: ${{ env.RC_BRANCH_NAME }}
           client_payload: |
             {
-              "image_tag": "${{ github.event.inputs.version }}"
+              "image_tag": "${{ inputs.version }}"
             }

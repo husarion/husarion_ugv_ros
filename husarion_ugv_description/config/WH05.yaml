@@ -1,9 +1,8 @@
 wheel_radius: 0.1348
 wheel_width: 0.09
-wheel_separation: 0.45
-# TODO change inertia and mass when ready
-mass: 2.5
-inertia: { ixx: 0.014738, iyy: 0.0261, izz: 0.014738 }
+mount_point_offset: 0.06
+mass: 2.036
+inertia: { ixx: 0.014738, iyy: 0.02593, izz: 0.014738 }
 inertia_y_offset: 0.0
 mesh_package: husarion_ugv_description
 folder_path: meshes/WH05

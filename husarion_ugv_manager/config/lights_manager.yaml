@@ -11,7 +11,6 @@
             critical: 0.1
         animation_period:
           low: 30.0
-          critical: 15.0 # FIXME: remove this
         charging_anim_step: 0.05
       ros_communication_timeout:
         availability: 1.0

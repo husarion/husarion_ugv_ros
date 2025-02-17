@@ -111,8 +111,6 @@ void LightsManagerNode::RegisterBehaviorTree()
 std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard()
 {
   update_charging_anim_step_ = this->params_.battery.charging_anim_step;
-  const float critical_battery_anim_period =
-    static_cast<float>(this->params_.battery.anim_period.critical);
   const float critical_battery_threshold_percent =
     static_cast<float>(this->params_.battery.percent.threshold.critical);
   const float low_battery_anim_period = static_cast<float>(this->params_.battery.anim_period.low);
@@ -126,8 +124,8 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"charging_anim_percent", undefined_charging_anim_percent},
     {"current_anim_id", undefined_anim_id},
     {"current_battery_anim_id", undefined_anim_id},
+    {"current_error_anim_id", undefined_anim_id},
     {"drive_state", false},
-    {"CRITICAL_BATTERY_ANIM_PERIOD", critical_battery_anim_period},
     {"CRITICAL_BATTERY_THRESHOLD_PERCENT", critical_battery_threshold_percent},
     {"LOW_BATTERY_ANIM_PERIOD", low_battery_anim_period},
     {"LOW_BATTERY_THRESHOLD_PERCENT", low_battery_threshold_percent},
@@ -192,7 +190,8 @@ void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
 
 void LightsManagerNode::JoyCB(const sensor_msgs::msg::Joy::SharedPtr joy)
 {
-  lights_tree_manager_->GetBlackboard()->set<bool>("drive_state", joy->buttons[4]);
+  lights_tree_manager_->GetBlackboard()->set<bool>(
+    "drive_state", joy->buttons[kDeadManButtonIndex]);
 }
 
 void LightsManagerNode::LightsTreeTimerCB()

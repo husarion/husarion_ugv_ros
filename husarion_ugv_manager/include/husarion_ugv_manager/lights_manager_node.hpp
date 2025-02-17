@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_MANAGER_LIGHTS_MANAGER_NODE_HPP_
 #define HUSARION_UGV_MANAGER_LIGHTS_MANAGER_NODE_HPP_
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -39,6 +40,7 @@ namespace husarion_ugv_manager
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
 using LEDAnimationMsg = husarion_ugv_msgs::msg::LEDAnimation;
+using JoyMsg = sensor_msgs::msg::Joy;
 
 /**
  * @brief This class is responsible for creating a BehaviorTree responsible for lights management,
@@ -72,10 +74,12 @@ protected:
 private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
   void EStopCB(const BoolMsg::SharedPtr e_stop);
-  void JoyCB(const sensor_msgs::msg::Joy::SharedPtr joy);
+  void JoyCB(const JoyMsg::SharedPtr joy);
   void LightsTreeTimerCB();
 
   float update_charging_anim_step_;
+
+  const std::size_t kDeadManButtonIndex = 4;
 
   std::shared_ptr<lights_manager::ParamListener> param_listener_;
   lights_manager::Params params_;

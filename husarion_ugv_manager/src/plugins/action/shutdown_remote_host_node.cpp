@@ -30,32 +30,50 @@ namespace husarion_ugv_manager
 
 BT::NodeStatus ShutdownRemoteHost::onRunning()
 {
-  const auto command_status = this->CheckCommandExecution();
-
-  if (command_status == BT::NodeStatus::RUNNING) {
-    return command_status;
+  if (!command_executed_) {
+    command_status_ = this->CheckCommandExecution();
   }
 
-  const auto output = this->GetOutput();
-  // Output may have multiple lines. We are interested in the last one.
-  const auto http_return_code = output.substr(output.find_last_of('\n') + 1);
-  if (http_return_code != "200") {
+  if (command_status_ == BT::NodeStatus::RUNNING) {
+    return command_status_;
+  }
+
+  if (!command_executed_) {
+    command_executed_ = true;
+    const auto output = this->GetOutput();
+    // Output may have multiple lines. We are interested in the last one.
+    const auto http_return_code = output.substr(output.find_last_of('\n') + 1);
+    if (http_return_code != "200") {
+      RCLCPP_ERROR_STREAM(
+        *this->logger_, GetLoggerPrefix(this->name())
+                          << "Failed to shutdown remote host. Server return code: "
+                          << http_return_code);
+      return BT::NodeStatus::FAILURE;
+    }
+  }
+
+  if (command_status_ != BT::NodeStatus::SUCCESS) {
+    return command_status_;
+  }
+
+  if (!HostAvailable()) {
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  if (this->TimeoutExceeded()) {
     RCLCPP_ERROR_STREAM(
-      *this->logger_, GetLoggerPrefix(this->name())
-                        << "Failed to shutdown remote host. Server return code: "
-                        << http_return_code);
+      *this->logger_, GetLoggerPrefix(this->name()) << "Timeout waiting for host to shutdown");
     return BT::NodeStatus::FAILURE;
   }
 
-  return command_status;
+  return BT::NodeStatus::RUNNING;
 }
 
 std::string ShutdownRemoteHost::GetCommand()
 {
   std::string command;
 
-  std::string server_ip;
-  if (!this->getInput<std::string>("server_ip", server_ip)) {
+  if (!this->getInput<std::string>("server_ip", server_ip_)) {
     throw BT::RuntimeError("Failed to get input [server_ip]");
   }
 
@@ -86,7 +104,7 @@ std::string ShutdownRemoteHost::GetCommand()
   }
   std::string sig = ss.str();
 
-  command = "curl -s -w '%{errormsg}\\n%{http_code}' 'http://" + server_ip + ":" + server_port +
+  command = "curl -s -w '%{errormsg}\\n%{http_code}' 'http://" + server_ip_ + ":" + server_port +
             "/shutdown?ts=" + time_now + "&sig=" + sig + "'";
 
   return command;
@@ -99,6 +117,11 @@ float ShutdownRemoteHost::GetTimeout()
     throw BT::RuntimeError("Failed to get input [timeout]");
   }
   return timeout;
+}
+
+bool ShutdownRemoteHost::HostAvailable() const
+{
+  return system(("ping -c 1 -w 1 " + server_ip_ + " > /dev/null").c_str()) == 0;
 }
 
 }  // namespace husarion_ugv_manager

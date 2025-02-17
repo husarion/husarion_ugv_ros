@@ -71,6 +71,9 @@ protected:
 
   std::shared_ptr<rclcpp::Logger> logger_;
 
+protected:
+  bool TimeoutExceeded();
+
 private:
   /**
    * @brief Orders execution of a command in a child process.
@@ -88,7 +91,6 @@ private:
   bool ReadCommandOutput();
 
   void KillChildProcess();
-  bool TimeoutExceeded();
 
   int pipefd_[2];
   pid_t m_child_pid_;

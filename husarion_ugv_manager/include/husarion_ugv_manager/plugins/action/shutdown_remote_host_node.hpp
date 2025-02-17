@@ -46,6 +46,12 @@ protected:
   BT::NodeStatus onRunning() override;
   std::string GetCommand() override;
   float GetTimeout() override;
+
+  bool HostAvailable() const;
+
+  bool command_executed_ = false;
+  BT::NodeStatus command_status_;
+  std::string server_ip_;
 };
 
 }  // namespace husarion_ugv_manager

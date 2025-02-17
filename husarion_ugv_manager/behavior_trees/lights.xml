@@ -83,8 +83,8 @@
   <BehaviorTree ID="Lights">
     <Parallel failure_count="1"
               success_count="-1">
-      <SubTree ID="BatteryAnimationSubtree"/>
-      <SubTree ID="StateAnimationSubtree"/>
+      <SubTree ID="BatteryAnimationSubtree" _autoremap="true"/>
+      <SubTree ID="StateAnimationSubtree" _autoremap="true"/>
     </Parallel>
   </BehaviorTree>
 

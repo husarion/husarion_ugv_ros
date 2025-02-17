@@ -42,8 +42,7 @@ public:
    * @param invert_led_order if true will invert the order of LEDs
    * @param controller_frequency frequency at which animation will be updated.
    *
-   * @exception std::runtime_error or std::invalid_argument if missing required description key or
-   * key couldn't be parsed
+   * @exception std::runtime_error if pluginlib fails to load animation plugin
    */
   SegmentLayerInterface(
     const std::size_t num_led, const bool invert_led_order, const float controller_frequency)

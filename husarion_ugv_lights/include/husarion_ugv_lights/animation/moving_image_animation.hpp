@@ -26,14 +26,14 @@
 #include "boost/gil.hpp"
 #include "boost/gil/extension/toolbox/color_spaces/gray_alpha.hpp"
 
-#include "husarion_ugv_lights/animation/animation.hpp"
+#include "husarion_ugv_lights/animation/image_animation.hpp"
 
 namespace gil = boost::gil;
 
 namespace husarion_ugv_lights
 {
 
-class MovingImageAnimation : public Animation
+class MovingImageAnimation : public ImageAnimation
 {
 public:
   MovingImageAnimation() {}
@@ -41,52 +41,23 @@ public:
 
   void Initialize(
     const YAML::Node & animation_description, const std::size_t num_led,
-    const float controller_frequency) override;
+    const float controller_frequency);
 
 protected:
-  std::vector<std::uint8_t> UpdateFrame() override;
+  std::vector<std::uint8_t> UpdateFrame();
 
-  /**
-   * @brief Process raw image path including extracting ros package shared directory path specified
-   * with '$(find ros_package)` syntax
-   *
-   * @param image_path raw path to an image, it should be a global path or should contain '$(find
-   * ros_package)` syntax
-   *
-   * @return global path to an image file
-   * @exception std::runtime_error if provided image_path is invalid or file does not exists
-   */
-  std::filesystem::path ParseImagePath(const std::string & image_path) const;
-
-  gil::rgba8_image_t RGBAImageResize(
-    const gil::rgba8_image_t & image, const std::size_t width, const std::size_t height) const;
-
-  /**
-   * @brief This method converts RGB image to gray, normalizes gray image brightness and then
-   * applies provided color
-   *
-   * @param image RGB image that will be converted
-   * @param color 24-bit RGB color
-   */
-  void RGBAImageConvertColor(gil::rgba8_image_t & image, const std::uint32_t color) const;
-
-  gil::gray_alpha8_image_t RGBAImageConvertToGrey(const gil::rgba8_image_t & image) const;
-
-  void GreyImageNormalizeBrightness(gil::gray_alpha8_image_t & image) const;
-
-  void SetParam(const std::string & param) override;
+  void SetParam(const std::string & param);
 
 private:
-  gil::rgba8_image_t image_;
-  float image_position_ = 0.0;
-  float default_image_position_ = 0.0;
-  bool default_image_position_set_ = false;
-  bool image_mirrored_ = false;
-  bool position_mirrored_ = false;
-  std::size_t image_center_offset_ = 0;
-  std::size_t image_object_width_ = 0;
-  std::int32_t image_start_offset_ = 0;
-  std::size_t splash_duration_ = 0;
+  float image_position_;
+  float default_image_position_;
+  bool default_image_position_set_;
+  bool image_mirrored_;
+  bool position_mirrored_;
+  std::size_t image_center_offset_;
+  std::size_t image_object_width_;
+  std::int32_t image_start_offset_;
+  std::size_t splash_duration_;
 };
 
 }  // namespace husarion_ugv_lights

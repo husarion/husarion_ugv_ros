@@ -16,13 +16,15 @@
 
 #include <cmath>
 #include <cstdint>
-#include <rclcpp/logging.hpp>
 #include <stdexcept>
+#include <string>
 
-#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "yaml-cpp/yaml.h"
 
+#include "rclcpp/logging.hpp"
+
 #include "husarion_ugv_lights/animation/animation.hpp"
+#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "husarion_ugv_utils/yaml_utils.hpp"
 
 namespace husarion_ugv_lights
@@ -79,34 +81,6 @@ void SegmentLayer::UpdateAnimation()
   } catch (const std::runtime_error & e) {
     throw std::runtime_error("Failed to update animation: " + std::string(e.what()));
   }
-}
-
-std::vector<std::uint8_t> SegmentLayer::GetAnimationFrame() const
-{
-  if (animation_finished_ || !animation_) {
-    return std::vector<std::uint8_t>(4 * num_led_, 0);
-  }
-
-  return animation_->GetFrame(invert_led_order_);
-}
-
-float SegmentLayer::GetAnimationProgress() const
-{
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  return animation_->GetProgress();
-}
-
-void SegmentLayer::ResetAnimation()
-{
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  animation_->Reset();
-  animation_finished_ = false;
 }
 
 }  // namespace husarion_ugv_lights

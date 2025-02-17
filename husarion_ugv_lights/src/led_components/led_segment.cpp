@@ -16,16 +16,18 @@
 
 #include <cmath>
 #include <cstdint>
-#include <rclcpp/logging.hpp>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
+#include "yaml-cpp/yaml.h"
+
+#include "rclcpp/logging.hpp"
+
+#include "husarion_ugv_lights/animation/animation.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
 #include "husarion_ugv_lights/led_components/segment_queue_layer.hpp"
-#include "yaml-cpp/yaml.h"
-
-#include "husarion_ugv_lights/animation/animation.hpp"
 #include "husarion_ugv_utils/yaml_utils.hpp"
 
 namespace husarion_ugv_lights
@@ -64,8 +66,7 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
     num_led_, invert_led_order_, controller_frequency);
   layers_[ALERT] = std::make_unique<SegmentQueueLayer>(
     num_led_, invert_led_order_, controller_frequency);
-  layers_[BATTERY] = std::make_unique<SegmentLayer>(
-    num_led_, invert_led_order_, controller_frequency);
+  layers_[INFO] = std::make_unique<SegmentLayer>(num_led_, invert_led_order_, controller_frequency);
   layers_[STATE] = std::make_unique<SegmentLayer>(
     num_led_, invert_led_order_, controller_frequency);
 }
@@ -73,7 +74,8 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
 LEDSegment::~LEDSegment()
 {
   // make sure that animations are destroyed before pluginlib loader
-  // animation_.reset();
+  std::for_each(
+    layers_.begin(), layers_.end(), [](const auto & layer) { layer.second->ResetAnimation(); });
   animation_loader_.reset();
 }
 
@@ -98,7 +100,7 @@ void LEDSegment::SetAnimation(
 void LEDSegment::UpdateAnimation()
 {
   for (auto & [priority, layer] : layers_) {
-    if (layer && layer->HasAnimation()) {
+    if (layer->HasAnimation()) {
       try {
         layer->UpdateAnimation();
       } catch (const std::runtime_error & e) {
@@ -115,11 +117,7 @@ bool LEDSegment::IsAnimationFinished(AnimationPriority layer) const
   return layers_.at(layer)->IsAnimationFinished();
 }
 
-std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
-{
-  auto output_frame = MergeFrames();
-  return output_frame;
-}
+std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const { return MergeFrames(); }
 
 std::vector<std::uint8_t> LEDSegment::MergeFrames() const
 {
@@ -127,7 +125,7 @@ std::vector<std::uint8_t> LEDSegment::MergeFrames() const
   for (auto it = layers_.rbegin(); it != layers_.rend();
        ++it) {  // reverse the order of layers for merging
     auto & [priority, layer] = *it;
-    if (layer && layer->HasAnimation()) {
+    if (layer->HasAnimation()) {
       auto frame = layer->GetAnimationFrame();
       for (std::size_t i = 0; i < num_led_; i++) {
         for (std::size_t j = 0; j < 3; j++) {

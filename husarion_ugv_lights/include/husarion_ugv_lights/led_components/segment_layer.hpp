@@ -16,10 +16,11 @@
 #define HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
+#include <yaml-cpp/yaml.h>
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
-
 namespace husarion_ugv_lights
 {
 
@@ -64,31 +65,6 @@ public:
    * @exception std::runtime_error if fails to update animation
    */
   void UpdateAnimation() override;
-
-  /**
-   * @brief Get current animation frame
-   *
-   * @return Current animation frame or default animation frame if it was defined and the main
-   * animation is finished
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  std::vector<std::uint8_t> GetAnimationFrame() const override;
-
-  /**
-   * @brief Get current animation progress
-   *
-   * @return Current animation progress
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  float GetAnimationProgress() const override;
-
-  /**
-   * @brief Reset current animation
-   *
-   * @exception std::runtime_error if segment animation is not defined
-   */
-  void ResetAnimation() override;
 
 protected:
   bool repeating_ = false;

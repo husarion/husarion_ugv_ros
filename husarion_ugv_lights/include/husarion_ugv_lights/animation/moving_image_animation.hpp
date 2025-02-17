@@ -83,10 +83,10 @@ private:
   bool default_image_position_set_ = false;
   bool image_mirrored_ = false;
   bool position_mirrored_ = false;
-  size_t image_center_offset_ = 0;
-  size_t image_object_width_ = 0;
-  int32_t image_start_offset_ = 0;
-  size_t splash_duration_ = 0;
+  std::size_t image_center_offset_ = 0;
+  std::size_t image_object_width_ = 0;
+  std::int32_t image_start_offset_ = 0;
+  std::size_t splash_duration_ = 0;
 };
 
 }  // namespace husarion_ugv_lights

@@ -17,11 +17,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <rclcpp/time.hpp>
 #include <vector>
 
 #include "yaml-cpp/yaml.h"
 
+#include <rclcpp/time.hpp>
 #include "pluginlib/class_loader.hpp"
 
 #include "husarion_ugv_lights/animation/animation.hpp"
@@ -33,7 +33,7 @@ namespace husarion_ugv_lights
 enum AnimationPriority {
   ERROR = 0,
   ALERT,
-  BATTERY,
+  INFO,
   STATE,
 };
 

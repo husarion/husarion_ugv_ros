@@ -16,7 +16,8 @@
 #define HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_INTERFACE_HPP_
 
 #include <cstdint>
-#include <rclcpp/time.hpp>
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "yaml-cpp/yaml.h"
@@ -72,8 +73,8 @@ public:
    * animation fails to initialize
    */
   virtual void SetAnimation(
-    const std::string & type, const YAML::Node & animation_description,
-    [[maybe_unused]] const bool repeating, const std::string & param = "") = 0;
+    const std::string & type, const YAML::Node & animation_description, const bool /* repeating */,
+    const std::string & param = "") = 0;
 
   /**
    * @brief Update animation frame
@@ -98,7 +99,14 @@ public:
    * animation is finished
    * @exception std::runtime_error if segment animation is not defined
    */
-  virtual std::vector<std::uint8_t> GetAnimationFrame() const = 0;
+  std::vector<std::uint8_t> GetAnimationFrame() const
+  {
+    if (animation_finished_ || !animation_) {
+      return std::vector<std::uint8_t>(4 * num_led_, 0);
+    }
+
+    return animation_->GetFrame(invert_led_order_);
+  }
 
   /**
    * @brief Get current animation progress
@@ -107,14 +115,29 @@ public:
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  virtual float GetAnimationProgress() const = 0;
+  float GetAnimationProgress() const
+  {
+    if (!animation_) {
+      throw std::runtime_error("Segment animation not defined.");
+    }
+
+    return animation_->GetProgress();
+  }
 
   /**
    * @brief Reset current animation
    *
    * @exception std::runtime_error if segment animation is not defined
    */
-  virtual void ResetAnimation() = 0;
+  void ResetAnimation()
+  {
+    if (!animation_) {
+      throw std::runtime_error("Segment animation not defined.");
+    }
+
+    animation_->Reset();
+    animation_finished_ = false;
+  }
 
   bool HasAnimation() const { return static_cast<bool>(animation_); }
 

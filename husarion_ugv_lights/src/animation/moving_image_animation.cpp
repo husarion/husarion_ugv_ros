@@ -30,7 +30,7 @@
 #include "boost/gil/extension/io/png.hpp"
 #include "boost/gil/extension/numeric/resample.hpp"
 #include "boost/gil/extension/numeric/sampler.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "rclcpp/logging.hpp"
 
 #include "husarion_ugv_utils/yaml_utils.hpp"
 
@@ -47,9 +47,8 @@ void MovingImageAnimation::Initialize(
     husarion_ugv_utils::GetYAMLKeyValue<std::string>(animation_description, "image"));
 
   try {
-    image_center_offset_ =
-      static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-        animation_description, "center_offset")));  // in pixels
+    image_center_offset_ = husarion_ugv_utils::GetYAMLKeyValue<std::int16_t>(
+      animation_description, "center_offset");  // in pixels
   } catch (const std::runtime_error & /*e*/) {
     RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
@@ -58,9 +57,8 @@ void MovingImageAnimation::Initialize(
   }
 
   try {
-    image_object_width_ =
-      static_cast<int16_t>(std::stoi(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-        animation_description, "object_width")));  // in pixels
+    image_object_width_ = husarion_ugv_utils::GetYAMLKeyValue<std::int16_t>(
+      animation_description, "object_width");  // in pixels
   } catch (const std::runtime_error & /*e*/) {
     RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
@@ -69,9 +67,8 @@ void MovingImageAnimation::Initialize(
   }
   try {
     float image_start_offset_time = std::clamp(
-      std::stof(
-        husarion_ugv_utils::GetYAMLKeyValue<std::string>(animation_description, "start_offset")),
-      -20.0f, 20.0f);  // in seconds
+      husarion_ugv_utils::GetYAMLKeyValue<float>(animation_description, "start_offset"), -20.0f,
+      20.0f);  // in seconds
     image_start_offset_ = int(round(image_start_offset_time * controller_frequency));
   } catch (const std::runtime_error & /*e*/) {
     RCLCPP_DEBUG(
@@ -81,9 +78,8 @@ void MovingImageAnimation::Initialize(
   }
   try {
     float splash_duration_time = std::clamp(
-      std::stof(
-        husarion_ugv_utils::GetYAMLKeyValue<std::string>(animation_description, "splash_duration")),
-      0.0f, 20.0f);  // in seconds
+      husarion_ugv_utils::GetYAMLKeyValue<float>(animation_description, "splash_duration"), 0.0f,
+      20.0f);  // in seconds
     splash_duration_ = int(round(splash_duration_time * controller_frequency));
   } catch (const std::runtime_error & /*e*/) {
     RCLCPP_DEBUG(
@@ -111,8 +107,7 @@ void MovingImageAnimation::Initialize(
   }
   try {
     default_image_position_ = std::clamp(
-      std::stof(husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-        animation_description, "default_image_position")),
+      husarion_ugv_utils::GetYAMLKeyValue<float>(animation_description, "default_image_position"),
       0.0f, 1.0f);
     default_image_position_set_ = true;
   } catch (const std::runtime_error & /*e*/) {
@@ -137,13 +132,7 @@ void MovingImageAnimation::Initialize(
 
 void MovingImageAnimation::SetParam(const std::string & param)
 {
-  // try {
-  //   image_position_ = std::stof(param);
-  // } catch (const std::invalid_argument & /*e*/) {
-  //   throw std::runtime_error("Can not cast param to int!");
-  // }
-
-  if (default_image_position_set_) {
+  if (default_image_position_set_ && param.empty()) {
     image_position_ = default_image_position_;
     if (position_mirrored_) {
       image_position_ = 1.0f - image_position_;
@@ -162,21 +151,6 @@ void MovingImageAnimation::SetParam(const std::string & param)
   } catch (const std::invalid_argument & /*e*/) {
     throw std::runtime_error("Can not cast param to float!");
   }
-
-  // const auto anim_len = this->GetAnimationLength();
-  // std::size_t on_duration = static_cast<std::size_t>(std::round(float(anim_len) *
-  // battery_percent));
-
-  // on_duration = on_duration < 2 * fade_duration_ ? 2 * fade_duration_ : on_duration;
-
-  // if (on_duration >= anim_len) {
-  //   fade_duration_ = 0;
-  // }
-
-  // fill_start_ = (anim_len - on_duration) / 2;
-  // fill_end_ = (anim_len + on_duration) / 2;
-  // const float hue = (kHMax - kHMin) * battery_percent + kHMin;
-  // color_ = HSVtoRGB(hue / 360.0, 1.0, 1.0);
 }
 
 std::vector<std::uint8_t> MovingImageAnimation::UpdateFrame()

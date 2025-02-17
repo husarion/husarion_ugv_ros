@@ -56,7 +56,7 @@ public:
    */
   LEDSegment(const YAML::Node & segment_description, const float controller_frequency);
 
-  ~LEDSegment();
+  ~LEDSegment() {};
 
   /**
    * @brief Overwrite current animation
@@ -137,8 +137,6 @@ private:
   std::size_t last_led_iterator_;
   std::size_t num_led_;
   std::map<AnimationPriority, std::unique_ptr<SegmentLayerInterface>> layers_;
-
-  std::shared_ptr<pluginlib::ClassLoader<husarion_ugv_lights::Animation>> animation_loader_;
 };
 
 }  // namespace husarion_ugv_lights

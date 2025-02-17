@@ -59,9 +59,6 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
 
   num_led_ = std::abs(int(last_led_iterator_ - first_led_iterator_)) + 1;
 
-  animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
-    "husarion_ugv_lights", "husarion_ugv_lights::Animation");
-
   layers_[ERROR] = std::make_unique<SegmentLayer>(
     num_led_, invert_led_order_, controller_frequency);
   layers_[ALERT] = std::make_unique<SegmentQueueLayer>(
@@ -69,14 +66,6 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
   layers_[INFO] = std::make_unique<SegmentLayer>(num_led_, invert_led_order_, controller_frequency);
   layers_[STATE] = std::make_unique<SegmentLayer>(
     num_led_, invert_led_order_, controller_frequency);
-}
-
-LEDSegment::~LEDSegment()
-{
-  // make sure that animations are destroyed before pluginlib loader
-  std::for_each(
-    layers_.begin(), layers_.end(), [](const auto & layer) { layer.second->ResetAnimation(); });
-  animation_loader_.reset();
 }
 
 void LEDSegment::SetAnimation(

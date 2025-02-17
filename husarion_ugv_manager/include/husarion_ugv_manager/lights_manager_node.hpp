@@ -28,7 +28,7 @@
 
 #include "husarion_ugv_msgs/msg/led_animation.hpp"
 
-#include <husarion_ugv_manager/lights_manager_parameters.hpp>
+#include "lights_manager_parameters.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
+#include "husarion_ugv_lights/led_components/led_animations.hpp"
 
 #include <functional>
 #include <memory>

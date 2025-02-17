@@ -84,7 +84,7 @@ void MovingImageAnimation::Initialize(
   } catch (const std::runtime_error & /*e*/) {
     RCLCPP_DEBUG(
       rclcpp::get_logger("MovingImageAnimation"),
-      "Missing start_offset in animation description, using image height");
+      "Missing splash_duration in animation description, using image height");
     splash_duration_ = 0;
   }
   try {

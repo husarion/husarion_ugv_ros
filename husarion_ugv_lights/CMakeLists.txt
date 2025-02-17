@@ -58,7 +58,7 @@ add_library(
   src/led_components/led_segment.cpp
   src/led_components/led_panel.cpp
   src/led_components/segment_converter.cpp
-  src/led_components/led_animations_queue.cpp
+  src/led_components/led_animations.cpp
   src/led_components/segment_layer.cpp
   src/led_components/segment_queue_layer.cpp)
 ament_target_dependencies(
@@ -179,7 +179,7 @@ if(BUILD_TESTING)
     test/unit/led_components/test_led_animation.cpp
     src/led_components/led_panel.cpp
     src/led_components/led_segment.cpp
-    src/led_components/led_animations_queue.cpp
+    src/led_components/led_animations.cpp
     src/led_components/segment_layer.cpp
     src/led_components/segment_queue_layer.cpp)
   target_include_directories(
@@ -220,7 +220,7 @@ if(BUILD_TESTING)
     src/led_components/led_segment.cpp
     src/led_components/led_panel.cpp
     src/led_components/segment_converter.cpp
-    src/led_components/led_animations_queue.cpp
+    src/led_components/led_animations.cpp
     src/led_components/segment_layer.cpp
     src/led_components/segment_queue_layer.cpp)
   target_include_directories(

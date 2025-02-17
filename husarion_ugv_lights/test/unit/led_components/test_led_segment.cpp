@@ -202,23 +202,6 @@ TEST_F(TestLEDSegment, SetAnimation)
     "husarion_ugv_lights::ChargingAnimation", charging_anim_desc, 0, false, "0.5"));
 }
 
-// TEST_F(TestLEDSegment, SetAnimationRepeating)
-// {
-//   const auto anim_desc = YAML::Load(
-//     "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
-//     "duration: 2}");
-//   ASSERT_NO_THROW(
-//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
-
-//   EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() == nullptr);
-
-//   ASSERT_NO_THROW(
-//     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, true));
-
-//   EXPECT_TRUE(led_segment_->GetDefaultAnimation().get() != nullptr);
-//   EXPECT_TRUE(led_segment_->IsAnimationFinished());
-// }
-
 TEST_F(TestLEDSegment, UpdateAnimationAnimationNotSet)
 {
   EXPECT_FALSE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(

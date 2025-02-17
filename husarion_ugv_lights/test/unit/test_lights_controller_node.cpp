@@ -54,16 +54,6 @@ public:
   {
     return LightsControllerNode::AddAnimationToLayer(animation_id, repeating, param);
   }
-
-  // std::shared_ptr<husarion_ugv_lights::LEDAnimationsQueue> GetQueue()
-  // {
-  //   return this->animations_queue_;
-  // }
-
-  // std::shared_ptr<husarion_ugv_lights::LEDAnimation> GetCurrentAnimation()
-  // {
-  //   return this->current_animation_;
-  // }
 };
 
 class TestLightsControllerNode : public testing::Test
@@ -238,14 +228,6 @@ TEST_F(TestLightsControllerNode, AddAnimationToQueueThrowBadAnimationID)
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() { lights_controller_node_->AddAnimationToQueue(99, false); }, "No animation with ID:"));
 }
-
-// TEST_F(TestLightsControllerNode, AddAnimationToQueue)
-// {
-//   auto queue = lights_controller_node_->GetQueue();
-//   EXPECT_TRUE(queue->Empty());
-//   EXPECT_NO_THROW(lights_controller_node_->AddAnimationToQueue(0, false));
-//   EXPECT_FALSE(queue->Empty());
-// }
 
 int main(int argc, char ** argv)
 {

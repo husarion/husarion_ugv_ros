@@ -45,37 +45,4 @@ LEDAnimation::LEDAnimation(
   }
 }
 
-// bool LEDAnimation::IsFinished()
-// {
-//   return std::all_of(
-//     animation_segments_.begin(), animation_segments_.end(),
-//     [this](const std::shared_ptr<LEDSegment> & segment) { return
-//     segment->IsAnimationFinished(static_cast<AnimationPriority>(led_animation_description_.priority));
-//     });
-// }
-
-// float LEDAnimation::GetProgress() const
-// {
-//   float progress = 1.0f;
-//   std::for_each(
-//     animation_segments_.begin(), animation_segments_.end(),
-//     [this, &progress](const std::shared_ptr<LEDSegment> & segment) {
-//       auto anim_progress =
-//       segment->GetAnimationProgress(static_cast<AnimationPriority>(led_animation_description_.priority));
-//       progress = anim_progress < progress ? anim_progress : progress;
-//     });
-
-//   return progress;
-// }
-
-// void LEDAnimation::Reset(const rclcpp::Time & time)
-// {
-//   std::for_each(
-//     animation_segments_.begin(), animation_segments_.end(),
-//     [this](const std::shared_ptr<LEDSegment> & segment) {
-//     segment->ResetAnimation(static_cast<AnimationPriority>(led_animation_description_.priority));
-//     });
-//   init_time_ = time;
-// }
-
 }  // namespace husarion_ugv_lights

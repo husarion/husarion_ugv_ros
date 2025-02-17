@@ -76,20 +76,6 @@ public:
 
   ~LEDAnimation() {}
 
-  // /**
-  //  * @brief Indicates if LED animation is finished
-  //  *
-  //  * @return True if all animations on all segments are finished, false otherwise
-  //  */
-  // bool IsFinished();
-
-  // /**
-  //  * @brief Reset all animations on all LED segments
-  //  *
-  //  * @param time This time is used to set new animation initialization time
-  //  */
-  // void Reset(const rclcpp::Time & time);
-
   std::string GetName() const { return led_animation_description_.name; }
   std::uint8_t GetPriority() const { return led_animation_description_.priority; }
   std::vector<AnimationDescription> GetAnimations() const
@@ -98,13 +84,6 @@ public:
   }
   rclcpp::Time GetInitTime() const { return init_time_; }
   float GetTimeout() const { return led_animation_description_.timeout; }
-
-  // /**
-  //  * @brief Get LED animation progress
-  //  *
-  //  * @return The smallest progress of all animations on all segments
-  //  */
-  // float GetProgress() const;
 
   bool IsRepeating() const { return repeating_; }
   std::string GetParam() const { return param_; }

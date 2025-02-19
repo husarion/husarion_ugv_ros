@@ -159,7 +159,9 @@ private:
   void RequestShutdown()
   {
     request_time_ = std::chrono::steady_clock::now();
-    std::string time_now = std::to_string(request_time_.time_since_epoch().count());
+    const auto system_time = std::chrono::system_clock::now();
+    std::string time_now = std::to_string(
+      std::chrono::duration_cast<std::chrono::seconds>(system_time.time_since_epoch()).count());
     std::string string_to_sign = "/shutdown|" + time_now;
 
     unsigned char * hmac_result;

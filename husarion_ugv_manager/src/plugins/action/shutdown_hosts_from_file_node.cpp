@@ -30,7 +30,7 @@
 namespace husarion_ugv_manager
 {
 
-bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHost>> & hosts)
+bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHostInterface>> & hosts)
 {
   std::string shutdown_hosts_file;
   if (
@@ -52,7 +52,7 @@ bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHost
 
   try {
     for (const auto & host : shutdown_hosts["hosts"]) {
-      if (!host["ip"] || !host["username"]) {
+      if (!host["ip"]) {
         RCLCPP_ERROR_STREAM(
           rclcpp::get_logger(this->name()), GetLoggerPrefix(name())
                                               << "Missing info for remote host!");
@@ -60,15 +60,11 @@ bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHost
       }
 
       const auto ip = husarion_ugv_utils::GetYAMLKeyValue<std::string>(host, "ip");
-      const auto username = husarion_ugv_utils::GetYAMLKeyValue<std::string>(host, "username");
-      const auto port = husarion_ugv_utils::GetYAMLKeyValue<unsigned>(host, "port", 22);
-      const auto command = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
-        host, "command", "sudo shutdown now");
+      const auto port = husarion_ugv_utils::GetYAMLKeyValue<std::string>(host, "port", "3003");
+      const auto secret = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
+        host, "secret", "husarion");
       const auto timeout = husarion_ugv_utils::GetYAMLKeyValue<float>(host, "timeout", 5.0);
-      const auto ping_for_success = husarion_ugv_utils::GetYAMLKeyValue<bool>(
-        host, "ping_for_success", true);
-      hosts.push_back(
-        std::make_shared<ShutdownHost>(ip, username, port, command, timeout, ping_for_success));
+      hosts.push_back(std::make_shared<ShutdownHost>(ip, port, secret, timeout));
     }
   } catch (const std::runtime_error & e) {
     RCLCPP_ERROR_STREAM(*this->logger_, GetLoggerPrefix(name()) << e.what());

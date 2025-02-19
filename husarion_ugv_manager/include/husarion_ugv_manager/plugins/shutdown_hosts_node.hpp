@@ -48,7 +48,7 @@ public:
   virtual ~ShutdownHosts() = default;
 
   // method to be implemented by user
-  virtual bool UpdateHosts(std::vector<std::shared_ptr<ShutdownHost>> & hosts) = 0;
+  virtual bool UpdateHosts(std::vector<std::shared_ptr<ShutdownHostInterface>> & hosts) = 0;
 
   // method that can be overridden by user
   virtual BT::NodeStatus PostProcess()
@@ -63,14 +63,6 @@ public:
   std::vector<std::size_t> const GetFailedHosts() { return this->failed_hosts_; }
 
 protected:
-  std::shared_ptr<rclcpp::Logger> logger_;
-  std::size_t check_host_index_ = 0;
-  std::vector<std::shared_ptr<ShutdownHost>> hosts_;
-  std::vector<std::size_t> hosts_to_check_;
-  std::vector<std::size_t> skipped_hosts_;
-  std::vector<std::size_t> succeeded_hosts_;
-  std::vector<std::size_t> failed_hosts_;
-
   BT::NodeStatus onStart()
   {
     if (!UpdateHosts(this->hosts_)) {
@@ -108,7 +100,7 @@ protected:
         RCLCPP_INFO_STREAM(
           *this->logger_, GetLoggerPrefix(name())
                             << "Device at: " << host->GetIp() << " response:\n"
-                            << host->GetResponse());
+                            << host->GetOutput());
 
         check_host_index_++;
         break;
@@ -124,8 +116,8 @@ protected:
       case ShutdownHostState::FAILURE:
         RCLCPP_WARN_STREAM(
           *this->logger_, GetLoggerPrefix(name())
-                            << "Failed to shutdown device at: " << host->GetIp()
-                            << " Error: " << host->GetError());
+                            << "Failed to shutdown device at: " << host->GetIp() << "\nOutput: "
+                            << host->GetOutput() << "\nError: " << host->GetError());
 
         this->failed_hosts_.push_back(host_index);
         this->hosts_to_check_.erase(this->hosts_to_check_.begin() + this->check_host_index_);
@@ -148,16 +140,20 @@ protected:
     return BT::NodeStatus::RUNNING;
   }
 
-  void RemoveDuplicatedHosts(std::vector<std::shared_ptr<ShutdownHost>> & hosts)
+  void RemoveDuplicatedHosts(std::vector<std::shared_ptr<ShutdownHostInterface>> & hosts)
   {
-    std::set<ShutdownHost> seen;
+    auto comp = [](
+                  const std::shared_ptr<ShutdownHostInterface> & lhs,
+                  const std::shared_ptr<ShutdownHostInterface> & rhs) { return *lhs < *rhs; };
+
+    std::set<std::shared_ptr<ShutdownHostInterface>, decltype(comp)> seen(comp);
 
     hosts.erase(
       std::remove_if(
         hosts.begin(), hosts.end(),
-        [&](const std::shared_ptr<ShutdownHost> & host) {
-          if (!seen.count(*host)) {
-            seen.insert(*host);
+        [&](const std::shared_ptr<ShutdownHostInterface> & host) {
+          if (!seen.count(host)) {
+            seen.insert(host);
             return false;
           } else {
             RCLCPP_WARN_STREAM(
@@ -172,9 +168,17 @@ protected:
   void onHalted()
   {
     for (auto & host : this->hosts_) {
-      host->CloseConnection();
+      host->Halt();
     }
   }
+
+  std::shared_ptr<rclcpp::Logger> logger_;
+  std::size_t check_host_index_ = 0;
+  std::vector<std::shared_ptr<ShutdownHostInterface>> hosts_;
+  std::vector<std::size_t> hosts_to_check_;
+  std::vector<std::size_t> skipped_hosts_;
+  std::vector<std::size_t> succeeded_hosts_;
+  std::vector<std::size_t> failed_hosts_;
 };
 
 }  // namespace husarion_ugv_manager

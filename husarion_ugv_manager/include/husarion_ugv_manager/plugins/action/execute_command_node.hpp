@@ -12,27 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
-#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
+#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_EXECUTE_COMMAND_NODE_HPP_
+#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_EXECUTE_COMMAND_NODE_HPP_
 
 #include <string>
 
+#include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/basic_types.h"
+#include "rclcpp/logger.hpp"
 
-#include "husarion_ugv_manager/plugins/action/command_handler_interface.hpp"
+#include "husarion_ugv_manager/plugins/command_handler.hpp"
 
 namespace husarion_ugv_manager
 {
 
-class CommandHandler : public CommandHandlerInterface
+class ExecuteCommand : public BT::StatefulActionNode
 {
 public:
-  CommandHandler(const std::string & name, const BT::NodeConfig & conf)
-  : CommandHandlerInterface(name, conf)
+  ExecuteCommand(const std::string & name, const BT::NodeConfig & conf)
+  : StatefulActionNode(name, conf)
   {
+    command_handler_ = std::make_shared<CommandHandler>();
+    logger_ = std::make_shared<rclcpp::Logger>(rclcpp::get_logger(name));
   }
 
-  ~CommandHandler() = default;
+  ~ExecuteCommand() = default;
 
   static BT::PortsList providedPorts()
   {
@@ -43,10 +47,14 @@ public:
   }
 
 protected:
-  std::string GetCommand() override;
-  float GetTimeout() override;
+  BT::NodeStatus onStart() override;
+  BT::NodeStatus onRunning() override;
+  void onHalted() override;
+
+  std::shared_ptr<rclcpp::Logger> logger_;
+  std::shared_ptr<CommandHandler> command_handler_;
 };
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_NODE_HPP_
+#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_EXECUTE_COMMAND_NODE_HPP_

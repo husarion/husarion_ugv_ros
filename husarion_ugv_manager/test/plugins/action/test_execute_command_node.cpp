@@ -20,115 +20,115 @@
 
 #include "behaviortree_cpp/bt_factory.h"
 
-#include "husarion_ugv_manager/plugins/action/command_handler_node.hpp"
+#include "husarion_ugv_manager/plugins/action/execute_command_node.hpp"
 #include "utils/plugin_test_utils.hpp"
 
-// The simplest way to test the CommandHandlerInterface would be to create a mock which would be
-// identical to the CommandHandler. Instead use the CommandHandler itself to test both classes.
+// Most of the test for CommandHandler and ExecuteCommand would be the same, so instead do tests for
+// ExecuteCommand only.
 
-typedef husarion_ugv_manager::plugin_test_utils::PluginTestUtils TestCommandHandler;
+typedef husarion_ugv_manager::plugin_test_utils::PluginTestUtils TestExecuteCommand;
 
-TEST_F(TestCommandHandler, RegisterAndCreateTree)
+TEST_F(TestExecuteCommand, RegisterAndCreateTree)
 {
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", {}));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", {}));
 }
 
-TEST_F(TestCommandHandler, MissingCommandPort)
+TEST_F(TestExecuteCommand, MissingCommandPort)
 {
   std::map<std::string, std::string> bb_ports = {{"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestCommandHandler, MissingTimeoutPort)
+TEST_F(TestExecuteCommand, MissingTimeoutPort)
 {
   std::map<std::string, std::string> bb_ports = {{"command", "echo 'Test command'"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestCommandHandler, CallSimpleCommand)
+TEST_F(TestExecuteCommand, CallSimpleCommand)
 {
   std::map<std::string, std::string> bb_ports = {
     {"command", "echo 'Test command'"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
 }
 
-TEST_F(TestCommandHandler, InvalidCommand)
+TEST_F(TestExecuteCommand, InvalidCommand)
 {
   std::map<std::string, std::string> bb_ports = {
     {"command", "command_with_rather_impossible_name"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestCommandHandler, CommandReturnsFailure)
+TEST_F(TestExecuteCommand, CommandReturnsFailure)
 {
   std::map<std::string, std::string> bb_ports = {
     {"command", "echo 'Test command' && false"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestCommandHandler, MultipleCommands)
+TEST_F(TestExecuteCommand, MultipleCommands)
 {
   std::map<std::string, std::string> bb_ports = {
     {"command", "echo 'Test command' && echo 'Test command 2'"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
 }
 
-TEST_F(TestCommandHandler, CommandTimeout)
+TEST_F(TestExecuteCommand, CommandTimeout)
 {
   std::map<std::string, std::string> bb_ports = {{"command", "sleep infinity"}, {"timeout", "0.1"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   const auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
-TEST_F(TestCommandHandler, TreeHalted)
+TEST_F(TestExecuteCommand, TreeHalted)
 {
   std::map<std::string, std::string> bb_ports = {{"command", "sleep infinity"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW(
-    RegisterNodeWithoutParams<husarion_ugv_manager::CommandHandler>("CommandHandler"));
-  ASSERT_NO_THROW(CreateTree("CommandHandler", bb_ports));
+    RegisterNodeWithoutParams<husarion_ugv_manager::ExecuteCommand>("ExecuteCommand"));
+  ASSERT_NO_THROW(CreateTree("ExecuteCommand", bb_ports));
 
   auto & tree = GetTree();
   auto status = tree.tickOnce();

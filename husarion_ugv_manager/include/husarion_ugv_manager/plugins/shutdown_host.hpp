@@ -16,14 +16,14 @@
 #define HUSARION_UGV_MANAGER_PLUGINS_SHUTDOWN_HOST_HPP_
 
 #include <chrono>
-#include <cstdlib>
-#include <functional>
-#include <stdexcept>
+#include <iomanip>
+#include <ios>
 #include <string>
-#include <utility>
-#include <vector>
 
-#include "libssh/libsshpp.hpp"
+#include <openssl/hmac.h>
+
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+#include "husarion_ugv_manager/plugins/command_handler.hpp"
 
 namespace husarion_ugv_manager
 {
@@ -38,37 +38,54 @@ enum class ShutdownHostState {
   FAILURE,
 };
 
-class ShutdownHost
+class ShutdownHostInterface
+{
+public:
+  ShutdownHostInterface(const std::size_t hash) : hash_(hash) {}
+  ~ShutdownHostInterface() {}
+
+  virtual void Call() = 0;
+  virtual void Halt() = 0;
+  virtual std::string GetIp() const = 0;
+  virtual std::string GetError() const = 0;
+  virtual std::string GetOutput() const = 0;
+  virtual ShutdownHostState GetState() const = 0;
+
+  bool operator==(const ShutdownHostInterface & other) const { return hash_ == other.hash_; }
+  bool operator!=(const ShutdownHostInterface & other) const { return hash_ != other.hash_; }
+  bool operator<(const ShutdownHostInterface & other) const { return hash_ < other.hash_; }
+
+private:
+  const std::size_t hash_;
+};
+
+class ShutdownHost : public ShutdownHostInterface
 {
 public:
   ShutdownHost()
-  : ip_(""),
-    user_(""),
-    port_(22),
-    command_(""),
-    timeout_ms_(5000),
-    ping_for_success_(true),
-    hash_(std::hash<std::string>{}(""))
+  : ShutdownHostInterface(std::hash<std::string>{}("")),
+    ip_(""),
+    port_("3003"),
+    secret_(""),
+    timeout_ms_(5000)
   {
   }
   ShutdownHost(
-    const std::string ip, const std::string user, const int port = 22,
-    const std::string command = "sudo shutdown now", const float timeout = 5.0,
-    const bool ping_for_success = true)
-  : ip_(ip),
-    user_(user),
+    const std::string ip, const std::string & port = "3003", const std::string secret = "husarion",
+    const float timeout = 5.0)
+  : ShutdownHostInterface(std::hash<std::string>{}(ip + port)),
+    ip_(ip),
     port_(port),
-    command_(command),
+    secret_(secret),
     timeout_ms_(static_cast<long long>(timeout * 1000)),
-    ping_for_success_(ping_for_success),
-    hash_(std::hash<std::string>{}(ip + user + std::to_string(port))),
     state_(ShutdownHostState::IDLE)
   {
+    command_handler_ = std::make_shared<CommandHandler>();
   }
 
-  ~ShutdownHost() {}
+  ~ShutdownHost() = default;
 
-  void Call()
+  void Call() override
   {
     switch (state_) {
       case ShutdownHostState::IDLE:
@@ -88,30 +105,35 @@ public:
         break;
 
       case ShutdownHostState::COMMAND_EXECUTED:
-        try {
-          if (UpdateResponse()) {
-            break;
-          }
-        } catch (const std::runtime_error & err) {
-          state_ = ShutdownHostState::FAILURE;
-          failure_reason_ = err.what();
+        if (CommandRunning()) {
           break;
         }
+
+        if (command_handler_->GetState() == CommandState::FAILURE) {
+          state_ = ShutdownHostState::FAILURE;
+          failure_reason_ = command_handler_->GetError();
+          break;
+        }
+
         state_ = ShutdownHostState::RESPONSE_RECEIVED;
         break;
 
       case ShutdownHostState::RESPONSE_RECEIVED:
-        state_ = ShutdownHostState::PINGING;
+        if (CheckServerResponse()) {
+          state_ = ShutdownHostState::PINGING;
+          break;
+        }
+        state_ = ShutdownHostState::FAILURE;
         break;
 
       case ShutdownHostState::PINGING:
-        if (ping_for_success_ ? !IsAvailable() : true) {
+        if (!IsAvailable()) {
           state_ = ShutdownHostState::SUCCESS;
           break;
         }
-        if (TimeoutExceeded()) {
+        if (TimeoutExceeded(request_time_, timeout_ms_)) {
           state_ = ShutdownHostState::FAILURE;
-          failure_reason_ = "Timeout exceeded";
+          failure_reason_ = "Timeout waiting for host to shutdown";
         }
         break;
 
@@ -120,152 +142,77 @@ public:
     }
   }
 
+  void Halt() override { command_handler_->Halt(); }
+
+  std::string GetIp() const override { return ip_; }
+  std::string GetError() const override { return failure_reason_; }
+  std::string GetOutput() const override { return command_handler_->GetOutput(); }
+  ShutdownHostState GetState() const override { return state_; }
+
+protected:
   bool IsAvailable() const
   {
     return system(("ping -c 1 -w 1 " + ip_ + " > /dev/null").c_str()) == 0;
   }
 
-  void CloseConnection()
-  {
-    if (ssh_channel_is_closed(channel_)) {
-      return;
-    }
-
-    ssh_channel_send_eof(channel_);
-    ssh_channel_close(channel_);
-    ssh_channel_free(channel_);
-    ssh_disconnect(session_);
-    ssh_free(session_);
-  }
-
-  int GetPort() const { return port_; }
-
-  std::string GetIp() const { return ip_; }
-
-  std::string GetUser() const { return user_; }
-
-  std::string GetCommand() const { return command_; }
-
-  std::string GetError() const { return failure_reason_; }
-
-  std::string GetResponse() const { return output_; }
-
-  ShutdownHostState GetState() const { return state_; }
-
-  bool operator==(const ShutdownHost & other) const { return hash_ == other.hash_; }
-
-  bool operator!=(const ShutdownHost & other) const { return hash_ != other.hash_; }
-
-  bool operator<(const ShutdownHost & other) const { return hash_ < other.hash_; }
-
 private:
-  const std::string ip_;
-  const std::string user_;
-  const int port_;
-  const std::string command_;
-  const std::chrono::milliseconds timeout_ms_;
-  const bool ping_for_success_;
-  const std::size_t hash_;
-  ShutdownHostState state_;
-
-  char buffer_[1024];
-  const int verbosity_ = SSH_LOG_NOLOG;
-  int nbytes_;
-  std::string output_;
-  std::string failure_reason_;
-  std::chrono::time_point<std::chrono::steady_clock> command_time_;
-
-  ssh_session session_;
-  ssh_channel channel_;
-
   void RequestShutdown()
   {
-    SshExecuteCommand(command_);
-    command_time_ = std::chrono::steady_clock::now();
+    request_time_ = std::chrono::steady_clock::now();
+    std::string time_now = std::to_string(request_time_.time_since_epoch().count());
+    std::string string_to_sign = "/shutdown|" + time_now;
+
+    unsigned char * hmac_result;
+    unsigned int len = 32;
+    hmac_result = HMAC(
+      EVP_sha256(), secret_.c_str(), secret_.length(),
+      reinterpret_cast<const unsigned char *>(string_to_sign.c_str()), string_to_sign.length(),
+      NULL, NULL);
+
+    std::stringstream ss;
+    for (unsigned int i = 0; i < len; i++) {
+      ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hmac_result[i]);
+    }
+    std::string sig = ss.str();
+
+    const std::string command = "curl -s -w '%{errormsg}\\n%{http_code}' 'http://" + ip_ + ":" +
+                                port_ + "/shutdown?ts=" + time_now + "&sig=" + sig + "'";
+
+    command_handler_->Execute(command, timeout_ms_);
+    if (command_handler_->GetState() == CommandState::FAILURE) {
+      throw std::runtime_error("Failed to execute command");
+    }
   }
 
-  bool UpdateResponse()
+  bool CommandRunning()
   {
-    if (!IsAvailable()) {
-      CloseConnection();
-      throw std::runtime_error("Lost connection");
-    }
-
-    if (!ssh_channel_is_open(channel_)) {
-      throw std::runtime_error("Channel closed");
-    }
-
-    if (TimeoutExceeded()) {
-      CloseConnection();
-      throw std::runtime_error("Timeout exceeded");
-    }
-
-    if ((nbytes_ = ssh_channel_read_nonblocking(channel_, buffer_, sizeof(buffer_), 0)) >= 0) {
-      output_.append(buffer_, nbytes_);
-      return true;
-    }
-    CloseConnection();
-    return false;
+    return command_handler_->GetState() == CommandState::RUNNING ? true : false;
   }
 
-  bool TimeoutExceeded()
+  bool CheckServerResponse()
   {
-    auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - command_time_);
+    const auto output = this->command_handler_->GetOutput();
+    // Output may have multiple lines. We are interested in the last one.
+    const auto http_return_code = output.substr(output.find_last_of('\n') + 1);
+    if (http_return_code != "200") {
+      failure_reason_ = "Failed to shutdown remote host. Server return code: " + http_return_code;
+      return false;
+    }
 
-    return elapsed > timeout_ms_ && IsAvailable();
+    return true;
   }
 
-  void SshExecuteCommand(const std::string & command)
-  {
-    session_ = ssh_new();
-    if (session_ == NULL) {
-      throw std::runtime_error("Failed to open session");
-    };
+  const std::string ip_;
+  const std::string port_;
+  const std::string secret_;
+  const std::chrono::milliseconds timeout_ms_;
+  ShutdownHostState state_;
 
-    ssh_options_set(session_, SSH_OPTIONS_HOST, ip_.c_str());
-    ssh_options_set(session_, SSH_OPTIONS_USER, user_.c_str());
-    ssh_options_set(session_, SSH_OPTIONS_PORT, &port_);
-    ssh_options_set(session_, SSH_OPTIONS_LOG_VERBOSITY, &verbosity_);
+  std::chrono::time_point<std::chrono::steady_clock> request_time_;
 
-    if (ssh_connect(session_) != SSH_OK) {
-      std::string err = ssh_get_error(session_);
-      ssh_free(session_);
-      throw std::runtime_error("Error connecting to host: " + err);
-    }
+  std::string failure_reason_;
 
-    if (ssh_userauth_publickey_auto(session_, NULL, NULL) != SSH_AUTH_SUCCESS) {
-      std::string err = ssh_get_error(session_);
-      ssh_disconnect(session_);
-      ssh_free(session_);
-      throw std::runtime_error("Error authenticating with public key: " + err);
-    }
-
-    channel_ = ssh_channel_new(session_);
-    if (channel_ == NULL) {
-      std::string err = ssh_get_error(session_);
-      ssh_disconnect(session_);
-      ssh_free(session_);
-      throw std::runtime_error("Failed to create ssh channel: " + err);
-    }
-
-    if (ssh_channel_open_session(channel_) != SSH_OK) {
-      std::string err = ssh_get_error(session_);
-      ssh_channel_free(channel_);
-      ssh_disconnect(session_);
-      ssh_free(session_);
-      throw std::runtime_error("Failed to open ssh channel: " + err);
-    }
-
-    if (ssh_channel_request_exec(channel_, command.c_str()) != SSH_OK) {
-      std::string err = ssh_get_error(session_);
-      ssh_channel_close(channel_);
-      ssh_channel_free(channel_);
-      ssh_disconnect(session_);
-      ssh_free(session_);
-      throw std::runtime_error("Failed to execute ssh command: " + err);
-    }
-  }
+  std::shared_ptr<CommandHandler> command_handler_;
 };
 
 }  // namespace husarion_ugv_manager

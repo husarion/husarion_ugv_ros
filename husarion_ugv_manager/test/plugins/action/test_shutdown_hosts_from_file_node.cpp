@@ -61,6 +61,8 @@ TEST_F(TestShutdownHostsFromFile, InvalidShutdownHostsFile)
 
 TEST_F(TestShutdownHostsFromFile, GoodShutdownHostsFromFile)
 {
+  const std::string host_ip = "1.2.3.147";
+  const std::string host_port = "3003";
   const std::string config_file_path = testing::TempDir() + "test_file.yaml";
   const std::map<std::string, std::string> bb_ports = {{"shutdown_hosts_file", config_file_path}};
 
@@ -69,8 +71,8 @@ TEST_F(TestShutdownHostsFromFile, GoodShutdownHostsFromFile)
   ASSERT_FALSE(std::filesystem::exists(config_file_path));
 
   YAML::Node shutdown_host_desc;
-  shutdown_host_desc["hosts"][0]["ip"] = "localhost";
-  shutdown_host_desc["hosts"][0]["port"] = "3003";
+  shutdown_host_desc["hosts"][0]["ip"] = host_ip;
+  shutdown_host_desc["hosts"][0]["port"] = host_port;
   shutdown_host_desc["hosts"][0]["secret"] = "husarion";
   shutdown_host_desc["hosts"][0]["timeout"] = 5.0;
   std::fstream config_file;
@@ -79,6 +81,9 @@ TEST_F(TestShutdownHostsFromFile, GoodShutdownHostsFromFile)
   config_file.open(config_file_path, std::ios::app);
   emitter << shutdown_host_desc;
   config_file.close();
+
+  auto http_server = husarion_ugv_manager::plugin_test_utils::HTTPServer();
+  http_server.CreateServer(host_ip, host_port);
 
   RegisterNodeWithoutParams<husarion_ugv_manager::ShutdownHostsFromFile>("ShutdownHostsFromFile");
 

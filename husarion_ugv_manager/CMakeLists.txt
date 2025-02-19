@@ -11,10 +11,10 @@ set(PACKAGE_DEPENDENCIES
     behaviortree_cpp
     behaviortree_ros2
     generate_parameter_library
-    libssh
     geometry_msgs
     husarion_ugv_msgs
     husarion_ugv_utils
+    OpenSSL
     rclcpp
     rclcpp_action
     sensor_msgs
@@ -45,14 +45,9 @@ add_library(signal_shutdown_bt_node SHARED
             src/plugins/action/signal_shutdown_node.cpp)
 list(APPEND plugin_libs signal_shutdown_bt_node)
 
-add_library(shutdown_single_host_bt_node SHARED
-            src/plugins/action/shutdown_single_host_node.cpp)
-target_link_libraries(shutdown_single_host_bt_node ssh)
-list(APPEND plugin_libs shutdown_single_host_bt_node)
-
 add_library(shutdown_hosts_from_file_bt_node SHARED
             src/plugins/action/shutdown_hosts_from_file_node.cpp)
-target_link_libraries(shutdown_hosts_from_file_bt_node ssh yaml-cpp)
+target_link_libraries(shutdown_hosts_from_file_bt_node yaml-cpp)
 list(APPEND plugin_libs shutdown_hosts_from_file_bt_node)
 
 add_library(check_bool_msg_bt_node SHARED
@@ -66,6 +61,10 @@ list(APPEND plugin_libs check_joy_msg_bt_node)
 add_library(tick_after_timeout_bt_node SHARED
             src/plugins/decorator/tick_after_timeout_node.cpp)
 list(APPEND plugin_libs tick_after_timeout_bt_node)
+
+add_library(execute_command_bt_node SHARED
+            src/plugins/action/execute_command_node.cpp)
+list(APPEND plugin_libs execute_command_bt_node)
 
 foreach(bt_plugin ${plugin_libs})
   target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
@@ -123,9 +122,9 @@ install(DIRECTORY test/utils/
         DESTINATION include/${PROJECT_NAME}/${PROJECT_NAME}/test/utils)
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gmock REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(PkgConfig REQUIRED)
-  pkg_check_modules(LIBSSH REQUIRED libssh)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_call_set_bool_service_node
@@ -147,6 +146,12 @@ if(BUILD_TESTING)
        ${PROJECT_NAME}_test_call_set_led_animation_service_node)
 
   ament_add_gtest(
+    ${PROJECT_NAME}_test_execute_command_node
+    test/plugins/action/test_execute_command_node.cpp
+    src/plugins/action/execute_command_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_execute_command_node)
+
+  ament_add_gtest(
     ${PROJECT_NAME}_test_check_bool_msg
     test/plugins/condition/test_check_bool_msg.cpp
     src/plugins/condition/check_bool_msg.cpp)
@@ -164,44 +169,37 @@ if(BUILD_TESTING)
     src/plugins/decorator/tick_after_timeout_node.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_tick_after_timeout_node)
 
-  option(TEST_INTEGRATION "Run tests on self hosted runner" OFF)
-  if(TEST_INTEGRATION)
-    ament_add_gtest(
-      ${PROJECT_NAME}_test_signal_shutdown_node
-      test/plugins/action/test_signal_shutdown_node.cpp
-      src/plugins/action/signal_shutdown_node.cpp)
-    list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_signal_shutdown_node
+    test/plugins/action/test_signal_shutdown_node.cpp
+    src/plugins/action/signal_shutdown_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
 
-    ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
-                    test/plugins/test_shutdown_host.cpp)
-    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
+  ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
+                  test/plugins/test_shutdown_host.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
+  target_link_libraries(${PROJECT_NAME}_test_shutdown_host OpenSSL::SSL)
 
-    ament_add_gtest(${PROJECT_NAME}_test_shutdown_hosts_node
-                    test/plugins/test_shutdown_hosts_node.cpp)
-    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+  ament_add_gmock(${PROJECT_NAME}_test_shutdown_hosts_node
+                  test/plugins/test_shutdown_hosts_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+  target_link_libraries(${PROJECT_NAME}_test_shutdown_hosts_node OpenSSL::SSL)
 
-    ament_add_gtest(
-      ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
-      test/plugins/action/test_shutdown_hosts_from_file_node.cpp
-      src/plugins/action/shutdown_hosts_from_file_node.cpp)
-    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
-
-    ament_add_gtest(
-      ${PROJECT_NAME}_test_shutdown_single_host_node
-      test/plugins/action/test_shutdown_single_host_node.cpp
-      src/plugins/action/shutdown_single_host_node.cpp)
-    list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_single_host_node)
-  endif()
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
+    test/plugins/action/test_shutdown_hosts_from_file_node.cpp
+    src/plugins/action/shutdown_hosts_from_file_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_from_file_node)
+  target_link_libraries(${PROJECT_NAME}_test_shutdown_hosts_from_file_node
+                        OpenSSL::SSL)
 
   foreach(bt_node_test ${plugin_tests})
     target_include_directories(
-      ${bt_node_test}
-      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-             $<INSTALL_INTERFACE:include>
-      PRIVATE ${LIBSSH_INCLUDE_DIRS})
+      ${bt_node_test} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+                             $<INSTALL_INTERFACE:include>)
 
     ament_target_dependencies(${bt_node_test} ${PACKAGE_DEPENDENCIES})
-    target_link_libraries(${bt_node_test} ${LIBSSH_LIBRARIES} yaml-cpp)
+    target_link_libraries(${bt_node_test} yaml-cpp)
   endforeach()
 
   ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_utils

@@ -52,9 +52,11 @@ public:
   /**
    * @brief Overwrite current animation
    *
+   * @param type pluginlib animation type
    * @param animation_description YAML description of the animation. Must contain 'type' key -
    * pluginlib animation type
    * @param repeating if true, will set the default animation for the panel
+   * @param param optional parameter to pass to animation when initializing
    *
    * @exception std::runtime_error if 'type' key is missing, given pluginlib fails to load or
    * animation fails to initialize
@@ -65,8 +67,6 @@ public:
 
   /**
    * @brief Update animation frame
-   *
-   * @param param optional parameter to pass to animation when updating
    *
    * @exception std::runtime_error if fails to update animation
    */

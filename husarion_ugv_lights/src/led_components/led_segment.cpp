@@ -81,8 +81,7 @@ void LEDSegment::SetAnimation(
     auto animationPriority = static_cast<AnimationPriority>(priority);
     layers_.at(animationPriority)->SetAnimation(type, animation_description, repeating, param);
   } catch (std::out_of_range & e) {
-    throw std::runtime_error(
-      "Failed to set animation, out of range priority/layer: " + std::string(e.what()));
+    throw std::runtime_error("Failed to set animation: " + std::string(e.what()));
   }
 }
 

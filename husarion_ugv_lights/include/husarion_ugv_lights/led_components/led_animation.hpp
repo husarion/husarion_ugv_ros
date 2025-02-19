@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATIONS_HPP_
-#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATIONS_HPP_
+#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
+#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
 
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -72,7 +73,21 @@ public:
   LEDAnimation(
     const LEDAnimationDescription & led_animation_description,
     const std::unordered_map<std::string, std::shared_ptr<LEDSegment>> & segments,
-    const rclcpp::Time & init_time);
+    const rclcpp::Time & init_time)
+  : led_animation_description_(led_animation_description),
+    init_time_(init_time),
+    repeating_(false),
+    param_("")
+  {
+    for (const auto & animation : led_animation_description_.animations) {
+      for (const auto & segment : animation.segments) {
+        if (segments.find(segment) == segments.end()) {
+          throw std::runtime_error("No segment with name: " + segment + ".");
+        }
+        animation_segments_.push_back(segments.at(segment));
+      }
+    }
+  }
 
   ~LEDAnimation() {}
 
@@ -106,4 +121,4 @@ private:
 
 }  // namespace husarion_ugv_lights
 
-#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATIONS_HPP_
+#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_

@@ -31,7 +31,7 @@
 
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
-#include "husarion_ugv_lights/led_components/led_animations.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/led_panel.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 #include "husarion_ugv_lights/led_components/segment_converter.hpp"

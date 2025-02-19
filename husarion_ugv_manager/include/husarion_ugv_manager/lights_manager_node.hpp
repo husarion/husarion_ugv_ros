@@ -76,16 +76,16 @@ private:
   void JoyCB(const JoyMsg::SharedPtr joy);
   void LightsTreeTimerCB();
 
-  float update_charging_anim_step_;
+  static constexpr std::size_t kDeadManButtonIndex = 4;
 
-  const std::size_t kDeadManButtonIndex = 4;
+  float update_charging_anim_step_;
 
   std::shared_ptr<lights_manager::ParamListener> param_listener_;
   lights_manager::Params params_;
 
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+  rclcpp::Subscription<JoyMsg>::SharedPtr joy_sub_;
   rclcpp::TimerBase::SharedPtr lights_tree_timer_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<double>> battery_percent_ma_;

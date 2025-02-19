@@ -21,8 +21,8 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include <rclcpp/time.hpp>
 #include "pluginlib/class_loader.hpp"
+#include "rclcpp/time.hpp"
 
 #include "husarion_ugv_lights/animation/animation.hpp"
 #include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
@@ -64,6 +64,8 @@ public:
    * @param animation_description YAML description of the animation. Must contain 'type' key -
    * pluginlib animation type
    * @param repeating if true, will set the default animation for the panel
+   * @param priority priority of the animation
+   * @param param optional parameter to pass to animation when initializing
    *
    * @exception std::runtime_error if 'type' key is missing, given pluginlib fails to load or
    * animation fails to initialize
@@ -75,25 +77,24 @@ public:
   /**
    * @brief Update animation frame
    *
-   * @param param optional parameter to pass to animation when updating
-   *
    * @exception std::runtime_error if fails to update animation
    */
   void UpdateAnimation();
 
   /**
-   * @brief Check if animation is finished. This does not return state of the default animation
+   * @brief Check if animation is finished.
    *
-   * @return True if animation is finished, false otherwise
+   * @param layer layer (priority) of the animation to check
+   *
+   * @return True if animation at given layer is finished, false otherwise
    */
   bool IsAnimationFinished(AnimationPriority layer) const;
 
   /**
    * @brief Get current animation frame
    *
-   * @return Current animation frame or default animation frame if it was defined and the main
-   * animation is finished
-   * @exception std::runtime_error if segment animation is not defined
+   * @return Current animation frame or an empty animation frame if animation was not defined or the
+   * main animation has finished
    */
   std::vector<std::uint8_t> GetAnimationFrame() const;
 

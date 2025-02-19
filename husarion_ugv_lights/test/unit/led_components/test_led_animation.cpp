@@ -22,7 +22,7 @@
 
 #include "rclcpp/time.hpp"
 
-#include "husarion_ugv_lights/led_components/led_animations.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 
 class TestLEDAnimation : public testing::Test

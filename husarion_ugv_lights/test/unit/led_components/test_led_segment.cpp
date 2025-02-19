@@ -24,17 +24,6 @@
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
 
-class LEDSegmentWrapper : public husarion_ugv_lights::LEDSegment
-{
-public:
-  LEDSegmentWrapper(const YAML::Node & segment_description, const float controller_frequency)
-  : LEDSegment(segment_description, controller_frequency)
-  {
-  }
-
-  // std::shared_ptr<husarion_ugv_lights::Animation> GetAnimation() const { return animation_; }
-};
-
 class TestLEDSegment : public testing::Test
 {
 public:
@@ -42,7 +31,9 @@ public:
   ~TestLEDSegment() {}
 
 protected:
-  std::shared_ptr<LEDSegmentWrapper> led_segment_;
+  bool EmptyFrame(const std::vector<std::uint8_t> & frame);
+
+  std::shared_ptr<husarion_ugv_lights::LEDSegment> led_segment_;
 
   const float controller_freq = 50.0;
   const std::size_t segment_led_num_ = 10;
@@ -52,12 +43,17 @@ TestLEDSegment::TestLEDSegment()
 {
   const auto segment_desc =
     YAML::Load("{led_range: 0-" + std::to_string(segment_led_num_ - 1) + ", channel: 1}");
-  led_segment_ = std::make_shared<LEDSegmentWrapper>(segment_desc, controller_freq);
+  led_segment_ = std::make_shared<husarion_ugv_lights::LEDSegment>(segment_desc, controller_freq);
 }
 
 YAML::Node CreateSegmentDescription(const std::string & led_range, const std::string & channel)
 {
   return YAML::Load("{led_range: " + led_range + ", channel: " + channel + "}");
+}
+
+bool TestLEDSegment::EmptyFrame(const std::vector<std::uint8_t> & frame)
+{
+  return std::all_of(frame.begin(), frame.end(), [](const std::uint8_t & led) { return led == 0; });
 }
 
 TEST(TestLEDSegmentInitialization, DescriptionMissingRequiredKey)
@@ -146,10 +142,10 @@ TEST(TestLEDSegmentInitialization, FirstLedPosition)
 
 TEST_F(TestLEDSegment, GetAnimationFrameNoAnimation)
 {
-  EXPECT_FALSE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { led_segment_->GetAnimationFrame(); },
-    "Segment animation not defined"));  // with the current implementation, this should not throw an
-                                        // error
+  std::vector<std::uint8_t> frame;
+  ASSERT_NO_THROW(frame = led_segment_->GetAnimationFrame());
+  EXPECT_EQ(frame.size(), segment_led_num_ * 4);
+  EXPECT_TRUE(EmptyFrame(frame));
 }
 
 TEST_F(TestLEDSegment, GetAnimationProgressNoAnimation)
@@ -193,10 +189,16 @@ TEST_F(TestLEDSegment, SetAnimation)
   const auto image_anim_desc = YAML::Load(
     "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
     "duration: 2}");
+  const auto moving_image_anim_desc = YAML::Load(
+    "{image: $(find husarion_ugv_lights)/test/files/animation.png, "
+    "duration: 2, default_image_position: 0.0}");
   const auto charging_anim_desc = YAML::Load("{duration: 2}");
 
   EXPECT_NO_THROW(
     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", image_anim_desc, 0, false));
+
+  EXPECT_NO_THROW(led_segment_->SetAnimation(
+    "husarion_ugv_lights::MovingImageAnimation", moving_image_anim_desc, 0, false));
 
   EXPECT_NO_THROW(led_segment_->SetAnimation(
     "husarion_ugv_lights::ChargingAnimation", charging_anim_desc, 0, false, "0.5"));
@@ -218,7 +220,11 @@ TEST_F(TestLEDSegment, UpdateAnimation)
   ASSERT_NO_THROW(
     led_segment_->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
   EXPECT_NO_THROW(led_segment_->UpdateAnimation());
-  EXPECT_EQ(segment_led_num_ * 4, led_segment_->GetAnimationFrame().size());
+
+  std::vector<std::uint8_t> frame;
+  ASSERT_NO_THROW(frame = led_segment_->GetAnimationFrame());
+  EXPECT_EQ(frame.size(), segment_led_num_ * 4);
+  EXPECT_FALSE(EmptyFrame(frame));
 }
 
 int main(int argc, char ** argv)

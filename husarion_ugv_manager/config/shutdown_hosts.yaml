@@ -1,3 +1,3 @@
 hosts:
   - ip: 10.15.20.3
-    username: husarion
+    port: 3003

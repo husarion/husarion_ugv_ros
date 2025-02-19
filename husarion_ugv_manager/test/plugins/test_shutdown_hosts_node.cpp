@@ -59,12 +59,7 @@ public:
     std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts,
     const bool returned_status);
 
-  static BT::PortsList providedPorts()
-  {
-    return {
-
-    };
-  }
+  static BT::PortsList providedPorts() { return {}; }
 
 private:
   std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts_to_set;

@@ -11,16 +11,12 @@
         <Action ID="CallTriggerService" editable="true">
             <input_port name="service_name">ROS service name</input_port>
         </Action>
+        <Action ID="ExecuteCommand" editable="true">
+            <input_port name="command">command to execute</input_port>
+            <input_port name="timeout">command timeout in seconds</input_port>
+        </Action>
         <Action ID="ShutdownHostsFromFile" editable="true">
             <input_port name="shutdown_hosts_file">global path to YAML file with hosts to shutdown</input_port>
-        </Action>
-        <Action ID="ShutdownSingleHost" editable="true">
-            <input_port name="command" default="sudo shutdown now">command to execute on shutdown</input_port>
-            <input_port name="ip">ip of the host to shutdown</input_port>
-            <input_port name="ping_for_success" default="true">ping host until it is not available or timeout is reached</input_port>
-            <input_port name="port" default="22">SSH communication port</input_port>
-            <input_port name="timeout" default="5.0">time in s to wait for host to shutdown</input_port>
-            <input_port name="username">user to log into while executing shutdown command</input_port>
         </Action>
         <Action ID="SignalShutdown" editable="true">
             <input_port name="reason">reason to shutdown robot</input_port>

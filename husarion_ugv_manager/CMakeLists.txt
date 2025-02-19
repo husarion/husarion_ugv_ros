@@ -47,7 +47,7 @@ list(APPEND plugin_libs signal_shutdown_bt_node)
 
 add_library(shutdown_hosts_from_file_bt_node SHARED
             src/plugins/action/shutdown_hosts_from_file_node.cpp)
-target_link_libraries(shutdown_hosts_from_file_bt_node yaml-cpp)
+target_link_libraries(shutdown_hosts_from_file_bt_node OpenSSL::SSL yaml-cpp)
 list(APPEND plugin_libs shutdown_hosts_from_file_bt_node)
 
 add_library(check_bool_msg_bt_node SHARED
@@ -280,7 +280,7 @@ if(BUILD_TESTING)
     std_msgs
     tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
-                        safety_manager_parameters)
+                        safety_manager_parameters OpenSSL::SSL)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
@@ -302,7 +302,7 @@ if(BUILD_TESTING)
     std_srvs
     tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
-                        safety_manager_parameters)
+                        safety_manager_parameters OpenSSL::SSL)
 endif()
 
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})

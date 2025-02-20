@@ -136,6 +136,19 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_image_animation png yaml-cpp)
 
   ament_add_gtest(
+    ${PROJECT_NAME}_test_moving_image_animation
+    test/unit/animation/test_moving_image_animation.cpp
+    src/animation/moving_image_animation.cpp src/animation/image_animation.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_moving_image_animation
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_moving_image_animation
+                            ament_index_cpp husarion_ugv_utils pluginlib)
+  target_link_libraries(${PROJECT_NAME}_test_moving_image_animation png
+                        yaml-cpp)
+
+  ament_add_gtest(
     ${PROJECT_NAME}_test_led_panel test/unit/led_components/test_led_panel.cpp
     src/led_components/led_panel.cpp)
   target_include_directories(

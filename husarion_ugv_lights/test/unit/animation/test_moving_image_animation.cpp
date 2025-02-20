@@ -59,35 +59,53 @@ TestMovingImageAnimation::~TestMovingImageAnimation() { std::filesystem::remove(
 
 TEST_F(TestMovingImageAnimation, Initialize)
 {
-  // YAML::Node animation_description = YAML::Load("{duration: 2.0}");
+  YAML::Node animation_description = YAML::Load("{duration: 2.0}");
 
-  // // missing image in description
-  // EXPECT_THROW(animation_->Initialize(animation_description, 10, 10.0), std::runtime_error);
+  // missing image in description
+  EXPECT_THROW(animation_->Initialize(animation_description, 10, 10.0), std::runtime_error);
 
-  // animation_description["image"] = this->test_image_path;
-  // EXPECT_NO_THROW(animation_->Initialize(animation_description, 10, 10.0));
+  animation_description["image"] = this->test_image_path;
+  EXPECT_NO_THROW(animation_->Initialize(animation_description, 10, 10.0));
 }
 
 TEST_F(TestMovingImageAnimation, UpdateFrame)
 {
-  // const std::size_t num_led = 20;
-  // YAML::Node animation_description =
-  //   YAML::Load("{duration: 2.0, image: " + this->test_image_path + "}");
+  const std::size_t num_led = 20;
+  YAML::Node animation_description =
+    YAML::Load("{duration: 2.0, image: " + this->test_image_path + "}");
 
-  // ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
+  ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
 
-  // auto frame = animation_->UpdateFrame();
-  // EXPECT_EQ(num_led * 4, frame.size());
+  auto frame = animation_->UpdateFrame();
+  EXPECT_EQ(num_led * 4, frame.size());
+}
+
+TEST_F(TestMovingImageAnimation, SetParamInvalidParam)
+{
+  const std::size_t num_led = 20;
+  YAML::Node animation_description =
+    YAML::Load("{duration: 2.0, image: " + this->test_image_path + "}");
+
+  ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
+  EXPECT_THROW(this->animation_->SetParam(""), std::runtime_error);
+}
+
+TEST_F(TestMovingImageAnimation, SetParamDefaultValue)
+{
+  const std::size_t num_led = 20;
+  YAML::Node animation_description = YAML::Load(
+    "{duration: 2.0, image: " + this->test_image_path + ", default_image_position: 0.5}");
+
+  ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
+  EXPECT_NO_THROW(this->animation_->SetParam(""));
 }
 
 TEST_F(TestMovingImageAnimation, SetParam)
 {
-  // const std::size_t num_led = 20;
-  // YAML::Node animation_description =
-  //   YAML::Load("{duration: 2.0, image: " + this->test_image_path + "}");
+  const std::size_t num_led = 20;
+  YAML::Node animation_description =
+    YAML::Load("{duration: 2.0, image: " + this->test_image_path + "}");
 
-  // ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
-
-  // auto frame = animation_->UpdateFrame();
-  // EXPECT_EQ(num_led * 4, frame.size());
+  ASSERT_NO_THROW(animation_->Initialize(animation_description, num_led, 10.0));
+  EXPECT_NO_THROW(this->animation_->SetParam("0.5"));
 }

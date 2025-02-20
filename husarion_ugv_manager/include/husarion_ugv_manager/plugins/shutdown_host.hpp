@@ -155,14 +155,24 @@ protected:
     return system(("ping -c 1 -w 1 " + ip_ + " > /dev/null").c_str()) == 0;
   }
 
+  /**
+   * @brief Get the current time since epoch in seconds.
+   *
+   * @return std::int64_t The current time since epoch in seconds.
+   */
+  std::int64_t GetTimeSinceEpoch()
+  {
+    return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+  }
+
 private:
   void RequestShutdown()
   {
     request_time_ = std::chrono::steady_clock::now();
-    const auto system_time = std::chrono::system_clock::now();
-    std::string time_now = std::to_string(
-      std::chrono::duration_cast<std::chrono::seconds>(system_time.time_since_epoch()).count());
-    std::string string_to_sign = "/shutdown|" + time_now;
+    const auto time_now_str = std::to_string(GetTimeSinceEpoch());
+    std::string string_to_sign = "/shutdown|" + time_now_str;
 
     unsigned char * hmac_result;
     unsigned int len = 32;
@@ -178,7 +188,7 @@ private:
     std::string sig = ss.str();
 
     const std::string command = "curl -s -w '%{errormsg}\\n%{http_code}' 'http://" + ip_ + ":" +
-                                port_ + "/shutdown?ts=" + time_now + "&sig=" + sig + "'";
+                                port_ + "/shutdown?ts=" + time_now_str + "&sig=" + sig + "'";
 
     command_handler_->Execute(command, timeout_ms_);
     if (command_handler_->GetState() == CommandState::FAILURE) {

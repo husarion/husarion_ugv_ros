@@ -116,8 +116,8 @@ protected:
       case ShutdownHostState::FAILURE:
         RCLCPP_WARN_STREAM(
           *this->logger_, GetLoggerPrefix(name())
-                            << "Failed to shutdown device at: " << host->GetIp() << "\nOutput: "
-                            << host->GetOutput() << "\nError: " << host->GetError());
+                            << "Failed to shutdown device at: " << host->GetIp()
+                            << "\nError: " << host->GetError());
 
         this->failed_hosts_.push_back(host_index);
         this->hosts_to_check_.erase(this->hosts_to_check_.begin() + this->check_host_index_);

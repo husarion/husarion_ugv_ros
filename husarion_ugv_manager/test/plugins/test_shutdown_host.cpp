@@ -33,6 +33,8 @@ public:
   ~ShutdownHostWrapper() {}
 
   bool IsAvailable() { return ShutdownHost::IsAvailable(); }
+
+  std::int64_t GetTimeSinceEpoch() { return ShutdownHost::GetTimeSinceEpoch(); }
 };
 
 class TestShutdownHost : public testing::Test
@@ -87,6 +89,16 @@ TEST_F(TestShutdownHost, WrongCheckIsAvailable)
 {
   CreateShutdownHost(kDefaultServerIP, kDefaultServerPort, "husarion", 0.1);
   EXPECT_FALSE(this->shutdown_host_->IsAvailable());
+}
+
+TEST_F(TestShutdownHost, GetTimeSinceEpoch)
+{
+  CreateShutdownHost(kDefaultServerIP, kDefaultServerPort, "husarion", 0.1);
+  const auto time_now = std::chrono::duration_cast<std::chrono::seconds>(
+                          std::chrono::system_clock::now().time_since_epoch())
+                          .count();
+  auto diff = abs(time_now - this->shutdown_host_->GetTimeSinceEpoch());
+  EXPECT_TRUE(diff < 2);
 }
 
 TEST_F(TestShutdownHost, HTTPServerNotAvailable)

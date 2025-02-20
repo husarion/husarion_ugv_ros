@@ -1,3 +1,4 @@
 hosts:
   - ip: 10.15.20.3
     port: 3003
+    timeout: 10.0

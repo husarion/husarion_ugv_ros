@@ -28,10 +28,8 @@ include_directories(include)
 
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
-add_library(
-  animation_plugins SHARED
-  src/animation/image_animation.cpp src/animation/moving_image_animation.cpp
-  src/animation/charging_animation.cpp)
+add_library(animation_plugins SHARED src/animation/image_animation.cpp
+                                     src/animation/moving_image_animation.cpp)
 
 ament_target_dependencies(animation_plugins husarion_ugv_utils pluginlib)
 target_link_libraries(animation_plugins png yaml-cpp)
@@ -112,18 +110,6 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_animation yaml-cpp)
 
   ament_add_gtest(
-    ${PROJECT_NAME}_test_charging_animation
-    test/unit/animation/test_charging_animation.cpp
-    src/animation/charging_animation.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_charging_animation
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_charging_animation
-                            ament_index_cpp husarion_ugv_utils pluginlib)
-  target_link_libraries(${PROJECT_NAME}_test_charging_animation yaml-cpp)
-
-  ament_add_gtest(
     ${PROJECT_NAME}_test_image_animation
     test/unit/animation/test_image_animation.cpp
     src/animation/image_animation.cpp)
@@ -155,6 +141,16 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_led_panel
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
+
+  ament_add_gtest(${PROJECT_NAME}_test_segment_layer_interface
+                  test/unit/led_components/test_segment_layer_interface.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_segment_layer_interface
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_segment_layer_interface
+                            husarion_ugv_utils pluginlib)
+  target_link_libraries(${PROJECT_NAME}_test_segment_layer_interface yaml-cpp)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_led_segment

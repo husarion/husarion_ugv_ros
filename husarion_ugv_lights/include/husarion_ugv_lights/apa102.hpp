@@ -155,9 +155,10 @@ private:
   static constexpr std::uint8_t kBits = 8;
 
   // Color correction constants
-  static constexpr std::uint16_t kCorrRed = 255;
-  static constexpr std::uint16_t kCorrGreen = 200;
-  static constexpr std::uint16_t kCorrBlue = 62;
+  static constexpr std::uint16_t kCorrRed = 245;
+  static constexpr std::uint16_t kCorrGreen = 255;
+  static constexpr std::uint16_t kCorrBlue = 240;
+  static constexpr float kCorrectionGamma = 2.2;
 
   SPIDeviceInterface::SharedPtr spi_device_;
   const std::string device_name_;

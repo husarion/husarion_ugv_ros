@@ -128,7 +128,16 @@ protected:
    *
    * @return Merged frame
    */
-  std::vector<std::uint8_t> MergeFrames() const;
+  std::vector<std::uint8_t> MergeLayersFrames() const;
+
+  /**
+   * @brief Merge two frames into one using alpha blending
+   *
+   * @param frame frame to merge into
+   * @param input_frame frame to merge on top of original frame
+   */
+  void MergeFrames(
+    std::vector<std::uint8_t> & frame, const std::vector<std::uint8_t> & input_frame) const;
 
 private:
   const float controller_frequency_;

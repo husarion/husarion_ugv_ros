@@ -209,9 +209,6 @@ TEST_F(TestLEDSegment, SetAnimation)
 
   EXPECT_NO_THROW(led_segment_->SetAnimation(
     "husarion_ugv_lights::MovingImageAnimation", moving_image_anim_desc, 0, false));
-
-  EXPECT_NO_THROW(led_segment_->SetAnimation(
-    "husarion_ugv_lights::ChargingAnimation", charging_anim_desc, 0, false, "0.5"));
 }
 
 TEST_F(TestLEDSegment, UpdateAnimation)

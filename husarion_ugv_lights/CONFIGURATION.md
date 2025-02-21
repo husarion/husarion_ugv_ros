@@ -44,7 +44,7 @@ The `segments_map` section allows creating named groups of segments on which ani
 The `led_animations` section contains a list with definitions for various animations that can be displayed on the LED segments. Supported keys are:
 
 - `animations` [*list*, default: **None**]: definition of animation for each Bumper Lights. Supported keys are:
-  - `type` [*string*, default **None**]: Specifies the type of animation. Default animation types are: `husarion_ugv_lights::ImageAnimation`, `husarion_ugv_lights::ChargingAnimation`.
+  - `type` [*string*, default **None**]: Specifies the type of animation. Default animation types are: `husarion_ugv_lights::ImageAnimation`, `husarion_ugv_lights::MovingImageAnimation`.
   - `segments` [*string*, default **None**]: Indicates which segment mapping this particular animation applies to (e.g., all, front, rear).
   - `animation` [*yaml*, default: **None**]: An animation to be displayed on segments. The keys for the configuration of different animation types are explained in detail under the [**Animation Types**](#animation-types) section.
 - `id` [*int*, default: **None**]: unique ID of an animation.
@@ -74,9 +74,9 @@ Animation of type `husarion_ugv_lights::ImageAnimation`, returns frames to displ
 - `color` [*int*, default: **None**]: The image is turned into grayscale, and then the color is applied with brightness from the gray image. Values have to be in HEX format. This parameter is not required.
 - `image` [*string*, default: **None**]: path to an image file. Only global paths are valid. Allows using `$(find ros_package)` syntax.
 
-#### ChargingAnimation
+#### MovingImageAnimation
 
-Animation of type `husarion_ugv_lights::ChargingAnimation`, returns frame to display based on `param` value representing Battery percentage. Displays a solid color with a duty cycle proportional to the Battery percentage. The color is changing from red (Battery discharged) to green (Battery fully charged).
+TODO
 
 ### Defining Animations
 

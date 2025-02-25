@@ -134,6 +134,7 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"E_STOP_ANIM_ID", unsigned(LEDAnimationMsg::E_STOP)},
     {"READY_ANIM_ID", unsigned(LEDAnimationMsg::READY)},
     {"ERROR_ANIM_ID", unsigned(LEDAnimationMsg::ERROR)},
+    {"NO_ERROR_ANIM_ID", unsigned(LEDAnimationMsg::NO_ERROR)},
     {"MANUAL_ACTION_ANIM_ID", unsigned(LEDAnimationMsg::MANUAL_ACTION)},
     {"LOW_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::LOW_BATTERY)},
     {"CRITICAL_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::CRITICAL_BATTERY)},

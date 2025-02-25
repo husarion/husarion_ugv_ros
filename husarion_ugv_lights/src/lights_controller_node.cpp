@@ -176,8 +176,8 @@ void LightsControllerNode::LoadUserAnimations(const std::string & user_led_anima
 
         auto priority = husarion_ugv_utils::GetYAMLKeyValue<std::size_t>(
           animation_description, "priority", LEDAnimation::kDefaultPriority);
-        if (priority == 1) {
-          throw std::runtime_error("User animation can not have priority 1.");
+        if (priority == 0) {
+          throw std::runtime_error("User animation can not have priority 0.");
         }
 
         LoadAnimation(animation_description);

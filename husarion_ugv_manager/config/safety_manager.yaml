@@ -2,6 +2,7 @@
   safety_manager:
     ros__parameters:
       timer_frequency: 10.0
+      bt_server_port: 6666
       fan_turn_off_timeout: 60.0
       battery:
         temp:

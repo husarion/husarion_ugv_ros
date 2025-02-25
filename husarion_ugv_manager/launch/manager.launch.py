@@ -16,7 +16,7 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.conditions import UnlessCondition
 from launch.substitutions import (
     EnvironmentVariable,
@@ -26,6 +26,22 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+
+
+def check_if_port_is_free(port):
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(("localhost", port)) != 0
+
+
+def take_free_port():
+    import random
+
+    port = random.randint(5555, 65535)
+    while not check_if_port_is_free(port):
+        port = random.randint(5555, 65535)
+    return port
 
 
 def generate_launch_description():
@@ -103,13 +119,28 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
+    lights_manager_port = take_free_port()
+    safety_manager_port = take_free_port()
+
+    log_lights_manager_port = LogInfo(
+        msg="Lights manager port: " + str(lights_manager_port),
+    )
+
+    log_safety_manager_port = LogInfo(
+        msg="Safety manager port: " + str(safety_manager_port),
+        condition=UnlessCondition(use_sim),
+    )
+
     lights_manager_node = Node(
         package="husarion_ugv_manager",
         executable="lights_manager_node",
         name="lights_manager",
         parameters=[
             PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "lights_manager.yaml"]),
-            {"bt_project_path": lights_bt_project_path},
+            {
+                "bt_project_path": lights_bt_project_path,
+                "bt_server_port": lights_manager_port,
+            },
         ],
         namespace=namespace,
         arguments=[
@@ -131,6 +162,7 @@ def generate_launch_description():
             {
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,
+                "bt_server_port": safety_manager_port,
             },
         ],
         namespace=namespace,
@@ -155,6 +187,8 @@ def generate_launch_description():
         declare_use_sim_arg,
         lights_manager_node,
         safety_manager_node,
+        log_lights_manager_port,
+        log_safety_manager_port,
     ]
 
     return LaunchDescription(actions)

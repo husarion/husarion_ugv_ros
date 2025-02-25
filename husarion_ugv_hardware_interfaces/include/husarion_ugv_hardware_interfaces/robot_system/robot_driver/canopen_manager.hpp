@@ -33,6 +33,8 @@
 #include "lely/io2/sys/sigset.hpp"
 #include "lely/io2/sys/timer.hpp"
 
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
+
 namespace husarion_ugv_hardware_interfaces
 {
 
@@ -47,7 +49,7 @@ struct CANopenSettings
   std::string can_interface_name;
 
   std::uint8_t master_can_id;
-  std::map<std::string, std::uint8_t> driver_can_ids;
+  std::map<DriverNames, std::uint8_t> driver_can_ids;
 
   std::chrono::milliseconds pdo_motor_states_timeout_ms;
   std::chrono::milliseconds pdo_driver_state_timeout_ms;

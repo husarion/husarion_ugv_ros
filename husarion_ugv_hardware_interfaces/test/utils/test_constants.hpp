@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp>
+#include <husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp>
 #include <husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp>
 
 namespace husarion_ugv_hardware_interfaces_test
@@ -30,7 +31,9 @@ namespace husarion_ugv_hardware_interfaces_test
 const husarion_ugv_hardware_interfaces::CANopenSettings kCANopenSettings{
   "robot_can",
   3,
-  {{"default", 1}, {"front", 1}, {"rear", 2}},
+  {{husarion_ugv_hardware_interfaces::DriverNames::DEFAULT, 1},
+   {husarion_ugv_hardware_interfaces::DriverNames::FRONT, 1},
+   {husarion_ugv_hardware_interfaces::DriverNames::REAR, 2}},
   std::chrono::milliseconds(15),
   std::chrono::milliseconds(75),
   std::chrono::milliseconds(100),

@@ -3,7 +3,7 @@
 # YAML file.
 #
 # For more examples and detailed documentation, please visit:
-# https://github.com/husarion/panther_ros/blob/ros2/panther_lights/CONFIGURATION.md#defining-animations
+# https://github.com/husarion/husarion_ugv_ros/blob/ros2/panther_lights/CONFIGURATION.md#defining-animations
 
 user_animations: []
 

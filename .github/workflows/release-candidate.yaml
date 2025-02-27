@@ -65,6 +65,7 @@ jobs:
     with:
       branch_name: ${{ inputs.version }}-${{ inputs.date }}
       build_type: development
+    secrets: inherit
 
   os_image:
     name: OS image

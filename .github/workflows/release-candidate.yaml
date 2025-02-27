@@ -46,9 +46,9 @@ jobs:
 
       - name: Update docker image tag
         run: |
-          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-          sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+          sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
@@ -76,7 +76,7 @@ jobs:
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
         with:
           repository_owner: husarion
-          repository_name: panther-rpi-os-img
+          repository_name: husarion-ugv-rpi-os-img
           new_branch_name: ${{ env.RC_BRANCH_NAME }}
           new_branch_ref: ros2-devel
           access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
@@ -85,7 +85,7 @@ jobs:
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther-rpi-os-img
+          repo: husarion-ugv-rpi-os-img
           github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
@@ -100,7 +100,7 @@ jobs:
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther-rpi-os-img
+          repo: husarion-ugv-rpi-os-img
           github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_flash_os_image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}

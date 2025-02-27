@@ -22,7 +22,7 @@
 
 #include "rclcpp/time.hpp"
 
-#include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 
 class TestLEDAnimation : public testing::Test
@@ -73,7 +73,7 @@ void TestLEDAnimation::SetSegmentAnimations()
   for (auto & animation : animations) {
     for (auto & segment : animation.segments) {
       segments_.at(segment)->SetAnimation(
-        animation.type, animation.animation, led_anim_->IsRepeating(), led_anim_->GetParam());
+        animation.type, animation.animation, 0, led_anim_->IsRepeating(), led_anim_->GetParam());
     }
   }
 }
@@ -93,73 +93,33 @@ TEST(TestLEDAnimationInitialization, InvalidSegmentName)
     std::runtime_error);
 }
 
-TEST_F(TestLEDAnimation, IsFinished)
+TEST(TestLEDAnimationInitialization, Successful)
 {
-  SetSegmentAnimations();
+  const char segment_name_1[] = "segment_1";
+  const char segment_name_2[] = "segment_2";
+  auto segment_1_desc = YAML::Load("{channel: 1, led_range: 0-10}");
+  auto segment_2_desc = YAML::Load("{channel: 2, led_range: 0-10}");
+  std::unordered_map<std::string, std::shared_ptr<husarion_ugv_lights::LEDSegment>> segments;
 
-  EXPECT_FALSE(led_anim_->IsFinished());
+  segments.emplace(
+    segment_name_1, std::make_shared<husarion_ugv_lights::LEDSegment>(segment_1_desc, 50.0));
+  segments.emplace(
+    segment_name_2, std::make_shared<husarion_ugv_lights::LEDSegment>(segment_2_desc, 50.0));
 
-  while (!segments_.at(kTestSegmentName1)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName1)->UpdateAnimation();
-  }
+  husarion_ugv_lights::AnimationDescription anim_desc;
+  anim_desc.segments = {segment_name_1, segment_name_2};
+  anim_desc.type = "husarion_ugv_lights::ImageAnimation";
+  anim_desc.animation =
+    YAML::Load("{image: $(find husarion_ugv_lights)/test/files/animation.png, duration: 2.0}");
 
-  EXPECT_FALSE(led_anim_->IsFinished());
+  husarion_ugv_lights::LEDAnimationDescription led_anim_desc;
+  led_anim_desc.id = 0;
+  led_anim_desc.name = "TEST";
+  led_anim_desc.priority = 1;
+  led_anim_desc.timeout = 10.0;
+  led_anim_desc.animations = {anim_desc};
 
-  while (!segments_.at(kTestSegmentName2)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName2)->UpdateAnimation();
-  }
-
-  EXPECT_TRUE(led_anim_->IsFinished());
-}
-
-TEST_F(TestLEDAnimation, GetProgress)
-{
-  SetSegmentAnimations();
-
-  EXPECT_FLOAT_EQ(0.0, led_anim_->GetProgress());
-
-  while (!segments_.at(kTestSegmentName1)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName1)->UpdateAnimation();
-  }
-
-  EXPECT_FLOAT_EQ(0.0, led_anim_->GetProgress());
-  EXPECT_FALSE(led_anim_->IsFinished());
-
-  while (!segments_.at(kTestSegmentName2)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName2)->UpdateAnimation();
-  }
-
-  EXPECT_FLOAT_EQ(1.0, led_anim_->GetProgress());
-}
-
-TEST_F(TestLEDAnimation, Reset)
-{
-  SetSegmentAnimations();
-
-  while (!segments_.at(kTestSegmentName1)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName1)->UpdateAnimation();
-  }
-
-  while (!segments_.at(kTestSegmentName2)->IsAnimationFinished()) {
-    segments_.at(kTestSegmentName2)->UpdateAnimation();
-  }
-
-  EXPECT_TRUE(led_anim_->GetInitTime() == rclcpp::Time(0));
-  EXPECT_TRUE(led_anim_->IsFinished());
-  EXPECT_TRUE(segments_.at(kTestSegmentName1)->IsAnimationFinished());
-  EXPECT_TRUE(segments_.at(kTestSegmentName2)->IsAnimationFinished());
-  EXPECT_FLOAT_EQ(1.0, segments_.at(kTestSegmentName1)->GetAnimationProgress());
-  EXPECT_FLOAT_EQ(1.0, segments_.at(kTestSegmentName2)->GetAnimationProgress());
-
-  auto reset_time = rclcpp::Time(1);
-  led_anim_->Reset(reset_time);
-
-  EXPECT_TRUE(led_anim_->GetInitTime() == reset_time);
-  EXPECT_FALSE(led_anim_->IsFinished());
-  EXPECT_FALSE(segments_.at(kTestSegmentName1)->IsAnimationFinished());
-  EXPECT_FALSE(segments_.at(kTestSegmentName2)->IsAnimationFinished());
-  EXPECT_FLOAT_EQ(0.0, segments_.at(kTestSegmentName1)->GetAnimationProgress());
-  EXPECT_FLOAT_EQ(0.0, segments_.at(kTestSegmentName2)->GetAnimationProgress());
+  EXPECT_NO_THROW(husarion_ugv_lights::LEDAnimation(led_anim_desc, segments, rclcpp::Time(0)));
 }
 
 int main(int argc, char ** argv)

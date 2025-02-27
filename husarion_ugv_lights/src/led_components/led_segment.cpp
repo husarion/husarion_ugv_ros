@@ -16,11 +16,18 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
+#include <string>
 
 #include "yaml-cpp/yaml.h"
 
+#include "rclcpp/logging.hpp"
+
 #include "husarion_ugv_lights/animation/animation.hpp"
+#include "husarion_ugv_lights/led_components/segment_layer.hpp"
+#include "husarion_ugv_lights/led_components/segment_layer_interface.hpp"
+#include "husarion_ugv_lights/led_components/segment_queue_layer.hpp"
 #include "husarion_ugv_utils/yaml_utils.hpp"
 
 namespace husarion_ugv_lights
@@ -52,119 +59,108 @@ LEDSegment::LEDSegment(const YAML::Node & segment_description, const float contr
 
   num_led_ = std::abs(int(last_led_iterator_ - first_led_iterator_)) + 1;
 
-  animation_loader_ = std::make_shared<pluginlib::ClassLoader<husarion_ugv_lights::Animation>>(
-    "husarion_ugv_lights", "husarion_ugv_lights::Animation");
-}
-
-LEDSegment::~LEDSegment()
-{
-  // make sure that animations are destroyed before pluginlib loader
-  animation_.reset();
-  default_animation_.reset();
-  animation_loader_.reset();
+  layers_[ERROR] = std::make_unique<SegmentLayer>(
+    num_led_, invert_led_order_, controller_frequency);
+  layers_[ALERT] = std::make_unique<SegmentQueueLayer>(
+    num_led_, invert_led_order_, controller_frequency);
+  layers_[INFO] = std::make_unique<SegmentLayer>(num_led_, invert_led_order_, controller_frequency);
+  layers_[STATE] = std::make_unique<SegmentLayer>(
+    num_led_, invert_led_order_, controller_frequency);
 }
 
 void LEDSegment::SetAnimation(
   const std::string & type, const YAML::Node & animation_description, const bool repeating,
-  const std::string & param)
+  const std::uint8_t priority, const std::string & param)
 {
   std::shared_ptr<husarion_ugv_lights::Animation> animation;
 
   try {
-    animation = animation_loader_->createSharedInstance(type);
-  } catch (pluginlib::PluginlibException & e) {
-    throw std::runtime_error("The plugin failed to load. Error: " + std::string(e.what()));
-  }
-
-  try {
-    animation->Initialize(animation_description, num_led_, controller_frequency_);
-    animation->SetParam(param);
-  } catch (const std::runtime_error & e) {
-    throw std::runtime_error("Failed to initialize animation: " + std::string(e.what()));
-  } catch (const std::out_of_range & e) {
-    throw std::runtime_error("Failed to initialize animation: " + std::string(e.what()));
-  }
-
-  animation_ = std::move(animation);
-  animation_finished_ = false;
-
-  if (repeating) {
-    default_animation_ = animation_;
-    animation_finished_ = true;
-  }
-  if (default_animation_) {
-    default_animation_->Reset();
+    if (priority < ERROR || priority > STATE) {
+      throw std::invalid_argument("Invalid priority value");
+    }
+    auto animationPriority = static_cast<AnimationPriority>(priority);
+    layers_.at(animationPriority)->SetAnimation(type, animation_description, repeating, param);
+  } catch (std::out_of_range & e) {
+    throw std::runtime_error("Failed to set animation: " + std::string(e.what()));
   }
 }
 
 void LEDSegment::UpdateAnimation()
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  if (animation_->IsFinished()) {
-    animation_finished_ = true;
-  }
-
-  std::shared_ptr<husarion_ugv_lights::Animation> animation_to_update =
-    animation_finished_ && default_animation_ ? default_animation_ : animation_;
-
-  if (animation_finished_ && default_animation_ && default_animation_->IsFinished()) {
-    default_animation_->Reset();
-  }
-
-  try {
-    animation_to_update->Update();
-  } catch (const std::runtime_error & e) {
-    throw std::runtime_error("Failed to update animation: " + std::string(e.what()));
+  for (auto & [priority, layer] : layers_) {
+    if (layer->HasAnimation()) {
+      try {
+        layer->UpdateAnimation();
+      } catch (const std::runtime_error & e) {
+        throw std::runtime_error(
+          "Failed to update animation at layer of priority " + std::to_string(priority) + ": " +
+          std::string(e.what()));
+      }
+    }
   }
 }
 
-std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const
+bool LEDSegment::IsAnimationFinished(AnimationPriority layer) const
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
-
-  if (default_animation_ && animation_finished_) {
-    return default_animation_->GetFrame(invert_led_order_);
-  }
-
-  return animation_->GetFrame(invert_led_order_);
+  return layers_.at(layer)->IsAnimationFinished();
 }
 
-float LEDSegment::GetAnimationProgress() const
-{
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
+std::vector<std::uint8_t> LEDSegment::GetAnimationFrame() const { return MergeLayersFrames(); }
 
-  return animation_->GetProgress();
+std::vector<std::uint8_t> LEDSegment::MergeLayersFrames() const
+{
+  std::vector<std::uint8_t> output_frame(4 * num_led_, 0);
+  for (auto it = layers_.rbegin(); it != layers_.rend();
+       ++it) {  // reverse the order of layers for merging
+    auto & [priority, layer] = *it;
+    if (layer->HasAnimation()) {
+      auto overlay_frame = layer->GetAnimationFrame();
+      MergeFrames(output_frame, overlay_frame);
+    }
+  }
+  return output_frame;
 }
 
-void LEDSegment::ResetAnimation()
+void LEDSegment::MergeFrames(
+  std::vector<std::uint8_t> & base_frame, const std::vector<std::uint8_t> & overlay_frame) const
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
+  for (std::size_t i = 0; i < num_led_; i++) {
+    const auto alpha = overlay_frame[i * 4 + 3];
+    for (std::size_t j = 0; j < 3; j++) {
+      base_frame[i * 4 + j] =
+        (overlay_frame[i * 4 + j] * alpha + base_frame[i * 4 + j] * (255 - alpha)) /
+        255;  // value * alpha + background_value * (1 - alpha)
+    }
+    base_frame[i * 4 + 3] = alpha + base_frame[i * 4 + 3] * (255 - alpha) /
+                                      255;  // alpha + (1 - alpha) * background_alpha
   }
-
-  animation_->Reset();
-  animation_finished_ = false;
 }
 
-std::uint8_t LEDSegment::GetAnimationBrightness() const
+float LEDSegment::GetAnimationProgress(AnimationPriority layer) const
 {
-  if (!animation_) {
-    throw std::runtime_error("Segment animation not defined.");
-  }
+  return layers_.at(layer)->GetAnimationProgress();
+}
 
-  return animation_->GetBrightness();
+void LEDSegment::ResetAnimation(AnimationPriority layer)
+{
+  return layers_.at(layer)->ResetAnimation();
 }
 
 std::size_t LEDSegment::GetFirstLEDPosition() const
 {
   return (invert_led_order_ ? last_led_iterator_ : first_led_iterator_) * Animation::kRGBAColorLen;
+}
+
+bool LEDSegment::LayerHasAnimation(AnimationPriority layer) const
+{
+  return layers_.at(layer)->HasAnimation();
+}
+
+bool LEDSegment::HasAnimation() const
+{
+  return std::any_of(layers_.begin(), layers_.end(), [](const auto & pair) {
+    return pair.second->HasAnimation();
+  });  // Can't capture structured bindings inside lambda in c++17 😔😔😔😔
 }
 
 }  // namespace husarion_ugv_lights

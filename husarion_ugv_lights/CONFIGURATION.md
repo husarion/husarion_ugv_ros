@@ -2,19 +2,26 @@
 
 ## LED Animations
 
-Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config) file. It includes definition of robot panels, virtual segments and default animations. The default appearance of the animation when looking at the robot from the front or back is as follows:
+Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config) file. It includes definition of robot panels, virtual segments and default animations. The default appearance of the animation when looking at the robot is as follows:
 
-|  ID   | NAME              | PRIORITY | ANIMATION                                          |
-| :---: | ----------------- | :------: | -------------------------------------------------- |
-|   0   | E_STOP            |    3     | ![E_STOP](.docs/E_STOP.webp)                       |
-|   1   | READY             |    3     | ![READY](.docs/READY.webp)                         |
-|   2   | ERROR             |    1     | ![ERROR](.docs/ERROR.webp)                         |
-|   3   | MANUAL_ACTION     |    3     | ![MANUAL_ACTION](.docs/MANUAL_ACTION.webp)         |
-|   4   | AUTONOMOUS_ACTION |    3     | ![AUTONOMOUS_ACTION](.docs/AUTONOMOUS_ACTION.webp) |
-|   5   | GOAL_ACHIEVED     |    2     | ![GOAL_ACHIEVED](.docs/GOAL_ACHIEVED.webp)         |
-|   6   | LOW_BATTERY       |    2     | ![LOW_BATTERY](.docs/LOW_BATTERY.webp)             |
-|   7   | CRITICAL_BATTERY  |    2     | ![CRITICAL_BATTERY](.docs/CRITICAL_BATTERY.webp)   |
-|   9   | CHARGING_BATTERY  |    3     | ![CHARGING_BATTERY](.docs/CHARGING_BATTERY.webp)   |
+|  ID   | NAME              | PRIORITY | ANIMATION                                                                                                                  |
+| :---: | ----------------- | :------: | -------------------------------------------------------------------------------------------------------------------------- |
+|   0   | E_STOP            |    3     | ![E_STOP_FRONT](.docs/estop_front.webp)![E_STOP_REAR](.docs/estop_rear.webp)                                               |
+|   1   | READY             |    3     | ![READY_FRONT](.docs/ready_front.webp)![READY_REAR](.docs/ready_rear.webp)                                                 |
+|   2   | ERROR             |    0     | ![ERROR](.docs/error.webp)![ERROR](.docs/error.webp)                                                                       |
+|   3   | NO_ERROR          |    0     | ![NO_ERROR](.docs/empty.webp)                                                                                              |
+|   4   | MANUAL_ACTION     |    3     | ![MANUAL_ACTION_FRONT](.docs/manual_action_front.webp)![MANUAL_ACTION_REAR](.docs/manual_action_rear.webp)                 |
+|   5   | LOW_BATTERY       |    2     | ![LOW_BATTERY](.docs/low_battery.webp)![LOW_BATTERY](.docs/low_battery.webp)                                               |
+|   6   | CRITICAL_BATTERY  |    2     | ![CRITICAL_BATTERY](.docs/critical_battery.webp)![CRITICAL_BATTERY](.docs/critical_battery.webp)                           |
+|   7   | CHARGING_BATTERY  |    2     | ![CHARGING_BATTERY_FRONT](.docs/charging_battery_front.webp)![CHARGING_BATTERY_REAR](.docs/charging_battery_rear.webp)     |
+|   8   | BATTERY_CHARGED   |    2     | ![CHARGING_BATTERY_FRONT](.docs/battery_charged_front.webp)![CHARGING_BATTERY_REAR](.docs/battery_charged_rear.webp)       |
+|   9   | CHARGER_INSERTED  |    1     | ![CHARGER_INSERTED_FRONT](.docs/charger_inserted_front.webp)![CHARGER_INSERTED_REAR](.docs/charger_inserted_rear.webp)     |
+|  10   | BATTERY_NOMINAL   |    2     | ![BATTERY_NOMINAL](.docs/empty.webp)                                                                                       |
+|  11   | AUTONOMOUS_READY  |    3     | ![AUTONOMOUS_READY_FRONT](.docs/autonomous_ready_front.webp)![AUTONOMOUS_READY_REAR](.docs/autonomous_ready_rear.webp)     |
+|  12   | AUTONOMOUS_ACTION |    3     | ![AUTONOMOUS_ACTION_FRONT](.docs/autonomous_action_front.webp)![AUTONOMOUS_ACTION_REAR](.docs/autonomous_action_rear.webp) |
+|  13   | GOAL_ACHIEVED     |    1     | ![GOAL_ACHIEVED_FRONT](.docs/goal_achieved_front.webp)![GOAL_ACHIEVED](.docs/goal_achieved_rear.webp)                      |
+|  14   | BLINKER_LEFT      |    1     | ![BLINKER_LEFT](.docs/blinker_left.webp)![BLINKER_LEFT](.docs/blinker_left.webp)                                           |
+|  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)![BLINKER_RIGHT](.docs/blinker_right.webp)                                       |
 
 ### Panels
 
@@ -44,15 +51,16 @@ The `segments_map` section allows creating named groups of segments on which ani
 The `led_animations` section contains a list with definitions for various animations that can be displayed on the LED segments. Supported keys are:
 
 - `animations` [*list*, default: **None**]: definition of animation for each Bumper Lights. Supported keys are:
-  - `type` [*string*, default **None**]: Specifies the type of animation. Default animation types are: `husarion_ugv_lights::ImageAnimation`, `husarion_ugv_lights::ChargingAnimation`.
+  - `type` [*string*, default **None**]: Specifies the type of animation. Default animation types are: `husarion_ugv_lights::ImageAnimation`, `husarion_ugv_lights::MovingImageAnimation`.
   - `segments` [*string*, default **None**]: Indicates which segment mapping this particular animation applies to (e.g., all, front, rear).
   - `animation` [*yaml*, default: **None**]: An animation to be displayed on segments. The keys for the configuration of different animation types are explained in detail under the [**Animation Types**](#animation-types) section.
 - `id` [*int*, default: **None**]: unique ID of an animation.
 - `name` [*string*, default: **ANIMATION_`ID`**]: name of an animation. If not provided, it will default to **ANIMATION_`ID`**, where `ID` is equal to `id` parameter of the given animation.
-- `priority` [*int*, default: **3**]: priority at which animation will be placed in the queue. The list below shows the behavior when an animation with a given ID arrives:
-  - **1** interrupts and removes animation with priorities **2** and **3**.
-  - **2** interrupts animations with priority **3**.
-  - **3** adds animation to the end of the queue.
+- `priority` [*int*, default: **3**]: defines at what layer animation will be assigned. Animations with higher priority (0 corresponds to the highest) will be on top of animations with lower priority. Priorities are defined as follow:
+  - **0 - ERROR** highest priority designed to signal critical errors in the system.
+  - **1 - ALERT** dedicated to display one-time events e.g. goal reached etc.
+  - **2 - INFO** dedicated to display simple information such as battery states.
+  - **3 - STATE** lowest priority designed for indicating robot state.
 - `timeout` [*float*, default: **120.0**]: time in **[s]**, after which animation will be removed from the queue.
 
 ### Animation Types
@@ -61,7 +69,6 @@ The `led_animations` section contains a list with definitions for various animat
 
 Basic animation definition. Keys are inherited from the basic **Animation** class by all animations. Supported keys are:
 
-- `brightness` [*float*, default: **1.0**]: animation brightness relative to APA102C driver `global_brightness`. The range between **[0.0, 1.0]**.
 - `duration` [*float*, default: **None**]: duration of the animation.
 - `repeat` [*int*, default: **1**]: number of times the animation will be repeated.
 
@@ -72,12 +79,23 @@ Basic animation definition. Keys are inherited from the basic **Animation** clas
 
 Animation of type `husarion_ugv_lights::ImageAnimation`, returns frames to display based on a supplied image. Extends `Animation` with keys:
 
-- `color` [*int*, default: **None**]: The image is turned into grayscale, and then the color is applied with brightness from the gray image. Values have to be in HEX format. This parameter is not required.
 - `image` [*string*, default: **None**]: path to an image file. Only global paths are valid. Allows using `$(find ros_package)` syntax.
+- `color` [*int*, default: **None**]: The image is turned into grayscale, and then the color is applied with brightness from the gray image. Values have to be in HEX format. This parameter is not required.
 
-#### ChargingAnimation
+#### MovingImageAnimation
 
-Animation of type `husarion_ugv_lights::ChargingAnimation`, returns frame to display based on `param` value representing Battery percentage. Displays a solid color with a duty cycle proportional to the Battery percentage. The color is changing from red (Battery discharged) to green (Battery fully charged).
+TODO: @BOOTCFG please update this description
+Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to display based on a supplied image, that can be shifted using `param` value. Extends `Animation` with keys:
+
+- `image` [*string*, default: **None**]: path to an image file. Only global paths are valid. Allows using `$(find ros_package)` syntax.
+- `color` [*int*, default: **None**]: The image is turned into grayscale, and then the color is applied with brightness from the gray image. Values have to be in HEX format. This parameter is not required.
+- `center_offset` [*int*, default: **0**]:
+- `start_offset` [*float*, default: **0.0**]:
+- `object_width` [*int*, default: **0**]:
+- `splash_duration` [*float*, default: **0.0**]:
+- `default_image_position` [*float*, default: **0.0**]:
+- `image_mirrored` [*bool*, default: **false**]:
+- `position_mirrored` [*bool*, default: **false**]:
 
 ### Defining Animations
 
@@ -96,7 +114,7 @@ user_animations:
       - type: husarion_ugv_lights::ImageAnimation
         segments: all
         animation:
-          image: $(find husarion_ugv_lights)/animations/panther/strip01_red.png
+          image: $(find husarion_ugv_lights)/animations/panther/estop_front.png
           duration: 2
           repeat: 2
           color: 0xffff00
@@ -147,7 +165,7 @@ user_animations:
 > [!IMPORTANT]
 >
 > - ID numbers from 0 to 19 are reserved for system animations.
-> - Priority **1** is reserved for crucial system animations. Users can only define animations with priority **2** and **3**.
+> - Priority **0** is reserved for crucial system animations. Users can only define animations with priority **1-3**.
 
 Remember to modify launch command to use user animations:
 

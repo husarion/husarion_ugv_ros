@@ -24,6 +24,7 @@
 
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joy.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
@@ -71,6 +72,8 @@ void LightsManagerNode::Initialize()
   e_stop_sub_ = this->create_subscription<BoolMsg>(
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
+  joy_sub_ = this->create_subscription<JoyMsg>(
+    "joy", 10, std::bind(&LightsManagerNode::JoyCB, this, _1));
 
   const double timer_freq = this->params_.timer_frequency;
   const auto timer_period = std::chrono::duration<double>(1.0 / timer_freq);
@@ -109,8 +112,6 @@ void LightsManagerNode::RegisterBehaviorTree()
 std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard()
 {
   update_charging_anim_step_ = this->params_.battery.charging_anim_step;
-  const float critical_battery_anim_period =
-    static_cast<float>(this->params_.battery.anim_period.critical);
   const float critical_battery_threshold_percent =
     static_cast<float>(this->params_.battery.percent.threshold.critical);
   const float low_battery_anim_period = static_cast<float>(this->params_.battery.anim_period.low);
@@ -123,7 +124,9 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
   const std::map<std::string, std::any> lights_initial_bb = {
     {"charging_anim_percent", undefined_charging_anim_percent},
     {"current_anim_id", undefined_anim_id},
-    {"CRITICAL_BATTERY_ANIM_PERIOD", critical_battery_anim_period},
+    {"current_battery_anim_id", undefined_anim_id},
+    {"current_error_anim_id", undefined_anim_id},
+    {"drive_state", false},
     {"CRITICAL_BATTERY_THRESHOLD_PERCENT", critical_battery_threshold_percent},
     {"LOW_BATTERY_ANIM_PERIOD", low_battery_anim_period},
     {"LOW_BATTERY_THRESHOLD_PERCENT", low_battery_threshold_percent},
@@ -131,13 +134,19 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"E_STOP_ANIM_ID", unsigned(LEDAnimationMsg::E_STOP)},
     {"READY_ANIM_ID", unsigned(LEDAnimationMsg::READY)},
     {"ERROR_ANIM_ID", unsigned(LEDAnimationMsg::ERROR)},
+    {"NO_ERROR_ANIM_ID", unsigned(LEDAnimationMsg::NO_ERROR)},
     {"MANUAL_ACTION_ANIM_ID", unsigned(LEDAnimationMsg::MANUAL_ACTION)},
-    {"AUTONOMOUS_ACTION_ANIM_ID", unsigned(LEDAnimationMsg::AUTONOMOUS_ACTION)},
-    {"GOAL_ACHIEVED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_ACHIEVED)},
     {"LOW_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::LOW_BATTERY)},
     {"CRITICAL_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::CRITICAL_BATTERY)},
-    {"BATTERY_STATE_ANIM_ID", unsigned(LEDAnimationMsg::BATTERY_STATE)},
     {"CHARGING_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::CHARGING_BATTERY)},
+    {"BATTERY_CHARGED_ANIM_ID", unsigned(LEDAnimationMsg::BATTERY_CHARGED)},
+    {"CHARGER_INSERTED_ANIM_ID", unsigned(LEDAnimationMsg::CHARGER_INSERTED)},
+    {"BATTERY_NOMINAL_ANIM_ID", unsigned(LEDAnimationMsg::BATTERY_NOMINAL)},
+    {"AUTONOMOUS_READY_ANIM_ID", unsigned(LEDAnimationMsg::AUTONOMOUS_READY)},
+    {"AUTONOMOUS_ACTION_ANIM_ID", unsigned(LEDAnimationMsg::AUTONOMOUS_ACTION)},
+    {"GOAL_ACHIEVED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_ACHIEVED)},
+    {"BLINKER_LEFT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_LEFT)},
+    {"BLINKER_RIGHT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_RIGHT)},
     // battery status constants
     {"POWER_SUPPLY_STATUS_UNKNOWN", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_UNKNOWN)},
     {"POWER_SUPPLY_STATUS_CHARGING", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING)},
@@ -179,6 +188,12 @@ void LightsManagerNode::BatteryCB(const BatteryStateMsg::SharedPtr battery_state
 void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
 {
   lights_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
+}
+
+void LightsManagerNode::JoyCB(const JoyMsg::SharedPtr joy)
+{
+  lights_tree_manager_->GetBlackboard()->set<bool>(
+    "drive_state", joy->buttons[kDeadManButtonIndex]);
 }
 
 void LightsManagerNode::LightsTreeTimerCB()

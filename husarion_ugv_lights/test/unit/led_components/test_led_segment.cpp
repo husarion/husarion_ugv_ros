@@ -33,9 +33,9 @@ public:
   }
 
   void MergeFrames(
-    std::vector<std::uint8_t> & frame, const std::vector<std::uint8_t> & input_frame) const
+    std::vector<std::uint8_t> & base_frame, const std::vector<std::uint8_t> & overlay_frame) const
   {
-    return LEDSegment::MergeFrames(frame, input_frame);
+    return LEDSegment::MergeFrames(base_frame, overlay_frame);
   }
 };
 
@@ -228,21 +228,24 @@ TEST_F(TestLEDSegment, UpdateAnimation)
 
 TEST_F(TestLEDSegment, MergeFrames)
 {
-  const std::uint8_t c_1 = 50;
+  const std::uint8_t color_1 = 50;
   const std::uint8_t alpha_1 = 100;
-  const std::uint8_t c_2 = 100;
+  const std::uint8_t color_2 = 100;
   const std::uint8_t alpha_2 = 50;
 
-  const std::uint8_t expected_c = (c_2 * alpha_2 + c_1 * (255 - alpha_2)) / 255;
+  const std::uint8_t expected_color = (color_2 * alpha_2 + color_1 * (255 - alpha_2)) / 255;
   const std::uint8_t expected_alpha = alpha_2 + (255 - alpha_2) * alpha_1 / 255;
 
-  std::vector<std::uint8_t> frame = {c_1, c_1, c_1, alpha_1, c_1, c_1, c_1, alpha_1};
-  std::vector<std::uint8_t> input_frame = {c_2, c_2, c_2, alpha_2, c_2, c_2, c_2, alpha_2};
-  std::vector<std::uint8_t> expected_frame = {expected_c, expected_c, expected_c, expected_alpha,
-                                              expected_c, expected_c, expected_c, expected_alpha};
+  std::vector<std::uint8_t> base_frame = {color_1, color_1, color_1, alpha_1,
+                                          color_1, color_1, color_1, alpha_1};
+  std::vector<std::uint8_t> overlay_frame = {color_2, color_2, color_2, alpha_2,
+                                             color_2, color_2, color_2, alpha_2};
+  std::vector<std::uint8_t> expected_frame = {expected_color, expected_color, expected_color,
+                                              expected_alpha, expected_color, expected_color,
+                                              expected_color, expected_alpha};
 
-  ASSERT_NO_THROW(led_segment_->MergeFrames(frame, input_frame));
-  EXPECT_EQ(frame, expected_frame);
+  ASSERT_NO_THROW(led_segment_->MergeFrames(base_frame, overlay_frame));
+  EXPECT_EQ(base_frame, expected_frame);
 }
 
 int main(int argc, char ** argv)

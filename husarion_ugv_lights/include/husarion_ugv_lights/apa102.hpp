@@ -154,7 +154,7 @@ protected:
 private:
   static constexpr std::uint8_t kBits = 8;
 
-  // Color correction constants
+  // Color correction constants, found experimentally
   static constexpr std::uint16_t kCorrRed = 245;
   static constexpr std::uint16_t kCorrGreen = 255;
   static constexpr std::uint16_t kCorrBlue = 240;

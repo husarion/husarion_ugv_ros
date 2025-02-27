@@ -219,12 +219,12 @@ led_animations:
         segments: front
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_front.png
-          duration: 10
+          duration: 6
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_rear.png
-          duration: 10
+          duration: 6
 
   - id: 12
     name: AUTONOMOUS_ACTION
@@ -234,12 +234,12 @@ led_animations:
         segments: front
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_front.png
-          duration: 10
+          duration: 6
       - type: husarion_ugv_lights::ImageAnimation
         segments: rear
         animation:
           image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_rear.png
-          duration: 10
+          duration: 6
 
   - id: 13
     name: GOAL_ACHIEVED

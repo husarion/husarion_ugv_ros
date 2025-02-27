@@ -133,11 +133,11 @@ protected:
   /**
    * @brief Merge two frames into one using alpha blending
    *
-   * @param frame frame to merge into
-   * @param input_frame frame to merge on top of original frame
+   * @param base_frame frame to merge into
+   * @param overlay_frame frame to merge on top of original frame
    */
   void MergeFrames(
-    std::vector<std::uint8_t> & frame, const std::vector<std::uint8_t> & input_frame) const;
+    std::vector<std::uint8_t> & base_frame, const std::vector<std::uint8_t> & overlay_frame) const;
 
 private:
   const float controller_frequency_;

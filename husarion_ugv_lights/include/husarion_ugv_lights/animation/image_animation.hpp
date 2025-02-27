@@ -73,7 +73,7 @@ protected:
 
   void GreyImageNormalizeBrightness(gil::gray_alpha8_image_t & image) const;
 
-private:
+protected:
   gil::rgba8_image_t image_;
 };
 

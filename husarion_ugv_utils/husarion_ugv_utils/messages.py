@@ -94,7 +94,7 @@ def welcome_msg(
         **additional_stats,
         "Website": "https://husarion.com",
         "Support": "https://community.husarion.com/",
-        "Bug Tracker": "https://github.com/husarion/panther_ros/issues",
+        "Bug Tracker": "https://github.com/husarion/husarion_ugv_ros/issues",
     }
 
     nested_list_of_stats = [

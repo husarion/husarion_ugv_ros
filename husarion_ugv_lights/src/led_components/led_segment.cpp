@@ -125,14 +125,14 @@ void LEDSegment::MergeFrames(
   std::vector<std::uint8_t> & base_frame, const std::vector<std::uint8_t> & overlay_frame) const
 {
   for (std::size_t i = 0; i < num_led_; i++) {
+    const auto alpha = overlay_frame[i * 4 + 3];
     for (std::size_t j = 0; j < 3; j++) {
-      base_frame[i * 4 + j] = (overlay_frame[i * 4 + j] * overlay_frame[i * 4 + 3] +
-                               base_frame[i * 4 + j] * (255 - overlay_frame[i * 4 + 3])) /
-                              255;  // value * alpha + background_value * (1 - alpha)
+      base_frame[i * 4 + j] =
+        (overlay_frame[i * 4 + j] * alpha + base_frame[i * 4 + j] * (255 - alpha)) /
+        255;  // value * alpha + background_value * (1 - alpha)
     }
-    base_frame[i * 4 + 3] = overlay_frame[i * 4 + 3] +
-                            base_frame[i * 4 + 3] * (255 - overlay_frame[i * 4 + 3]) /
-                              255;  // alpha + (1 - alpha) * background_alpha
+    base_frame[i * 4 + 3] = alpha + base_frame[i * 4 + 3] * (255 - alpha) /
+                                      255;  // alpha + (1 - alpha) * background_alpha
   }
 }
 

@@ -46,7 +46,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: development
-      secrets: inherit
+    secrets: inherit
 
   tag_docker_as_stable:
     name: Tag Docker as stable

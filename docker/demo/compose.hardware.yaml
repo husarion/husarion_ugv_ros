@@ -31,8 +31,8 @@ services:
         soft: 99
         hard: 99
       memlock:
-        soft: 102400
-        hard: 102400
+        soft: -1
+        hard: -1
     command: >
       ros2 launch husarion_ugv_bringup bringup.launch.py
         common_dir_path:=/config

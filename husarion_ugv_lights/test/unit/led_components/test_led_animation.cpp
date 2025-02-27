@@ -22,7 +22,7 @@
 
 #include "rclcpp/time.hpp"
 
-#include "husarion_ugv_lights/led_components/led_animations.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 
 class TestLEDAnimation : public testing::Test
@@ -91,6 +91,35 @@ TEST(TestLEDAnimationInitialization, InvalidSegmentName)
   EXPECT_THROW(
     std::make_shared<husarion_ugv_lights::LEDAnimation>(led_anim_desc, segments, rclcpp::Time(0)),
     std::runtime_error);
+}
+
+TEST(TestLEDAnimationInitialization, Successful)
+{
+  const char segment_name_1[] = "segment_1";
+  const char segment_name_2[] = "segment_2";
+  auto segment_1_desc = YAML::Load("{channel: 1, led_range: 0-10}");
+  auto segment_2_desc = YAML::Load("{channel: 2, led_range: 0-10}");
+  std::unordered_map<std::string, std::shared_ptr<husarion_ugv_lights::LEDSegment>> segments;
+
+  segments.emplace(
+    segment_name_1, std::make_shared<husarion_ugv_lights::LEDSegment>(segment_1_desc, 50.0));
+  segments.emplace(
+    segment_name_2, std::make_shared<husarion_ugv_lights::LEDSegment>(segment_2_desc, 50.0));
+
+  husarion_ugv_lights::AnimationDescription anim_desc;
+  anim_desc.segments = {segment_name_1, segment_name_2};
+  anim_desc.type = "husarion_ugv_lights::ImageAnimation";
+  anim_desc.animation =
+    YAML::Load("{image: $(find husarion_ugv_lights)/test/files/animation.png, duration: 2.0}");
+
+  husarion_ugv_lights::LEDAnimationDescription led_anim_desc;
+  led_anim_desc.id = 0;
+  led_anim_desc.name = "TEST";
+  led_anim_desc.priority = 1;
+  led_anim_desc.timeout = 10.0;
+  led_anim_desc.animations = {anim_desc};
+
+  EXPECT_NO_THROW(husarion_ugv_lights::LEDAnimation(led_anim_desc, segments, rclcpp::Time(0)));
 }
 
 int main(int argc, char ** argv)

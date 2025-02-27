@@ -2,9 +2,6 @@
   <class type="husarion_ugv_lights::ImageAnimation" base_class_type="husarion_ugv_lights::Animation">
     <description>Animation processed from an image</description>
   </class>
-  <class type="husarion_ugv_lights::ChargingAnimation" base_class_type="husarion_ugv_lights::Animation">
-    <description>Charging animation representing percentage of battery</description>
-  </class>
   <class type="husarion_ugv_lights::MovingImageAnimation" base_class_type="husarion_ugv_lights::Animation">
     <description>Animation processed from an image with ability to change animation plcement</description>
   </class>

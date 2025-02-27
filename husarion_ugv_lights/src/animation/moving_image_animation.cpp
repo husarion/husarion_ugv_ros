@@ -157,11 +157,15 @@ std::vector<std::uint8_t> MovingImageAnimation::UpdateFrame()
 {
   int16_t left_edge_position;
   if (image_mirrored_) {
-    left_edge_position = (int)(image_position_ * (int)(GetNumberOfLeds() - (image_object_width_))) -
-                         (image_.width() - image_center_offset_ - image_object_width_);
+    left_edge_position =
+      static_cast<int>(
+        image_position_ * static_cast<int>(GetNumberOfLeds() - (image_object_width_))) -
+      (image_.width() - image_center_offset_ - image_object_width_);
   } else {
-    left_edge_position = (int)(image_position_ * (int)(GetNumberOfLeds() - (image_object_width_))) -
-                         image_center_offset_;
+    left_edge_position =
+      static_cast<int>(
+        image_position_ * static_cast<int>(GetNumberOfLeds() - (image_object_width_))) -
+      image_center_offset_;
   }
   int16_t right_edge_position = left_edge_position + (image_.width());
   int16_t top_edge_position = image_start_offset_;

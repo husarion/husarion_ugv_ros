@@ -162,6 +162,8 @@ protected:
   std::size_t GetAnimationLength() const { return anim_len_; }
   std::size_t GetAnimationIteration() const { return anim_iteration_; }
 
+  std::vector<std::uint8_t> frame_;
+
 private:
   std::size_t num_led_;
   std::size_t anim_len_;
@@ -174,7 +176,6 @@ private:
   std::size_t anim_iteration_ = 0;
 
   std::string param_;
-  std::vector<std::uint8_t> frame_;
 };
 
 }  // namespace husarion_ugv_lights

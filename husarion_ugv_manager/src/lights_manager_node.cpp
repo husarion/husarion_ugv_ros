@@ -72,7 +72,7 @@ void LightsManagerNode::Initialize()
   e_stop_sub_ = this->create_subscription<BoolMsg>(
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
-  joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
+  joy_sub_ = this->create_subscription<JoyMsg>(
     "joy", 10, std::bind(&LightsManagerNode::JoyCB, this, _1));
 
   const double timer_freq = this->params_.timer_frequency;
@@ -134,6 +134,7 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"E_STOP_ANIM_ID", unsigned(LEDAnimationMsg::E_STOP)},
     {"READY_ANIM_ID", unsigned(LEDAnimationMsg::READY)},
     {"ERROR_ANIM_ID", unsigned(LEDAnimationMsg::ERROR)},
+    {"NO_ERROR_ANIM_ID", unsigned(LEDAnimationMsg::NO_ERROR)},
     {"MANUAL_ACTION_ANIM_ID", unsigned(LEDAnimationMsg::MANUAL_ACTION)},
     {"LOW_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::LOW_BATTERY)},
     {"CRITICAL_BATTERY_ANIM_ID", unsigned(LEDAnimationMsg::CRITICAL_BATTERY)},
@@ -189,7 +190,7 @@ void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
   lights_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
 }
 
-void LightsManagerNode::JoyCB(const sensor_msgs::msg::Joy::SharedPtr joy)
+void LightsManagerNode::JoyCB(const JoyMsg::SharedPtr joy)
 {
   lights_tree_manager_->GetBlackboard()->set<bool>(
     "drive_state", joy->buttons[kDeadManButtonIndex]);

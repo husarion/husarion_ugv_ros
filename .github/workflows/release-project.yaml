@@ -39,6 +39,7 @@ jobs:
       release_name: ${{ inputs.release_name }}
       automatic_mode: ${{ inputs.automatic_mode }}
       prerelease: ${{ inputs.prerelease }}
+    secrets: inherit
 
   build_docker:
     name: Build Docker
@@ -57,6 +58,7 @@ jobs:
       target_distro: humble
       target_release: ${{ inputs.version }}
       target_date: ${{ inputs.date }}
+    secrets: inherit
 
   release_project:
     name: Release project
@@ -106,6 +108,7 @@ jobs:
           ref: ${{ env.MAIN_BRANCH }}
           client_payload: |
             {
+              "dev_image": "false",
               "image_tag": "${{ inputs.version }}"
             }
 

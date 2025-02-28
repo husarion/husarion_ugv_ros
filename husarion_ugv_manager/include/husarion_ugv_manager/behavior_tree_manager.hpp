@@ -25,6 +25,8 @@
 #include <memory>
 #include <string>
 
+#include <rclcpp/rclcpp.hpp>
+
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/loggers/groot2_publisher.h"
 
@@ -68,10 +70,15 @@ public:
     tree_ = factory.createTree(tree_name_, config_.blackboard);
 
     const auto max_port = 65535;
-    while (!IsPortAvailable(groot_port_) && groot_port_ < max_port) {
+    while (!IsPortAvailable(groot_port_)) {
+      if (groot_port_ >= max_port) {
+        throw std::runtime_error("No available port for Groot2 publisher.");
+      }
+
       RCLCPP_WARN_STREAM(
         rclcpp::get_logger("BehaviorTreeManager"),
         "Port " << groot_port_ << " is not available. Trying next port.");
+
       groot_port_++;
     }
 

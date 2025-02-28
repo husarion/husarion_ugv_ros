@@ -15,7 +15,12 @@
 #ifndef HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 #define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <any>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -61,6 +66,19 @@ public:
   {
     config_ = CreateBTConfig(initial_blackboard_);
     tree_ = factory.createTree(tree_name_, config_.blackboard);
+
+    const auto max_port = 65535;
+    while (!IsPortAvailable(groot_port_) && groot_port_ < max_port) {
+      RCLCPP_WARN_STREAM(
+        rclcpp::get_logger("BehaviorTreeManager"),
+        "Port " << groot_port_ << " is not available. Trying next port.");
+      groot_port_++;
+    }
+
+    RCLCPP_INFO_STREAM(
+      rclcpp::get_logger("BehaviorTreeManager"),
+      "Groot2 publisher started on port " << groot_port_);
+
     groot_publisher_ = std::make_unique<BT::Groot2Publisher>(tree_, groot_port_);
   }
 
@@ -115,10 +133,27 @@ protected:
     return config;
   }
 
+  bool IsPortAvailable(int port) const
+  {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == -1) {
+      return false;
+    }
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
+
+    bool available = bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0;
+    close(sock);
+    return available;
+  }
+
 private:
   const std::string tree_name_;
   const std::map<std::string, std::any> initial_blackboard_;
-  const unsigned groot_port_;
+  unsigned groot_port_;
 
   BT::Tree tree_;
   BT::NodeStatus tree_status_;

@@ -15,10 +15,6 @@
 #ifndef HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 #define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <any>
 #include <iostream>
 #include <map>
@@ -29,6 +25,8 @@
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/loggers/groot2_publisher.h"
+
+#include "husarion_ugv_utils/networking_utils.hpp"
 
 namespace husarion_ugv_manager
 {
@@ -70,7 +68,7 @@ public:
     tree_ = factory.createTree(tree_name_, config_.blackboard);
 
     const auto max_port = 65535;
-    while (!IsPortAvailable(groot_port_)) {
+    while (!husarion_ugv_utils::IsPortAvailable(groot_port_)) {
       if (groot_port_ >= max_port) {
         throw std::runtime_error("No available port for Groot2 publisher.");
       }
@@ -138,23 +136,6 @@ protected:
     }
 
     return config;
-  }
-
-  bool IsPortAvailable(int port) const
-  {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-      return false;
-    }
-
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
-
-    bool available = bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) == 0;
-    close(sock);
-    return available;
   }
 
 private:

@@ -6,20 +6,20 @@ components: []
 
 # components:
 #   - type: LDR01
-#     parent_link: cover_link
+#     parent_link: mount_link
 #     xyz: 0.0 0.1 0.0
 #     rpy: 0.0 0.0 0.0
 #     device_namespace: main_lidar
 
 #   - type: LDR06
-#     parent_link: cover_link
+#     parent_link: mount_link
 #     xyz: 0.0 -0.1 0.0
 #     rpy: 0.0 0.0 0.0
 #     device_namespace: second_lidar
 
 #   - type: CAM01
 #     name: camera
-#     parent_link: cover_link
+#     parent_link: mount_link
 #     xyz: 0.1 0.0 0.0
 #     rpy: 0.0 0.0 0.0
 #     device_namespace: front_cam

@@ -46,6 +46,7 @@ jobs:
     needs: release_repository
     uses: ./.github/workflows/build-docker.yaml
     with:
+      branch_name: ros2
       build_type: development
     secrets: inherit
 
@@ -54,6 +55,7 @@ jobs:
     needs: build_docker
     uses: ./.github/workflows/build-docker.yaml
     with:
+      branch_name: ros2
       build_type: stable
       target_distro: humble
       target_release: ${{ inputs.version }}

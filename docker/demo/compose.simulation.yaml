@@ -21,6 +21,8 @@ services:
     <<:
       - *common-config
       - *gpu-config
+    devices:
+      - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >

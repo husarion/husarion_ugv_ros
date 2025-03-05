@@ -19,7 +19,7 @@ import os
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, Shutdown
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
@@ -269,6 +269,7 @@ def generate_launch_description():
         ],
         condition=UnlessCondition(use_sim),
         emulate_tty=True,
+        on_exit=Shutdown(),
     )
 
     namespace_ext = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])

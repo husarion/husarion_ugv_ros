@@ -63,7 +63,6 @@ jobs:
     needs: update_compose_files
     uses: ./.github/workflows/build-docker.yaml
     with:
-      branch_name: ${{ inputs.version }}-${{ inputs.date }}
       build_type: development
     secrets: inherit
 

@@ -14,7 +14,7 @@ user_animations: []
 #     name: CUSTOM_IMAGE_ANIMATION
 #     priority: 3
 #     animations:
-#       - type: panther_lights::ImageAnimation
+#       - type: husarion_ugv_lights::ImageAnimation
 #         segments: all
 #         animation:
 #           image: /config/husarion_ugv_lights/animations/example.png

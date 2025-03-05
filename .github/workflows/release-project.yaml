@@ -16,10 +16,6 @@ on:
         description: Name of the release to be created. Version in the first place is recommended (e.g.
           `2.0.1-alpha`).
         required: true
-      automatic_mode:
-        type: boolean
-        default: false
-        description: Automatically merge PRs, create releases and build images.
       prerelease:
         type: boolean
         default: false
@@ -37,7 +33,7 @@ jobs:
       release_candidate: ${{ env.RC_BRANCH_NAME }}
       version: ${{ inputs.version }}
       release_name: ${{ inputs.release_name }}
-      automatic_mode: ${{ inputs.automatic_mode }}
+      automatic_mode: true
       prerelease: ${{ inputs.prerelease }}
     secrets: inherit
 
@@ -46,7 +42,6 @@ jobs:
     needs: release_repository
     uses: ./.github/workflows/build-docker.yaml
     with:
-      branch_name: ros2
       build_type: development
     secrets: inherit
 
@@ -55,7 +50,6 @@ jobs:
     needs: build_docker
     uses: ./.github/workflows/build-docker.yaml
     with:
-      branch_name: ros2
       build_type: stable
       target_distro: humble
       target_release: ${{ inputs.version }}
@@ -79,12 +73,11 @@ jobs:
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
               "version": "${{ inputs.version }}",
               "release_name": "${{ inputs.release_name }}",
-              "automatic_mode": "${{ inputs.automatic_mode }}",
+              "automatic_mode": "true",
               "prerelease": "${{ inputs.prerelease }}"
             }
 
       - name: Build OS image
-        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
@@ -100,7 +93,6 @@ jobs:
             }
 
       - name: Build flash OS image
-        if: ${{ inputs.automatic_mode }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion

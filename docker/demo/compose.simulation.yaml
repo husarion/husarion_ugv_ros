@@ -20,7 +20,7 @@ services:
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config
-      - *cpu-config
+      - *gpu-config
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >

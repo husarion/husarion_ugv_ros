@@ -109,7 +109,9 @@ def generate_launch_description():
         name="lights_manager",
         parameters=[
             PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "lights_manager.yaml"]),
-            {"bt_project_path": lights_bt_project_path},
+            {
+                "bt_project_path": lights_bt_project_path,
+            },
         ],
         namespace=namespace,
         arguments=[

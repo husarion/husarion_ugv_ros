@@ -97,18 +97,20 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
 
 A tree responsible for scheduling animations displayed on the Bumper Lights based on the Husarion Panther robot's system state.
 
-<!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/lights_tree.svg" alt="Lights Behavior Tree"/>
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/lights_tree.svg" alt="Lights Behavior Tree"/>
 </p>
 
 Default blackboard entries:
 
 - `battery_percent` [*float*, default: **None**]: moving average of the Battery percentage.
 - `battery_percent_round` [*string*, default: **None**] Battery percentage rounded to a value specified with `~lights/update_charging_anim_step` parameter and cast to string.
+- `battery_health` [*unsigned*, default: **None**]: the current Battery health state.
 - `battery_status` [*unsigned*, default: **None**]: the current Battery status.
 - `charging_anim_percent` [*string*, default: **None**]: the charging animation Battery percentage value, cast to a string.
-- `current_anim_id` [*int*, default: **-1**]: ID of currently displayed animation.
+- `current_anim_id` [*int*, default: **-1**]: ID of currently displayed state animation.
+- `current_battery_anim_id` [*int*, default: **-1**]: ID of currently displayed battery animation.
+- `current_error_anim_id` [*int*, default: **-1**]: ID of currently displayed error animation.
 - `e_stop_state` [*bool*, default: **None**]: state of E-stop.
 
 Default constant blackboard entries:
@@ -120,13 +122,19 @@ Default constant blackboard entries:
 - `E_STOP_ANIM_ID` [*unsigned*, value: **0**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::E_STOP`.
 - `READY_ANIM_ID` [*unsigned*, value: **1**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::READY`.
 - `ERROR_ANIM_ID` [*unsigned*, value: **2**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::ERROR`.
-- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::MANUAL_ACTION`.
-- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_ACTION`.
-- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::GOAL_ACHIEVED`.
-- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::LOW_BATTERY`.
-- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CRITICAL_BATTERY`.
-- `BATTERY_STATE_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_STATE`.
-- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGING_BATTERY`.
+- `NO_ERROR_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::NO_ERROR`.
+- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::MANUAL_ACTION`.
+- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::LOW_BATTERY`.
+- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CRITICAL_BATTERY`.
+- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGING_BATTERY`.
+- `BATTERY_CHARGED_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_CHARGED`.
+- `CHARGER_INSERTED_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGER_INSERTED`.
+- `BATTERY_NOMINAL_ANIM_ID` [*unsigned*, value: **10**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_NOMINAL`.
+- `AUTONOMOUS_READY_ANIM_ID` [*unsigned*, value: **11**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_READY`.
+- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **12**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_ACTION`.
+- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **13**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::GOAL_ACHIEVED`.
+- `BLINKER_LEFT_ANIM_ID` [*unsigned*, value: **14**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BLINKER_LEFT`.
+- `BLINKER_RIGHT_ANIM_ID` [*unsigned*, value: **15**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BLINKER_RIGHT`.
 - `POWER_SUPPLY_STATUS_UNKNOWN` [*unsigned*, value: **0**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN`.
 - `POWER_SUPPLY_STATUS_CHARGING` [*unsigned*, value: **1**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_CHARGING`.
 - `POWER_SUPPLY_STATUS_DISCHARGING` [*unsigned*, value: **2**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING`.
@@ -139,7 +147,7 @@ A tree responsible for monitoring the Panther robot's state and handling safety 
 
 <!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/safety_tree.svg" alt="Safety Behavior Tree"/>
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/safety_tree.svg" alt="Safety Behavior Tree"/>
 </p>
 
 Default blackboard entries:
@@ -175,7 +183,7 @@ A tree responsible for the graceful shutdown of robot components, user computers
 
 <!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/shutdown_tree.svg" alt="Shutdown Behavior Tree"/>
+  <img src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/shutdown_tree.svg" alt="Shutdown Behavior Tree"/>
 </p>
 
 Default constant blackboard entries:

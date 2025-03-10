@@ -65,20 +65,31 @@
 
   <BehaviorTree ID="ErrorAnimationSubtree">
     <Sequence name="ErrorSequence">
-      <CallSetLedAnimationService name="SerErrorAnimation"
-                                  id="{ERROR_ANIM_ID}"
-                                  param=""
-                                  repeating="true"
-                                  service_name="lights/set_animation"
-                                  _skipIf="(battery_status != POWER_SUPPLY_STATUS_UNKNOWN \&#10;&amp;&amp; battery_health != POWER_SUPPLY_HEALTH_OVERHEAT) \&#10;|| current_error_anim_id == ERROR_ANIM_ID"
-                                  _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
-      <CallSetLedAnimationService name="SetErrorAnimation"
-                                  id="{NO_ERROR_ANIM_ID}"
-                                  param=""
-                                  repeating="true"
-                                  service_name="lights/set_animation"
-                                  _skipIf="battery_status == POWER_SUPPLY_STATUS_UNKNOWN \&#10;|| battery_health == POWER_SUPPLY_HEALTH_OVERHEAT \&#10;|| current_error_anim_id == NO_ERROR_ANIM_ID"
-                                  _onSuccess="current_error_anim_id = NO_ERROR_ANIM_ID"/>
+      <Sequence _skipIf="current_error_anim_id == ERROR_ANIM_ID">
+        <CallSetLedAnimationService name="SerErrorAnimation"
+                                    id="{ERROR_ANIM_ID}"
+                                    param=""
+                                    repeating="true"
+                                    service_name="lights/set_animation"
+                                    _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING \&#10;|| battery_health != POWER_SUPPLY_HEALTH_OVERHEAT"
+                                    _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
+        <CallSetLedAnimationService name="SerErrorAnimation"
+                                    id="{ERROR_ANIM_ID}"
+                                    param=""
+                                    repeating="true"
+                                    service_name="lights/set_animation"
+                                    _skipIf="battery_status != POWER_SUPPLY_STATUS_UNKNOWN"
+                                    _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
+      </Sequence>
+      <Sequence _skipIf="current_error_anim_id == NO_ERROR_ANIM_ID">
+        <CallSetLedAnimationService name="SetErrorAnimation"
+                                    id="{NO_ERROR_ANIM_ID}"
+                                    param=""
+                                    repeating="true"
+                                    service_name="lights/set_animation"
+                                    _skipIf="battery_status == POWER_SUPPLY_STATUS_UNKNOWN \&#10;|| (battery_status == POWER_SUPPLY_STATUS_CHARGING \&#10;&amp;&amp; battery_health == POWER_SUPPLY_HEALTH_OVERHEAT)"
+                                    _onSuccess="current_error_anim_id = NO_ERROR_ANIM_ID"/>
+      </Sequence>
     </Sequence>
   </BehaviorTree>
 

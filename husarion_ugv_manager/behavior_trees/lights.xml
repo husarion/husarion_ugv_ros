@@ -66,14 +66,14 @@
   <BehaviorTree ID="ErrorAnimationSubtree">
     <Sequence name="ErrorSequence">
       <Sequence _skipIf="current_error_anim_id == ERROR_ANIM_ID">
-        <CallSetLedAnimationService name="SerErrorAnimation"
+        <CallSetLedAnimationService name="SetErrorAnimation"
                                     id="{ERROR_ANIM_ID}"
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
                                     _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING \&#10;|| battery_health != POWER_SUPPLY_HEALTH_OVERHEAT"
                                     _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
-        <CallSetLedAnimationService name="SerErrorAnimation"
+        <CallSetLedAnimationService name="SetErrorAnimation"
                                     id="{ERROR_ANIM_ID}"
                                     param=""
                                     repeating="true"
@@ -82,7 +82,7 @@
                                     _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
       </Sequence>
       <Sequence _skipIf="current_error_anim_id == NO_ERROR_ANIM_ID">
-        <CallSetLedAnimationService name="SetErrorAnimation"
+        <CallSetLedAnimationService name="SetNoErrorAnimation"
                                     id="{NO_ERROR_ANIM_ID}"
                                     param=""
                                     repeating="true"

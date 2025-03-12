@@ -136,7 +136,7 @@ protected:
   DrivetrainSettings drivetrain_settings_;
 
   CANopenManager canopen_manager_;
-  std::map<DriverNames, std::shared_ptr<DriverInterface>> drivers_;
+  std::unordered_map<DriverNames, std::shared_ptr<DriverInterface>> drivers_;
 
 private:
   void SetMotorsStates(
@@ -150,7 +150,7 @@ private:
 
   bool initialized_ = false;
 
-  std::map<DriverNames, DriverData> data_;
+  std::unordered_map<DriverNames, DriverData> data_;
   RoboteqVelocityCommandConverter roboteq_vel_cmd_converter_;
 
   const std::chrono::milliseconds pdo_motor_states_timeout_ms_;

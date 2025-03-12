@@ -157,7 +157,7 @@ private:
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
 
-  std::map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
+  std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };
 
 class RoboteqMotorDriver : public MotorDriverInterface

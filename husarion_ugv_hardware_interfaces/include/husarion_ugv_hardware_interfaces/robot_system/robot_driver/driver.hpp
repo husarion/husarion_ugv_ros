@@ -65,6 +65,34 @@ inline std::string DriverNamesToString(const DriverNames driver_name)
   }
 }
 
+}  // namespace husarion_ugv_hardware_interfaces
+
+namespace std
+{
+template <>
+struct hash<husarion_ugv_hardware_interfaces::MotorNames>
+{
+  std::size_t operator()(
+    const husarion_ugv_hardware_interfaces::MotorNames & motor_name) const noexcept
+  {
+    return static_cast<std::size_t>(motor_name);
+  }
+};
+
+template <>
+struct hash<husarion_ugv_hardware_interfaces::DriverNames>
+{
+  std::size_t operator()(
+    const husarion_ugv_hardware_interfaces::DriverNames & driver_name) const noexcept
+  {
+    return static_cast<std::size_t>(driver_name);
+  }
+};
+}  // namespace std
+
+namespace husarion_ugv_hardware_interfaces
+{
+
 struct MotorDriverState
 {
   std::int32_t pos;

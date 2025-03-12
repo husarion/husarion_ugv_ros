@@ -494,8 +494,6 @@ TEST_F(TestRoboteqRobotDriver, TurnOnEStopError)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOnEStop())
     .WillOnce(::testing::Throw(std::runtime_error("")));
-  EXPECT_CALL(*robot_driver_->mock_rear_driver, TurnOnEStop()).Times(0);
-
   EXPECT_THROW(robot_driver_->TurnOnEStop(), std::runtime_error);
 }
 
@@ -503,8 +501,6 @@ TEST_F(TestRoboteqRobotDriver, TurnOffEStopError)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOffEStop())
     .WillOnce(::testing::Throw(std::runtime_error("")));
-  EXPECT_CALL(*robot_driver_->mock_rear_driver, TurnOffEStop()).Times(0);
-
   EXPECT_THROW(robot_driver_->TurnOffEStop(), std::runtime_error);
 }
 

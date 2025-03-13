@@ -1,0 +1,289 @@
+panels:
+  - channel: 1
+    number_of_leds: 46
+  - channel: 2
+    number_of_leds: 46
+
+segments:
+  - name: front
+    channel: 1
+    led_range: 0-45
+  - name: rear
+    channel: 2
+    led_range: 45-0
+
+segments_map:
+  all: [front, rear]
+  front: [front]
+  rear: [rear]
+
+led_animations:
+  - id: 0
+    name: E_STOP
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/estop_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/estop_rear.png
+          duration: 6
+
+  - id: 1
+    name: READY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/ready_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/ready_rear.png
+          duration: 6
+
+  - id: 2
+    name: ERROR
+    priority: 0
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/error.png
+          duration: 2
+          repeat: 2
+
+  - id: 3
+    name: NO_ERROR
+    priority: 0
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/empty.png
+          duration: 1
+          repeat: 1
+
+  - id: 4
+    name: MANUAL_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/manual_action_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/manual_action_rear.png
+          duration: 6
+
+  - id: 5
+    name: LOW_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/low_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/low_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 6
+    name: CRITICAL_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/critical_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/critical_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 7
+    name: CHARGING_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/charging_battery_front.png
+          duration: 10
+          repeat: 1
+          center_offset: 38
+          object_width: 1
+          splash_duration: 10.0
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/charging_battery_rear.png
+          duration: 10
+          repeat: 1
+          center_offset: 38
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 8
+    name: BATTERY_CHARGED
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/battery_charged_front.png
+          duration: 10
+          repeat: 1
+          center_offset: 38
+          object_width: 1
+          splash_duration: 10.0
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/battery_charged_rear.png
+          duration: 10
+          repeat: 1
+          center_offset: 38
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 9
+    name: CHARGER_INSERTED
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/charger_inserted_front.png
+          duration: 8
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/charger_inserted_rear.png
+          duration: 8
+
+  - id: 10
+    name: BATTERY_NOMINAL
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/empty.png
+          duration: 1
+          repeat: 1
+
+  - id: 11
+    name: AUTONOMOUS_READY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_ready_rear.png
+          duration: 6
+
+  - id: 12
+    name: AUTONOMOUS_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/autonomous_action_rear.png
+          duration: 6
+
+  - id: 13
+    name: GOAL_ACHIEVED
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/goal_achieved_front.png
+          duration: 4
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/goal_achieved_rear.png
+          duration: 4
+
+  - id: 14
+    name: BLINKER_LEFT
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/blinker.png
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 15
+    name: BLINKER_RIGHT
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/blinker.png
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0

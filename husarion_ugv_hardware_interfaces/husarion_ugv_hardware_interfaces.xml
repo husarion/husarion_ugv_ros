@@ -1,0 +1,25 @@
+<library path="husarion_ugv_hardware_interfaces">
+  <class name="husarion_ugv_hardware_interfaces/PantherSystem"
+    type="husarion_ugv_hardware_interfaces::PantherSystem"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware system controller for Panther's Roboteq motor controller
+    </description>
+  </class>
+
+  <class name="husarion_ugv_hardware_interfaces/LynxSystem"
+    type="husarion_ugv_hardware_interfaces::LynxSystem"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware system controller for Lynx's Roboteq motor controller
+    </description>
+  </class>
+
+  <class name="husarion_ugv_hardware_interfaces/PhidgetImuSensor"
+    type="husarion_ugv_hardware_interfaces::PhidgetImuSensor"
+    base_class_type="hardware_interface::SensorInterface">
+    <description>
+      Hardware IMU sensor for Phidget Spatial IMU
+    </description>
+  </class>
+</library>

@@ -1,0 +1,15 @@
+/**:
+  battery_driver:
+    ros__parameters:
+      adc:
+        device0: "/sys/bus/iio/devices/iio:device0"
+        device1: "/sys/bus/iio/devices/iio:device1"
+        ma_window_len:
+          charge: 10
+          temp: 10
+      ma_window_len:
+        voltage: 10
+        current: 10
+      roboteq:
+        driver_state_timeout: 0.2
+      battery_timeout: 2.0

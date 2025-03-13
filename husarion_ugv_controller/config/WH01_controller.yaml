@@ -1,0 +1,84 @@
+/**:
+  controller_manager:
+    ros__parameters:
+      update_rate: 100
+
+      joint_state_broadcaster:
+        type: joint_state_broadcaster/JointStateBroadcaster
+      drive_controller:
+        type: diff_drive_controller/DiffDriveController
+      imu_broadcaster:
+        type: imu_sensor_broadcaster/IMUSensorBroadcaster
+
+  # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
+  imu_broadcaster:
+    ros__parameters:
+      use_namespace_as_sensor_name_prefix: true
+
+      sensor_name: imu
+      frame_id: imu_link
+      # orientation_stddev: 4.3e-2 rad determined experimentally
+      static_covariance_orientation: [1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
+      # angular_velocity_stdev: 0.59 deg/s (0.01 rad/s) gyroscope white noise sigma, according to the manual
+      static_covariance_angular_velocity: [1.0e-4, 0.0, 0.0, 0.0, 1.0e-4, 0.0, 0.0, 0.0, 1.0e-4]
+      # linear_acceleration_stdev: 2.8 mg (0.0275 m/s^2) accelerometer white noise sigma, according to the manual
+      static_covariance_linear_acceleration: [7.6e-4, 0.0, 0.0, 0.0, 7.6e-4, 0.0, 0.0, 0.0, 7.6e-4]
+
+  drive_controller:
+    ros__parameters:
+      left_wheel_names: [fl_wheel_joint, rl_wheel_joint]
+      right_wheel_names: [fr_wheel_joint, rr_wheel_joint]
+
+      wheel_separation: 0.697
+      wheel_radius: 0.1825
+
+      # For skid drive kinematics it will act as ICR coefficient, kinematic model with ICR
+      # coefficient isn't totally accurate and this coefficient can differ for various ground types
+      wheel_separation_multiplier: 1.5
+
+      left_wheel_radius_multiplier: 1.0
+      right_wheel_radius_multiplier: 1.0
+
+      publish_rate: 100.0
+      odom_frame_id: odom
+      base_frame_id: base_link
+      twist_covariance_diagonal: [5.4e-5, 5.4e-5, 0.0, 0.0, 0.0, 1.9e-4] # Values measured experimentally
+
+      # Whether to use feedback or commands for odometry calculations
+      open_loop: false
+
+      # Update odometry from velocity
+      # in sensor fusion only velocity is used and with this setting it is more accurate
+      position_feedback: false
+      # velocity computation filtering
+      velocity_rolling_window_size: 1
+
+      enable_odom_tf: false
+
+      cmd_vel_timeout: 0.2
+      #publish_limited_velocity: true
+      use_stamped_vel: false
+
+      # Velocity and acceleration limits
+      # Whenever a min_* is unspecified, default to -max_*
+      linear:
+        x:
+          has_velocity_limits: true
+          has_acceleration_limits: true
+          has_jerk_limits: false
+          max_velocity: 2.0 # m/s
+          # min_velocity -  When unspecified `min_velocity=-max_velocity`
+          max_acceleration: 2.7 # m/s^2
+          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
+          max_jerk: 0.0 # m/s^3
+
+      angular:
+        z:
+          has_velocity_limits: true
+          has_acceleration_limits: true
+          has_jerk_limits: false
+          max_velocity: 4.0 # rad/s
+          # min_velocity -  When unspecified `min_velocity=-max_velocity`
+          max_acceleration: 5.74 # rad/s^2
+          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
+          max_jerk: 0.0 # rad/s^3

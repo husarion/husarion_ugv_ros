@@ -1,0 +1,30 @@
+/**:
+  safety_manager:
+    ros__parameters:
+      timer_frequency: 10.0
+      bt_server_port: 6666
+      fan_turn_off_timeout: 60.0
+      battery:
+        temp:
+          window_len: 6
+      cpu:
+        temp:
+          window_len: 6
+          fan_on: 75.0
+          fan_off: 70.0
+      driver:
+        temp:
+          window_len: 6
+          fan_on: 50.0
+          fan_off: 45.0
+      ros_communication_timeout:
+        availability: 1.0
+        response: 1.0
+      plugin_libs:
+        - tick_after_timeout_bt_node
+        - shutdown_single_host_bt_node
+        - shutdown_hosts_from_file_bt_node
+        - signal_shutdown_bt_node
+      ros_plugin_libs:
+        - call_set_bool_service_bt_node
+        - call_trigger_service_bt_node

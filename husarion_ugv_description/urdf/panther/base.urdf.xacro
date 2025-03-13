@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro
+    name="body"
+    params="wheel_radius imu_xyz imu_rpy">
+
+    <joint name="base_to_body_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="base_link" />
+      <child link="body_link" />
+    </joint>
+
+    <link name="base_link" />
+
+    <link name="body_link">
+      <visual>
+        <geometry>
+          <mesh filename="package://husarion_ugv_description/meshes/panther/base.dae" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <geometry>
+          <mesh filename="package://husarion_ugv_description/meshes/panther/base_collision.stl" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="-0.008 0.01 0.029" rpy="0.0 0.0 0.0" />
+        <mass value="43.0" />
+        <inertia ixx="2.630036" ixy="-0.023480" ixz="0.052320"
+                                iyy="2.463509"  iyz="0.009337"
+                                                izz="4.611945" />
+      </inertial>
+    </link>
+
+    <joint name="body_to_footprint_joint" type="fixed">
+      <origin xyz="0.0 0.0 -${wheel_radius}" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="base_footprint" />
+    </joint>
+
+    <link name="base_footprint" />
+
+    <joint name="body_to_imu_joint" type="fixed">
+      <origin xyz="${imu_xyz}" rpy="${imu_rpy}" />
+      <parent link="body_link" />
+      <child link="imu_link" />
+    </joint>
+
+    <link name="imu_link" />
+
+    <joint name="body_to_front_bumper_joint" type="fixed">
+      <origin xyz="0.362 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="front_bumper_link" />
+    </joint>
+
+    <link name="front_bumper_link" />
+
+    <joint name="front_bumper_to_lights_channel_1_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0185" rpy="0.0 0.0 0.0" />
+      <parent link="front_bumper_link" />
+      <child link="lights_channel_1_link" />
+    </joint>
+
+    <link name="lights_channel_1_link" />
+
+    <joint name="body_to_rear_bumper_joint" type="fixed">
+      <origin xyz="-0.362 0.0 0.0" rpy="0.0 0.0 ${pi}" />
+      <parent link="body_link" />
+      <child link="rear_bumper_link" />
+    </joint>
+
+    <link name="rear_bumper_link" />
+
+    <joint name="rear_bumper_to_lights_channel_2_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0185" rpy="0.0 0.0 0.0" />
+      <parent link="rear_bumper_link" />
+      <child link="lights_channel_2_link" />
+    </joint>
+
+    <link name="lights_channel_2_link" />
+
+    <joint name="body_to_cover_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.14" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="cover_link" />
+    </joint>
+
+    <link name="cover_link" />
+
+    <joint name="cover_to_mount_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0315" rpy="0.0 0.0 0.0" />
+      <parent link="cover_link" />
+      <child link="mount_link" />
+    </joint>
+
+    <link name="mount_link" />
+
+  </xacro:macro>
+</robot>

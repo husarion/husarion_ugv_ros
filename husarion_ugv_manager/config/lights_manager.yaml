@@ -1,0 +1,21 @@
+/**:
+  lights_manager:
+    ros__parameters:
+      timer_frequency: 10.0
+      bt_server_port: 5555
+      battery:
+        percent:
+          window_len: 6
+          threshold:
+            low: 0.4
+            critical: 0.1
+        animation_period:
+          low: 30.0
+        charging_anim_step: 0.05
+      ros_communication_timeout:
+        availability: 1.0
+        response: 1.0
+      plugin_libs:
+        - tick_after_timeout_bt_node
+      ros_plugin_libs:
+        - call_set_led_animation_service_bt_node

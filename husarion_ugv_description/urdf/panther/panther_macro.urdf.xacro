@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro
+    name="panther_robot"
+    params="wheel_config_file
+            controller_config_file
+            battery_config_file
+            use_sim:=false
+            imu_xyz:='0.169 0.025 0.092'
+            imu_rpy:='0.0 0.0 -1.57'
+            namespace:=''">
+
+    <xacro:if value="${use_sim}">
+      <xacro:property name="imu_xyz" value="-0.195 0.010 0.085" />
+      <xacro:property name="imu_rpy" value="0.000 -0.000 3.142" />
+    </xacro:if>
+
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+
+    <xacro:property name="wheel_config" value="${xacro.load_yaml(wheel_config_file)}" />
+    <xacro:property name="wheelbase" value="0.44" />
+    <xacro:property name="wheel_mount_point_y" value="0.2575" />
+
+    <!-- INCLUDE ROBOT PARTS DEFINITIONS -->
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/base.urdf.xacro" ns="body" />
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/common/gazebo.urdf.xacro" ns="gazebo" />
+    <xacro:include filename="$(find husarion_ugv_description)/urdf/common/wheel.urdf.xacro" ns="wheel" />
+
+    <!-- BODY DECLARATION -->
+    <xacro:body.body
+      wheel_radius="${wheel_config['wheel_radius']}"
+      imu_xyz="${imu_xyz}"
+      imu_rpy="${imu_rpy}" />
+
+    <!-- WHEEL DECLARATION -->
+    <xacro:wheel.wheel
+      config="${wheel_config}"
+      mount_point_x="${wheelbase/2.0}"
+      mount_point_y="${wheel_mount_point_y}"
+      prefix="fl" />
+
+    <xacro:wheel.wheel
+      config="${wheel_config}"
+      mount_point_x="${wheelbase/2.0}"
+      mount_point_y="${wheel_mount_point_y}"
+      prefix="fr" />
+
+    <xacro:wheel.wheel
+      config="${wheel_config}"
+      mount_point_x="${wheelbase/2.0}"
+      mount_point_y="${wheel_mount_point_y}"
+      prefix="rl" />
+
+    <xacro:wheel.wheel
+      config="${wheel_config}"
+      mount_point_x="${wheelbase/2.0}"
+      mount_point_y="${wheel_mount_point_y}"
+      prefix="rr" />
+
+    <ros2_control name="${ns}panther_system" type="system">
+      <hardware>
+        <xacro:if value="${use_sim}">
+          <plugin>husarion_ugv_gazebo/EStopSystem</plugin>
+          <param name="e_stop_initial_state">true</param>
+        </xacro:if>
+
+        <xacro:unless value="${use_sim}">
+          <plugin>husarion_ugv_hardware_interfaces/PantherSystem</plugin>
+
+          <param name="encoder_resolution">1600</param>
+
+          <param name="gear_ratio">30.08</param>
+          <param name="gearbox_efficiency">0.75</param>
+
+          <!-- Same as set in the Roboteq driver (TNM parameter) -->
+          <param name="motor_torque_constant">0.11</param>
+
+          <!-- Max RPM speed set in the Roboteq driver (MXRPM parameter) -->
+          <param name="max_rpm_motor_speed">3600.0</param>
+
+          <param name="can_interface_name">robot_can</param>
+          <param name="master_can_id">3</param>
+          <param name="front_driver_can_id">1</param>
+          <param name="rear_driver_can_id">2</param>
+          <param name="sdo_operation_timeout_ms">100</param>
+
+          <!-- Depends on frequency of the controller, more critical motors state are sent with
+            higher frequency, other parameters are sent with lower, here allowed time is set
+            to be expected period +50% margin -->
+          <param name="pdo_motor_states_timeout_ms">15</param>
+          <param name="pdo_driver_state_timeout_ms">75</param>
+
+          <!-- It will be rounded to the closest value taking into account current controller frequency -->
+          <param name="driver_states_update_frequency">20.0</param>
+
+          <param name="max_roboteq_initialization_attempts">5</param>
+          <param name="max_roboteq_activation_attempts">5</param>
+
+          <!-- TODO after all tests update parameters, these ones are quite high for the worst case scenario -->
+          <param name="max_write_pdo_cmds_errors_count">2</param>
+          <param name="max_read_pdo_motor_states_errors_count">2</param>
+          <param name="max_read_pdo_driver_state_errors_count">2</param>
+        </xacro:unless>
+      </hardware>
+
+      <joint name="fl_wheel_joint">
+        <command_interface name="velocity" />
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="fr_wheel_joint">
+        <command_interface name="velocity" />
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="rl_wheel_joint">
+        <command_interface name="velocity" />
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+      <joint name="rr_wheel_joint">
+        <command_interface name="velocity" />
+        <state_interface name="position" />
+        <state_interface name="velocity" />
+        <state_interface name="effort" />
+      </joint>
+
+      <xacro:if value="${use_sim}">
+        <sensor name="${ns}imu">
+          <state_interface name="orientation.x" />
+          <state_interface name="orientation.y" />
+          <state_interface name="orientation.z" />
+          <state_interface name="orientation.w" />
+          <state_interface name="angular_velocity.x" />
+          <state_interface name="angular_velocity.y" />
+          <state_interface name="angular_velocity.z" />
+          <state_interface name="linear_acceleration.x" />
+          <state_interface name="linear_acceleration.y" />
+          <state_interface name="linear_acceleration.z" />
+        </sensor>
+      </xacro:if>
+    </ros2_control>
+
+    <xacro:unless value="${use_sim}">
+      <ros2_control name="${ns}imu" type="sensor">
+        <hardware>
+          <plugin>husarion_ugv_hardware_interfaces/PhidgetImuSensor</plugin>
+          <param name="serial">-1</param>
+          <param name="hub_port">0</param>
+          <param name="data_interval_ms">8</param>
+          <param name="callback_delta_epsilon_ms">1</param>
+
+          <!-- Madgwick Filter Params -->
+          <param name="gain">0.00304</param>
+          <param name="zeta">0.00151</param>
+          <param name="mag_bias_x">0.0</param>
+          <param name="mag_bias_y">0.0</param>
+          <param name="mag_bias_z">0.0</param>
+          <param name="use_mag">true</param>
+          <param name="stateless">false</param>
+          <param name="remove_gravity_vector">false</param>
+          <param name="world_frame">enu</param>
+        </hardware>
+
+        <sensor name="${ns}imu">
+          <state_interface name="orientation.x" />
+          <state_interface name="orientation.y" />
+          <state_interface name="orientation.z" />
+          <state_interface name="orientation.w" />
+          <state_interface name="angular_velocity.x" />
+          <state_interface name="angular_velocity.y" />
+          <state_interface name="angular_velocity.z" />
+          <state_interface name="linear_acceleration.x" />
+          <state_interface name="linear_acceleration.y" />
+          <state_interface name="linear_acceleration.z" />
+        </sensor>
+      </ros2_control>
+    </xacro:unless>
+
+    <xacro:if value="${use_sim}">
+      <xacro:if value="${battery_config_file != ''}">
+        <xacro:gazebo.battery config_file="${battery_config_file}" namespace="${namespace}" />
+      </xacro:if>
+      <xacro:gazebo.controller config_file="${controller_config_file}" namespace="${namespace}" />
+      <xacro:gazebo.imu reference_frame="imu_link" namespace="${namespace}" />
+      <xacro:gazebo.light reference_frame="lights_channel_1_link" name="lights_channel_1" topic="lights/channel_1_frame" namespace="${namespace}" />
+      <xacro:gazebo.light reference_frame="lights_channel_2_link" name="lights_channel_2" topic="lights/channel_2_frame" namespace="${namespace}" />
+    </xacro:if>
+  </xacro:macro>
+
+</robot>

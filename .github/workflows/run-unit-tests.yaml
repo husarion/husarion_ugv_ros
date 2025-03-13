@@ -1,80 +1,62 @@
 ---
-name: Run panther unit tests
+name: Run unit tests
 
 on:
+  push:
+  workflow_call:
   workflow_dispatch:
-  # TODO: ENABLE WHEN READY
-  # pull_request:
-  #     branches:
-  #         - ros2-devel
 
 jobs:
-  test:
-    name: Run unit tests
-    runs-on: self-hosted
+  build-and-test:
+    name: Run unit tests ${{ matrix.build_type }} build type
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        build_type: [simulation, hardware]
+
     env:
-      HUSARION_ROS_BUILD_TYPE: hardware
-      ROS_DISTRO: humble
-      TEST_RESULT_FILENAME: last_run_results.txt
-      COVERAGE_RESULT_FILENAME: coverage_results.log
+      HUSARION_ROS_BUILD_TYPE: ${{ matrix.build_type }}
+
     steps:
-      - name: Prepare filesystem
-        working-directory: ${{ runner.temp }}
-        run: |
-          touch ${{ env.TEST_RESULT_FILENAME }}
-          touch ${{ env.COVERAGE_RESULT_FILENAME }}
-
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - uses: ros-tooling/setup-ros@v0.7
         with:
-          ref: ${{ github.ref }}
-          path: ros2_ws/src/panther_ros
+          use-ros2-testing: true
 
-      - name: Resolve dependencies
-        working-directory: ros2_ws
-        run: |
-          vcs import < src/panther_ros/panther/panther_hardware.repos src
-          sudo apt update
-          rosdep update --rosdistro $ROS_DISTRO
-          rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
-
-      - name: Build
-        working-directory: ros2_ws
-        run: |
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          if [ -f install/setup.bash ]; then source install/setup.bash; fi
-          colcon build --symlink-install --parallel-workers $(nproc) --packages-up-to panther --cmake-args -DCMAKE_CXX_FLAGS='-fprofile-arcs -ftest-coverage'
-
-      - name: Test
-        working-directory: ros2_ws
-        run: |
-          source install/setup.bash
-          colcon test --packages-up-to panther --retest-until-pass 10 --event-handlers console_cohesion+ --return-code-on-test-failure
-          echo "result=$?" >> ${{ runner.temp }}/${{ env.TEST_RESULT_FILENAME }}
-          colcon lcov-result --packages-up-to panther --verbose >> ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}
-          lines_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }} | grep -E 'lines' | head -1)
-          functions_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}  | grep -E 'functions' | head -1)
-          branches_cov=$(cat ${{ runner.temp }}/${{ env.COVERAGE_RESULT_FILENAME }}  | grep -E 'branches' | head -1)
-          echo "lines_cov=$lines_cov">> ${{ runner.temp }}/${{ env.TEST_RESULT_FILENAME }}
-          echo "functions_cov=$functions_cov" >> ${{ runner.temp }}/${{ env.TEST_RESULT_FILENAME }}
-          echo "branches_cov=$branches_cov" >> ${{ runner.temp }}/${{ env.TEST_RESULT_FILENAME }}
-
-      - name: Collect unit tests output
-        working-directory: ${{ runner.temp }}
-        id: unit-tests-output
-        run: cat ${{ env.TEST_RESULT_FILENAME }} >> "$GITHUB_OUTPUT"
-
-      - name: Validate tests result
-        uses: nick-fields/assert-action@v1
+      - name: Build and test
+        uses: ros-tooling/action-ros-ci@v0.3
+        id: build_test_1
         with:
-          expected: 0
-          actual: ${{ steps.unit-tests-output.outputs.result }}
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"]
+              }
+            }
 
-      - name: Comment PR
-        uses: thollander/actions-comment-pull-request@v2
+        continue-on-error: true
+
+      - name: Retry Build and test (if failed)
+        if: steps.build_test_1.outcome == 'failure'
+        uses: ros-tooling/action-ros-ci@v0.3
         with:
-          message: |
-            **Test coverage of modified packages:**
-            ${{ steps.unit-tests-output.outputs.lines_cov }}
-            ${{ steps.unit-tests-output.outputs.functions_cov }}
-            ${{ steps.unit-tests-output.outputs.branches_cov }}
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"]
+              }
+            }

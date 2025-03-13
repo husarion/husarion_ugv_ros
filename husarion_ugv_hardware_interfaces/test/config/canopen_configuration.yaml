@@ -1,0 +1,8 @@
+master:
+  node_id: 3
+  sync_period: 1000000 # us
+
+slave_1:
+  dcf: roboteq_motor_controllers_v80_21a.eds
+  node_id: 1
+  heartbeat_producer: 100

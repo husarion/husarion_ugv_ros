@@ -1,0 +1,98 @@
+safety_manager:
+  battery:
+    temp:
+      window_len:
+        type: int
+        default_value: 6
+        description: Moving average window length used to smooth out temperature readings of the battery.
+        validation: { gt<>: 0 }
+
+  bt_project_path:
+    type: string
+    default_value: ""
+    description: Path to a BehaviorTree project.
+
+  bt_server_port:
+    type: int
+    default_value: 6666
+    description: Port number for the BehaviorTree server.
+    validation: { gt<>: 0 }
+
+  cpu:
+    temp:
+      fan_off:
+        type: double
+        default_value: 60.0
+        description: Temperature in degrees Celsius of the Built-in Computer's CPU, below which the fan is turned off.
+        validation: { bounds<>: [-20.0, 100.0] }
+
+      fan_on:
+        type: double
+        default_value: 70.0
+        description: Temperature in degrees Celsius of the Built-in Computer's CPU, above which the fan is turned on.
+        validation: { bounds<>: [-20.0, 100.0] }
+
+      window_len:
+        type: int
+        default_value: 6
+        description: Moving average window length used to smooth out temperature readings of the Built-in Computer's CPU.
+        validation: { gt<>: 0 }
+
+  driver:
+    temp:
+      fan_off:
+        type: double
+        default_value: 35.0
+        description: Temperature in degrees Celsius of any drivers below which the fan is turned off.
+        validation: { bounds<>: [-20.0, 100.0] }
+
+      fan_on:
+        type: double
+        default_value: 45.0
+        description: Temperature in degrees Celsius of any drivers above which the fan is turned on.
+        validation: { bounds<>: [-20.0, 100.0] }
+
+      window_len:
+        type: int
+        default_value: 6
+        description: Moving average window length used to smooth out the temperature readings of each driver.
+        validation: { gt<>: 0 }
+
+  fan_turn_off_timeout:
+    type: double
+    default_value: 60.0
+    description: Minimal time in seconds, after which the fan may be turned off.
+    validation: { gt<>: 0.0 }
+
+  plugin_libs:
+    type: string_array
+    default_value: []
+    description: A list with names of plugins that are used in the a BehaviorTree project.
+
+  ros_communication_timeout:
+    availability:
+      type: double
+      default_value: 1.0
+      description: Timeout seconds to wait for a service/action while initializing a BehaviorTree node.
+      validation: { gt<>: 0.0 }
+
+    response:
+      type: double
+      default_value: 1.0
+      description: Timeout seconds to receive a service/action response after call.
+      validation: { gt<>: 0.0 }
+
+  ros_plugin_libs:
+    type: string_array
+    default_value: []
+    description: A list with names of ROS plugins that are used in a BehaviorTree project.
+
+  shutdown_hosts_path:
+    type: string
+    default_value: ""
+    description: Path to a YAML file containing a list of hosts to request shutdown. To correctly format the YAML file, consult the README.
+
+  timer_frequency:
+    type: double
+    default_value: 10.0
+    description: Frequency in Hz at which safety tree will be ticked.

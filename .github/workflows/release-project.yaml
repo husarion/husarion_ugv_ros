@@ -1,5 +1,5 @@
 ---
-name: Release Panther project
+name: Release Project
 
 on:
   workflow_dispatch:
@@ -16,177 +16,105 @@ on:
         description: Name of the release to be created. Version in the first place is recommended (e.g.
           `2.0.1-alpha`).
         required: true
-      automatic_mode:
-        type: boolean
-        default: false
-        description: Automatically merge PRs, create releases and build images.
       prerelease:
         type: boolean
         default: false
         description: Mark the release as a prerelease.
 
 env:
-  RC_BRANCH_NAME: ${{ github.event.inputs.version }}-${{ github.event.inputs.date }}
+  RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
   MAIN_BRANCH: ros2
 
 jobs:
-  release_panther_msgs:
-    name: Release panther_msgs repository
+  release_repository:
+    name: Release repository
+    uses: ./.github/workflows/release-repository.yaml
+    with:
+      release_candidate: ${{ inputs.version }}-${{ inputs.date }}
+      version: ${{ inputs.version }}
+      release_name: ${{ inputs.release_name }}
+      automatic_mode: true
+      prerelease: ${{ inputs.prerelease }}
+    secrets: inherit
+
+  build_docker:
+    name: Build Docker
+    needs: release_repository
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: development
+    secrets: inherit
+
+  tag_docker_as_stable:
+    name: Tag Docker as stable
+    needs: build_docker
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: stable
+      target_distro: humble
+      target_release: ${{ inputs.version }}
+      target_date: ${{ inputs.date }}
+    secrets: inherit
+
+  release_project:
+    name: Release project
     runs-on: ubuntu-22.04
     steps:
-      - name: Trigger repository release workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Release husarion-ugv-rpi-os-img repository
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther_msgs
-          github_token: ${{ secrets.GH_PAT }}
+          repo: husarion-ugv-rpi-os-img
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
           client_payload: |
             {
               "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
+              "version": "${{ inputs.version }}",
+              "release_name": "${{ inputs.release_name }}",
+              "automatic_mode": "true",
+              "prerelease": "${{ inputs.prerelease }}"
             }
 
-  release_panther_ros:
-    name: Release panther_ros repository
-    needs:
-      - release_panther_msgs
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger panther_ros release workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Build OS image
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther_ros
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Use the default GITHUB_TOKEN for local repository
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
-
-  rebuild_and_push_docker_images:
-    name: Rebuild panther docker images with new version
-    runs-on: ubuntu-22.04
-    needs:
-      - release_panther_ros
-    steps:
-      - name: Trigger repository build workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: ros-docker-image.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
-          client_payload: |
-            {
-              "panther_codebase_version": "${{ github.event.inputs.version }}",
-              "build_type": "development",
-              "target_distro": "humble"
-            }
-
-  release_panther_docker:
-    name: Release panther-docker repository
-    needs:
-      - rebuild_and_push_docker_images
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository release workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther-docker
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
-
-  release_panther_rpi_os_image:
-    name: Release panther-rpi-os-img repository
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - release_panther_docker
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository release workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther-rpi-os-img
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: release-repository.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          wait_interval: 10
-          client_payload: |
-            {
-              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-              "version": "${{ github.event.inputs.version }}",
-              "release_name": "${{ github.event.inputs.release_name }}",
-              "automatic_mode": "${{ github.event.inputs.automatic_mode }}",
-              "prerelease": "${{ github.event.inputs.prerelease }}"
-            }
-
-  build_and_publish_rpi_image:
-    name: Build panther system image
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - release_panther_rpi_os_image
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository build workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
-        with:
-          owner: husarion
-          repo: panther-rpi-os-img
-          github_token: ${{ secrets.GH_PAT }}
+          repo: husarion-ugv-rpi-os-img
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.MAIN_BRANCH }}
-          wait_interval: 10
           client_payload: |
             {
               "dev_image": "false",
-              "panther_codebase_version": "${{ github.event.inputs.version }}",
-              "image_tag": "${{ github.event.inputs.version }}"
+              "husarion_ugv_version": "${{ inputs.version }}",
+              "image_tag": "${{ inputs.version }}"
             }
 
-  build_and_publish_rpi_flash_os_image:
-    name: Build panther flash OS image
-    if: ${{ fromJSON(github.event.inputs.automatic_mode) == true }}
-    needs:
-      - build_and_publish_rpi_image
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Trigger repository build workflow
-        uses: convictional/trigger-workflow-and-wait@v1.6.1
+      - name: Build flash OS image
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther-rpi-os-img
-          github_token: ${{ secrets.GH_PAT }}
+          repo: husarion-ugv-rpi-os-img
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_flash_os_image.yaml
           ref: ${{ env.MAIN_BRANCH }}
-          wait_interval: 10
           client_payload: |
             {
-              "image_tag": "${{ github.event.inputs.version }}"
+              "dev_image": "false",
+              "image_tag": "${{ inputs.version }}"
             }
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Rebuild documentation
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: husarion
+          repo: docs_new
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          workflow_file_name: build.yml
+          ref: master

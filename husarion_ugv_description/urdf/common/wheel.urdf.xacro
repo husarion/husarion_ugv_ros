@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- wheel defining macro -->
+  <xacro:macro name="wheel" params="config prefix mount_point_x mount_point_y">
+
+    <xacro:if value="${prefix == 'fl'}">
+      <xacro:property name="x" value="${mount_point_x}" />
+      <xacro:property name="y" value="${mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="${config['mount_point_offset']}" />
+      <xacro:property name="inertia_y_offset" value="${config['inertia_y_offset']}" />
+      <xacro:property name="fdir" value="1 -1 0" />
+    </xacro:if>
+    <xacro:if value="${prefix == 'fr'}">
+      <xacro:property name="x" value="${mount_point_x}" />
+      <xacro:property name="y" value="-${mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="-${config['mount_point_offset']}" />
+      <xacro:property name="inertia_y_offset" value="${-config['inertia_y_offset']}" />
+      <xacro:property name="fdir" value="1 1 0" />
+    </xacro:if>
+    <xacro:if value="${prefix == 'rl'}">
+      <xacro:property name="x" value="-${mount_point_x}" />
+      <xacro:property name="y" value="${mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="${config['mount_point_offset']}" />
+      <xacro:property name="inertia_y_offset" value="${config['inertia_y_offset']}" />
+      <xacro:property name="fdir" value="1 1 0" />
+    </xacro:if>
+    <xacro:if value="${prefix == 'rr'}">
+      <xacro:property name="x" value="-${mount_point_x}" />
+      <xacro:property name="y" value="-${mount_point_y}" />
+      <xacro:property name="mount_point_offset" value="-${config['mount_point_offset']}" />
+      <xacro:property name="inertia_y_offset" value="${-config['inertia_y_offset']}" />
+      <xacro:property name="fdir" value="1 -1 0" />
+    </xacro:if>
+
+    <joint name="body_to_${prefix}_wheel_base_joint" type="fixed">
+      <origin xyz="${x} ${y} 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="${prefix}_wheel_base_link" />
+    </joint>
+
+    <link name="${prefix}_wheel_base_link" />
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <origin xyz="0.0 ${mount_point_offset} 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="${prefix}_wheel_base_link" />
+      <child link="${prefix}_wheel_link" />
+      <axis xyz="0.0 1.0 0.0" />
+
+      <limit effort="64.5" velocity="10.958" />
+      <dynamics damping="0.01" friction="0.1" />
+    </joint>
+
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <geometry>
+          <mesh filename="package://${config['mesh_package']}/${config['folder_path']}/${prefix}_wheel.dae" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0.0 0.0 0.0" rpy="-${pi/2} 0.0 0.0" />
+        <geometry>
+          <cylinder radius="${config['wheel_radius']}" length="${config['wheel_width']}" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0.0 ${inertia_y_offset} 0.0" rpy="0.0 0.0 0.0" />
+        <mass value="${config['mass']}" />
+        <inertia
+          ixx="${config['inertia']['ixx']}"
+          ixy="0.0"
+          ixz="0.0"
+          iyy="${config['inertia']['iyy']}"
+          iyz="0.0"
+          izz="${config['inertia']['izz']}" />
+      </inertial>
+    </link>
+
+    <xacro:if value="${use_sim}">
+      <xacro:if value="${config['mecanum']}">
+        <gazebo reference="${prefix}_wheel_link" xmlns:ignition="http://ignitionrobotics.org/schema">
+          <collision>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>0.0</mu2>
+                  <fdir1 ignition:expressed_in="base_link">${fdir}</fdir1>
+                </ode>
+              </friction>
+            </surface>
+          </collision>
+        </gazebo>
+      </xacro:if>
+    </xacro:if>
+
+  </xacro:macro>
+
+</robot>

@@ -1,0 +1,8 @@
+/**:
+  system_monitor:
+    ros__parameters:
+      cpu_usage_warn_threshold: 95.0
+      cpu_temperature_warn_threshold: 80.0
+      ram_usage_warn_threshold: 90.0
+      disk_usage_warn_threshold: 90.0
+      publish_frequency: 5.0

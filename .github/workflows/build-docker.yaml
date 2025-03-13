@@ -58,10 +58,11 @@ jobs:
         include:
           - dockerfile: ./docker/Dockerfile.hardware
             platforms: linux/arm64
+            repo_name: husarion-ugv
             ros_distro: humble
           - dockerfile: ./docker/Dockerfile.simulation
-            repo_name: panther-gazebo
             platforms: linux/amd64
+            repo_name: husarion-ugv-gazebo
             ros_distro: humble
 
     steps:

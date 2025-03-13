@@ -1,0 +1,9 @@
+wheel_radius: 0.1016
+wheel_width: 0.04
+mount_point_offset: 0.06
+mass: 0.85
+inertia: { ixx: 0.003099, iyy: 0.005849, izz: 0.003101 }
+inertia_y_offset: 0.0
+mesh_package: husarion_ugv_description
+folder_path: meshes/WH04
+mecanum: False

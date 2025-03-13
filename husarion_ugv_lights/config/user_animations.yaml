@@ -1,0 +1,22 @@
+# This file is a placeholder for user-defined animations for the Husarion UGV
+# robots lights system. Users can define their own light animations in this
+# YAML file.
+#
+# For more examples and detailed documentation, please visit:
+# https://github.com/husarion/husarion_ugv_ros/blob/ros2/panther_lights/CONFIGURATION.md#defining-animations
+
+user_animations: []
+
+# Example including a simple custom animation:
+#
+# user_animations:
+#   - id: 21
+#     name: CUSTOM_IMAGE_ANIMATION
+#     priority: 3
+#     animations:
+#       - type: husarion_ugv_lights::ImageAnimation
+#         segments: all
+#         animation:
+#           image: /config/husarion_ugv_lights/animations/example.png
+#           duration: 3
+#           repeat: 1

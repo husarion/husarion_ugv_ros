@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- Battery -->
+  <xacro:macro name="battery" params="config_file namespace:=''">
+
+    <!-- Read property -->
+    <xacro:property name="battery_config" value="${xacro.load_yaml(config_file)}" />
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+
+    <!-- Sim Battery -->
+    <gazebo>
+      <plugin filename="ignition-gazebo-linearbatteryplugin-system"
+        name="gz::sim::systems::LinearBatteryPlugin">
+        <battery_name>${ns}battery</battery_name>
+        <voltage>41.4</voltage>
+        <open_circuit_voltage_constant_coef>42.0</open_circuit_voltage_constant_coef>
+        <open_circuit_voltage_linear_coef>-10.0</open_circuit_voltage_linear_coef>
+        <initial_charge>${battery_config['initial_charge_percentage']*battery_config['capacity']}</initial_charge>
+        <capacity>${battery_config['capacity']}</capacity>
+        <resistance>0.15</resistance>
+        <smooth_current_tau>2.0</smooth_current_tau>
+        <enable_recharge>true</enable_recharge>
+        <charging_time>${battery_config['charging_time']}</charging_time>
+        <soc_threshold>2.0</soc_threshold>
+        <!-- TODO Because of https://github.com/gazebosim/gz-sim/issues/225 division by 100 -->
+        <power_load>${battery_config['power_load']/100.0}</power_load>
+        <start_draining>${battery_config['simulate_discharging']}</start_draining>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Controller -->
+  <xacro:macro name="controller" params="config_file namespace:=''">
+    <gazebo>
+      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+        <parameters>${config_file}</parameters>
+        <ros>
+          <namespace>${namespace}</namespace>
+          <remapping>drive_controller/cmd_vel_unstamped:=cmd_vel</remapping>
+          <remapping>drive_controller/odom:=odometry/wheels</remapping>
+          <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
+          <remapping>gz_ros2_control/e_stop:=hardware/e_stop</remapping>
+          <remapping>gz_ros2_control/e_stop_reset:=hardware/e_stop_reset</remapping>
+          <remapping>gz_ros2_control/e_stop_trigger:=hardware/e_stop_trigger</remapping>
+          <remapping>imu_broadcaster/imu:=imu/data</remapping>
+          <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
+          <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
+        </ros>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Gauss noise macro -->
+  <xacro:macro name="gauss_noise"
+    params="mean:=0.0 stddev:=0.0 bias_mean:=0.0 bias_stddev:=0.0 precision:=0.0">
+    <noise type="gaussian">
+      <mean>${mean}</mean>
+      <stddev>${stddev}</stddev>
+      <bias_mean>${bias_mean}</bias_mean>
+      <bias_stddev>${bias_stddev}</bias_stddev>
+      <precision>${precision}</precision>
+    </noise>
+  </xacro:macro>
+
+  <!-- IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications -->
+  <xacro:macro name="imu" params="reference_frame namespace:=''">
+
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+
+    <gazebo reference="${reference_frame}">
+      <sensor name="${ns}imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <topic>${ns}imu/data_raw</topic>
+        <visualize>false</visualize>
+        <enable_metrics>false</enable_metrics>
+        <ignition_frame_id>imu_link</ignition_frame_id>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+          <angular_velocity>
+            <!-- rad/s -->
+            <x>
+              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+            </x>
+            <y>
+              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+            </y>
+            <z>
+              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+            </z>
+          </angular_velocity>
+          <linear_acceleration>
+            <!-- m/s^2 -->
+            <x>
+              <xacro:gauss_noise stddev="27.5e-3" bias_mean="18.6e-3" precision="9.6e-3" />
+            </x>
+            <y>
+              <xacro:gauss_noise stddev="27.5e-3" bias_mean="18.6e-3" precision="9.6e-3" />
+            </y>
+            <z>
+              <xacro:gauss_noise stddev="27.5e-3" bias_mean="18.6e-3" precision="9.6e-3" />
+            </z>
+          </linear_acceleration>
+        </imu>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Lights -->
+  <xacro:macro name="light" params="reference_frame name topic namespace:=''">
+    <gazebo>
+      <plugin filename="LEDStrip" name="husarion_ugv_gazebo::LEDStrip">
+        <light_name>${name}</light_name>
+        <topic>${topic}</topic>
+        <namespace>${namespace}</namespace>
+        <frequency>10</frequency>
+        <width>0.5</width>
+        <height>0.015</height>
+      </plugin>
+    </gazebo>
+    <gazebo reference="${reference_frame}">
+      <light name="${name}" type="spot">
+        <cast_shadows>true</cast_shadows>
+        <visualize>0</visualize>
+        <diffuse>1.0 1.0 1.0</diffuse>
+        <specular>1.0 1.0 1.0</specular>
+        <direction>1 0 0</direction>
+        <intensity>0.5</intensity>
+        <spot>
+          <inner_angle>1.0</inner_angle>
+          <outer_angle>2.0</outer_angle>
+          <falloff>0.4</falloff>
+        </spot>
+        <attenuation>
+          <range>20.0</range>
+          <constant>1.0</constant>
+          <linear>1.0</linear>
+          <quadratic>1.0</quadratic>
+        </attenuation>
+      </light>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

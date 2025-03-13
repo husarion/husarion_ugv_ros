@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro
+    name="body"
+    params="wheel_radius imu_xyz imu_rpy">
+
+    <joint name="base_to_body_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="base_link" />
+      <child link="body_link" />
+    </joint>
+
+    <link name="base_link" />
+
+    <link name="body_link">
+      <visual>
+        <geometry>
+          <mesh filename="package://husarion_ugv_description/meshes/lynx/base.dae" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <geometry>
+          <mesh filename="package://husarion_ugv_description/meshes/lynx/base_collision.dae" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="-0.052 0.001 0.038" rpy="0.0 0.0 0.0" />
+        <mass value="30.656" />
+        <inertia ixx="0.6572" ixy="0.0334"  ixz="0.1739"
+                              iyy="1.443"   iyz="0.0082"
+                                            izz="1.598" />
+      </inertial>
+    </link>
+
+    <joint name="body_to_footprint_joint" type="fixed">
+      <origin xyz="0.0 0.0 -${wheel_radius}" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="base_footprint" />
+    </joint>
+
+    <link name="base_footprint" />
+
+    <joint name="body_to_imu_joint" type="fixed">
+      <origin xyz="${imu_xyz}" rpy="${imu_rpy}" />
+      <parent link="body_link" />
+      <child link="imu_link" />
+    </joint>
+
+    <link name="imu_link" />
+
+    <joint name="body_to_cover_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.2098" rpy="0.0 0.0 0.0" />
+      <parent link="body_link" />
+      <child link="cover_link" />
+    </joint>
+
+    <link name="cover_link" />
+
+    <joint name="cover_to_mount_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0217" rpy="0.0 0.0 0.0" />
+      <parent link="cover_link" />
+      <child link="mount_link" />
+    </joint>
+
+    <link name="mount_link" />
+
+  </xacro:macro>
+</robot>

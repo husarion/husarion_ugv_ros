@@ -1,0 +1,311 @@
+panels:
+  - channel: 1
+    number_of_leds: 24
+  - channel: 2
+    number_of_leds: 24
+
+segments:
+  - name: fl
+    channel: 1
+    led_range: 23-12
+  - name: rl
+    channel: 1
+    led_range: 0-11
+  - name: fr
+    channel: 2
+    led_range: 23-12
+  - name: rr
+    channel: 2
+    led_range: 0-11
+
+segments_map:
+  all: [fl, fr, rl, rr]
+  front: [fl, fr]
+  rear: [rl, rr]
+  left: [fl, rl]
+  right: [fr, rr]
+  fl: [fl]
+  fr: [fr]
+  rl: [rl]
+  rr: [rr]
+
+led_animations:
+  - id: 0
+    name: E_STOP
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/estop_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/estop_rear.png
+          duration: 6
+
+  - id: 1
+    name: READY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/ready_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/ready_rear.png
+          duration: 6
+
+  - id: 2
+    name: ERROR
+    priority: 0
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/error.png
+          duration: 2
+          repeat: 2
+
+  - id: 3
+    name: NO_ERROR
+    priority: 0
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/panther/empty.png
+          duration: 1
+          repeat: 1
+
+  - id: 4
+    name: MANUAL_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/manual_action_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/manual_action_rear.png
+          duration: 6
+
+  - id: 5
+    name: LOW_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/low_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/low_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 6
+    name: CRITICAL_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/critical_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/critical_battery.png
+          duration: 10
+          repeat: 1
+          center_offset: 24
+          object_width: 2
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 7
+    name: CHARGING_BATTERY
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/charging_battery_front.png
+          duration: 10
+          repeat: 1
+          center_offset: 40
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/charging_battery_rear.png
+          duration: 10
+          repeat: 1
+          center_offset: 40
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 8
+    name: BATTERY_CHARGED
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/battery_charged_front.png
+          duration: 10
+          repeat: 1
+          center_offset: 40
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/battery_charged_rear.png
+          duration: 10
+          repeat: 1
+          center_offset: 40
+          object_width: 1
+          splash_duration: 10.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 9
+    name: CHARGER_INSERTED
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/charger_inserted_front.png
+          duration: 8
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/charger_inserted_rear.png
+          duration: 8
+
+  - id: 10
+    name: BATTERY_NOMINAL
+    priority: 2
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/empty.png
+          duration: 1
+          repeat: 1
+
+  - id: 11
+    name: AUTONOMOUS_READY
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/autonomous_ready_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/autonomous_ready_rear.png
+          duration: 6
+
+  - id: 12
+    name: AUTONOMOUS_ACTION
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/autonomous_action_front.png
+          duration: 6
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/autonomous_action_rear.png
+          duration: 6
+
+  - id: 13
+    name: GOAL_ACHIEVED
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_achieved_front.png
+          duration: 4
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_achieved_rear.png
+          duration: 4
+
+  - id: 14
+    name: BLINKER_LEFT
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: left
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/blinker.png
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0
+          image_mirrored: true
+          position_mirrored: true
+
+  - id: 15
+    name: BLINKER_RIGHT
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::MovingImageAnimation
+        segments: right
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/blinker.png
+          duration: 2
+          repeat: 3
+          center_offset: 17
+          object_width: 1
+          default_image_position: 0.2
+          splash_duration: 2.0
+          image_mirrored: true
+          position_mirrored: true

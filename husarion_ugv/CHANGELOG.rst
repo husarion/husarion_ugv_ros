@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2025-03-13)
+------------------
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
 * Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
 * update links

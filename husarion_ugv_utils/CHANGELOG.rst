@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2025-03-13)
+------------------
 * Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix
 * ROS 2 fix manager ports (`#495 <https://github.com/husarion/husarion_ugv_ros/issues/495>`_)
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel

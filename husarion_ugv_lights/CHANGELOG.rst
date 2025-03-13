@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2025-03-13)
+------------------
 * New animations colors (`#503 <https://github.com/husarion/husarion_ugv_ros/issues/503>`_)
 * Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix
 * updated MovingImageAnimation docs

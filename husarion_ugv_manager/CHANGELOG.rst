@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2025-03-13)
+------------------
 * update docs and battery timeout (`#500 <https://github.com/husarion/husarion_ugv_ros/issues/500>`_)
 * Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix
 * release fixes (`#497 <https://github.com/husarion/husarion_ugv_ros/issues/497>`_)

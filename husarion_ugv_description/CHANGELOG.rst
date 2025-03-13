@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2025-03-13)
+------------------
 * Merge pull request `#498 <https://github.com/husarion/husarion_ugv_ros/issues/498>`_ from husarion/2.2.0-sim-fix
 * release fixes (`#497 <https://github.com/husarion/husarion_ugv_ros/issues/497>`_)
 * Add fixes

@@ -30,7 +30,7 @@ jobs:
     name: Release repository
     uses: ./.github/workflows/release-repository.yaml
     with:
-      release_candidate: ${{ env.RC_BRANCH_NAME }}
+      release_candidate: ${{ inputs.version }}-${{ inputs.date }}
       version: ${{ inputs.version }}
       release_name: ${{ inputs.release_name }}
       automatic_mode: true

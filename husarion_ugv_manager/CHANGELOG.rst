@@ -2,6 +2,71 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* update docs and battery timeout (`#500 <https://github.com/husarion/husarion_ugv_ros/issues/500>`_)
+* Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix
+* release fixes (`#497 <https://github.com/husarion/husarion_ugv_ros/issues/497>`_)
+* ROS 2 fix manager ports (`#495 <https://github.com/husarion/husarion_ugv_ros/issues/495>`_)
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* Merge pull request `#484 <https://github.com/husarion/husarion_ugv_ros/issues/484>`_ from husarion/lights-new
+* ROS 2 lights new review (`#494 <https://github.com/husarion/husarion_ugv_ros/issues/494>`_)
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* reverted header fix
+* added autoremap to btcpp subtrees
+* manager review changes
+* Merge pull request `#490 <https://github.com/husarion/husarion_ugv_ros/issues/490>`_ from husarion/ros2-fix-bild-warnings
+* decreased charging animation step
+* better animations visibility
+* updated LEDAnimation message
+* animation renaming
+* addedd position mirroring
+* hotfix
+* new animations
+* added drive state to lights blackboard
+* fix build warnings
+* Ros2 unit test workflow (`#471 <https://github.com/husarion/husarion_ugv_ros/issues/471>`_)
+* Add log level argument to launch files (`#473 <https://github.com/husarion/husarion_ugv_ros/issues/473>`_)
+* Ros2 expot test directory (`#483 <https://github.com/husarion/husarion_ugv_ros/issues/483>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into e_stop_torque_enable
+* Merge pull request `#480 <https://github.com/husarion/husarion_ugv_ros/issues/480>`_ from husarion/ros2-cmake-export
+* Suggestions
+* Add ament_index_cpp dependency
+* Add exports to cmake
+* Parameters reorganisation  (`#472 <https://github.com/husarion/husarion_ugv_ros/issues/472>`_)
+* ROS2 docking utils (`#462 <https://github.com/husarion/husarion_ugv_ros/issues/462>`_)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* Merge branch 'ros2-devel' into ros2-add-msgs
+* Ros2 fix manager (`#465 <https://github.com/husarion/husarion_ugv_ros/issues/465>`_)
+* Added exporting include manager (`#464 <https://github.com/husarion/husarion_ugv_ros/issues/464>`_)
+* Merge branch 'ros2-devel' into add-panther-diagnostics-config
+* husarion_ugv_msg -> husarion_ugv_msgs
+* Merge pull request `#461 <https://github.com/husarion/husarion_ugv_ros/issues/461>`_ from husarion/ros2-bt-manager-to-hpp
+* added inline
+* Moved test to INTEGRATION tests | addded testign in the readme
+* Removed bt manager .cpp
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-devel
+* Merge pull request `#460 <https://github.com/husarion/husarion_ugv_ros/issues/460>`_ from husarion/ros2-devel-better-config-dir
+* Add husarion_ugv_msgs
+* optional config dir
+* Merge pull request `#457 <https://github.com/husarion/husarion_ugv_ros/issues/457>`_ from husarion/ros2-lynx-devel
+* Merge pull request `#455 <https://github.com/husarion/husarion_ugv_ros/issues/455>`_ from husarion/ros2-lynx-merge
+* fix tests
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* Merge pull request `#444 <https://github.com/husarion/husarion_ugv_ros/issues/444>`_ from husarion/ros2-config-dir
+* Merge pull request `#438 <https://github.com/husarion/husarion_ugv_ros/issues/438>`_ from husarion/ros2-param-gen
+* Change param type
+* Change lights BT param types
+* use configs from /config dir
+* Parameter type casts and typo fixes
+* Generate node parameters from yaml files
+* Merge branch 'ros2-devel' into ros2-lynx-devel
+* Ros2 husarion ugv v2 (`#422 <https://github.com/husarion/husarion_ugv_ros/issues/422>`_)
+* Contributors: BOOTCFG, Dawid Kmak, Jakub Delicat, Milosz Lagan, Miłosz Łagan, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Fix safety_manager path (`#411 <https://github.com/husarion/panther_ros/issues/411>`_)

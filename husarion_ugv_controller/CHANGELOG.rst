@@ -2,6 +2,41 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* release fixes (`#497 <https://github.com/husarion/husarion_ugv_ros/issues/497>`_)
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* Add log level argument to launch files (`#473 <https://github.com/husarion/husarion_ugv_ros/issues/473>`_)
+* adjust wheel_separation_multiplier (`#485 <https://github.com/husarion/husarion_ugv_ros/issues/485>`_)
+* Merge pull request `#479 <https://github.com/husarion/husarion_ugv_ros/issues/479>`_ from husarion/e_stop_torque_enable
+* Rename to motor_torque_enable
+* Rename service e_stop_torque_enable
+* Add suggestions
+* Change logic from `motor_power_enable` to `e_stop_torque_enable`
+* Fix and update config script (rename panther_description -> husarion_ugv_description)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Readme files minor fixes  (`#463 <https://github.com/husarion/husarion_ugv_ros/issues/463>`_)
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* Merge branch 'ros2-devel' into ros2-add-msgs
+* Merge branch 'ros2-devel' into add-panther-diagnostics-config
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-devel
+* Merge pull request `#460 <https://github.com/husarion/husarion_ugv_ros/issues/460>`_ from husarion/ros2-devel-better-config-dir
+* Add husarion_ugv_msgs
+* optional config dir
+* Merge pull request `#457 <https://github.com/husarion/husarion_ugv_ros/issues/457>`_ from husarion/ros2-lynx-devel
+* decrease cmd_vel_timeout
+* Merge pull request `#455 <https://github.com/husarion/husarion_ugv_ros/issues/455>`_ from husarion/ros2-lynx-merge
+* use ROBOT_MODEL_NAME env
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* Merge pull request `#444 <https://github.com/husarion/husarion_ugv_ros/issues/444>`_ from husarion/ros2-config-dir
+* component file
+* use configs from /config dir
+* Ros2 husarion ugv v2 (`#422 <https://github.com/husarion/husarion_ugv_ros/issues/422>`_)
+* Contributors: BOOTCFG, Dawid Kmak, Jakub Delicat, Miłosz Łagan, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Merge branch 'ros2-devel' into ros2-lights-tests

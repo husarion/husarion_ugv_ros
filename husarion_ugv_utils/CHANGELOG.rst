@@ -2,6 +2,37 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix
+* ROS 2 fix manager ports (`#495 <https://github.com/husarion/husarion_ugv_ros/issues/495>`_)
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* Merge pull request `#490 <https://github.com/husarion/husarion_ugv_ros/issues/490>`_ from husarion/ros2-fix-bild-warnings
+* Add hw and os checks (`#491 <https://github.com/husarion/husarion_ugv_ros/issues/491>`_)
+* fix build warnings
+* Add log level argument to launch files (`#473 <https://github.com/husarion/husarion_ugv_ros/issues/473>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into e_stop_torque_enable
+* Merge pull request `#480 <https://github.com/husarion/husarion_ugv_ros/issues/480>`_ from husarion/ros2-cmake-export
+* Add exports to cmake
+* ROS2 docking utils (`#462 <https://github.com/husarion/husarion_ugv_ros/issues/462>`_)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* Merge branch 'ros2-devel' into ros2-add-msgs
+* Merge branch 'ros2-devel' into add-panther-diagnostics-config
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-devel
+* Add husarion_ugv_msgs
+* Merge pull request `#457 <https://github.com/husarion/husarion_ugv_ros/issues/457>`_ from husarion/ros2-lynx-devel
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* Merge pull request `#442 <https://github.com/husarion/husarion_ugv_ros/issues/442>`_ from husarion/ros2-battery-temp-fix
+* Use normal accumulation and division for MA calculation
+* Review changes
+* Rework moving average logic
+* Ros2 husarion ugv v2 (`#422 <https://github.com/husarion/husarion_ugv_ros/issues/422>`_)
+* Contributors: BOOTCFG, Dawid Kmak, Jakub Delicat, Milosz Lagan, Miłosz Łagan, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Merge pull request `#408 <https://github.com/husarion/panther_ros/issues/408>`_ from husarion/ros2-lights-integration-tests

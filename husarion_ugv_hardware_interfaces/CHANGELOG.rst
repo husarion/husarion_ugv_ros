@@ -2,6 +2,47 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix roboteq robot driver deinitialization (`#504 <https://github.com/husarion/husarion_ugv_ros/issues/504>`_)
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* Merge pull request `#490 <https://github.com/husarion/husarion_ugv_ros/issues/490>`_ from husarion/ros2-fix-bild-warnings
+* fix build warnings
+* Ros2 unit test workflow (`#471 <https://github.com/husarion/husarion_ugv_ros/issues/471>`_)
+* Merge pull request `#479 <https://github.com/husarion/husarion_ugv_ros/issues/479>`_ from husarion/e_stop_torque_enable
+* Change method name
+* Rename to motor_torque_enable
+* Merge remote-tracking branch 'origin/ros2-devel' into e_stop_torque_enable
+* Rename service e_stop_torque_enable
+* Add suggestions
+* Merge pull request `#480 <https://github.com/husarion/husarion_ugv_ros/issues/480>`_ from husarion/ros2-cmake-export
+* Add ament_index_cpp dependency
+* Add exports to cmake
+* use throw to sen failed response
+* Ros2 motor enable fix (`#478 <https://github.com/husarion/husarion_ugv_ros/issues/478>`_)
+* Change logic from `motor_power_enable` to `e_stop_torque_enable`
+* Remove last new line
+* Only fix logs
+* Add motor enable set pin function
+* Parameters reorganisation  (`#472 <https://github.com/husarion/husarion_ugv_ros/issues/472>`_)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* Merge branch 'ros2-devel' into ros2-add-msgs
+* Merge branch 'ros2-devel' into add-panther-diagnostics-config
+* husarion_ugv_msg -> husarion_ugv_msgs
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-devel
+* Add husarion_ugv_msgs
+* Merge pull request `#457 <https://github.com/husarion/husarion_ugv_ros/issues/457>`_ from husarion/ros2-lynx-devel
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* fix CHRG_DISABLE init state (`#447 <https://github.com/husarion/husarion_ugv_ros/issues/447>`_)
+* Update gpio controller (`#425 <https://github.com/husarion/husarion_ugv_ros/issues/425>`_)
+* Ros2 husarion ugv v2 (`#422 <https://github.com/husarion/husarion_ugv_ros/issues/422>`_)
+* Contributors: BOOTCFG, Dawid Kmak, Jakub Delicat, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Ros2 fix led bug (`#441 <https://github.com/husarion/panther_ros/issues/441>`_)

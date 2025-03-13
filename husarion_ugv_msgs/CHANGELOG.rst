@@ -2,6 +2,23 @@
 Changelog for package panther_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2025-03-13)
+------------------
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* Merge pull request `#484 <https://github.com/husarion/husarion_ugv_ros/issues/484>`_ from husarion/lights-new
+* ROS 2 lights new review (`#494 <https://github.com/husarion/husarion_ugv_ros/issues/494>`_)
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* updated LEDAnimation message
+* Merge remote-tracking branch 'origin/ros2-devel' into e_stop_torque_enable
+* Merge pull request `#480 <https://github.com/husarion/husarion_ugv_ros/issues/480>`_ from husarion/ros2-cmake-export
+* Add exports to cmake
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* fix
+* husarion_ugv_msg -> husarion_ugv_msgs
+* Contributors: BOOTCFG, Dawid Kmak, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 

@@ -10,7 +10,7 @@ on:
         type: string
         default: development
       target_distro:
-        description: ROS ditribution to build docker image for (eg. humble)
+        description: ROS distribution to build docker image for (eg. humble)
         type: string
         default: humble
       target_release:

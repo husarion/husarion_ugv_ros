@@ -71,6 +71,8 @@ void RoboteqRobotDriver::Initialize()
 
 void RoboteqRobotDriver::Deinitialize()
 {
+  drivers_.clear();
+  data_.clear();
   canopen_manager_.Deinitialize();
   initialized_ = false;
 }
@@ -256,7 +258,7 @@ void RoboteqRobotDriver::BootDrivers()
         throw std::runtime_error("Boot for " + name_str + " driver timed out or failed.");
       }
 
-    } catch (const std::system_error & e) {
+    } catch (const std::exception & e) {
       throw std::runtime_error(
         "An exception occurred while trying to Boot " + name_str + " driver " +
         std::string(e.what()));

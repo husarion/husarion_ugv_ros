@@ -1,4 +1,4 @@
-# husarion_ugv
+# husarion_ugv_ros
 
 ROS 2 packages for Husarion UGV (Unmanned Ground Vehicle). The repository is a collection of necessary packages enabling the launch of the Lynx and Panther robots.
 
@@ -16,7 +16,7 @@ ROS 2 packages for Husarion UGV (Unmanned Ground Vehicle). The repository is a c
 ```bash
 mkdir ~/husarion_ws
 cd ~/husarion_ws
-git clone -b ros2 https://github.com/husarion/panther_ros.git src/husarion_ugv_ros
+git clone -b ros2 https://github.com/husarion/husarion_ugv_ros.git src/husarion_ugv_ros
 ```
 
 ### Configure environment

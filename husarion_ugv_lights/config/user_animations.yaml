@@ -3,7 +3,7 @@
 # YAML file.
 #
 # For more examples and detailed documentation, please visit:
-# https://github.com/husarion/panther_ros/blob/ros2/panther_lights/CONFIGURATION.md#defining-animations
+# https://github.com/husarion/husarion_ugv_ros/blob/ros2/panther_lights/CONFIGURATION.md#defining-animations
 
 user_animations: []
 
@@ -14,7 +14,7 @@ user_animations: []
 #     name: CUSTOM_IMAGE_ANIMATION
 #     priority: 3
 #     animations:
-#       - type: panther_lights::ImageAnimation
+#       - type: husarion_ugv_lights::ImageAnimation
 #         segments: all
 #         animation:
 #           image: /config/husarion_ugv_lights/animations/example.png

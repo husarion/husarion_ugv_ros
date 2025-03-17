@@ -1,3 +1,4 @@
 hosts:
   - ip: 10.15.20.3
     username: husarion
+    timeout: 10.0

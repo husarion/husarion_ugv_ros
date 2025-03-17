@@ -114,24 +114,25 @@ std::vector<std::uint8_t> LEDSegment::MergeLayersFrames() const
        ++it) {  // reverse the order of layers for merging
     auto & [priority, layer] = *it;
     if (layer->HasAnimation()) {
-      auto input_frame = layer->GetAnimationFrame();
-      MergeFrames(output_frame, input_frame);
+      auto overlay_frame = layer->GetAnimationFrame();
+      MergeFrames(output_frame, overlay_frame);
     }
   }
   return output_frame;
 }
 
 void LEDSegment::MergeFrames(
-  std::vector<std::uint8_t> & frame, const std::vector<std::uint8_t> & input_frame) const
+  std::vector<std::uint8_t> & base_frame, const std::vector<std::uint8_t> & overlay_frame) const
 {
   for (std::size_t i = 0; i < num_led_; i++) {
+    const auto alpha = overlay_frame[i * 4 + 3];
     for (std::size_t j = 0; j < 3; j++) {
-      frame[i * 4 + j] = (input_frame[i * 4 + j] * input_frame[i * 4 + 3] +
-                          frame[i * 4 + j] * (255 - input_frame[i * 4 + 3])) /
-                         255;  // value * alpha + background_value * (1 - alpha)
+      base_frame[i * 4 + j] =
+        (overlay_frame[i * 4 + j] * alpha + base_frame[i * 4 + j] * (255 - alpha)) /
+        255;  // value * alpha + background_value * (1 - alpha)
     }
-    frame[i * 4 + 3] = input_frame[i * 4 + 3] + frame[i * 4 + 3] * (255 - input_frame[i * 4 + 3]) /
-                                                  255;  // alpha + (1 - alpha) * background_alpha
+    base_frame[i * 4 + 3] = alpha + base_frame[i * 4 + 3] * (255 - alpha) /
+                                      255;  // alpha + (1 - alpha) * background_alpha
   }
 }
 

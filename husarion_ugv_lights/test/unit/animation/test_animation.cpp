@@ -95,15 +95,6 @@ TEST_F(TestAnimation, Initialize)
 
   animation_description["repeat"] = "2";
   EXPECT_NO_THROW(animation_->Initialize(animation_description, 10, 10.0));
-
-  // invalid brightness
-  animation_description["brightness"] = "-0.5";
-  EXPECT_THROW(animation_->Initialize(animation_description, 10, 10.0), std::out_of_range);
-  animation_description["brightness"] = "1.2";
-  EXPECT_THROW(animation_->Initialize(animation_description, 10, 10.0), std::out_of_range);
-
-  animation_description["brightness"] = "0.5";
-  EXPECT_NO_THROW(animation_->Initialize(animation_description, 10, 10.0));
 }
 
 TEST_F(TestAnimation, CheckInitialValues)

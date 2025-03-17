@@ -2,6 +2,36 @@
 Changelog for package husarion_ugv_diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2025-03-13)
+------------------
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* Merge pull request `#490 <https://github.com/husarion/husarion_ugv_ros/issues/490>`_ from husarion/ros2-fix-bild-warnings
+* fix build warnings
+* Ros2 unit test workflow (`#471 <https://github.com/husarion/husarion_ugv_ros/issues/471>`_)
+* Add log level argument to launch files (`#473 <https://github.com/husarion/husarion_ugv_ros/issues/473>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into e_stop_torque_enable
+* Merge pull request `#480 <https://github.com/husarion/husarion_ugv_ros/issues/480>`_ from husarion/ros2-cmake-export
+* Add exports to cmake
+* Update diagnostics package readme file (`#475 <https://github.com/husarion/husarion_ugv_ros/issues/475>`_)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Readme files minor fixes  (`#463 <https://github.com/husarion/husarion_ugv_ros/issues/463>`_)
+* Merge pull request `#466 <https://github.com/husarion/husarion_ugv_ros/issues/466>`_ from husarion/ros2-add-msgs
+* Merge branch 'ros2-devel' into ros2-add-msgs
+* Merge pull request `#454 <https://github.com/husarion/husarion_ugv_ros/issues/454>`_ from pawelir/add-panther-diagnostics-config
+* lowered ram and disk threasholds
+* updated paths
+* Merge branch 'ros2-devel' into add-panther-diagnostics-config
+* husarion_ugv_msg -> husarion_ugv_msgs
+* Merge remote-tracking branch 'origin/ros2-devel' into ros2-devel
+* Add husarion_ugv_msgs
+* Merge pull request `#457 <https://github.com/husarion/husarion_ugv_ros/issues/457>`_ from husarion/ros2-lynx-devel
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-lynx-devel
+* Ros2 husarion ugv v2 (`#422 <https://github.com/husarion/husarion_ugv_ros/issues/422>`_)
+* Contributors: BOOTCFG, Dawid Kmak, Jakub Delicat, Miłosz Łagan, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Merge pull request `#408 <https://github.com/husarion/panther_ros/issues/408>`_ from husarion/ros2-lights-integration-tests

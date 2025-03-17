@@ -28,7 +28,7 @@
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "husarion_ugv_lights/animation/animation.hpp"
-#include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/segment_converter.hpp"
 #include "husarion_ugv_lights/lights_controller_parameters.hpp"
 #include "husarion_ugv_utils/yaml_utils.hpp"
@@ -120,7 +120,7 @@ protected:
    *
    * @exception std::runtime_error if no animation with given ID exists
    */
-  void AddAnimationToQueue(
+  void AddAnimationToLayer(
     const std::size_t animation_id, const bool repeating, const std::string & param);
 
   /**
@@ -131,9 +131,6 @@ protected:
    * @exception std::runtime_error animation has invalid segment name or it fails to load
    */
   void SetLEDAnimation(const std::shared_ptr<LEDAnimation> & led_animation);
-
-  std::shared_ptr<LEDAnimation> current_animation_;
-  std::shared_ptr<LEDAnimationsQueue> animations_queue_;
 
 private:
   void PublishPanelFrame(const std::size_t channel);

@@ -3,7 +3,7 @@ x-common-config: &common-config
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-    - ROBOT_MODEL=${ROBOT_MODEL_NAME:-panther}
+    - ROBOT_MODEL_NAME=${ROBOT_MODEL_NAME:-panther}
     - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
@@ -15,13 +15,15 @@ x-gpu-config: &gpu-config
   env_file: .env.gpu
 
 services:
-  panther_gazebo:
-    image: husarion/panther-gazebo:humble-2.1.2-20241125
-    container_name: panther_gazebo
+  husarion_ugv_gazebo:
+    image: husarion/husarion-ugv-gazebo:humble-2.2.0-20240227
+    container_name: husarion_ugv_gazebo
     <<:
       - *common-config
-      - *cpu-config
+      - *gpu-config
+    devices:
+      - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >
-      ros2 launch panther_gazebo simulation.launch.py
+      ros2 launch husarion_ugv_gazebo simulation.launch.py

@@ -40,7 +40,7 @@ void SegmentConverter::Convert(
 
       auto frame = segment->GetAnimationFrame();
       for (std::size_t i = 3; i < frame.size(); i += 4) {
-        frame[i] = segment->GetAnimationBrightness();
+        frame[i] = 255;  // set alpha channel to 255
       }
 
       panel->UpdateFrame(segment->GetFirstLEDPosition(), frame);

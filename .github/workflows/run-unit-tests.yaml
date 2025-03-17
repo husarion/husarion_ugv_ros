@@ -3,6 +3,12 @@ name: Run unit tests
 
 on:
   push:
+    branches:
+      - ros2
+      - ros2-devel
+    tags:
+      - 2.*
+  pull_request:
   workflow_call:
   workflow_dispatch:
 

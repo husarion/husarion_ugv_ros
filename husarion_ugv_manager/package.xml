@@ -25,7 +25,7 @@
   <depend>husarion_ugv_utils</depend>
   <depend>iputils-ping</depend>
   <depend>libboost-dev</depend>
-  <depend>libssh-dev</depend>
+  <depend>openssl</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>sensor_msgs</depend>

@@ -86,6 +86,9 @@ private:
 
   static constexpr float kCriticalBatteryTemp = 55.0;
   static constexpr float kFatalBatteryTemp = 62.0;
+  static constexpr char kShutdownLocalhostCommand[] =
+    "dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 "
+    "org.freedesktop.login1.Manager.PowerOff boolean:true";
 
   int driver_temp_window_len_;
   float update_charging_anim_step_;

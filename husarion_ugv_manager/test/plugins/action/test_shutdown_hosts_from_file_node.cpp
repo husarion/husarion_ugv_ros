@@ -27,7 +27,7 @@
 
 typedef husarion_ugv_manager::plugin_test_utils::PluginTestUtils TestShutdownHostsFromFile;
 
-TEST_F(TestShutdownHostsFromFile, GoodLoadingShutdownHostsFromFilePlugin)
+TEST_F(TestShutdownHostsFromFile, GoodPluginLoading)
 {
   const std::map<std::string, std::string> service = {{"shutdown_hosts_file", "dummy_file"}};
 
@@ -36,7 +36,7 @@ TEST_F(TestShutdownHostsFromFile, GoodLoadingShutdownHostsFromFilePlugin)
   ASSERT_NO_THROW({ CreateTree("ShutdownHostsFromFile", service); });
 }
 
-TEST_F(TestShutdownHostsFromFile, WrongPluginNameLoadingShutdownHostsFromFilePlugin)
+TEST_F(TestShutdownHostsFromFile, WrongPluginNameLoading)
 {
   const std::map<std::string, std::string> service = {{"shutdown_hosts_file", "dummy_file"}};
 
@@ -45,11 +45,9 @@ TEST_F(TestShutdownHostsFromFile, WrongPluginNameLoadingShutdownHostsFromFilePlu
   EXPECT_THROW({ CreateTree("WrongShutdownHostsFromFile", service); }, BT::RuntimeError);
 }
 
-TEST_F(TestShutdownHostsFromFile, WrongCannotFindFileShutdownHostsFromFile)
+TEST_F(TestShutdownHostsFromFile, InvalidShutdownHostsFile)
 {
-  const std::string file_path =
-    testing::TempDir() +
-    "test_husarion_ugv_manager_wrong_cannot_find_file_shutdown_hosts_from_file";
+  const std::string file_path = testing::TempDir() + "invalid_shutdown_hosts_file.yaml";
   const std::map<std::string, std::string> service = {{"shutdown_hosts_file", file_path}};
 
   RegisterNodeWithoutParams<husarion_ugv_manager::ShutdownHostsFromFile>("ShutdownHostsFromFile");
@@ -63,42 +61,38 @@ TEST_F(TestShutdownHostsFromFile, WrongCannotFindFileShutdownHostsFromFile)
 
 TEST_F(TestShutdownHostsFromFile, GoodShutdownHostsFromFile)
 {
-  const std::string config_file_path =
-    testing::TempDir() + "test_husarion_ugv_manager_good_shutdown_hosts_from_file_config";
-  const std::string test_file_path = testing::TempDir() +
-                                     "test_husarion_ugv_manager_good_shutdown_hosts_from_file";
-  std::filesystem::remove(test_file_path);
-  std::filesystem::remove(config_file_path);
+  const std::string host_ip = "1.2.3.147";
+  const std::string host_port = "3003";
+  const std::string config_file_path = testing::TempDir() + "test_file.yaml";
+  const std::map<std::string, std::string> bb_ports = {{"shutdown_hosts_file", config_file_path}};
 
-  EXPECT_FALSE(std::filesystem::exists(test_file_path));
-  EXPECT_FALSE(std::filesystem::exists(config_file_path));
+  // Recreate config file
+  std::filesystem::remove(config_file_path);
+  ASSERT_FALSE(std::filesystem::exists(config_file_path));
 
   YAML::Node shutdown_host_desc;
-  shutdown_host_desc["hosts"][0]["ip"] = "localhost";
-  shutdown_host_desc["hosts"][0]["username"] = "husarion";
-  shutdown_host_desc["hosts"][0]["port"] = 22;
-
-  shutdown_host_desc["hosts"][0]["command"] = "touch " + test_file_path;
+  shutdown_host_desc["hosts"][0]["ip"] = host_ip;
+  shutdown_host_desc["hosts"][0]["port"] = host_port;
+  shutdown_host_desc["hosts"][0]["secret"] = "husarion";
   shutdown_host_desc["hosts"][0]["timeout"] = 5.0;
-  shutdown_host_desc["hosts"][0]["ping_for_success"] = false;
   std::fstream config_file;
   YAML::Emitter emitter(config_file);
 
   config_file.open(config_file_path, std::ios::app);
   emitter << shutdown_host_desc;
-
   config_file.close();
 
-  const std::map<std::string, std::string> service = {{"shutdown_hosts_file", config_file_path}};
+  auto http_server = husarion_ugv_manager::plugin_test_utils::HTTPServer();
+  http_server.CreateServer(host_ip, host_port);
+
   RegisterNodeWithoutParams<husarion_ugv_manager::ShutdownHostsFromFile>("ShutdownHostsFromFile");
 
   auto & tree = GetTree();
-  CreateTree("ShutdownHostsFromFile", service);
+  CreateTree("ShutdownHostsFromFile", bb_ports);
 
   auto status = tree.tickWhileRunning(std::chrono::milliseconds(100));
 
   EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
-  std::filesystem::remove(test_file_path);
   std::filesystem::remove(config_file_path);
 }
 

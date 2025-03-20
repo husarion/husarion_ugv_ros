@@ -71,6 +71,13 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   target_link_libraries(${PROJECT_NAME}_test_yaml_utils yaml-cpp)
+
+  ament_add_gtest(${PROJECT_NAME}_test_networking_utils
+                  test/test_networking_utils.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_networking_utils
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
 endif()
 
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})

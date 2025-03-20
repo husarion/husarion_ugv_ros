@@ -26,7 +26,22 @@
 #include <string>
 #include <vector>
 
+#include "imu_filter_madgwick/imu_filter.h"
+#include "imu_filter_madgwick/stateless_orientation.h"
+#include "imu_filter_madgwick/world_frame.h"
+#include "phidgets_api/spatial.hpp"
+
 #include "rclcpp/logging.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/state.hpp"
+
+#include "geometry_msgs/msg/quaternion.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
+
+#include "hardware_interface/handle.hpp"
+#include "hardware_interface/lexical_casts.hpp"
+#include "hardware_interface/sensor_interface.hpp"
+#include "hardware_interface/types/hardware_interface_return_values.hpp"
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 

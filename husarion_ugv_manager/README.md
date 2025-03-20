@@ -85,10 +85,8 @@ Node responsible for managing safety features, and software shutdown of componen
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.
 - `ros_plugin_libs` [*list*, default: **Empty list**]: List with names of ROS plugins that are used in a BT project.
 - `shutdown_hosts_path` [*string*, default: **None**]: Path to a YAML file containing a list of hosts to request shutdown. To correctly format the YAML file, include a **hosts** field consisting of a list with the following fields:
-  - `command` [*string*, default: **sudo shutdown now**]: Command executed on shutdown of given device.
-  - `ip` [*string*, default: **None**]: IP of a host to shutdown over SSH.
-  - `ping_for_success` [*bool*, default: **true**]: Ping host until it is not available or timeout is reached.
-  - `port` [*string*, default: **22**]: SSH communication port.
+  - `ip` [*string*, default: **None**]: IP of a host to shutdown using HTTP request.
+  - `port` [*string*, default: **3003**]: HTTP communication port.
+  - `secret` [*string*, default: **husarion**]: Secret to sign HTTP request with.
   - `timeout` [*string*, default: **5.0**]: Time in **[s]** to wait for the host to shutdown. The Built-in Computer will turn off after all computers are shutdown or reached timeout. Keep in mind that hardware will cut power off after a given time after pressing the power button. Refer to the hardware manual for more information.
-  - `username` [*string*, default: **None**]: Username used to log in to over SSH.
 - `timer_frequency` [*float*, default: **10.0**]: Frequency **[Hz]** at which safety tree will be ticked.

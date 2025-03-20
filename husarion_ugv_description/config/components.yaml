@@ -2,24 +2,21 @@
 
 components: []
 
-# If you want to add for example LDR01, LDR06 and CAM01 to your Panther look at this example below:
+# If you want to add for example DEV02, LDR06 and CAM01 to your Panther look at this example below:
 
 # components:
-#   - type: LDR01
-#     parent_link: cover_link
-#     xyz: 0.0 0.1 0.0
-#     rpy: 0.0 0.0 0.0
-#     device_namespace: main_lidar
+#   - type: DEV02
+#     parent_link: mount_link
 
 #   - type: LDR06
-#     parent_link: cover_link
+#     parent_link: mount_link
 #     xyz: 0.0 -0.1 0.0
 #     rpy: 0.0 0.0 0.0
 #     device_namespace: second_lidar
 
 #   - type: CAM01
 #     name: camera
-#     parent_link: cover_link
+#     parent_link: mount_link
 #     xyz: 0.1 0.0 0.0
 #     rpy: 0.0 0.0 0.0
 #     device_namespace: front_cam

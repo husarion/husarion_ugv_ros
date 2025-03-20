@@ -7,9 +7,11 @@ x-common-config: &common-config
 
 services:
   husarion_ugv_ros:
-    image: husarion/panther:humble-2.1.2-20241125
+    image: husarion/husarion-ugv:humble-2.2.0-20240227
     container_name: husarion_ugv_ros
     <<: *common-config
+    security_opt:
+      - apparmor:unconfined # allow for dbus PowerOff
     devices:
       - /dev/bus/usb
       - /dev/gpiochip0
@@ -22,6 +24,7 @@ services:
     volumes:
       - /run/husarion/robot_config.env:/run/husarion/robot_config.env
       - /run/husarion/robot_config.yaml:/run/husarion/robot_config.yaml
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
       - /sys/bus/iio/devices:/sys/bus/iio/devices:ro # Read-only access to IIO devices
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
       - /home/husarion/config:/config
@@ -31,14 +34,14 @@ services:
         soft: 99
         hard: 99
       memlock:
-        soft: 102400
-        hard: 102400
+        soft: -1
+        hard: -1
     command: >
       ros2 launch husarion_ugv_bringup bringup.launch.py
         common_dir_path:=/config
 
   gamepad_controller:
-    image: husarion/joy2twist:humble-1.0.0-20241003-stable
+    image: husarion/joy2twist:humble-1.0.0-20250131
     container_name: gamepad_controller
     <<: *common-config
     volumes:

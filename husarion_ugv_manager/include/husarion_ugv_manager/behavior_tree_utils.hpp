@@ -16,6 +16,7 @@
 #define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
 
 #include <any>
+#include <chrono>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -90,6 +91,13 @@ namespace husarion_ugv_manager
 inline std::string GetLoggerPrefix(const std::string & bt_node_name)
 {
   return std::string("[" + bt_node_name + "] ");
+}
+
+inline bool TimeoutExceeded(
+  const std::chrono::time_point<std::chrono::steady_clock> & start_time,
+  const std::chrono::milliseconds & timeout)
+{
+  return std::chrono::steady_clock::now() - start_time > timeout;
 }
 }  // namespace husarion_ugv_manager
 

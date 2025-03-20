@@ -22,9 +22,9 @@
 #include <thread>
 #include <unordered_map>
 
-#include <realtime_tools/realtime_publisher.h>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <realtime_tools/realtime_publisher.hpp>
 
 #include <std_msgs/msg/bool.hpp>
 #include <std_srvs/srv/set_bool.hpp>

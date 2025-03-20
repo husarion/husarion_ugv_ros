@@ -9,15 +9,13 @@ ENV HUSARION_ROS_BUILD_TYPE=hardware
 STOPSIGNAL SIGINT
 
 WORKDIR /ros2_ws
-COPY . src/husarion_ugv
+COPY . src/husarion_ugv_ros
 
 RUN apt-get update  && \
     apt-get install -y \
         ros-dev-tools && \
     # Setup workspace
-    vcs import src < src/husarion_ugv/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
-    cp -r src/ros2_controllers/imu_sensor_broadcaster src && \
-    rm -rf src/ros2_controllers && \
+    vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
     # Install dependencies
     rosdep init && \
     rosdep update --rosdistro $ROS_DISTRO && \
@@ -26,7 +24,7 @@ RUN apt-get update  && \
     source /opt/ros/$ROS_DISTRO/setup.bash && \
     colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
     # Get version
-    echo $(cat /ros2_ws/src/husarion_ugv/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
+    echo $(cat /ros2_ws/src/husarion_ugv_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
     # Size optimization
     export SUDO_FORCE_REMOVE=yes && \
     apt-get remove -y \

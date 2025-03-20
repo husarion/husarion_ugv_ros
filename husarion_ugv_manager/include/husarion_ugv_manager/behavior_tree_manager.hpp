@@ -16,12 +16,17 @@
 #define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 
 #include <any>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 
+#include <rclcpp/rclcpp.hpp>
+
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/loggers/groot2_publisher.h"
+
+#include "husarion_ugv_utils/networking_utils.hpp"
 
 namespace husarion_ugv_manager
 {
@@ -61,6 +66,24 @@ public:
   {
     config_ = CreateBTConfig(initial_blackboard_);
     tree_ = factory.createTree(tree_name_, config_.blackboard);
+
+    const auto max_port = 65535;
+    while (!husarion_ugv_utils::IsPortAvailable(groot_port_)) {
+      if (groot_port_ >= max_port) {
+        throw std::runtime_error("No available port for Groot2 publisher.");
+      }
+
+      RCLCPP_WARN_STREAM(
+        rclcpp::get_logger("BehaviorTreeManager"),
+        "Port " << groot_port_ << " is not available. Trying next port.");
+
+      groot_port_++;
+    }
+
+    RCLCPP_INFO_STREAM(
+      rclcpp::get_logger("BehaviorTreeManager"),
+      "Groot2 publisher started on port " << groot_port_);
+
     groot_publisher_ = std::make_unique<BT::Groot2Publisher>(tree_, groot_port_);
   }
 
@@ -118,7 +141,7 @@ protected:
 private:
   const std::string tree_name_;
   const std::map<std::string, std::any> initial_blackboard_;
-  const unsigned groot_port_;
+  unsigned groot_port_;
 
   BT::Tree tree_;
   BT::NodeStatus tree_status_;

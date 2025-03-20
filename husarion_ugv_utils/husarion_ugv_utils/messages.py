@@ -45,6 +45,24 @@ LYNX_TEXT = click.style(textwrap.dedent(LYNX_ASCII), bold=True)
 PANTHER_TEXT = click.style(textwrap.dedent(PANTHER_ASCII), bold=True)
 
 
+class ErrorMessages:
+    INCORRECT_HW_CONFIG = textwrap.dedent(
+        r"""
+
+        ERROR: Incorrect hardware configuration detected. ROS nodes are prevented from starting!
+        Refer to instructions in manual or those shown on terminal login.
+        """
+    )
+
+    INCORRECT_OS_VERSION = textwrap.dedent(
+        r"""
+
+        WARNING: Unsupported OS version detected. ROS diver may not work correctly.
+        Please update your system to the latest version.
+        """
+    )
+
+
 def flatten(lst):
     """Flatten a nested list into a single list."""
     if isinstance(lst, list):
@@ -76,7 +94,7 @@ def welcome_msg(
         **additional_stats,
         "Website": "https://husarion.com",
         "Support": "https://community.husarion.com/",
-        "Bug Tracker": "https://github.com/husarion/panther_ros/issues",
+        "Bug Tracker": "https://github.com/husarion/husarion_ugv_ros/issues",
     }
 
     nested_list_of_stats = [
@@ -89,3 +107,13 @@ def welcome_msg(
     stats_msg.insert(0, robot_model_expr)
 
     return LogInfo(msg=stats_msg)
+
+
+def error_msg(error: str):
+    """Generate an error message."""
+    return LogInfo(msg=click.style(error, bold=True, fg="red"))
+
+
+def warning_msg(warning: str):
+    """Generate a warning message."""
+    return LogInfo(msg=click.style(warning, bold=True, fg="yellow"))

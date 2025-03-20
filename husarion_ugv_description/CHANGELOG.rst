@@ -2,6 +2,23 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.0 (2025-03-13)
+------------------
+* Merge pull request `#498 <https://github.com/husarion/husarion_ugv_ros/issues/498>`_ from husarion/2.2.0-sim-fix
+* release fixes (`#497 <https://github.com/husarion/husarion_ugv_ros/issues/497>`_)
+* Add fixes
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel
+* Merge pull request `#496 <https://github.com/husarion/husarion_ugv_ros/issues/496>`_ from husarion/repo-rename
+* update links
+* Merge branch 'ros2-devel' into lights-new
+* Ros2 change wheels mount point (`#492 <https://github.com/husarion/husarion_ugv_ros/issues/492>`_)
+* Ros2 readme update (`#477 <https://github.com/husarion/husarion_ugv_ros/issues/477>`_)
+* Merge branch 'ros2-devel' into e_stop_torque_enable
+* Add reling link (`#474 <https://github.com/husarion/husarion_ugv_ros/issues/474>`_)
+* Changed add joints to use_joint_state_publisher | added joint state p… (`#470 <https://github.com/husarion/husarion_ugv_ros/issues/470>`_)
+* Merge lynx_description and panther_description into husarion_ugv_descriptions (`#456 <https://github.com/husarion/husarion_ugv_ros/issues/456>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, Rafal Gorecki, Stefan, kmakd, rafal-gorecki
+
 2.1.2 (2024-12-02)
 ------------------
 * Merge branch 'ros2-devel' into ros2-lights-tests

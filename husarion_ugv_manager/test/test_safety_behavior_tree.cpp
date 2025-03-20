@@ -133,7 +133,7 @@ std::vector<rclcpp::Parameter> TestSafetyBehaviorTree::CreateTestParameters() co
 
   std::vector<std::string> plugin_libs;
   plugin_libs.push_back("tick_after_timeout_bt_node");
-  plugin_libs.push_back("shutdown_single_host_bt_node");
+  plugin_libs.push_back("execute_command_bt_node");
   plugin_libs.push_back("shutdown_hosts_from_file_bt_node");
   plugin_libs.push_back("signal_shutdown_bt_node");
 

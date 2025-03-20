@@ -13,10 +13,8 @@
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
     ros__parameters:
-      use_namespace_as_sensor_name_prefix: true
-
-      sensor_name: imu
-      frame_id: imu_link
+      sensor_name: <namespace>/imu
+      frame_id: <namespace>/imu_link
       # orientation_stddev: 4.3e-2 rad determined experimentally
       static_covariance_orientation: [1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
       # angular_velocity_stdev: 0.59 deg/s (0.01 rad/s) gyroscope white noise sigma, according to the manual

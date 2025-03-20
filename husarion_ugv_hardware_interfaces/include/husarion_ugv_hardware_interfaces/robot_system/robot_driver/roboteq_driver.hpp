@@ -41,7 +41,7 @@ class RoboteqDriver : public DriverInterface, public lely::canopen::LoopDriver
 {
 public:
   RoboteqDriver(
-    const std::shared_ptr<lely::canopen::AsyncMaster> & master, const std::uint8_t id,
+    const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
     const std::chrono::milliseconds & sdo_operation_timeout_ms);
 
   /**

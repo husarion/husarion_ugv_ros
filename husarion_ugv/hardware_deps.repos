@@ -2,12 +2,12 @@ repositories:
   behaviortree_ros2:
     type: git
     url: https://github.com/BehaviorTree/BehaviorTree.ROS2
-    version: a0de087a2f3af5ec5a19edd622aa85506105afcd
+    version: 7a6ace6424adaa81737b95d20d81e1e8c0782ed7
   husarion_controllers:
     type: git
     url: https://github.com/husarion/husarion_controllers
-    version: 053c5b1320352c496ac2d02c8bc44c695d8dd4ad
+    version: 632a4d248227288afd99cf11179b019d968bda7b
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git
-    version: d34d27edb3abc12ee6d197d0d513e00fe9a5604e
+    version: 1d7387f7f8aeb8266f09af48e3b6627bb4b344c5

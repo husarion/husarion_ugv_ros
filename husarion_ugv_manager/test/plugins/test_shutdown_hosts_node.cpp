@@ -12,74 +12,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
 #include <string>
+#include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "husarion_ugv_manager/plugins/shutdown_hosts_node.hpp"
 
-class ShutdownHostsNodeWrapper : public husarion_ugv_manager::ShutdownHosts
+class MockShutdownHost : public husarion_ugv_manager::ShutdownHostInterface
 {
 public:
-  ShutdownHostsNodeWrapper(const std::string & name, const BT::NodeConfig & conf)
+  MockShutdownHost(std::size_t hash) : husarion_ugv_manager::ShutdownHostInterface(hash) {}
+  ~MockShutdownHost() {}
+
+  MOCK_METHOD(void, Call, (), (override));
+  MOCK_METHOD(void, Halt, (), (override));
+  MOCK_METHOD(std::string, GetIp, (), (const, override));
+  MOCK_METHOD(std::string, GetError, (), (const, override));
+  MOCK_METHOD(std::string, GetOutput, (), (const, override));
+  MOCK_METHOD(husarion_ugv_manager::ShutdownHostState, GetState, (), (const, override));
+
+  using NiceMock = testing::NiceMock<MockShutdownHost>;
+};
+
+class ShutdownHostsWrapper : public husarion_ugv_manager::ShutdownHosts
+{
+public:
+  ShutdownHostsWrapper(const std::string & name, const BT::NodeConfig & conf)
   : husarion_ugv_manager::ShutdownHosts(name, conf)
   {
   }
+
   void RemoveDuplicatedHosts(
-    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> & hosts);
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> & GetHosts();
-  BT::NodeStatus onRunning();
+    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> & hosts);
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> & GetHosts();
+
   BT::NodeStatus onStart();
+  BT::NodeStatus onRunning();
 
   virtual bool UpdateHosts(
-    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> & hosts) override final;
+    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> & hosts)
+    override final;
   void SetHostsAndSuccess(
-    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts,
+    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts,
     const bool returned_status);
 
-  static BT::PortsList providedPorts()
-  {
-    return {
-
-    };
-  }
+  static BT::PortsList providedPorts() { return {}; }
 
 private:
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts_to_set;
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts_to_set;
   bool update_hosts_success_ = true;
 };
 
-void ShutdownHostsNodeWrapper::RemoveDuplicatedHosts(
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> & hosts)
+void ShutdownHostsWrapper::RemoveDuplicatedHosts(
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> & hosts)
 {
   husarion_ugv_manager::ShutdownHosts::RemoveDuplicatedHosts(hosts);
 }
 
-std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> &
-ShutdownHostsNodeWrapper::GetHosts()
+std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> &
+ShutdownHostsWrapper::GetHosts()
 {
   return hosts_;
 }
 
-BT::NodeStatus ShutdownHostsNodeWrapper::onRunning()
+BT::NodeStatus ShutdownHostsWrapper::onRunning()
 {
   return husarion_ugv_manager::ShutdownHosts::onRunning();
 }
 
-BT::NodeStatus ShutdownHostsNodeWrapper::onStart()
+BT::NodeStatus ShutdownHostsWrapper::onStart()
 {
   return husarion_ugv_manager::ShutdownHosts::onStart();
 }
 
-bool ShutdownHostsNodeWrapper::UpdateHosts(
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> & hosts)
+bool ShutdownHostsWrapper::UpdateHosts(
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> & hosts)
 {
   hosts = hosts_to_set;
   return update_hosts_success_;
 }
 
-void ShutdownHostsNodeWrapper::SetHostsAndSuccess(
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts,
+void ShutdownHostsWrapper::SetHostsAndSuccess(
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts,
   const bool returned_status)
 {
   hosts_to_set = hosts;
@@ -90,42 +107,112 @@ class ShutdownHostsNodeTest : public testing::Test
 {
 public:
   void CreateWrapper(
-    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts, const bool success);
+    std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts,
+    const bool success);
 
 protected:
-  std::unique_ptr<ShutdownHostsNodeWrapper> wrapper;
+  std::unique_ptr<ShutdownHostsWrapper> wrapper;
 };
 
 void ShutdownHostsNodeTest::CreateWrapper(
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts, const bool success)
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts,
+  const bool success)
 {
   BT::NodeConfig conf;
-  wrapper = std::make_unique<ShutdownHostsNodeWrapper>("Duplicated hosts", conf);
+  wrapper = std::make_unique<ShutdownHostsWrapper>("Duplicated hosts", conf);
   wrapper->SetHostsAndSuccess(hosts, success);
 }
 
 TEST_F(ShutdownHostsNodeTest, GoodRemovingDuplicatedHosts)
 {
   CreateWrapper(
-    {std::make_shared<husarion_ugv_manager::ShutdownHost>(
-       "127.0.0.1", "husarion", 22, "echo HelloWorld", 1.0, true),
-     std::make_shared<husarion_ugv_manager::ShutdownHost>(
-       "localhost", "husarion", 22, "echo HelloWorld", 1.0, true),
-     std::make_shared<husarion_ugv_manager::ShutdownHost>(
-       "localhost", "husarion", 22, "echo HelloWorld", 1.0, true)},
+    {std::make_shared<husarion_ugv_manager::ShutdownHost>("127.0.0.1", "3003", "password", 1.0),
+     std::make_shared<husarion_ugv_manager::ShutdownHost>("localhost", "3003", "password", 1.0),
+     std::make_shared<husarion_ugv_manager::ShutdownHost>("localhost", "3003", "password", 1.0),
+     std::make_shared<husarion_ugv_manager::ShutdownHost>("localhost", "3003", "password", 1.0),
+     std::make_shared<husarion_ugv_manager::ShutdownHost>("127.0.0.1", "3003", "password", 1.0),
+     std::make_shared<husarion_ugv_manager::ShutdownHost>("127.0.0.1", "8080", "password", 1.0)},
     true);
-  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHost>> hosts;
+  std::vector<std::shared_ptr<husarion_ugv_manager::ShutdownHostInterface>> hosts;
   ASSERT_TRUE(wrapper->UpdateHosts(hosts));
-  ASSERT_EQ(hosts.size(), 3);
+  ASSERT_EQ(hosts.size(), 6);
   wrapper->RemoveDuplicatedHosts(hosts);
-  ASSERT_EQ(hosts.size(), 2);
+  ASSERT_EQ(hosts.size(), 3);
+}
+
+TEST_F(ShutdownHostsNodeTest, SuccessMultipleHosts)
+{
+  auto host_1 = std::make_shared<MockShutdownHost::NiceMock>(0);
+  auto host_2 = std::make_shared<MockShutdownHost::NiceMock>(1);
+  CreateWrapper({host_1, host_2}, true);
+
+  auto status = wrapper->onStart();
+  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
+
+  EXPECT_CALL(*host_1, Call()).Times(1);
+  EXPECT_CALL(*host_2, Call()).Times(1);
+  EXPECT_CALL(*host_1, GetState())
+    .WillOnce(testing::Return(husarion_ugv_manager::ShutdownHostState::SUCCESS));
+  EXPECT_CALL(*host_2, GetState())
+    .WillOnce(testing::Return(husarion_ugv_manager::ShutdownHostState::SKIPPED));
+
+  while (status == BT::NodeStatus::RUNNING) {
+    status = wrapper->onRunning();
+  }
+  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+}
+
+TEST_F(ShutdownHostsNodeTest, ResponseReceived)
+{
+  auto host = std::make_shared<MockShutdownHost::NiceMock>(0);
+  CreateWrapper({host}, true);
+
+  auto status = wrapper->onStart();
+  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
+
+  EXPECT_CALL(*host, Call()).Times(1);
+  EXPECT_CALL(*host, GetState())
+    .WillOnce(testing::Return(husarion_ugv_manager::ShutdownHostState::RESPONSE_RECEIVED));
+  EXPECT_CALL(*host, GetIp()).WillOnce(testing::Return("0.0.0.0"));
+  EXPECT_CALL(*host, GetOutput()).WillOnce(testing::Return("Success"));
+
+  status = wrapper->onRunning();
+  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
+
+  EXPECT_CALL(*host, Call()).Times(1);
+  EXPECT_CALL(*host, GetState())
+    .WillOnce(testing::Return(husarion_ugv_manager::ShutdownHostState::SUCCESS));
+  EXPECT_CALL(*host, GetIp()).WillOnce(testing::Return("0.0.0.0"));
+
+  // call twice first to get host state, then to check hosts list and return value
+  status = wrapper->onRunning();
+  status = wrapper->onRunning();
+  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+}
+
+TEST_F(ShutdownHostsNodeTest, HostStateFailure)
+{
+  auto host = std::make_shared<MockShutdownHost::NiceMock>(0);
+  CreateWrapper({host}, true);
+
+  auto status = wrapper->onStart();
+  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
+
+  EXPECT_CALL(*host, Call()).Times(1);
+  EXPECT_CALL(*host, GetState())
+    .WillOnce(testing::Return(husarion_ugv_manager::ShutdownHostState::FAILURE));
+
+  while (status == BT::NodeStatus::RUNNING) {
+    status = wrapper->onRunning();
+  }
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(wrapper->GetFailedHosts().size(), 1);
 }
 
 TEST_F(ShutdownHostsNodeTest, FailedWhenUpdateHostReturnsFalse)
 {
   CreateWrapper(
-    {std::make_shared<husarion_ugv_manager::ShutdownHost>(
-      "127.0.0.1", "husarion", 22, "echo HelloWorld", 1.0, true)},
+    {std::make_shared<husarion_ugv_manager::ShutdownHost>("127.0.0.1", "3003", "password", 1.0)},
     false);
 
   auto status = wrapper->onStart();
@@ -138,21 +225,6 @@ TEST_F(ShutdownHostsNodeTest, FailedWhenHostsAreEmpty)
 
   auto status = wrapper->onStart();
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
-}
-
-TEST_F(ShutdownHostsNodeTest, CheckFailedHosts)
-{
-  CreateWrapper(
-    {std::make_shared<husarion_ugv_manager::ShutdownHost>(
-      "127.0.0.1", "husarion", 22, "echo HelloWorld", 1.0, true)},
-    true);
-  auto status = wrapper->onStart();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  while (status == BT::NodeStatus::RUNNING) {
-    status = wrapper->onRunning();
-  }
-  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
-  EXPECT_EQ(wrapper->GetFailedHosts().size(), 1);
 }
 
 int main(int argc, char ** argv)

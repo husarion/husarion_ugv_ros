@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "behaviortree_ros2/bt_utils.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
@@ -33,16 +34,104 @@
 
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
-#include "husarion_ugv_manager/plugins/action/call_set_bool_service_node.hpp"
-#include "husarion_ugv_manager/plugins/action/call_set_led_animation_service_node.hpp"
-#include "husarion_ugv_manager/plugins/action/call_trigger_service_node.hpp"
-#include "husarion_ugv_manager/plugins/action/shutdown_hosts_from_file_node.hpp"
-#include "husarion_ugv_manager/plugins/action/shutdown_single_host_node.hpp"
-#include "husarion_ugv_manager/plugins/action/signal_shutdown_node.hpp"
-#include "husarion_ugv_manager/plugins/decorator/tick_after_timeout_node.hpp"
-
 namespace husarion_ugv_manager::plugin_test_utils
 {
+
+class HTTPServer
+{
+public:
+  HTTPServer() {}
+
+  ~HTTPServer()
+  {
+    if (server_thread_.joinable()) {
+      server_thread_.join();
+    }
+    StopDummyHost(kDummyInterfaceName);
+  }
+
+  /**
+   * @brief Creates a simple HTTP server that responds with a specified message. This function
+   * spawns a new thread to run a command that sets up a basic HTTP server using netcat. The
+   * server will respond with the specified HTTP response message and will run for a limited time.
+   *
+   * @param server_ip The IP address of the server.
+   * @param server_port The port number on which the server will listen.
+   * @param response The HTTP response message to be sent by the server. Default is "200 OK".
+   * @param timeout The duration (in seconds) for which the server will run. Default is 1.0
+   * seconds.
+   *
+   * @throws std::runtime_error if the server fails to start.
+   */
+  void CreateServer(
+    const std::string & server_ip, const std::string & server_port,
+    const std::string & response = "200 OK", const float timeout = 1.0,
+    const bool stop_dummy_host = true)
+  {
+    // Command to echo an HTTP response to netcat
+    std::string command = "echo -e 'HTTP/1.1 " + response + "' | nc -l -q 0 -s " + server_ip +
+                          " -p " + server_port;
+    const auto bash_cmd = "timeout " + std::to_string(timeout) + " bash -c \"" + command +
+                          "\" >> /dev/null 2>&1";
+
+    StartDummyHost(server_ip, kDummyInterfaceName);
+
+    server_thread_ = std::thread([&, stop_dummy_host]() {
+      ExecuteSystemCommand(bash_cmd);
+      if (stop_dummy_host) {
+        StopDummyHost(kDummyInterfaceName);
+      }
+      server_thread_finished_ = true;
+    });
+
+    // Wait for the server to start
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  bool IsServerRunning() const { return server_thread_finished_; }
+
+private:
+  /**
+   * @brief Executes a system command.
+   *
+   * @param command The command to be executed.
+   * @throws std::runtime_error if the command fails to execute.
+   */
+  void ExecuteSystemCommand(const std::string & command)
+  {
+    const int res = system(command.c_str());
+    if (res != 0) {
+      throw std::runtime_error("Failed to execute the command: " + command);
+    }
+  }
+
+  /**
+   * @brief Starts a dummy host for testing purposes.
+   *
+   * @throws std::runtime_error if the command fails to start dummy host.
+   */
+  void StartDummyHost(const std::string & server_ip, const std::string & interface_name)
+  {
+    ExecuteSystemCommand("sudo ip link add " + std::string(interface_name) + " type dummy");
+    ExecuteSystemCommand(
+      "sudo ip addr add " + std::string(server_ip) + " dev " + std::string(interface_name) + "");
+    ExecuteSystemCommand("sudo ip link set " + std::string(interface_name) + " up");
+  }
+
+  /**
+   * @brief Stops the dummy host. This command will never throw an exception as it assumes that
+   * the dummy host may have never be started.
+   */
+  void StopDummyHost(const std::string & interface_name)
+  {
+    ExecuteSystemCommand(
+      "sudo ip link del " + std::string(interface_name) + " >> /dev/null 2>&1 || true");
+  }
+
+  static constexpr char kDummyInterfaceName[] = "dummy0";
+  std::thread server_thread_;
+  std::atomic<bool> server_thread_finished_ = false;
+};
 
 struct BehaviorTreePluginDescription
 {

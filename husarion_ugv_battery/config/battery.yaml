@@ -12,4 +12,4 @@
         current: 10
       roboteq:
         driver_state_timeout: 0.2
-      battery_timeout: 1.0
+      battery_timeout: 2.0

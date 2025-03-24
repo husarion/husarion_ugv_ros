@@ -3,7 +3,7 @@ x-common-config: &common-config
   ipc: host
   environment:
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-    - ROBOT_MODEL=${ROBOT_MODEL_NAME:-panther}
+    - ROBOT_MODEL_NAME=${ROBOT_MODEL_NAME:-panther}
     - ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-panther}
     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
@@ -20,7 +20,9 @@ services:
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config
-      - *cpu-config
+      - *gpu-config
+    devices:
+      - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >

@@ -84,18 +84,19 @@ Animation of type `husarion_ugv_lights::ImageAnimation`, returns frames to displ
 
 #### MovingImageAnimation
 
-TODO: @BOOTCFG please update this description
-Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to display based on a supplied image, that can be shifted using `param` value. Extends `Animation` with keys:
+Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to display based on a supplied image, that can be shifted using `param` value. `param` accepts values between `0.0` and `1.0`. Extends `Animation` with keys:
 
 - `image` [*string*, default: **None**]: path to an image file. Only global paths are valid. Allows using `$(find ros_package)` syntax.
 - `color` [*int*, default: **None**]: The image is turned into grayscale, and then the color is applied with brightness from the gray image. Values have to be in HEX format. This parameter is not required.
-- `center_offset` [*int*, default: **0**]:
-- `start_offset` [*float*, default: **0.0**]:
-- `object_width` [*int*, default: **0**]:
-- `splash_duration` [*float*, default: **0.0**]:
-- `default_image_position` [*float*, default: **0.0**]:
-- `image_mirrored` [*bool*, default: **false**]:
-- `position_mirrored` [*bool*, default: **false**]:
+- `center_offset` [*int*, default: **0**]: distance [in px] from the left edge of the provided image to the start of the always visible part of the image.
+- `start_offset` [*float*, default: **0.0**]: time [in s] from the beginning of the animation to first row of pixels of the provided image being displayed.
+- `object_width` [*int*, default: **0**]: width [in px] of the part of the image that for any `param` will always be visible.
+- `splash_duration` [*float*, default: **None**]: duration [in s] of the provided image. If left unset will play one row of pixels per controller tick.
+- `default_image_position` [*float*, default: **None**]: sets the default value of the `param`, making it optional.
+- `image_mirrored` [*bool*, default: **false**]: mirrors the provided image horizontally.
+- `position_mirrored` [*bool*, default: **false**]: switches the position of 0.0 and 1.0 values of the param.
+
+![MovingImageAnimation](.docs/MovingImageAnimation.png)
 
 ### Defining Animations
 

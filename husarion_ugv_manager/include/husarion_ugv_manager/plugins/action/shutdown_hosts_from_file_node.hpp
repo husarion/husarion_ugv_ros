@@ -44,7 +44,7 @@ public:
   }
 
 private:
-  bool UpdateHosts(std::vector<std::shared_ptr<ShutdownHost>> & hosts) override;
+  bool UpdateHosts(std::vector<std::shared_ptr<ShutdownHostInterface>> & hosts) override;
 };
 
 }  // namespace husarion_ugv_manager

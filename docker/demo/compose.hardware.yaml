@@ -10,6 +10,8 @@ services:
     image: husarion/husarion-ugv:humble-2.2.0-20240227
     container_name: husarion_ugv_ros
     <<: *common-config
+    security_opt:
+      - apparmor:unconfined # allow for dbus PowerOff
     devices:
       - /dev/bus/usb
       - /dev/gpiochip0
@@ -22,6 +24,7 @@ services:
     volumes:
       - /run/husarion/robot_config.env:/run/husarion/robot_config.env
       - /run/husarion/robot_config.yaml:/run/husarion/robot_config.yaml
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
       - /sys/bus/iio/devices:/sys/bus/iio/devices:ro # Read-only access to IIO devices
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
       - /home/husarion/config:/config

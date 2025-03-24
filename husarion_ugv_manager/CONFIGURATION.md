@@ -2,39 +2,32 @@
 
 ## Shutdown Behavior
 
-For more information regarding shutdown behavior, refer to `ShutdownSingleHost` BT node in the [Actions](#actions) section. An example of a shutdown hosts YAML file can be found below.
+For more information regarding shutdown behavior, refer to `ShutdownHostsFromFile` BT node in the [Actions](#actions) section. An example of a shutdown hosts YAML file can be found below.
 
 ``` yaml
 # My shutdown_hosts.yaml
 hosts:
   # Intel NUC, user computer
   - ip: 10.15.20.3
-    username: husarion
+    port: 3003
   # Universal robots UR5
   - ip: 10.15.20.4
-    username: root
-  # My Raspberry pi that requires very long shutdown sequence
+    port: 3003
+  # My device that requires very long shutdown sequence
   - ip: 10.15.20.12
+    port: 3003
+    secret: password123
     timeout: 40
-    username: pi
-    command: /home/pi/my_long_shutdown_sequence.sh
-```
-
-To set up a connection with a new User Computer and allow execution of commands, login to the Built-in Computer with `ssh husarion@10.15.20.2`.
-Add Built-in Computer's public key to **known_hosts** of a computer you want to shut down automatically:
-
-``` bash
-ssh-copy-id username@10.15.20.XX
 ```
 
 > [!IMPORTANT]
 >
-> To allow your computer to be shutdown without the sudo password, ssh into it and execute
-> (if needed replace **husarion** with username of your choice):
+> To allow your computer to be safe shutdown from Built-in Computer, you need to set up a HTTP server capable of turning off your device. This can be done using snap:
 >
 > ``` bash
-> sudo su
-> echo husarion 'ALL=(ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /sbin/shutdown' | EDITOR='tee -a' visudo
+> sudo snap install husarion-shutdown
+> sudo snap set husarion-shutdown config.user-computer-ip="10.15.20.12" config.password="password123"
+> sudo husarion-shutdown.start
 > ```
 
 ## Faults Handle
@@ -74,15 +67,11 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
 - `CallTriggerService` - allows calling the standard **std_srvs/Trigger** ROS service. The provided ports are:
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
-- `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a SSH response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
+- `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a HTTP server response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
   - `shutdown_host_file` [*input*, *string*, default: **None**]: global path to YAML file with hosts to shutdown.
-- `ShutdownSingleHost` - allows to shut down a single device. Will return `SUCCESS` only when the device has been successfully shutdown. The provided ports are:
-  - `command` [*input*, *string*, default: **sudo shutdown now**]: command to execute on shutdown.
-  - `ip` [*input*, *string*, default: **None**]: IP of the host to shutdown.
-  - `ping_for_success` [*input*, *bool*, default: **true**]: ping host until it is not available or timeout is reached.
-  - `port` [*input*, *string*, default: **22**]: SSH communication port.
-  - `timeout` [*input*, *string*, default: **5.0**]: time in **[s]** to wait for the host to shutdown. Keep in mind that hardware will cut power off after a given time after pressing the power button. Refer to the hardware manual for more information.
-  - `username` [*input*, *string*, default: **None**]: user to log into while executing the shutdown command.
+- `ExecuteCommand` - allows to execute system command. Will return `SUCCESS` if command was executed successfully. The provided ports are:
+  - `command` [*input*, *string*, default: **None**]: command to execute.
+  - `timeout` [*input*, *string*, default: **None**]: time in **[s]** to wait for command execution. If this timeout is reached the process executing the command will be killed.
 - `SignalShutdown` - signals shutdown of the robot. The provided ports are:
   - `message` [*input*, *string*, default: **None**]: message with reason for robot to shutdown.
 
@@ -97,18 +86,20 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
 
 A tree responsible for scheduling animations displayed on the Bumper Lights based on the Husarion Panther robot's system state.
 
-<!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/lights_tree.svg" alt="Lights Behavior Tree"/>
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/lights_tree.svg" alt="Lights Behavior Tree"/>
 </p>
 
 Default blackboard entries:
 
 - `battery_percent` [*float*, default: **None**]: moving average of the Battery percentage.
 - `battery_percent_round` [*string*, default: **None**] Battery percentage rounded to a value specified with `~lights/update_charging_anim_step` parameter and cast to string.
+- `battery_health` [*unsigned*, default: **None**]: the current Battery health state.
 - `battery_status` [*unsigned*, default: **None**]: the current Battery status.
 - `charging_anim_percent` [*string*, default: **None**]: the charging animation Battery percentage value, cast to a string.
-- `current_anim_id` [*int*, default: **-1**]: ID of currently displayed animation.
+- `current_anim_id` [*int*, default: **-1**]: ID of currently displayed state animation.
+- `current_battery_anim_id` [*int*, default: **-1**]: ID of currently displayed battery animation.
+- `current_error_anim_id` [*int*, default: **-1**]: ID of currently displayed error animation.
 - `e_stop_state` [*bool*, default: **None**]: state of E-stop.
 
 Default constant blackboard entries:
@@ -120,13 +111,19 @@ Default constant blackboard entries:
 - `E_STOP_ANIM_ID` [*unsigned*, value: **0**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::E_STOP`.
 - `READY_ANIM_ID` [*unsigned*, value: **1**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::READY`.
 - `ERROR_ANIM_ID` [*unsigned*, value: **2**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::ERROR`.
-- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::MANUAL_ACTION`.
-- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_ACTION`.
-- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::GOAL_ACHIEVED`.
-- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::LOW_BATTERY`.
-- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CRITICAL_BATTERY`.
-- `BATTERY_STATE_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_STATE`.
-- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGING_BATTERY`.
+- `NO_ERROR_ANIM_ID` [*unsigned*, value: **3**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::NO_ERROR`.
+- `MANUAL_ACTION_ANIM_ID` [*unsigned*, value: **4**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::MANUAL_ACTION`.
+- `LOW_BATTERY_ANIM_ID` [*unsigned*, value: **5**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::LOW_BATTERY`.
+- `CRITICAL_BATTERY_ANIM_ID` [*unsigned*, value: **6**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CRITICAL_BATTERY`.
+- `CHARGING_BATTERY_ANIM_ID` [*unsigned*, value: **7**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGING_BATTERY`.
+- `BATTERY_CHARGED_ANIM_ID` [*unsigned*, value: **8**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_CHARGED`.
+- `CHARGER_INSERTED_ANIM_ID` [*unsigned*, value: **9**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::CHARGER_INSERTED`.
+- `BATTERY_NOMINAL_ANIM_ID` [*unsigned*, value: **10**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BATTERY_NOMINAL`.
+- `AUTONOMOUS_READY_ANIM_ID` [*unsigned*, value: **11**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_READY`.
+- `AUTONOMOUS_ACTION_ANIM_ID` [*unsigned*, value: **12**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::AUTONOMOUS_ACTION`.
+- `GOAL_ACHIEVED_ANIM_ID` [*unsigned*, value: **13**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::GOAL_ACHIEVED`.
+- `BLINKER_LEFT_ANIM_ID` [*unsigned*, value: **14**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BLINKER_LEFT`.
+- `BLINKER_RIGHT_ANIM_ID` [*unsigned*, value: **15**]: animation ID constant obtained from `husarion_ugv_msgs::LEDAnimation::BLINKER_RIGHT`.
 - `POWER_SUPPLY_STATUS_UNKNOWN` [*unsigned*, value: **0**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN`.
 - `POWER_SUPPLY_STATUS_CHARGING` [*unsigned*, value: **1**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_CHARGING`.
 - `POWER_SUPPLY_STATUS_DISCHARGING` [*unsigned*, value: **2**]: power supply status constant obtained from `sensor_msgs::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING`.
@@ -139,7 +136,7 @@ A tree responsible for monitoring the Panther robot's state and handling safety 
 
 <!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/safety_tree.svg" alt="Safety Behavior Tree"/>
+  <img align="center" src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/safety_tree.svg" alt="Safety Behavior Tree"/>
 </p>
 
 Default blackboard entries:
@@ -175,7 +172,7 @@ A tree responsible for the graceful shutdown of robot components, user computers
 
 <!-- TODO: Update tree image (remove timeouts from leafs) -->
 <p align="center">
-  <img src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/panther_ros/shutdown_tree.svg" alt="Shutdown Behavior Tree"/>
+  <img src="https://github-readme-figures.s3.eu-central-1.amazonaws.com/panther/husarion_ugv/shutdown_tree.svg" alt="Shutdown Behavior Tree"/>
 </p>
 
 Default constant blackboard entries:

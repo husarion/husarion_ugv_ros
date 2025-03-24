@@ -19,7 +19,7 @@ import os
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, Shutdown
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import (
@@ -32,6 +32,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
+from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():
@@ -174,6 +175,9 @@ def generate_launch_description():
         choices=["WH01", "WH02", "WH04", "WH05", "custom"],
     )
 
+    ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
+    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
+
     # Get URDF via xacro
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
     imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
@@ -192,7 +196,7 @@ def generate_launch_description():
             " wheel_config_file:=",
             wheel_config_path,
             " controller_config_file:=",
-            controller_config_path,
+            ns_controller_config_path,
             " battery_config_file:=",
             battery_config_path,
             " imu_xyz:=",
@@ -229,7 +233,7 @@ def generate_launch_description():
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[robot_description, controller_config_path],
+        parameters=[robot_description, ns_controller_config_path],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -269,6 +273,7 @@ def generate_launch_description():
         ],
         condition=UnlessCondition(use_sim),
         emulate_tty=True,
+        on_exit=Shutdown(),
     )
 
     namespace_ext = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])

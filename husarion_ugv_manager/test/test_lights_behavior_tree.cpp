@@ -63,7 +63,7 @@ public:
 protected:
   std::vector<rclcpp::Parameter> CreateTestParameters() const;
   bool SpinWhileRunning(
-    const std::chrono::milliseconds & timeout = std::chrono::milliseconds(1000));
+    const std::chrono::milliseconds & timeout = std::chrono::milliseconds(3000));
   void PublishEStop(const bool data);
   void PublishBatteryState(
     const std::uint8_t status, const std::uint8_t health, const float percentage);
@@ -257,17 +257,16 @@ TEST_F(TestLightsBehaviorTree, CriticalBattery)
   EXPECT_EQ(current_battery_anim_id, LEDAnimationMsg::CRITICAL_BATTERY);
 }
 
-// TODO: uncomment this when this condition is implemented
-// TEST_F(TestLightsBehaviorTree, ChargingOverheat)
-// {
-//   PublishEStop(false);
-//   PublishBatteryState(
-//     BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING, BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT,
-//     kBatteryMaxPercent);
+TEST_F(TestLightsBehaviorTree, ChargingOverheat)
+{
+  PublishEStop(false);
+  PublishBatteryState(
+    BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING, BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT,
+    kBatteryMaxPercent);
 
-//   ASSERT_TRUE(SpinWhileRunning());
-//   EXPECT_EQ(current_error_anim_id, LEDAnimationMsg::ERROR);
-// }
+  ASSERT_TRUE(SpinWhileRunning());
+  EXPECT_EQ(current_error_anim_id, LEDAnimationMsg::ERROR);
+}
 
 TEST_F(TestLightsBehaviorTree, Charging)
 {

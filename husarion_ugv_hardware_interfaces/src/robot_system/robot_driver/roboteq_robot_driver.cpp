@@ -25,6 +25,7 @@
 #include "lely/util/chrono.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_robot_driver.hpp"
@@ -86,7 +87,8 @@ void RoboteqRobotDriver::Activate()
       driver->ResetScript();
     } catch (const std::runtime_error & e) {
       throw std::runtime_error(
-        "Reset Roboteq script exception on " + name + " driver : " + std::string(e.what()));
+        "Reset Roboteq script exception on " + DriverNamesToString(name) +
+        " driver : " + std::string(e.what()));
     }
   }
 
@@ -98,7 +100,8 @@ void RoboteqRobotDriver::Activate()
       driver->GetMotorDriver(MotorNames::RIGHT)->SendCmdVel(0);
     } catch (const std::runtime_error & e) {
       throw std::runtime_error(
-        "Send 0 command exception on " + name + "driver : " + std::string(e.what()));
+        "Send 0 command exception on " + DriverNamesToString(name) +
+        "driver : " + std::string(e.what()));
     }
   }
 
@@ -162,10 +165,10 @@ void RoboteqRobotDriver::UpdateDriversState()
   }
 }
 
-const DriverData & RoboteqRobotDriver::GetData(const std::string & name)
+const DriverData & RoboteqRobotDriver::GetData(const DriverNames name)
 {
   if (data_.find(name) == data_.end()) {
-    throw std::runtime_error("Data with name '" + name + "' does not exist.");
+    throw std::runtime_error("Data with name '" + DriverNamesToString(name) + "' does not exist.");
   }
 
   return data_.at(name);
@@ -178,7 +181,8 @@ void RoboteqRobotDriver::TurnOnEStop()
       driver->TurnOnEStop();
     } catch (const std::runtime_error & e) {
       throw std::runtime_error(
-        "Failed to turn on E-stop on " + name + " driver: " + std::string(e.what()));
+        "Failed to turn on E-stop on " + DriverNamesToString(name) +
+        " driver: " + std::string(e.what()));
     }
   }
 }
@@ -190,7 +194,8 @@ void RoboteqRobotDriver::TurnOffEStop()
       driver->TurnOffEStop();
     } catch (const std::runtime_error & e) {
       throw std::runtime_error(
-        "Failed to turn off E-stop on " + name + " driver: " + std::string(e.what()));
+        "Failed to turn off E-stop on " + DriverNamesToString(name) +
+        " driver: " + std::string(e.what()));
     }
   }
 }
@@ -237,6 +242,7 @@ bool RoboteqRobotDriver::DataTimeout(
 void RoboteqRobotDriver::BootDrivers()
 {
   for (auto & [name, driver] : drivers_) {
+    const auto name_str = DriverNamesToString(name);
     try {
       auto driver_future = driver->Boot();
       auto driver_status = driver_future.wait_for(std::chrono::seconds(5));
@@ -246,15 +252,16 @@ void RoboteqRobotDriver::BootDrivers()
           driver_future.get();
         } catch (const std::exception & e) {
           throw std::runtime_error(
-            "Boot for " + name + " driver failed with exception: " + std::string(e.what()));
+            "Boot for " + name_str + " driver failed with exception: " + std::string(e.what()));
         }
       } else {
-        throw std::runtime_error("Boot for " + name + " driver timed out or failed.");
+        throw std::runtime_error("Boot for " + name_str + " driver timed out or failed.");
       }
 
     } catch (const std::exception & e) {
       throw std::runtime_error(
-        "An exception occurred while trying to Boot " + name + " driver " + std::string(e.what()));
+        "An exception occurred while trying to Boot " + name_str + " driver " +
+        std::string(e.what()));
     }
   }
 }

@@ -118,7 +118,7 @@ TestSafetyBehaviorTree::TestSafetyBehaviorTree()
     "hardware/e_stop_trigger", std::bind(&TestSafetyBehaviorTree::EStopTriggerSrvCB, this, _1, _2));
 
   // Replace shutdown bt nodes to avoid turning off the test devices
-  safety_manager_node_->GetFactory().addSubstitutionRule("ShutdownSingleHost", "AlwaysSuccess");
+  safety_manager_node_->GetFactory().addSubstitutionRule("ExecuteCommand", "AlwaysSuccess");
   safety_manager_node_->GetFactory().addSubstitutionRule("ShutdownHostsFromFile", "AlwaysSuccess");
   safety_manager_node_->Initialize();
 }

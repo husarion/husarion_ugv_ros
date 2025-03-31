@@ -54,28 +54,27 @@ public:
 
     mock_front_driver =
       std::make_shared<husarion_ugv_hardware_interfaces_test::MockDriver::NiceMock>();
-    mock_front_driver->AddMotorDriver(kLeftMotorDriverName, mock_fl_motor_driver);
-    mock_front_driver->AddMotorDriver(kRightMotorDriverName, mock_fr_motor_driver);
+    mock_front_driver->AddMotorDriver(
+      husarion_ugv_hardware_interfaces::MotorNames::LEFT, mock_fl_motor_driver);
+    mock_front_driver->AddMotorDriver(
+      husarion_ugv_hardware_interfaces::MotorNames::RIGHT, mock_fr_motor_driver);
 
     mock_rear_driver =
       std::make_shared<husarion_ugv_hardware_interfaces_test::MockDriver::NiceMock>();
-    mock_rear_driver->AddMotorDriver(kLeftMotorDriverName, mock_rl_motor_driver);
-    mock_rear_driver->AddMotorDriver(kRightMotorDriverName, mock_rr_motor_driver);
+    mock_rear_driver->AddMotorDriver(
+      husarion_ugv_hardware_interfaces::MotorNames::LEFT, mock_rl_motor_driver);
+    mock_rear_driver->AddMotorDriver(
+      husarion_ugv_hardware_interfaces::MotorNames::RIGHT, mock_rr_motor_driver);
   }
 
   void DefineDrivers() override
   {
-    drivers_.emplace(kFrontDriverName, mock_front_driver);
-    drivers_.emplace(kRearDriverName, mock_rear_driver);
+    drivers_.emplace(husarion_ugv_hardware_interfaces::DriverNames::FRONT, mock_front_driver);
+    drivers_.emplace(husarion_ugv_hardware_interfaces::DriverNames::REAR, mock_rear_driver);
   }
 
   void SendSpeedCommands(const std::vector<float> & /*velocities*/) override {}
   void AttemptErrorFlagReset() override {}
-
-  static constexpr char kFrontDriverName[] = "front";
-  static constexpr char kRearDriverName[] = "rear";
-  static constexpr char kLeftMotorDriverName[] = "left";
-  static constexpr char kRightMotorDriverName[] = "right";
 
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockDriver::NiceMock> mock_front_driver;
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockDriver::NiceMock> mock_rear_driver;
@@ -161,17 +160,8 @@ TEST_F(TestRoboteqRobotDriverInitialization, Activate)
 
 TEST_F(TestRoboteqRobotDriver, GetData)
 {
-  EXPECT_NO_THROW(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName));
-  EXPECT_NO_THROW(robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName));
-}
-
-TEST_F(TestRoboteqRobotDriver, GetDataError)
-{
-  const std::string name = "invalid_name";
-  const std::string error_msg = "Data with name '" + name + "' does not exist.";
-
-  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&] { robot_driver_->GetData(name); }, error_msg));
+  EXPECT_NO_THROW(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT));
+  EXPECT_NO_THROW(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR));
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateCommunicationState)
@@ -191,8 +181,10 @@ TEST_F(TestRoboteqRobotDriver, UpdateCommunicationStateCANErorr)
 
   ASSERT_NO_THROW(robot_driver_->UpdateCommunicationState());
 
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName).IsCANError());
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsCANError());
+  EXPECT_TRUE(
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT).IsCANError());
+  EXPECT_TRUE(
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR).IsCANError());
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateCommunicationStateHeartbeatTimeout)
@@ -204,10 +196,10 @@ TEST_F(TestRoboteqRobotDriver, UpdateCommunicationStateHeartbeatTimeout)
 
   ASSERT_NO_THROW(robot_driver_->UpdateCommunicationState());
 
-  EXPECT_TRUE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName).IsHeartbeatTimeout());
-  EXPECT_TRUE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsHeartbeatTimeout());
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
+                .IsHeartbeatTimeout());
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
+                .IsHeartbeatTimeout());
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateMotorsState)
@@ -245,13 +237,15 @@ TEST_F(TestRoboteqRobotDriver, UpdateMotorsState)
 
   robot_driver_->UpdateMotorsState();
 
-  const auto & fl_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  const auto & fl_data = robot_driver_
+                           ->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
                            .GetMotorState(MotorChannels::LEFT);
-  const auto & fr_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  const auto & fr_data = robot_driver_
+                           ->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
                            .GetMotorState(MotorChannels::RIGHT);
-  const auto & rl_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName)
+  const auto & rl_data = robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
                            .GetMotorState(MotorChannels::LEFT);
-  const auto & rr_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName)
+  const auto & rr_data = robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
                            .GetMotorState(MotorChannels::RIGHT);
 
   EXPECT_FLOAT_EQ(fl_data.GetPosition(), fl_pos * kRbtqPosFbToRad);
@@ -299,10 +293,10 @@ TEST_F(TestRoboteqRobotDriver, UpdateMotorsStateTimestamps)
 
   robot_driver_->UpdateMotorsState();
 
-  EXPECT_FALSE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  EXPECT_FALSE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
                  .IsMotorStatesDataTimedOut());
-  EXPECT_FALSE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsMotorStatesDataTimedOut());
+  EXPECT_FALSE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
+                 .IsMotorStatesDataTimedOut());
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateMotorsStateTimeout)
@@ -323,12 +317,14 @@ TEST_F(TestRoboteqRobotDriver, UpdateMotorsStateTimeout)
 
   robot_driver_->UpdateMotorsState();
 
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
+                .IsMotorStatesDataTimedOut());
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
                 .IsMotorStatesDataTimedOut());
   EXPECT_TRUE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsMotorStatesDataTimedOut());
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName).IsError());
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsError());
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT).IsError());
+  EXPECT_TRUE(
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR).IsError());
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateDriverState)
@@ -390,12 +386,14 @@ TEST_F(TestRoboteqRobotDriver, UpdateDriverState)
 
   robot_driver_->UpdateDriversState();
 
-  const auto & front_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName);
-  const auto & rear_data = robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName);
+  const auto & front_data =
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT);
+  const auto & rear_data =
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR);
   const auto & front_driver_state =
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName).GetDriverState();
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT).GetDriverState();
   const auto & rear_driver_state =
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).GetDriverState();
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR).GetDriverState();
 
   EXPECT_EQ(static_cast<std::int16_t>(front_driver_state.GetTemperature()), f_temp);
   EXPECT_EQ(
@@ -447,10 +445,10 @@ TEST_F(TestRoboteqRobotDriver, UpdateDriverStateTimestamps)
 
   robot_driver_->UpdateDriversState();
 
-  EXPECT_FALSE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  EXPECT_FALSE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
                  .IsDriverStateDataTimedOut());
-  EXPECT_FALSE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsDriverStateDataTimedOut());
+  EXPECT_FALSE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
+                 .IsDriverStateDataTimedOut());
 }
 
 TEST_F(TestRoboteqRobotDriver, UpdateDriverStateTimeout)
@@ -466,12 +464,14 @@ TEST_F(TestRoboteqRobotDriver, UpdateDriverStateTimeout)
 
   robot_driver_->UpdateDriversState();
 
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName)
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT)
+                .IsDriverStateDataTimedOut());
+  EXPECT_TRUE(robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR)
                 .IsDriverStateDataTimedOut());
   EXPECT_TRUE(
-    robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsDriverStateDataTimedOut());
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kFrontDriverName).IsError());
-  EXPECT_TRUE(robot_driver_->GetData(RoboteqRobotDriverWrapper::kRearDriverName).IsError());
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::FRONT).IsError());
+  EXPECT_TRUE(
+    robot_driver_->GetData(husarion_ugv_hardware_interfaces::DriverNames::REAR).IsError());
 }
 
 TEST_F(TestRoboteqRobotDriver, TurnOnEStop)
@@ -494,8 +494,6 @@ TEST_F(TestRoboteqRobotDriver, TurnOnEStopError)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOnEStop())
     .WillOnce(::testing::Throw(std::runtime_error("")));
-  EXPECT_CALL(*robot_driver_->mock_rear_driver, TurnOnEStop()).Times(0);
-
   EXPECT_THROW(robot_driver_->TurnOnEStop(), std::runtime_error);
 }
 
@@ -503,8 +501,6 @@ TEST_F(TestRoboteqRobotDriver, TurnOffEStopError)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOffEStop())
     .WillOnce(::testing::Throw(std::runtime_error("")));
-  EXPECT_CALL(*robot_driver_->mock_rear_driver, TurnOffEStop()).Times(0);
-
   EXPECT_THROW(robot_driver_->TurnOffEStop(), std::runtime_error);
 }
 

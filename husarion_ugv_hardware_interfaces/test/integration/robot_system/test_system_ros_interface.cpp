@@ -22,7 +22,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp>
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp"
 
 #include "utils/test_constants.hpp"
 
@@ -93,7 +94,8 @@ TEST_F(TestSystemROSInterface, UpdateMsgErrorFlags)
 
   data.SetDriverState(driver_state, false);
 
-  system_ros_interface_->UpdateMsgErrorFlags("driver", data);
+  system_ros_interface_->UpdateMsgErrorFlags(
+    husarion_ugv_hardware_interfaces::DriverNames::DEFAULT, data);
 
   const auto driver_state_msg = system_ros_interface_->GetRobotDriverStateMsg();
 
@@ -120,7 +122,8 @@ TEST_F(TestSystemROSInterface, UpdateMsgDriversStates)
   state.SetBatteryCurrent1(battery_current_1);
   state.SetBatteryCurrent2(battery_current_2);
 
-  system_ros_interface_->UpdateMsgDriversStates("driver", state);
+  system_ros_interface_->UpdateMsgDriversStates(
+    husarion_ugv_hardware_interfaces::DriverNames::DEFAULT, state);
 
   const auto driver_state_msg = system_ros_interface_->GetRobotDriverStateMsg();
 
@@ -151,7 +154,8 @@ TEST_F(TestSystemROSInterface, UpdateMsgErrors)
   driver_can_errors.can_error = false;
   driver_can_errors.heartbeat_timeout = true;
 
-  can_errors.driver_errors.emplace("driver", driver_can_errors);
+  can_errors.driver_errors.emplace(
+    husarion_ugv_hardware_interfaces::DriverNames::DEFAULT, driver_can_errors);
 
   system_ros_interface_->UpdateMsgErrors(can_errors);
 
@@ -171,9 +175,9 @@ TEST_F(TestSystemROSInterface, UpdateMsgErrors)
 
 TEST_F(TestSystemROSInterface, CreateDriverStateEntryInMsg)
 {
-  const auto driver_1_name = "driver_1";
-  const auto driver_2_name = "driver_2";
-  const auto driver_3_name = "driver_3";
+  const auto driver_1_name = husarion_ugv_hardware_interfaces::DriverNames::DEFAULT;
+  const auto driver_2_name = husarion_ugv_hardware_interfaces::DriverNames::FRONT;
+  const auto driver_3_name = husarion_ugv_hardware_interfaces::DriverNames::REAR;
 
   auto & driver_state_msg = system_ros_interface_->GetRobotDriverStateMsg();
 
@@ -191,9 +195,15 @@ TEST_F(TestSystemROSInterface, CreateDriverStateEntryInMsg)
   system_ros_interface_->UpdateMsgErrors(can_errors);
 
   EXPECT_EQ(driver_state_msg.driver_states.size(), 3);
-  EXPECT_EQ(driver_state_msg.driver_states.at(0).name, driver_1_name);
-  EXPECT_EQ(driver_state_msg.driver_states.at(1).name, driver_2_name);
-  EXPECT_EQ(driver_state_msg.driver_states.at(2).name, driver_3_name);
+  EXPECT_EQ(
+    driver_state_msg.driver_states.at(0).name,
+    husarion_ugv_hardware_interfaces::DriverNamesToString(driver_1_name));
+  EXPECT_EQ(
+    driver_state_msg.driver_states.at(1).name,
+    husarion_ugv_hardware_interfaces::DriverNamesToString(driver_2_name));
+  EXPECT_EQ(
+    driver_state_msg.driver_states.at(2).name,
+    husarion_ugv_hardware_interfaces::DriverNamesToString(driver_3_name));
 }
 
 int main(int argc, char ** argv)

@@ -49,13 +49,13 @@ public:
   MOCK_METHOD(void, TurnOffEStop, (), (override));
 
   std::shared_ptr<husarion_ugv_hardware_interfaces::MotorDriverInterface> GetMotorDriver(
-    const std::string & name) override
+    const husarion_ugv_hardware_interfaces::MotorNames name) override
   {
     return motor_drivers_.at(name);
   }
 
   void AddMotorDriver(
-    const std::string name,
+    const husarion_ugv_hardware_interfaces::MotorNames name,
     std::shared_ptr<husarion_ugv_hardware_interfaces::MotorDriverInterface> motor_driver) override
   {
     motor_drivers_.emplace(name, motor_driver);
@@ -64,7 +64,9 @@ public:
   using NiceMock = testing::NiceMock<MockDriver>;
 
 private:
-  std::map<std::string, std::shared_ptr<husarion_ugv_hardware_interfaces::MotorDriverInterface>>
+  std::map<
+    husarion_ugv_hardware_interfaces::MotorNames,
+    std::shared_ptr<husarion_ugv_hardware_interfaces::MotorDriverInterface>>
     motor_drivers_;
 };
 

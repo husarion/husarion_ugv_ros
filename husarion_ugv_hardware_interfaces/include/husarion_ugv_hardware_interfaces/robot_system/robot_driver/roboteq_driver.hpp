@@ -87,14 +87,14 @@ public:
    * @brief Adds a motor driver to the driver
    */
   void AddMotorDriver(
-    const std::string name, std::shared_ptr<MotorDriverInterface> motor_driver) override;
+    const MotorNames name, std::shared_ptr<MotorDriverInterface> motor_driver) override;
 
   /**
    * @brief Returns a motor driver by name
    *
    * @exception std::runtime_error if motor driver with the given name does not exist
    */
-  std::shared_ptr<MotorDriverInterface> GetMotorDriver(const std::string & name) override;
+  std::shared_ptr<MotorDriverInterface> GetMotorDriver(const MotorNames name) override;
 
   /**
    * @brief Blocking SDO write operation
@@ -157,7 +157,7 @@ private:
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
 
-  std::map<std::string, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
+  std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };
 
 class RoboteqMotorDriver : public MotorDriverInterface

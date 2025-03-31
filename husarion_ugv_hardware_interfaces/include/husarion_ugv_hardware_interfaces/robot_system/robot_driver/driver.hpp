@@ -28,6 +28,71 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
+enum class MotorNames {
+  LEFT = 0,
+  RIGHT,
+};
+
+enum class DriverNames {
+  DEFAULT = 0,
+  FRONT,
+  REAR,
+};
+
+inline std::string MotorNamesToString(const MotorNames motor_name)
+{
+  switch (motor_name) {
+    case MotorNames::LEFT:
+      return "left";
+    case MotorNames::RIGHT:
+      return "right";
+    default:
+      return "unknown";
+  }
+}
+
+inline std::string DriverNamesToString(const DriverNames driver_name)
+{
+  switch (driver_name) {
+    case DriverNames::DEFAULT:
+      return "default";
+    case DriverNames::FRONT:
+      return "front";
+    case DriverNames::REAR:
+      return "rear";
+    default:
+      return "unknown";
+  }
+}
+
+}  // namespace husarion_ugv_hardware_interfaces
+
+namespace std
+{
+template <>
+struct hash<husarion_ugv_hardware_interfaces::MotorNames>
+{
+  std::size_t operator()(
+    const husarion_ugv_hardware_interfaces::MotorNames & motor_name) const noexcept
+  {
+    return static_cast<std::size_t>(motor_name);
+  }
+};
+
+template <>
+struct hash<husarion_ugv_hardware_interfaces::DriverNames>
+{
+  std::size_t operator()(
+    const husarion_ugv_hardware_interfaces::DriverNames & driver_name) const noexcept
+  {
+    return static_cast<std::size_t>(driver_name);
+  }
+};
+}  // namespace std
+
+namespace husarion_ugv_hardware_interfaces
+{
+
 struct MotorDriverState
 {
   std::int32_t pos;
@@ -135,9 +200,9 @@ public:
    * @brief Adds a motor driver to the driver
    */
   virtual void AddMotorDriver(
-    const std::string name, std::shared_ptr<MotorDriverInterface> motor_driver) = 0;
+    const MotorNames name, std::shared_ptr<MotorDriverInterface> motor_driver) = 0;
 
-  virtual std::shared_ptr<MotorDriverInterface> GetMotorDriver(const std::string & name) = 0;
+  virtual std::shared_ptr<MotorDriverInterface> GetMotorDriver(const MotorNames name) = 0;
 
   /**
    * @brief Alias for a shared pointer to a Driver object.

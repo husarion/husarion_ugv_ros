@@ -20,25 +20,13 @@
 #include <vector>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
-
-struct MotorNames
-{
-  static constexpr char LEFT[] = "left";
-  static constexpr char RIGHT[] = "right";
-};
-
-struct DriverNames
-{
-  static constexpr char DEFAULT[] = "default";
-  static constexpr char FRONT[] = "front";
-  static constexpr char REAR[] = "rear";
-};
 
 struct MotorChannels
 {
@@ -130,7 +118,7 @@ public:
    * @return data feedback
    * @exception std::runtime_error if data with the given name does not exist
    */
-  const DriverData & GetData(const std::string & name) override;
+  const DriverData & GetData(const DriverNames name) override;
 
   bool CommunicationError() override;
 
@@ -148,7 +136,7 @@ protected:
   DrivetrainSettings drivetrain_settings_;
 
   CANopenManager canopen_manager_;
-  std::map<std::string, std::shared_ptr<DriverInterface>> drivers_;
+  std::unordered_map<DriverNames, std::shared_ptr<DriverInterface>> drivers_;
 
 private:
   void SetMotorsStates(
@@ -162,7 +150,7 @@ private:
 
   bool initialized_ = false;
 
-  std::map<std::string, DriverData> data_;
+  std::unordered_map<DriverNames, DriverData> data_;
   RoboteqVelocityCommandConverter roboteq_vel_cmd_converter_;
 
   const std::chrono::milliseconds pdo_motor_states_timeout_ms_;

@@ -94,4 +94,3 @@ jobs:
               "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
               "image_tag": "${{ inputs.version }}"
             }
-

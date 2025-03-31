@@ -31,10 +31,7 @@ jobs:
 
   unit_tests:
     name: Unit tests
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Run unit tests
-        uses: ./.github/workflows/run-unit-tests.yaml
+    uses: ./.github/workflows/run-unit-tests.yaml
 
   update_compose_files:
     name: Update compose files

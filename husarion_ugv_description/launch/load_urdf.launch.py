@@ -29,6 +29,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
+from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():
@@ -80,12 +81,10 @@ def generate_launch_description():
     )
 
     robot_model = LaunchConfiguration("robot_model")
-    robot_model_dict = {"LNX": "lynx", "PTH": "panther"}
-    robot_model_env = os.environ.get("ROBOT_MODEL", default="PTH")
     declare_robot_model_arg = DeclareLaunchArgument(
         "robot_model",
-        default_value=robot_model_dict[robot_model_env],
-        description="Specify robot model.",
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
+        description="Specify robot model",
         choices=["lynx", "panther"],
     )
 
@@ -126,6 +125,9 @@ def generate_launch_description():
         choices=["WH01", "WH02", "WH04", "WH05", "custom"],
     )
 
+    ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
+    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
+
     # Get URDF via xacro
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
     imu_pos_y = os.environ.get("ROBOT_IMU_LOCALIZATION_Y", "0.028")
@@ -146,7 +148,7 @@ def generate_launch_description():
             " wheel_config_file:=",
             wheel_config_path,
             " controller_config_file:=",
-            controller_config_path,
+            ns_controller_config_path,
             " battery_config_file:=",
             battery_config_path,
             " imu_xyz:=",

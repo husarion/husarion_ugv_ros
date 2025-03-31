@@ -5,12 +5,8 @@
       <ForceSuccess>
         <ShutdownHostsFromFile shutdown_hosts_file="{SHUTDOWN_HOSTS_FILE}"/>
       </ForceSuccess>
-      <ShutdownSingleHost command="sudo shutdown now"
-                          ip="localhost"
-                          ping_for_success="false"
-                          port="22"
-                          timeout="5.0"
-                          username="husarion"/>
+      <ExecuteCommand command="{SHUTDOWN_LOCALHOST_COMMAND}"
+                      timeout="1.0"/>
     </Sequence>
   </BehaviorTree>
 
@@ -20,18 +16,9 @@
             editable="true">
       <input_port name="shutdown_hosts_file">global path to YAML file with hosts to shutdown</input_port>
     </Action>
-    <Action ID="ShutdownSingleHost"
-            editable="true">
-      <input_port name="command"
-                  default="sudo shutdown now">(optional) command to execute on shutdown</input_port>
-      <input_port name="ip">ip of the host to shutdown</input_port>
-      <input_port name="ping_for_success"
-                  default="true"/>
-      <input_port name="port"
-                  default="22"/>
-      <input_port name="timeout"
-                  default="5.0"/>
-      <input_port name="username">user to log into while executing shutdown command</input_port>
+    <Action ID="ExecuteCommand" editable="true">
+      <input_port name="command">command to execute</input_port>
+      <input_port name="timeout">command timeout in seconds</input_port>
     </Action>
   </TreeNodesModel>
 

@@ -25,6 +25,7 @@
 #include <system_error>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
 
 namespace husarion_ugv_hardware_interfaces
@@ -94,9 +95,9 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 }
 
 RoboteqDriver::RoboteqDriver(
-  const std::shared_ptr<lely::canopen::AsyncMaster> & master, const std::uint8_t id,
+  const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
   const std::chrono::milliseconds & sdo_operation_timeout_ms)
-: lely::canopen::LoopDriver(*master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
+: lely::canopen::LoopDriver(*async_master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
 {
 }
 
@@ -177,7 +178,7 @@ void RoboteqDriver::TurnOffEStop()
 }
 
 void RoboteqDriver::AddMotorDriver(
-  const std::string name, std::shared_ptr<MotorDriverInterface> motor_driver)
+  const MotorNames name, std::shared_ptr<MotorDriverInterface> motor_driver)
 {
   if (std::dynamic_pointer_cast<RoboteqMotorDriver>(motor_driver) == nullptr) {
     throw std::runtime_error("Motor driver is not of type RoboteqMotorDriver");
@@ -185,11 +186,12 @@ void RoboteqDriver::AddMotorDriver(
   motor_drivers_.emplace(name, motor_driver);
 }
 
-std::shared_ptr<MotorDriverInterface> RoboteqDriver::GetMotorDriver(const std::string & name)
+std::shared_ptr<MotorDriverInterface> RoboteqDriver::GetMotorDriver(const MotorNames name)
 {
   auto it = motor_drivers_.find(name);
   if (it == motor_drivers_.end()) {
-    throw std::runtime_error("Motor driver with name '" + name + "' does not exist");
+    throw std::runtime_error(
+      "Motor driver with name '" + MotorNamesToString(name) + "' does not exist");
   }
 
   return it->second;

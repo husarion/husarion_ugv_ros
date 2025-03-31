@@ -31,10 +31,7 @@ jobs:
 
   unit_tests:
     name: Unit tests
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Run unit tests
-        run: echo "Unit tests are not fully implemented yet -> SKIPPING!"
+    uses: ./.github/workflows/run-unit-tests.yaml
 
   update_compose_files:
     name: Update compose files
@@ -46,9 +43,9 @@ jobs:
 
       - name: Update docker image tag
         run: |
-          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-          sed -i 's/\(husarion\/panther:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-          sed -i 's/\(husarion\/panther-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+          sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
@@ -63,8 +60,8 @@ jobs:
     needs: update_compose_files
     uses: ./.github/workflows/build-docker.yaml
     with:
-      branch_name: ${{ inputs.version }}-${{ inputs.date }}
       build_type: development
+    secrets: inherit
 
   os_image:
     name: OS image
@@ -75,7 +72,7 @@ jobs:
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
         with:
           repository_owner: husarion
-          repository_name: panther-rpi-os-img
+          repository_name: husarion-ugv-rpi-os-img
           new_branch_name: ${{ env.RC_BRANCH_NAME }}
           new_branch_ref: ros2-devel
           access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
@@ -84,7 +81,7 @@ jobs:
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
-          repo: panther-rpi-os-img
+          repo: husarion-ugv-rpi-os-img
           github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
@@ -92,18 +89,5 @@ jobs:
             {
               "dev_image": "true",
               "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
-              "image_tag": "${{ inputs.version }}"
-            }
-
-      - name: Build flash OS image
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          owner: husarion
-          repo: panther-rpi-os-img
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
-          workflow_file_name: build_and_deploy_flash_os_image.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
               "image_tag": "${{ inputs.version }}"
             }

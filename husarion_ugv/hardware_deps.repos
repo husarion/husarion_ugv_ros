@@ -2,16 +2,12 @@ repositories:
   behaviortree_ros2:
     type: git
     url: https://github.com/BehaviorTree/BehaviorTree.ROS2
-    version: a0de087a2f3af5ec5a19edd622aa85506105afcd
+    version: 7a6ace6424adaa81737b95d20d81e1e8c0782ed7
   husarion_controllers:
     type: git
     url: https://github.com/husarion/husarion_controllers
-    version: 053c5b1320352c496ac2d02c8bc44c695d8dd4ad
+    version: 632a4d248227288afd99cf11179b019d968bda7b
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git
-    version: d34d27edb3abc12ee6d197d0d513e00fe9a5604e
-  ros2_controllers: # Caused by two error: 1. https://github.com/ros-controls/ros2_controllers/pull/1104 2. There is no nice way to change `sensor_name` imu_bradcaster param when spawning multiple robots -> ros2_control refer only to single imu entity
-    type: git
-    url: https://github.com/husarion/ros2_controllers/
-    version: 0784c2c7c9bad6566c994fb1cb7efe8a06db1df5
+    version: 1c933c3ddefbfb8826e90631e8a53bae0b987264

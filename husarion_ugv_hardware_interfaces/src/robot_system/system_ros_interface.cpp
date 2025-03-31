@@ -20,8 +20,9 @@
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "realtime_tools/realtime_publisher.h"
+#include "realtime_tools/realtime_publisher.hpp"
 
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 
 namespace husarion_ugv_hardware_interfaces
@@ -126,7 +127,7 @@ SystemROSInterface::~SystemROSInterface()
   node_.reset();
 }
 
-void SystemROSInterface::UpdateMsgErrorFlags(const std::string & name, const DriverData & data)
+void SystemROSInterface::UpdateMsgErrorFlags(const DriverNames name, const DriverData & data)
 {
   auto & driver_state = realtime_driver_state_publisher_->msg_;
   auto & driver_state_named = GetDriverStateByName(driver_state, name);
@@ -142,7 +143,7 @@ void SystemROSInterface::UpdateMsgErrorFlags(const std::string & name, const Dri
 }
 
 void SystemROSInterface::UpdateMsgDriversStates(
-  const std::string & name, const RoboteqDriverState & state)
+  const DriverNames name, const RoboteqDriverState & state)
 {
   auto & driver_state = realtime_driver_state_publisher_->msg_;
   auto & driver_state_named = GetDriverStateByName(driver_state, name);
@@ -284,17 +285,18 @@ rclcpp::CallbackGroup::SharedPtr SystemROSInterface::GetOrCreateNodeCallbackGrou
 }
 
 DriverStateNamedMsg & SystemROSInterface::GetDriverStateByName(
-  RobotDriverStateMsg & robot_driver_state, const std::string & name)
+  RobotDriverStateMsg & robot_driver_state, const DriverNames name)
 {
+  const auto name_str = DriverNamesToString(name);
   auto & driver_states = robot_driver_state.driver_states;
 
   auto it = std::find_if(
     driver_states.begin(), driver_states.end(),
-    [&name](const DriverStateNamedMsg & msg) { return msg.name == name; });
+    [&name_str](const DriverStateNamedMsg & msg) { return msg.name == name_str; });
 
   if (it == driver_states.end()) {
     DriverStateNamedMsg driver_state_named;
-    driver_state_named.name = name;
+    driver_state_named.name = name_str;
     driver_states.push_back(driver_state_named);
     it = driver_states.end() - 1;
   }

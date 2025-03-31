@@ -26,8 +26,11 @@ endforeach()
 
 include_directories(include)
 
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+
 add_library(animation_plugins SHARED src/animation/image_animation.cpp
-                                     src/animation/charging_animation.cpp)
+                                     src/animation/moving_image_animation.cpp)
+
 ament_target_dependencies(animation_plugins husarion_ugv_utils pluginlib)
 target_link_libraries(animation_plugins png yaml-cpp)
 
@@ -49,9 +52,12 @@ target_link_libraries(lights_driver_node_component lights_driver_parameters)
 
 add_library(
   lights_controller_node_component SHARED
-  src/lights_controller_node.cpp src/led_components/led_segment.cpp
-  src/led_components/led_panel.cpp src/led_components/segment_converter.cpp
-  src/led_components/led_animations_queue.cpp)
+  src/lights_controller_node.cpp
+  src/led_components/led_segment.cpp
+  src/led_components/led_panel.cpp
+  src/led_components/segment_converter.cpp
+  src/led_components/segment_layer.cpp
+  src/led_components/segment_queue_layer.cpp)
 ament_target_dependencies(
   lights_controller_node_component
   husarion_ugv_msgs
@@ -104,18 +110,6 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_animation yaml-cpp)
 
   ament_add_gtest(
-    ${PROJECT_NAME}_test_charging_animation
-    test/unit/animation/test_charging_animation.cpp
-    src/animation/charging_animation.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_charging_animation
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_charging_animation
-                            ament_index_cpp husarion_ugv_utils pluginlib)
-  target_link_libraries(${PROJECT_NAME}_test_charging_animation yaml-cpp)
-
-  ament_add_gtest(
     ${PROJECT_NAME}_test_image_animation
     test/unit/animation/test_image_animation.cpp
     src/animation/image_animation.cpp)
@@ -128,6 +122,19 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_image_animation png yaml-cpp)
 
   ament_add_gtest(
+    ${PROJECT_NAME}_test_moving_image_animation
+    test/unit/animation/test_moving_image_animation.cpp
+    src/animation/moving_image_animation.cpp src/animation/image_animation.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_moving_image_animation
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_moving_image_animation
+                            ament_index_cpp husarion_ugv_utils pluginlib)
+  target_link_libraries(${PROJECT_NAME}_test_moving_image_animation png
+                        yaml-cpp)
+
+  ament_add_gtest(
     ${PROJECT_NAME}_test_led_panel test/unit/led_components/test_led_panel.cpp
     src/led_components/led_panel.cpp)
   target_include_directories(
@@ -135,10 +142,22 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
 
+  ament_add_gtest(${PROJECT_NAME}_test_segment_layer_interface
+                  test/unit/led_components/test_segment_layer_interface.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_segment_layer_interface
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_segment_layer_interface
+                            husarion_ugv_utils pluginlib)
+  target_link_libraries(${PROJECT_NAME}_test_segment_layer_interface yaml-cpp)
+
   ament_add_gtest(
     ${PROJECT_NAME}_test_led_segment
     test/unit/led_components/test_led_segment.cpp
-    src/led_components/led_segment.cpp)
+    src/led_components/led_segment.cpp
+    src/led_components/segment_layer.cpp
+    src/led_components/segment_queue_layer.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_led_segment
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -152,7 +171,9 @@ if(BUILD_TESTING)
     test/unit/led_components/test_segment_converter.cpp
     src/led_components/segment_converter.cpp
     src/led_components/led_panel.cpp
-    src/led_components/led_segment.cpp)
+    src/led_components/led_segment.cpp
+    src/led_components/segment_layer.cpp
+    src/led_components/segment_queue_layer.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_segment_converter
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -166,7 +187,8 @@ if(BUILD_TESTING)
     test/unit/led_components/test_led_animation.cpp
     src/led_components/led_panel.cpp
     src/led_components/led_segment.cpp
-    src/led_components/led_animations_queue.cpp)
+    src/led_components/segment_layer.cpp
+    src/led_components/segment_queue_layer.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_led_animation
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -174,20 +196,6 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_led_animation pluginlib
                             husarion_ugv_utils rclcpp)
   target_link_libraries(${PROJECT_NAME}_test_led_animation yaml-cpp)
-
-  ament_add_gtest(
-    ${PROJECT_NAME}_test_led_animations_queue
-    test/unit/led_components/test_led_animations_queue.cpp
-    src/led_components/led_panel.cpp
-    src/led_components/led_segment.cpp
-    src/led_components/led_animations_queue.cpp)
-  target_include_directories(
-    ${PROJECT_NAME}_test_led_animations_queue
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_led_animations_queue pluginlib
-                            husarion_ugv_utils rclcpp)
-  target_link_libraries(${PROJECT_NAME}_test_led_animations_queue yaml-cpp)
 
   ament_add_gmock(${PROJECT_NAME}_test_apa102 test/unit/test_apa102.cpp
                   src/apa102.cpp)
@@ -198,13 +206,16 @@ if(BUILD_TESTING)
 
   ament_add_gmock(
     ${PROJECT_NAME}_test_lights_driver_node
-    test/unit/test_lights_driver_node.cpp src/apa102.cpp
-    src/lights_driver_node.cpp)
+    test/unit/test_lights_driver_node.cpp
+    src/apa102.cpp
+    src/lights_driver_node.cpp
+    src/led_components/segment_layer.cpp
+    src/led_components/segment_queue_layer.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_lights_driver_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_lights_driver_node
+  ament_target_dependencies(${PROJECT_NAME}_test_lights_driver_node pluginlib
                             husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_lights_driver_node
                         lights_driver_node_component)
@@ -216,13 +227,14 @@ if(BUILD_TESTING)
     src/led_components/led_segment.cpp
     src/led_components/led_panel.cpp
     src/led_components/segment_converter.cpp
-    src/led_components/led_animations_queue.cpp)
+    src/led_components/segment_layer.cpp
+    src/led_components/segment_queue_layer.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_lights_controller_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_lights_controller_node
-                            husarion_ugv_utils)
+                            pluginlib husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_lights_controller_node
                         lights_controller_node_component yaml-cpp)
 

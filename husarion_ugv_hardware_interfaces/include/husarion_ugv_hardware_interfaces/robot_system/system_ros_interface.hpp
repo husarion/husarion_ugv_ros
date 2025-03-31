@@ -22,9 +22,9 @@
 #include <thread>
 #include <unordered_map>
 
-#include <realtime_tools/realtime_publisher.h>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <realtime_tools/realtime_publisher.hpp>
 
 #include <std_msgs/msg/bool.hpp>
 #include <std_srvs/srv/set_bool.hpp>
@@ -35,6 +35,7 @@
 #include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 
 using namespace std::placeholders;
@@ -65,7 +66,7 @@ struct CANErrors
   bool read_pdo_motor_states_error;
   bool read_pdo_driver_state_error;
 
-  std::unordered_map<std::string, DriverCANErrors> driver_errors;
+  std::unordered_map<DriverNames, DriverCANErrors> driver_errors;
 };
 
 /**
@@ -225,7 +226,7 @@ public:
    * @param name The name of the driver to update the flags for
    * @param data The data to update the flags with
    */
-  void UpdateMsgErrorFlags(const std::string & name, const DriverData & data);
+  void UpdateMsgErrorFlags(const DriverNames name, const DriverData & data);
 
   /**
    * @brief Updates parameters of the driver (voltage, current and temperature) in robot driver
@@ -234,7 +235,7 @@ public:
    * @param name The name of the driver to update the parameters for
    * @param state The data to update the parameters with
    */
-  void UpdateMsgDriversStates(const std::string & name, const RoboteqDriverState & state);
+  void UpdateMsgDriversStates(const DriverNames name, const RoboteqDriverState & state);
 
   /**
    * @brief Updates the current state of communication errors and general error state
@@ -286,7 +287,7 @@ protected:
    * @return Reference to the driver state message associated with the specified name.
    */
   DriverStateNamedMsg & GetDriverStateByName(
-    RobotDriverStateMsg & robot_driver_state, const std::string & name);
+    RobotDriverStateMsg & robot_driver_state, const DriverNames name);
 
   rclcpp::Node::SharedPtr node_;
   std::unordered_map<unsigned, rclcpp::CallbackGroup::SharedPtr> callback_groups_;

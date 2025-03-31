@@ -22,9 +22,8 @@
 
 #include "husarion_ugv_msgs/msg/system_status.hpp"
 
-#include "system_monitor_parameters.hpp"
-
 #include "husarion_ugv_diagnostics/filesystem.hpp"
+#include "husarion_ugv_diagnostics/system_monitor_parameters.hpp"
 #include "husarion_ugv_diagnostics/types.hpp"
 
 using namespace std::chrono_literals;

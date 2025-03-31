@@ -138,15 +138,15 @@ hardware_interface::return_type EStopSystem::write(
 void EStopSystem::SetupEStop()
 {
   e_stop_publisher_ = nh_->create_publisher<BoolMsg>(
-    "~/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
   e_stop_reset_service_ = nh_->create_service<TriggerSrv>(
-    "~/e_stop_reset",
+    "hardware/e_stop_reset",
     std::bind(
       &EStopSystem::EStopResetCallback, this, std::placeholders::_1, std::placeholders::_2));
 
   e_stop_trigger_service_ = nh_->create_service<TriggerSrv>(
-    "~/e_stop_trigger",
+    "hardware/e_stop_trigger",
     std::bind(
       &EStopSystem::EStopTriggerCallback, this, std::placeholders::_1, std::placeholders::_2));
 }

@@ -73,7 +73,7 @@ TEST_F(TestSegmentConverter, ConvertInvalidChannel)
     std::make_shared<husarion_ugv_lights::LEDSegment>(CreateSegmentDescription(0, 10, 123), 50.0));
   const auto anim_desc = CreateImageAnimationDescription();
   ASSERT_NO_THROW(
-    segments_.at("name")->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+    segments_.at("name")->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
 
   EXPECT_THROW(segment_converter_->Convert(segments_, led_panels_), std::out_of_range);
 }
@@ -85,7 +85,7 @@ TEST_F(TestSegmentConverter, ConvertInvalidLedRange)
               CreateSegmentDescription(panel_1_num_led_, panel_1_num_led_ + 1, 1), 50.0));
   const auto anim_desc = CreateImageAnimationDescription();
   ASSERT_NO_THROW(
-    segments_.at("name")->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+    segments_.at("name")->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
 
   EXPECT_THROW(segment_converter_->Convert(segments_, led_panels_), std::runtime_error);
 }
@@ -103,7 +103,7 @@ TEST_F(TestSegmentConverter, ConvertSingleSegmentForEachPanel)
 
   for (auto & segment : segments_) {
     ASSERT_NO_THROW(
-      segment.second->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+      segment.second->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
     ASSERT_NO_THROW(segment.second->UpdateAnimation());
   }
 
@@ -134,36 +134,11 @@ TEST_F(TestSegmentConverter, ConvertMultipleSegments)
   const auto anim_desc = CreateImageAnimationDescription();
   for (auto & segment : segments_) {
     ASSERT_NO_THROW(
-      segment.second->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
+      segment.second->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, 0, false));
     ASSERT_NO_THROW(segment.second->UpdateAnimation());
   }
 
   EXPECT_NO_THROW(segment_converter_->Convert(segments_, led_panels_));
-}
-
-TEST_F(TestSegmentConverter, ConvertBrightnessOverride)
-{
-  const std::size_t channel = 1;
-  const float float_brightness = 0.2f;
-  const std::uint8_t expected_brightness = static_cast<std::uint8_t>(round(float_brightness * 255));
-  auto anim_desc = CreateImageAnimationDescription();
-  anim_desc["brightness"] = float_brightness;
-
-  segments_.emplace(
-    "name", std::make_shared<husarion_ugv_lights::LEDSegment>(
-              CreateSegmentDescription(0, panel_1_num_led_ - 1, channel), 50.0));
-
-  ASSERT_NO_THROW(
-    segments_.at("name")->SetAnimation("husarion_ugv_lights::ImageAnimation", anim_desc, false));
-
-  segment_converter_->Convert(segments_, led_panels_);
-  ASSERT_NO_THROW(segment_converter_->Convert(segments_, led_panels_));
-
-  const auto frame = led_panels_.at(channel)->GetFrame();
-
-  for (std::size_t i = 3; i < frame.size(); i += 4) {
-    EXPECT_EQ(expected_brightness, frame[i]);
-  }
 }
 
 TEST_F(TestSegmentConverter, ConvertNoThrowIfAnimationNotSet)

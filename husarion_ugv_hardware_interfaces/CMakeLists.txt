@@ -118,7 +118,7 @@ if(BUILD_TESTING)
 
   ament_add_gmock(
     ${PROJECT_NAME}_test_gpiod_controller
-    test/robot_system/gpio/test_gpio_controller.cpp
+    test/unit/robot_system/gpio/test_gpio_controller.cpp
     src/robot_system/gpio/gpio_controller.cpp
     src/robot_system/gpio/gpio_driver.cpp)
   ament_target_dependencies(${PROJECT_NAME}_test_gpiod_controller
@@ -228,7 +228,7 @@ if(BUILD_TESTING)
   if(TEST_INTEGRATION)
     ament_add_gtest(
       ${PROJECT_NAME}_test_system_ros_interface
-      test/unit/robot_system/test_system_ros_interface.cpp
+      test/integration/robot_system/test_system_ros_interface.cpp
       src/robot_system/system_ros_interface.cpp
       src/robot_system/robot_driver/roboteq_data_converters.cpp
       src/robot_system/gpio/gpio_controller.cpp
@@ -248,13 +248,21 @@ if(BUILD_TESTING)
     target_link_libraries(${PROJECT_NAME}_test_system_ros_interface
                           PkgConfig::LIBLELY_COAPP PkgConfig::LIBGPIOD)
 
-    ament_add_gmock(${PROJECT_NAME}_test_phidget_imu_sensor
-                    test/phidget_imu_sensor/test_phidget_imu_sensor.cpp)
+    ament_add_gmock(
+      ${PROJECT_NAME}_test_phidget_imu_sensor
+      test/integration/phidget_imu_sensor/test_phidget_imu_sensor.cpp)
     ament_target_dependencies(
       ${PROJECT_NAME}_test_phidget_imu_sensor hardware_interface rclcpp
       husarion_ugv_utils husarion_ugv_msgs phidgets_api)
     target_link_libraries(${PROJECT_NAME}_test_phidget_imu_sensor
                           ${PROJECT_NAME} phidgets_spatial_parameters)
+
+    ament_add_gtest(${PROJECT_NAME}_test_gpiod_driver
+                    test/integration/robot_system/gpio/test_gpio_driver.cpp)
+    ament_target_dependencies(${PROJECT_NAME}_test_gpiod_driver
+                              husarion_ugv_utils)
+    target_link_libraries(${PROJECT_NAME}_test_gpiod_driver ${PROJECT_NAME}
+                          PkgConfig::LIBGPIOD)
 
     ament_add_gtest(
       ${PROJECT_NAME}_test_canopen_manager
@@ -268,13 +276,6 @@ if(BUILD_TESTING)
                               husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_canopen_manager
                           PkgConfig::LIBLELY_COAPP)
-
-    ament_add_gtest(${PROJECT_NAME}_test_gpiod_driver
-                    test/robot_system/gpio/test_gpio_driver.cpp)
-    ament_target_dependencies(${PROJECT_NAME}_test_gpiod_driver ament_index_cpp
-                              husarion_ugv_utils)
-    target_link_libraries(${PROJECT_NAME}_test_gpiod_driver ${PROJECT_NAME}
-                          PkgConfig::LIBGPIOD)
 
     ament_add_gmock(
       ${PROJECT_NAME}_test_lynx_robot_driver

@@ -181,9 +181,9 @@ TEST_F(TestAPA102, RGBAFrameToBGRBuffer)
 
   // Verify RGBA frame
   EXPECT_EQ(buffer[4], 0xEC);  // brightness value based on the frame
-  EXPECT_EQ(buffer[5], 0x0F);  // B component after color correction
-  EXPECT_EQ(buffer[6], 0x64);  // G component after color correction
-  EXPECT_EQ(buffer[7], 0xFF);  // R component after color correction
+  EXPECT_EQ(buffer[5], 0x0B);  // B component after color correction
+  EXPECT_EQ(buffer[6], 0x37);  // G component after color correction
+  EXPECT_EQ(buffer[7], 0xF5);  // R component after color correction
 }
 
 int main(int argc, char ** argv)

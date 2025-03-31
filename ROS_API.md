@@ -9,11 +9,11 @@
 >
 > - By email at: [support@husarion.com](mailto:support@husarion.com)
 > - Via our community forum: [Husarion Community](https://community.husarion.com)
-> - By submitting an issue request on: [GitHub](https://github.com/husarion/panther_ros/issues)
+> - By submitting an issue request on: [GitHub](https://github.com/husarion/husarion_ugv_ros/issues)
 
 ## ROS 2 System Design
 
-This section describes the ROS packages used in Husarion UGV. These packages are located in the [panther_ros](https://github.com/husarion/panther_ros) GitHub repository.
+This section describes the ROS packages used in Husarion UGV. These packages are located in the [husarion_ugv_ros](https://github.com/husarion/husarion_ugv_ros) GitHub repository.
 
 > [!NOTE]
 > **Hardware Compatibility**
@@ -22,7 +22,7 @@ This section describes the ROS packages used in Husarion UGV. These packages are
 
 <!-- TODO: add this differences -->
 
-The default way to communicate with our robots is via the Robot Operating System (ROS). All the drivers were written in ROS 2 framework. The ROS API is provided by ROS packages found in the GitHub repository [husarion/panther_ros](https://github.com/husarion/panther_ros). These packages are responsible for accessing the hardware components of the robot.
+The default way to communicate with our robots is via the Robot Operating System (ROS). All the drivers were written in ROS 2 framework. The ROS API is provided by ROS packages found in the GitHub repository [husarion/husarion_ugv_ros](https://github.com/husarion/husarion_ugv_ros). These packages are responsible for accessing the hardware components of the robot.
 
 The graph below represents Husarion UVG ROS system. Some topics and services have been excluded from the graph for the sake of clarity.
 

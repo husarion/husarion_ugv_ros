@@ -31,12 +31,11 @@
 
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
-#include "lights_controller_parameters.hpp"
-
-#include "husarion_ugv_lights/led_components/led_animations_queue.hpp"
+#include "husarion_ugv_lights/led_components/led_animation.hpp"
 #include "husarion_ugv_lights/led_components/led_panel.hpp"
 #include "husarion_ugv_lights/led_components/led_segment.hpp"
 #include "husarion_ugv_lights/led_components/segment_converter.hpp"
+#include "husarion_ugv_lights/lights_controller_parameters.hpp"
 #include "husarion_ugv_utils/ros_utils.hpp"
 #include "husarion_ugv_utils/yaml_utils.hpp"
 
@@ -70,8 +69,6 @@ LightsControllerNode::LightsControllerNode(const rclcpp::NodeOptions & options)
   }
 
   segment_converter_ = std::make_shared<SegmentConverter>();
-
-  animations_queue_ = std::make_shared<LEDAnimationsQueue>(10);
 
   set_led_animation_server_ = this->create_service<SetLEDAnimationSrv>(
     "lights/set_animation", std::bind(&LightsControllerNode::SetLEDAnimationCB, this, _1, _2));
@@ -179,8 +176,8 @@ void LightsControllerNode::LoadUserAnimations(const std::string & user_led_anima
 
         auto priority = husarion_ugv_utils::GetYAMLKeyValue<std::size_t>(
           animation_description, "priority", LEDAnimation::kDefaultPriority);
-        if (priority == 1) {
-          throw std::runtime_error("User animation can not have priority 1.");
+        if (priority == 0) {
+          throw std::runtime_error("User animation can not have priority 0.");
         }
 
         LoadAnimation(animation_description);
@@ -247,7 +244,7 @@ void LightsControllerNode::SetLEDAnimationCB(
   SetLEDAnimationSrv::Response::SharedPtr response)
 {
   try {
-    AddAnimationToQueue(request->animation.id, request->repeating, request->animation.param);
+    AddAnimationToLayer(request->animation.id, request->repeating, request->animation.param);
     response->success = true;
   } catch (const std::exception & e) {
     response->success = false;
@@ -273,38 +270,7 @@ void LightsControllerNode::PublishPanelFrame(const std::size_t channel)
   panel_publishers_.at(channel)->publish(std::move(image));
 }
 
-void LightsControllerNode::ControllerTimerCB()
-{
-  if (animation_finished_) {
-    animations_queue_->Validate(this->get_clock()->now());
-
-    if (!animations_queue_->Empty()) {
-      try {
-        SetLEDAnimation(animations_queue_->Get());
-      } catch (const std::runtime_error & e) {
-        RCLCPP_ERROR_STREAM(this->get_logger(), "Failed to Set LED animation: " << e.what());
-      }
-    }
-  }
-
-  if (!current_animation_) {
-    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Waiting for animation.");
-    return;
-  }
-
-  if (current_animation_->GetPriority() > animations_queue_->GetFirstAnimationPriority()) {
-    if (current_animation_->GetProgress() < 0.65f) {
-      current_animation_->Reset(this->get_clock()->now());
-      animations_queue_->Put(current_animation_, this->get_clock()->now());
-    }
-    animation_finished_ = true;
-    return;
-  }
-
-  UpdateAndPublishAnimation();
-
-  animation_finished_ = current_animation_->IsFinished();
-}
+void LightsControllerNode::ControllerTimerCB() { UpdateAndPublishAnimation(); }
 
 void LightsControllerNode::UpdateAndPublishAnimation()
 {
@@ -334,7 +300,7 @@ void LightsControllerNode::UpdateAndPublishAnimation()
   }
 }
 
-void LightsControllerNode::AddAnimationToQueue(
+void LightsControllerNode::AddAnimationToLayer(
   const std::size_t animation_id, const bool repeating, const std::string & param)
 {
   if (animations_descriptions_.find(animation_id) == animations_descriptions_.end()) {
@@ -346,7 +312,8 @@ void LightsControllerNode::AddAnimationToQueue(
     animation_description, segments_, this->get_clock()->now());
   animation->SetRepeating(repeating);
   animation->SetParam(param);
-  animations_queue_->Put(animation, this->get_clock()->now());
+
+  SetLEDAnimation(animation);
 }
 
 void LightsControllerNode::SetLEDAnimation(const std::shared_ptr<LEDAnimation> & led_animation)
@@ -361,16 +328,13 @@ void LightsControllerNode::SetLEDAnimation(const std::shared_ptr<LEDAnimation> &
       try {
         segments_.at(segment)->SetAnimation(
           animation.type, animation.animation, led_animation->IsRepeating(),
-          led_animation->GetParam());
+          led_animation->GetPriority(), led_animation->GetParam());
       } catch (const std::runtime_error & e) {
         throw std::runtime_error(
           "Failed to set '" + led_animation->GetName() + "' animation: " + std::string(e.what()));
       }
     }
   }
-
-  current_animation_.reset();
-  current_animation_ = std::move(led_animation);
 }
 
 }  // namespace husarion_ugv_lights

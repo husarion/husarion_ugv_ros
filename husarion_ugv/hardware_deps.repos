@@ -10,4 +10,4 @@ repositories:
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git
-    version: 7688685d46e93dc4ff24fa104fb735d07477e05d
+    version: 314c35e1022608e1c1f7edf56273b4a2394786ae

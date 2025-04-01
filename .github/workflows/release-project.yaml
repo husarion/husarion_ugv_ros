@@ -51,7 +51,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: stable
-      target_distro: humble
+      target_distro: jazzy
       target_release: ${{ inputs.version }}
       target_date: ${{ inputs.date }}
     secrets: inherit

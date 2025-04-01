@@ -35,7 +35,7 @@ jobs:
         id: build_test_1
         with:
           vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-          target-ros2-distro: humble
+          target-ros2-distro: jazzy
           colcon-defaults: |
             {
               "build": {
@@ -54,7 +54,7 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.3
         with:
           vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-          target-ros2-distro: humble
+          target-ros2-distro: jazzy
           colcon-defaults: |
             {
               "build": {

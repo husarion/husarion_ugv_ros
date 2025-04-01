@@ -7,9 +7,14 @@
             controller_config_file
             battery_config_file
             use_sim:=false
-            imu_xyz:='0.169 0.025 0.092'
+            imu_xyz:='0.052 0.073 -0.006'
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''">
+
+    <xacro:if value="${use_sim}">
+      <xacro:property name="imu_xyz" value="0.052 0.073 -0.006" />
+      <xacro:property name="imu_rpy" value="0.0 0.0 -1.57" />
+    </xacro:if>
 
     <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
 

@@ -34,11 +34,11 @@ template class ROSServiceWrapper<std_srvs::srv::Trigger, std::function<void()>>;
 template <typename SrvT, typename CallbackT>
 void ROSServiceWrapper<SrvT, CallbackT>::RegisterService(
   const rclcpp::Node::SharedPtr node, const std::string & service_name,
-  rclcpp::CallbackGroup::SharedPtr group, const rmw_qos_profile_t & qos_profile)
+  rclcpp::CallbackGroup::SharedPtr group, const rclcpp::QoS & qos)
 {
   service_ = node->create_service<SrvT>(
     service_name, std::bind(&ROSServiceWrapper<SrvT, CallbackT>::CallbackWrapper, this, _1, _2),
-    qos_profile, group);
+    qos, group);
 }
 
 template <typename SrvT, typename CallbackT>

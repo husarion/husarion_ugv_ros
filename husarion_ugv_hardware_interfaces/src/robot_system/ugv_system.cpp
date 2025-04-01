@@ -135,8 +135,8 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
     "~/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,
     rclcpp::CallbackGroupType::MutuallyExclusive);
 
-  auto e_stop_reset_qos = rmw_qos_profile_services_default;
-  e_stop_reset_qos.depth = 1;
+  auto e_stop_reset_qos = rclcpp::ServicesQoS();
+  e_stop_reset_qos.keep_last(1);
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
     "~/e_stop_reset", std::bind(&EStopInterface::ResetEStop, e_stop_), 2,
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);

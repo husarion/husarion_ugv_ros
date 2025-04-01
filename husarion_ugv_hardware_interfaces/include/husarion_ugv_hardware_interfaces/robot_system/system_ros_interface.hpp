@@ -105,7 +105,8 @@ public:
    */
   void RegisterService(
     const rclcpp::Node::SharedPtr node, const std::string & service_name,
-    rclcpp::CallbackGroup::SharedPtr group = nullptr, const rclcpp::QoS & qos = rclcpp::ServicesQoS());
+    rclcpp::CallbackGroup::SharedPtr group = nullptr,
+    const rclcpp::QoS & qos = rclcpp::ServicesQoS());
 
 private:
   /**

@@ -248,7 +248,9 @@ TEST_F(TestUGVSystem, ExportStateInterfacesInitialValues)
 
   auto all_interfaces_are_nan = std::all_of(
     state_interfaces.begin(), state_interfaces.end(),
-    [](const hardware_interface::StateInterface & state) { return std::isnan(state.get_optional().value()); });
+    [](const hardware_interface::StateInterface & state) {
+      return std::isnan(state.get_optional().value());
+    });
 
   EXPECT_TRUE(all_interfaces_are_nan);
 }

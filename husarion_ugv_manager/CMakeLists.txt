@@ -126,25 +126,30 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(PkgConfig REQUIRED)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_call_set_bool_service_node
-  # test/plugins/action/test_call_set_bool_service_node.cpp
-  # src/plugins/action/call_set_bool_service_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_call_set_bool_service_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_call_set_bool_service_node
+    test/plugins/action/test_call_set_bool_service_node.cpp
+    src/plugins/action/call_set_bool_service_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_call_set_bool_service_node)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_call_trigger_service_node
-  # test/plugins/action/test_call_trigger_service_node.cpp
-  # src/plugins/action/call_trigger_service_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_call_trigger_service_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_call_trigger_service_node
+    test/plugins/action/test_call_trigger_service_node.cpp
+    src/plugins/action/call_trigger_service_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_call_trigger_service_node)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_call_set_led_animation_service_node
-  # test/plugins/action/test_call_set_led_animation_service_node.cpp
-  # src/plugins/action/call_set_led_animation_service_node.cpp) list(APPEND
-  # plugin_tests ${PROJECT_NAME}_test_call_set_led_animation_service_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_call_set_led_animation_service_node
+    test/plugins/action/test_call_set_led_animation_service_node.cpp
+    src/plugins/action/call_set_led_animation_service_node.cpp)
+  list(APPEND plugin_tests
+       ${PROJECT_NAME}_test_call_set_led_animation_service_node)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_execute_command_node
-  # test/plugins/action/test_execute_command_node.cpp
-  # src/plugins/action/execute_command_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_execute_command_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_execute_command_node
+    test/plugins/action/test_execute_command_node.cpp
+    src/plugins/action/execute_command_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_execute_command_node)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_check_bool_msg
@@ -158,25 +163,27 @@ if(BUILD_TESTING)
     src/plugins/condition/check_joy_msg.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_check_joy_msg)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_tick_after_timeout_node
-  # test/plugins/decorator/test_tick_after_timeout_node.cpp
-  # src/plugins/decorator/tick_after_timeout_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_tick_after_timeout_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_tick_after_timeout_node
+    test/plugins/decorator/test_tick_after_timeout_node.cpp
+    src/plugins/decorator/tick_after_timeout_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_tick_after_timeout_node)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_signal_shutdown_node
-  # test/plugins/action/test_signal_shutdown_node.cpp
-  # src/plugins/action/signal_shutdown_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_signal_shutdown_node)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_signal_shutdown_node
+    test/plugins/action/test_signal_shutdown_node.cpp
+    src/plugins/action/signal_shutdown_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_signal_shutdown_node)
 
   ament_add_gtest(${PROJECT_NAME}_test_shutdown_host
                   test/plugins/test_shutdown_host.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_host)
   target_link_libraries(${PROJECT_NAME}_test_shutdown_host OpenSSL::SSL)
 
-  # ament_add_gmock(${PROJECT_NAME}_test_shutdown_hosts_node
-  # test/plugins/test_shutdown_hosts_node.cpp) list(APPEND plugin_tests
-  # ${PROJECT_NAME}_test_shutdown_hosts_node)
-  # target_link_libraries(${PROJECT_NAME}_test_shutdown_hosts_node OpenSSL::SSL)
+  ament_add_gmock(${PROJECT_NAME}_test_shutdown_hosts_node
+                  test/plugins/test_shutdown_hosts_node.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_shutdown_hosts_node)
+  target_link_libraries(${PROJECT_NAME}_test_shutdown_hosts_node OpenSSL::SSL)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_shutdown_hosts_from_file_node
@@ -195,65 +202,107 @@ if(BUILD_TESTING)
     target_link_libraries(${bt_node_test} yaml-cpp)
   endforeach()
 
-  # ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_utils
-  # test/test_behavior_tree_utils.cpp) target_include_directories(
-  # ${PROJECT_NAME}_test_behavior_tree_utils PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  # $<INSTALL_INTERFACE:include>) ament_target_dependencies(
-  # ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
-  # husarion_ugv_utils geometry_msgs tf2_geometry_msgs)
+  ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_utils
+                  test/test_behavior_tree_utils.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_behavior_tree_utils
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
+    husarion_ugv_utils geometry_msgs tf2_geometry_msgs)
 
-  # ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_manager
-  # test/test_behavior_tree_manager.cpp) target_include_directories(
-  # ${PROJECT_NAME}_test_behavior_tree_manager PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-  # $<INSTALL_INTERFACE:include>)
-  # ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_manager
-  # behaviortree_cpp husarion_ugv_utils)
+  ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_manager
+                  test/test_behavior_tree_manager.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_behavior_tree_manager
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_behavior_tree_manager
+                            behaviortree_cpp husarion_ugv_utils)
 
-  # ament_add_gtest(${PROJECT_NAME}_test_lights_manager_node
-  # test/test_lights_manager_node.cpp src/lights_manager_node.cpp)
-  # target_include_directories( ${PROJECT_NAME}_test_lights_manager_node PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  # $<INSTALL_INTERFACE:include>) ament_target_dependencies(
-  # ${PROJECT_NAME}_test_lights_manager_node behaviortree_cpp behaviortree_ros2
-  # geometry_msgs husarion_ugv_msgs husarion_ugv_utils rclcpp sensor_msgs
-  # std_msgs tf2_geometry_msgs)
-  # target_link_libraries(${PROJECT_NAME}_test_lights_manager_node
-  # lights_manager_parameters)
+  ament_add_gtest(${PROJECT_NAME}_test_lights_manager_node
+                  test/test_lights_manager_node.cpp src/lights_manager_node.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_lights_manager_node
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_lights_manager_node
+    behaviortree_cpp
+    behaviortree_ros2
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_lights_manager_node
+                        lights_manager_parameters)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_lights_behavior_tree
-  # test/test_lights_behavior_tree.cpp src/lights_manager_node.cpp)
-  # target_include_directories( ${PROJECT_NAME}_test_lights_behavior_tree PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-  # $<INSTALL_INTERFACE:include>) ament_target_dependencies(
-  # ${PROJECT_NAME}_test_lights_behavior_tree behaviortree_cpp behaviortree_ros2
-  # geometry_msgs husarion_ugv_msgs husarion_ugv_utils rclcpp sensor_msgs
-  # std_msgs tf2_geometry_msgs)
-  # target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
-  # lights_manager_parameters)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_lights_behavior_tree
+    test/test_lights_behavior_tree.cpp src/lights_manager_node.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_lights_behavior_tree
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_lights_behavior_tree
+    behaviortree_cpp
+    behaviortree_ros2
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
+                        lights_manager_parameters)
 
-  # ament_add_gtest(${PROJECT_NAME}_test_safety_manager_node
-  # test/test_safety_manager_node.cpp src/safety_manager_node.cpp)
-  # target_include_directories( ${PROJECT_NAME}_test_safety_manager_node PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  # $<INSTALL_INTERFACE:include>) ament_target_dependencies(
-  # ${PROJECT_NAME}_test_safety_manager_node behaviortree_cpp behaviortree_ros2
-  # geometry_msgs husarion_ugv_msgs husarion_ugv_utils rclcpp sensor_msgs
-  # std_msgs tf2_geometry_msgs)
-  # target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
-  # safety_manager_parameters OpenSSL::SSL)
+  ament_add_gtest(${PROJECT_NAME}_test_safety_manager_node
+                  test/test_safety_manager_node.cpp src/safety_manager_node.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_safety_manager_node
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_safety_manager_node
+    behaviortree_cpp
+    behaviortree_ros2
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
+                        safety_manager_parameters OpenSSL::SSL)
 
-  # ament_add_gtest( ${PROJECT_NAME}_test_safety_behavior_tree
-  # test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp)
-  # target_include_directories( ${PROJECT_NAME}_test_safety_behavior_tree PUBLIC
-  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-  # $<INSTALL_INTERFACE:include>) ament_target_dependencies(
-  # ${PROJECT_NAME}_test_safety_behavior_tree behaviortree_cpp behaviortree_ros2
-  # geometry_msgs husarion_ugv_msgs husarion_ugv_utils rclcpp sensor_msgs
-  # std_msgs std_srvs tf2_geometry_msgs)
-  # target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
-  # safety_manager_parameters OpenSSL::SSL)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_safety_behavior_tree
+    test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_safety_behavior_tree
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_safety_behavior_tree
+    behaviortree_cpp
+    behaviortree_ros2
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    std_srvs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
+                        safety_manager_parameters OpenSSL::SSL)
 endif()
 
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})

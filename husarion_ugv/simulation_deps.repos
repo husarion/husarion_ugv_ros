@@ -15,3 +15,7 @@ repositories:
     type: git
     url: https://github.com/husarion/ros_components_description.git
     version: 5e9cae3270c1225400578df1bafa72002470eca2
+  robot_localization: # Can be removed after sync 3.8.2 version with stamped_control param
+    type: git
+    url: https://github.com/cra-ros-pkg/robot_localization.git
+    version: 026feed239b3469b15c2bf83d4935acd5bebdd67

@@ -16,7 +16,7 @@ x-gpu-config: &gpu-config
 
 services:
   husarion_ugv_gazebo:
-    image: husarion/husarion-ugv:jazzy-devel
+    image: husarion/husarion-ugv:jazzy-ros2-devel
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config

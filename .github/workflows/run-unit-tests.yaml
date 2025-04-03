@@ -43,7 +43,7 @@ jobs:
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
-                "packages-up-to": ["husarion_ugv"]
+                "packages-select-regex": ["husarion_ugv*"]
               }
             }
 
@@ -62,6 +62,6 @@ jobs:
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
-                "packages-up-to": ["husarion_ugv"]
+                "packages-select-regex": ["husarion_ugv*"]
               }
             }

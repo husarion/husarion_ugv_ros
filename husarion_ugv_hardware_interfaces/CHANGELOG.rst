@@ -2,6 +2,17 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2025-04-04)
+------------------
+* Merge pull request `#512 <https://github.com/husarion/husarion_ugv_ros/issues/512>`_ from husarion/ros2-fix-intergration-tests
+* fix paths
+* Merge pull request `#508 <https://github.com/husarion/husarion_ugv_ros/issues/508>`_ from husarion/ros2-enchance-performance
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* use unordered map
+* Improve performance
+* Contributors: Dawid Kmak, kmakd
+
 2.2.0 (2025-03-13)
 ------------------
 * Fix roboteq robot driver deinitialization (`#504 <https://github.com/husarion/husarion_ugv_ros/issues/504>`_)

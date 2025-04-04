@@ -3,94 +3,94 @@ name: Release Project
 
 on:
   workflow_dispatch:
-    # inputs:
-    #   version:
-    #     description: Release version, must match release candidate version. IMPORTANT - required format
-    #       `X.X.X`, (e.g. `2.0.1`).
-    #     required: true
-    #   date:
-    #     description: Release date stamp, must match release candidate date. IMPORTANT - required format
-    #       `YYYYMMDD`, (e.g. `20240430`).
-    #     required: true
-    #   release_name:
-    #     description: Name of the release to be created. Version in the first place is recommended (e.g.
-    #       `2.0.1-alpha`).
-    #     required: true
-    #   prerelease:
-    #     type: boolean
-    #     default: false
-    #     description: Mark the release as a prerelease.
+    inputs:
+      version:
+        description: Release version, must match release candidate version. IMPORTANT - required format
+          `X.X.X`, (e.g. `2.0.1`).
+        required: true
+      date:
+        description: Release date stamp, must match release candidate date. IMPORTANT - required format
+          `YYYYMMDD`, (e.g. `20240430`).
+        required: true
+      release_name:
+        description: Name of the release to be created. Version in the first place is recommended (e.g.
+          `2.0.1-alpha`).
+        required: true
+      prerelease:
+        type: boolean
+        default: false
+        description: Mark the release as a prerelease.
 
-# env:
-#   RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
-#   MAIN_BRANCH: ros2
+env:
+  RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
+  MAIN_BRANCH: ros2
 
 jobs:
-  # release_repository:
-  #   name: Release repository
-  #   uses: ./.github/workflows/release-repository.yaml
-  #   with:
-  #     release_candidate: ${{ inputs.version }}-${{ inputs.date }}
-  #     version: ${{ inputs.version }}
-  #     release_name: ${{ inputs.release_name }}
-  #     automatic_mode: true
-  #     prerelease: ${{ inputs.prerelease }}
-  #   secrets: inherit
+  release_repository:
+    name: Release repository
+    uses: ./.github/workflows/release-repository.yaml
+    with:
+      release_candidate: ${{ inputs.version }}-${{ inputs.date }}
+      version: ${{ inputs.version }}
+      release_name: ${{ inputs.release_name }}
+      automatic_mode: true
+      prerelease: ${{ inputs.prerelease }}
+    secrets: inherit
 
-  # build_docker:
-  #   name: Build Docker
-  #   needs: release_repository
-  #   uses: ./.github/workflows/build-docker.yaml
-  #   with:
-  #     build_type: development
-  #   secrets: inherit
+  build_docker:
+    name: Build Docker
+    needs: release_repository
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: development
+    secrets: inherit
 
-  # tag_docker_as_stable:
-  #   name: Tag Docker as stable
-  #   needs: build_docker
-  #   uses: ./.github/workflows/build-docker.yaml
-  #   with:
-  #     build_type: stable
-  #     target_distro: humble
-  #     target_release: ${{ inputs.version }}
-  #     target_date: ${{ inputs.date }}
-  #   secrets: inherit
+  tag_docker_as_stable:
+    name: Tag Docker as stable
+    needs: build_docker
+    uses: ./.github/workflows/build-docker.yaml
+    with:
+      build_type: stable
+      target_distro: humble
+      target_release: ${{ inputs.version }}
+      target_date: ${{ inputs.date }}
+    secrets: inherit
 
-  # release_project:
-  #   name: Release project
-  #   runs-on: ubuntu-22.04
-  #   steps:
-  #     - name: Release husarion-ugv-rpi-os-img repository
-  #       uses: convictional/trigger-workflow-and-wait@v1.6.5
-  #       with:
-  #         owner: husarion
-  #         repo: husarion-ugv-rpi-os-img
-  #         github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
-  #         workflow_file_name: release-repository.yaml
-  #         ref: ${{ env.RC_BRANCH_NAME }}
-  #         client_payload: |
-  #           {
-  #             "release_candidate": "${{ env.RC_BRANCH_NAME }}",
-  #             "version": "${{ inputs.version }}",
-  #             "release_name": "${{ inputs.release_name }}",
-  #             "automatic_mode": "true",
-  #             "prerelease": "${{ inputs.prerelease }}"
-  #           }
+  release_project:
+    name: Release project
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Release husarion-ugv-rpi-os-img repository
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: husarion
+          repo: husarion-ugv-rpi-os-img
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          workflow_file_name: release-repository.yaml
+          ref: ${{ env.RC_BRANCH_NAME }}
+          client_payload: |
+            {
+              "release_candidate": "${{ env.RC_BRANCH_NAME }}",
+              "version": "${{ inputs.version }}",
+              "release_name": "${{ inputs.release_name }}",
+              "automatic_mode": "true",
+              "prerelease": "${{ inputs.prerelease }}"
+            }
 
-  #     - name: Build OS image
-  #       uses: convictional/trigger-workflow-and-wait@v1.6.5
-  #       with:
-  #         owner: husarion
-  #         repo: husarion-ugv-rpi-os-img
-  #         github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
-  #         workflow_file_name: build_and_deploy_image.yaml
-  #         ref: ${{ env.MAIN_BRANCH }}
-  #         client_payload: |
-  #           {
-  #             "dev_image": "false",
-  #             "husarion_ugv_version": "${{ inputs.version }}",
-  #             "image_tag": "${{ inputs.version }}"
-  #           }
+      - name: Build OS image
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: husarion
+          repo: husarion-ugv-rpi-os-img
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          workflow_file_name: build_and_deploy_image.yaml
+          ref: ${{ env.MAIN_BRANCH }}
+          client_payload: |
+            {
+              "dev_image": "false",
+              "husarion_ugv_version": "${{ inputs.version }}",
+              "image_tag": "${{ inputs.version }}"
+            }
 
   docs:
     name: Docs

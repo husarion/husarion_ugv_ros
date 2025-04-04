@@ -102,5 +102,5 @@ jobs:
           owner: husarion
           repo: docs_new
           github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
-          workflow_file_name: build.yml
+          workflow_file_name: build.yaml
           ref: master

@@ -6,7 +6,6 @@ components: []
 
 # components:
 #   - type: DEV02
-#     parent_link: mount_link
 
 #   - type: LDR06
 #     parent_link: mount_link

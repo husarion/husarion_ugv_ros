@@ -2,6 +2,17 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2025-04-04)
+------------------
+* bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)
+* bump ros_components_description version
+* bump ros_components_description version
+* Merge pull request `#509 <https://github.com/husarion/husarion_ugv_ros/issues/509>`_ from husarion/ros2-imu-ros2-controll-fix
+* Workaround and remove ros2_controllers custom fork
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* Contributors: Dawid Kmak, Stefan, kmakd, rafal-gorecki
+
 2.2.0 (2025-03-13)
 ------------------
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-devel

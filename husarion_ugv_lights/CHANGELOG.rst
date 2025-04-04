@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.1 (2025-04-04)
+------------------
 * merge front rear animations for docs (`#516 <https://github.com/husarion/husarion_ugv_ros/issues/516>`_)
 * Merge pull request `#513 <https://github.com/husarion/husarion_ugv_ros/issues/513>`_ from husarion/ros2-anim-docs-update
 * update autonomous anim webp

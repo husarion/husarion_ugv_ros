@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.1 (2025-04-04)
+------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)
 * fix Lynx imu default position (`#515 <https://github.com/husarion/husarion_ugv_ros/issues/515>`_)
 * Merge pull request `#509 <https://github.com/husarion/husarion_ugv_ros/issues/509>`_ from husarion/ros2-imu-ros2-controll-fix

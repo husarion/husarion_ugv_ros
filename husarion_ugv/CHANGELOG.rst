@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.1 (2025-04-04)
+------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)
 * bump ros_components_description version
 * bump ros_components_description version

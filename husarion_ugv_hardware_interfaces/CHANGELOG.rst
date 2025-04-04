@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.1 (2025-04-04)
+------------------
 * Merge pull request `#512 <https://github.com/husarion/husarion_ugv_ros/issues/512>`_ from husarion/ros2-fix-intergration-tests
 * fix paths
 * Merge pull request `#508 <https://github.com/husarion/husarion_ugv_ros/issues/508>`_ from husarion/ros2-enchance-performance

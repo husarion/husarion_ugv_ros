@@ -2,6 +2,12 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* Contributors: kmakd
+
 2.2.0 (2025-03-13)
 ------------------
 * Merge pull request `#499 <https://github.com/husarion/husarion_ugv_ros/issues/499>`_ from husarion/docs_fix

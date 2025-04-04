@@ -2,6 +2,12 @@
 Changelog for package husarion_ugv_battery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* Contributors: kmakd
+
 2.2.0 (2025-03-13)
 ------------------
 * update docs and battery timeout (`#500 <https://github.com/husarion/husarion_ugv_ros/issues/500>`_)

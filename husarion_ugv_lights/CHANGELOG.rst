@@ -2,6 +2,25 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* merge front rear animations for docs (`#516 <https://github.com/husarion/husarion_ugv_ros/issues/516>`_)
+* Merge pull request `#513 <https://github.com/husarion/husarion_ugv_ros/issues/513>`_ from husarion/ros2-anim-docs-update
+* update autonomous anim webp
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* undo bad merge
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* update animations
+* update tests
+* remove obsolete animation type
+* update led_segment tests
+* fix color correction
+* moving animation tests
+* moving animation tests wip
+* update tests
+* clean up
+* Contributors: Dawid Kmak, kmakd
+
 2.2.0 (2025-03-13)
 ------------------
 * New animations colors (`#503 <https://github.com/husarion/husarion_ugv_ros/issues/503>`_)

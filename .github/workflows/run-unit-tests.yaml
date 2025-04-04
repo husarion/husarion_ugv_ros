@@ -27,9 +27,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - uses: ros-tooling/setup-ros@v0.7
-        with:
-          use-ros2-testing: true
+      - name: Setup ROS
+        uses: ros-tooling/setup-ros@v0.7
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3
@@ -44,7 +43,8 @@ jobs:
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
-                "packages-up-to": ["husarion_ugv"]
+                "packages-up-to": ["husarion_ugv"],
+                "packages-select-regex": ["husarion_ugv*"]
               }
             }
 
@@ -63,6 +63,7 @@ jobs:
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
               },
               "test": {
-                "packages-up-to": ["husarion_ugv"]
+                "packages-up-to": ["husarion_ugv"],
+                "packages-select-regex": ["husarion_ugv*"]
               }
             }

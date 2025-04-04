@@ -23,6 +23,7 @@
 #include <gmock/gmock.h>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_e_stop.hpp"
 
@@ -41,8 +42,8 @@ public:
   MOCK_METHOD(void, UpdateMotorsState, (), (override));
   MOCK_METHOD(void, UpdateDriversState, (), (override));
   MOCK_METHOD(
-    const husarion_ugv_hardware_interfaces::DriverData &, GetData, (const std::string &),
-    (override));
+    const husarion_ugv_hardware_interfaces::DriverData &, GetData,
+    (const husarion_ugv_hardware_interfaces::DriverNames), (override));
   MOCK_METHOD(void, SendSpeedCommands, (const std::vector<float> &), (override));
   MOCK_METHOD(void, TurnOnEStop, (), (override));
   MOCK_METHOD(void, TurnOffEStop, (), (override));

@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 
 #include "utils/fake_can_socket.hpp"
@@ -40,9 +41,6 @@ public:
 
 protected:
   bool TestBoot();
-
-  static constexpr char kMotor1Name[] = "motor_1";
-  static constexpr char kMotor2Name[] = "motor_2";
 
   std::unique_ptr<husarion_ugv_hardware_interfaces_test::FakeCANSocket> can_socket_;
   std::unique_ptr<husarion_ugv_hardware_interfaces_test::MockRoboteq> mock_roboteq_;
@@ -85,8 +83,8 @@ void TestRoboteqDriver::BootRoboteqDriver()
   auto motor_2 = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqMotorDriver>(
     roboteq_driver_, husarion_ugv_hardware_interfaces::RoboteqDriver::kChannel2);
 
-  roboteq_driver_->AddMotorDriver(kMotor1Name, motor_1);
-  roboteq_driver_->AddMotorDriver(kMotor2Name, motor_2);
+  roboteq_driver_->AddMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT, motor_1);
+  roboteq_driver_->AddMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT, motor_2);
   auto future = roboteq_driver_->Boot();
   future.wait();
 }
@@ -153,9 +151,11 @@ TEST_F(TestRoboteqDriver, ReadRoboteqMotorStates)
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   husarion_ugv_hardware_interfaces::MotorDriverState motor_driver_state_1 =
-    roboteq_driver_->GetMotorDriver(kMotor1Name)->ReadState();
+    roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT)
+      ->ReadState();
   husarion_ugv_hardware_interfaces::MotorDriverState motor_driver_state_2 =
-    roboteq_driver_->GetMotorDriver(kMotor2Name)->ReadState();
+    roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT)
+      ->ReadState();
 
   EXPECT_EQ(motor_driver_state_1.pos, motor_1_pos);
   EXPECT_EQ(motor_driver_state_1.vel, motor_1_vel);
@@ -171,13 +171,15 @@ TEST_F(TestRoboteqDriver, ReadRoboteqMotorStatesTimestamps)
   BootRoboteqDriver();
 
   husarion_ugv_hardware_interfaces::MotorDriverState motor_driver_state_1 =
-    roboteq_driver_->GetMotorDriver(kMotor1Name)->ReadState();
+    roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT)
+      ->ReadState();
 
   // based on publishing frequency in the Roboteq mock (100Hz)
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   husarion_ugv_hardware_interfaces::MotorDriverState motor_driver_state_2 =
-    roboteq_driver_->GetMotorDriver(kMotor2Name)->ReadState();
+    roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT)
+      ->ReadState();
 
   // feedback is published with a 100ms period, to check if timestamps are accurate, it is checked
   // if consecutive messages will have timestamps 100ms + some threshold apart
@@ -287,8 +289,10 @@ TEST_F(TestRoboteqDriver, SendRoboteqCmd)
 
   BootRoboteqDriver();
 
-  roboteq_driver_->GetMotorDriver(kMotor1Name)->SendCmdVel(motor_1_v);
-  roboteq_driver_->GetMotorDriver(kMotor2Name)->SendCmdVel(motor_2_v);
+  roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT)
+    ->SendCmdVel(motor_1_v);
+  roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT)
+    ->SendCmdVel(motor_2_v);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -355,7 +359,8 @@ TEST_F(TestRoboteqDriver, TurnOnSafetyStopChannel1)
 {
   BootRoboteqDriver();
   mock_roboteq_->GetDriver()->SetTurnOnSafetyStop(67);
-  roboteq_driver_->GetMotorDriver(kMotor1Name)->TurnOnSafetyStop();
+  roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT)
+    ->TurnOnSafetyStop();
 
   EXPECT_EQ(mock_roboteq_->GetDriver()->GetTurnOnSafetyStop(), 1);
 }
@@ -364,7 +369,8 @@ TEST_F(TestRoboteqDriver, TurnOnSafetyStopChannel2)
 {
   BootRoboteqDriver();
   mock_roboteq_->GetDriver()->SetTurnOnSafetyStop(65);
-  roboteq_driver_->GetMotorDriver(kMotor2Name)->TurnOnSafetyStop();
+  roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT)
+    ->TurnOnSafetyStop();
 
   EXPECT_EQ(mock_roboteq_->GetDriver()->GetTurnOnSafetyStop(), 2);
 }
@@ -374,7 +380,10 @@ TEST_F(TestRoboteqDriver, WriteTimeout)
   BootRoboteqDriver();
   mock_roboteq_->GetDriver()->SetOnWriteWait<std::uint8_t>(0x202C, 0, 200000);
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
-    [&]() { roboteq_driver_->GetMotorDriver(kMotor1Name)->TurnOnSafetyStop(); },
+    [&]() {
+      roboteq_driver_->GetMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::LEFT)
+        ->TurnOnSafetyStop();
+    },
     "SDO protocol timed out"));
 }
 

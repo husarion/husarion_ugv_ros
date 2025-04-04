@@ -16,7 +16,7 @@ x-gpu-config: &gpu-config
 
 services:
   husarion_ugv_gazebo:
-    image: husarion/husarion-ugv-gazebo:humble-2.2.0-20240227
+    image: husarion/husarion-ugv-gazebo:humble-2.2.1-20250331
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config

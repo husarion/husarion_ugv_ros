@@ -2,6 +2,17 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2025-04-04)
+------------------
+* bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)
+* fix Lynx imu default position (`#515 <https://github.com/husarion/husarion_ugv_ros/issues/515>`_)
+* Merge pull request `#509 <https://github.com/husarion/husarion_ugv_ros/issues/509>`_ from husarion/ros2-imu-ros2-controll-fix
+* And add dev to components example
+* Workaround and remove ros2_controllers custom fork
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* Contributors: Dawid Kmak, kmakd, rafal-gorecki
+
 2.2.0 (2025-03-13)
 ------------------
 * Merge pull request `#498 <https://github.com/husarion/husarion_ugv_ros/issues/498>`_ from husarion/2.2.0-sim-fix

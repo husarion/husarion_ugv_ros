@@ -4,24 +4,24 @@
 
 Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config) file. It includes definition of robot panels, virtual segments and default animations. The default appearance of the animation when looking at the robot is as follows:
 
-|  ID   | NAME              | PRIORITY | ANIMATION                                                                                                                  |
-| :---: | ----------------- | :------: | -------------------------------------------------------------------------------------------------------------------------- |
-|   0   | E_STOP            |    3     | ![E_STOP_FRONT](.docs/estop_front.webp)![E_STOP_REAR](.docs/estop_rear.webp)                                               |
-|   1   | READY             |    3     | ![READY_FRONT](.docs/ready_front.webp)![READY_REAR](.docs/ready_rear.webp)                                                 |
-|   2   | ERROR             |    0     | ![ERROR](.docs/error.webp)![ERROR](.docs/error.webp)                                                                       |
-|   3   | NO_ERROR          |    0     | ![NO_ERROR](.docs/empty.webp)                                                                                              |
-|   4   | MANUAL_ACTION     |    3     | ![MANUAL_ACTION_FRONT](.docs/manual_action_front.webp)![MANUAL_ACTION_REAR](.docs/manual_action_rear.webp)                 |
-|   5   | LOW_BATTERY       |    2     | ![LOW_BATTERY](.docs/low_battery.webp)![LOW_BATTERY](.docs/low_battery.webp)                                               |
-|   6   | CRITICAL_BATTERY  |    2     | ![CRITICAL_BATTERY](.docs/critical_battery.webp)![CRITICAL_BATTERY](.docs/critical_battery.webp)                           |
-|   7   | CHARGING_BATTERY  |    2     | ![CHARGING_BATTERY_FRONT](.docs/charging_battery_front.webp)![CHARGING_BATTERY_REAR](.docs/charging_battery_rear.webp)     |
-|   8   | BATTERY_CHARGED   |    2     | ![CHARGING_BATTERY_FRONT](.docs/battery_charged_front.webp)![CHARGING_BATTERY_REAR](.docs/battery_charged_rear.webp)       |
-|   9   | CHARGER_INSERTED  |    1     | ![CHARGER_INSERTED_FRONT](.docs/charger_inserted_front.webp)![CHARGER_INSERTED_REAR](.docs/charger_inserted_rear.webp)     |
-|  10   | BATTERY_NOMINAL   |    2     | ![BATTERY_NOMINAL](.docs/empty.webp)                                                                                       |
-|  11   | AUTONOMOUS_READY  |    3     | ![AUTONOMOUS_READY_FRONT](.docs/autonomous_ready_front.webp)![AUTONOMOUS_READY_REAR](.docs/autonomous_ready_rear.webp)     |
-|  12   | AUTONOMOUS_ACTION |    3     | ![AUTONOMOUS_ACTION_FRONT](.docs/autonomous_action_front.webp)![AUTONOMOUS_ACTION_REAR](.docs/autonomous_action_rear.webp) |
-|  13   | GOAL_ACHIEVED     |    1     | ![GOAL_ACHIEVED_FRONT](.docs/goal_achieved_front.webp)![GOAL_ACHIEVED](.docs/goal_achieved_rear.webp)                      |
-|  14   | BLINKER_LEFT      |    1     | ![BLINKER_LEFT](.docs/blinker_left.webp)![BLINKER_LEFT](.docs/blinker_left.webp)                                           |
-|  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)![BLINKER_RIGHT](.docs/blinker_right.webp)                                       |
+|  ID   | NAME              | PRIORITY | ANIMATION                                          |
+| :---: | ----------------- | :------: | -------------------------------------------------- |
+|   0   | E_STOP            |    3     | ![E_STOP](.docs/estop.webp)                        |
+|   1   | READY             |    3     | ![READY](.docs/ready.webp)                         |
+|   2   | ERROR             |    0     | ![ERROR](.docs/error.webp)                         |
+|   3   | NO_ERROR          |    0     | ![NO_ERROR](.docs/empty.webp)                      |
+|   4   | MANUAL_ACTION     |    3     | ![MANUAL_ACTION](.docs/manual_action.webp)         |
+|   5   | LOW_BATTERY       |    2     | ![LOW_BATTERY](.docs/low_battery.webp)             |
+|   6   | CRITICAL_BATTERY  |    2     | ![CRITICAL_BATTERY](.docs/critical_battery.webp)   |
+|   7   | CHARGING_BATTERY  |    2     | ![CHARGING_BATTERY](.docs/charging_battery.webp)   |
+|   8   | BATTERY_CHARGED   |    2     | ![CHARGING_BATTERY](.docs/battery_charged.webp)    |
+|   9   | CHARGER_INSERTED  |    1     | ![CHARGER_INSERTED](.docs/charger_inserted.webp)   |
+|  10   | BATTERY_NOMINAL   |    2     | ![BATTERY_NOMINAL](.docs/empty.webp)               |
+|  11   | AUTONOMOUS_READY  |    3     | ![AUTONOMOUS_READY](.docs/autonomous_ready.webp)   |
+|  12   | AUTONOMOUS_ACTION |    3     | ![AUTONOMOUS_ACTION](.docs/autonomous_action.webp) |
+|  13   | GOAL_ACHIEVED     |    1     | ![GOAL_ACHIEVED](.docs/goal_achieved.webp)         |
+|  14   | BLINKER_LEFT      |    1     | ![BLINKER_LEFT](.docs/blinker_left.webp)           |
+|  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)         |
 
 ### Panels
 

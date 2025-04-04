@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_data_converters.hpp"
 
 namespace husarion_ugv_hardware_interfaces
@@ -77,7 +78,7 @@ public:
    * @return data feedback
    * @exception std::runtime_error if data with the given name does not exist
    */
-  virtual const DriverData & GetData(const std::string & name) = 0;
+  virtual const DriverData & GetData(const DriverNames name) = 0;
 
   /**
    * @brief Write speed commands to motors

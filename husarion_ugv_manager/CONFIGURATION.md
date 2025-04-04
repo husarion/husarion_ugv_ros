@@ -2,39 +2,32 @@
 
 ## Shutdown Behavior
 
-For more information regarding shutdown behavior, refer to `ShutdownSingleHost` BT node in the [Actions](#actions) section. An example of a shutdown hosts YAML file can be found below.
+For more information regarding shutdown behavior, refer to `ShutdownHostsFromFile` BT node in the [Actions](#actions) section. An example of a shutdown hosts YAML file can be found below.
 
 ``` yaml
 # My shutdown_hosts.yaml
 hosts:
   # Intel NUC, user computer
   - ip: 10.15.20.3
-    username: husarion
+    port: 3003
   # Universal robots UR5
   - ip: 10.15.20.4
-    username: root
-  # My Raspberry pi that requires very long shutdown sequence
+    port: 3003
+  # My device that requires very long shutdown sequence
   - ip: 10.15.20.12
+    port: 3003
+    secret: password123
     timeout: 40
-    username: pi
-    command: /home/pi/my_long_shutdown_sequence.sh
-```
-
-To set up a connection with a new User Computer and allow execution of commands, login to the Built-in Computer with `ssh husarion@10.15.20.2`.
-Add Built-in Computer's public key to **known_hosts** of a computer you want to shut down automatically:
-
-``` bash
-ssh-copy-id username@10.15.20.XX
 ```
 
 > [!IMPORTANT]
 >
-> To allow your computer to be shutdown without the sudo password, ssh into it and execute
-> (if needed replace **husarion** with username of your choice):
+> To allow your computer to be safe shutdown from Built-in Computer, you need to set up a HTTP server capable of turning off your device. This can be done using snap:
 >
 > ``` bash
-> sudo su
-> echo husarion 'ALL=(ALL) NOPASSWD: /sbin/poweroff, /sbin/reboot, /sbin/shutdown' | EDITOR='tee -a' visudo
+> sudo snap install husarion-shutdown
+> sudo snap set husarion-shutdown config.user-computer-ip="10.15.20.12" config.password="password123"
+> sudo husarion-shutdown.start
 > ```
 
 ## Faults Handle
@@ -74,15 +67,11 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
 - `CallTriggerService` - allows calling the standard **std_srvs/Trigger** ROS service. The provided ports are:
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
-- `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a SSH response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
+- `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a HTTP server response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
   - `shutdown_host_file` [*input*, *string*, default: **None**]: global path to YAML file with hosts to shutdown.
-- `ShutdownSingleHost` - allows to shut down a single device. Will return `SUCCESS` only when the device has been successfully shutdown. The provided ports are:
-  - `command` [*input*, *string*, default: **sudo shutdown now**]: command to execute on shutdown.
-  - `ip` [*input*, *string*, default: **None**]: IP of the host to shutdown.
-  - `ping_for_success` [*input*, *bool*, default: **true**]: ping host until it is not available or timeout is reached.
-  - `port` [*input*, *string*, default: **22**]: SSH communication port.
-  - `timeout` [*input*, *string*, default: **5.0**]: time in **[s]** to wait for the host to shutdown. Keep in mind that hardware will cut power off after a given time after pressing the power button. Refer to the hardware manual for more information.
-  - `username` [*input*, *string*, default: **None**]: user to log into while executing the shutdown command.
+- `ExecuteCommand` - allows to execute system command. Will return `SUCCESS` if command was executed successfully. The provided ports are:
+  - `command` [*input*, *string*, default: **None**]: command to execute.
+  - `timeout` [*input*, *string*, default: **None**]: time in **[s]** to wait for command execution. If this timeout is reached the process executing the command will be killed.
 - `SignalShutdown` - signals shutdown of the robot. The provided ports are:
   - `message` [*input*, *string*, default: **None**]: message with reason for robot to shutdown.
 

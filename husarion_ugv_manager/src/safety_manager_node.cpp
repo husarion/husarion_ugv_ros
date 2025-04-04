@@ -60,6 +60,7 @@ SafetyManagerNode::SafetyManagerNode(
   const auto shutdown_hosts_path = this->params_.shutdown_hosts_path;
   const std::map<std::string, std::any> shutdown_initial_blackboard = {
     {"SHUTDOWN_HOSTS_FILE", shutdown_hosts_path},
+    {"SHUTDOWN_LOCALHOST_COMMAND", kShutdownLocalhostCommand},
   };
   shutdown_tree_manager_ = std::make_unique<BehaviorTreeManager>(
     "Shutdown", shutdown_initial_blackboard, 7777);

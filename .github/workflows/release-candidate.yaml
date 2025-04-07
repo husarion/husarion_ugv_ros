@@ -65,7 +65,7 @@ jobs:
 
   os_image:
     name: OS image
-    needs: update_compose_files
+    # needs: update_compose_files
     runs-on: ubuntu-22.04
     steps:
       - name: Create new branch

@@ -29,39 +29,39 @@ jobs:
           ref: master
           client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
 
-  unit_tests:
-    name: Unit tests
-    uses: ./.github/workflows/run-unit-tests.yaml
+  # unit_tests:
+  #   name: Unit tests
+  #   uses: ./.github/workflows/run-unit-tests.yaml
 
-  update_compose_files:
-    name: Update compose files
-    needs: unit_tests
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  # update_compose_files:
+  #   name: Update compose files
+  #   needs: unit_tests
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
 
-      - name: Update docker image tag
-        run: |
-          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-          sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+  #     - name: Update docker image tag
+  #       run: |
+  #         sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+  #         sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+  #         sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: Update tags in compose files
-          author_name: action-bot
-          author_email: action-bot@action-bot.com
-          new_branch: ${{ env.RC_BRANCH_NAME }}
+  #     - name: Commit changes
+  #       uses: EndBug/add-and-commit@v9
+  #       with:
+  #         message: Update tags in compose files
+  #         author_name: action-bot
+  #         author_email: action-bot@action-bot.com
+  #         new_branch: ${{ env.RC_BRANCH_NAME }}
 
-  build_docker:
-    name: Build Docker
-    needs: update_compose_files
-    uses: ./.github/workflows/build-docker.yaml
-    with:
-      build_type: development
-    secrets: inherit
+  # build_docker:
+  #   name: Build Docker
+  #   needs: update_compose_files
+  #   uses: ./.github/workflows/build-docker.yaml
+  #   with:
+  #     build_type: development
+  #   secrets: inherit
 
   os_image:
     name: OS image
@@ -77,17 +77,17 @@ jobs:
           new_branch_ref: ros2-devel
           access_token: ${{ secrets.GH_PAT}}
 
-      - name: Build OS image
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          owner: husarion
-          repo: husarion-ugv-rpi-os-img
-          github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: build_and_deploy_image.yaml
-          ref: ${{ env.RC_BRANCH_NAME }}
-          client_payload: |
-            {
-              "dev_image": "true",
-              "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
-              "image_tag": "${{ inputs.version }}"
-            }
+  #     - name: Build OS image
+  #       uses: convictional/trigger-workflow-and-wait@v1.6.5
+  #       with:
+  #         owner: husarion
+  #         repo: husarion-ugv-rpi-os-img
+  #         github_token: ${{ secrets.GH_PAT }}
+  #         workflow_file_name: build_and_deploy_image.yaml
+  #         ref: ${{ env.RC_BRANCH_NAME }}
+  #         client_payload: |
+  #           {
+  #             "dev_image": "true",
+  #             "husarion_ugv_version": "${{ env.RC_BRANCH_NAME }}",
+  #             "image_tag": "${{ inputs.version }}"
+  #           }

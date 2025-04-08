@@ -71,7 +71,7 @@ TEST_F(TestCheckBoolMsg, NoMessageArrived)
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
   auto & tree = GetTree();
-  auto status = tree.tickOnce();
+  auto status = tree.tickWhileRunning();
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
@@ -89,7 +89,7 @@ TEST_F(TestCheckBoolMsg, OnTickBehavior)
     auto status = tree.tickOnce();
 
     PublishMsg(test_case.msg);
-    status = tree.tickOnce();
+    status = tree.tickWhileRunning();
 
     EXPECT_EQ(status, test_case.result);
   }

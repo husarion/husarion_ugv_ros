@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.11)
 
 # Handle superbuild first
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)
@@ -110,8 +110,9 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_roboteq_data_converters
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_data_converters
-                            husarion_ugv_msgs husarion_ugv_utils)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_roboteq_data_converters ament_index_cpp
+    husarion_ugv_msgs husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_roboteq_data_converters
                         PkgConfig::LIBLELY_COAPP)
 
@@ -121,7 +122,7 @@ if(BUILD_TESTING)
     src/robot_system/gpio/gpio_controller.cpp
     src/robot_system/gpio/gpio_driver.cpp)
   ament_target_dependencies(${PROJECT_NAME}_test_gpiod_controller
-                            husarion_ugv_utils)
+                            ament_index_cpp husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_gpiod_controller
                         PkgConfig::LIBGPIOD)
 
@@ -142,6 +143,7 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(
     ${PROJECT_NAME}_test_ugv_system
+    ament_index_cpp
     diagnostic_updater
     hardware_interface
     rclcpp

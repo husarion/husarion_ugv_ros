@@ -103,12 +103,13 @@ TEST_F(TestCheckJoyMsg, TimeoutTests)
 
   for (auto & test_case : test_cases) {
     CreateTree(PLUGIN, test_case.input);
+    auto & tree = GetTree();
+    auto status = tree.tickOnce();
+
     SetCurrentMsgTime(test_case.msg);
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
     PublishMsg(test_case.msg);
-
-    auto & tree = GetTree();
-    auto status = tree.tickWhileRunning();
+    status = tree.tickWhileRunning();
 
     EXPECT_EQ(status, test_case.result);
   }
@@ -168,11 +169,12 @@ TEST_F(TestCheckJoyMsg, OnTickBehavior)
 
   for (auto & test_case : test_cases) {
     CreateTree(PLUGIN, test_case.input);
+    auto & tree = GetTree();
+    auto status = tree.tickOnce();
+
     SetCurrentMsgTime(test_case.msg);
     PublishMsg(test_case.msg);
-
-    auto & tree = GetTree();
-    auto status = tree.tickWhileRunning();
+    status = tree.tickOnce();
 
     EXPECT_EQ(status, test_case.result);
   }

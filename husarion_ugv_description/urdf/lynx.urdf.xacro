@@ -2,8 +2,7 @@
 <robot name="lynx" xmlns:xacro="http://wiki.ros.org/xacro">
 
   <xacro:arg name="use_sim" default="false" />
-  <!-- TODO find IMU position -->
-  <xacro:arg name="imu_xyz" default="0.169 0.025 0.092" />
+  <xacro:arg name="imu_xyz" default="0.052 0.073 -0.006" />
   <xacro:arg name="imu_rpy" default="0.0 0.0 -1.57" />
   <xacro:arg name="wheel_config_file"
     default="$(find husarion_ugv_description)/config/WH05.yaml" />

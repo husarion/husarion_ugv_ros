@@ -2,6 +2,32 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.1 (2025-04-04)
+------------------
+* Merge pull request `#512 <https://github.com/husarion/husarion_ugv_ros/issues/512>`_ from husarion/ros2-fix-intergration-tests
+* fix paths
+* Fix missing overheating error animation  (`#501 <https://github.com/husarion/husarion_ugv_ros/issues/501>`_)
+* Merge pull request `#493 <https://github.com/husarion/husarion_ugv_ros/issues/493>`_ from husarion/ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request
+* Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-enchance-performance
+* update docs
+* fix lights bt tests
+* update lights bt
+* update animations
+* add time conversion test
+* fix time
+* clean up
+* update tree
+* clean up
+* do an "implementation back flip"
+* ping host to check if it is still available
+* check server return code
+* add shutdown_remote_host_node
+* add CommandHandlerInterface
+* read command output
+* use fork to call commands
+* Contributors: Dawid Kmak, Stefan, kmakd
+
 2.2.0 (2025-03-13)
 ------------------
 * update docs and battery timeout (`#500 <https://github.com/husarion/husarion_ugv_ros/issues/500>`_)

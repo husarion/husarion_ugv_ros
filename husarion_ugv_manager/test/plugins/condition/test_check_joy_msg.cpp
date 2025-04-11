@@ -81,7 +81,7 @@ TEST_F(TestCheckJoyMsg, NoMessageArrived)
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
   auto & tree = GetTree();
-  auto status = tree.tickOnce();
+  auto status = tree.tickWhileRunning();
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
@@ -109,7 +109,7 @@ TEST_F(TestCheckJoyMsg, TimeoutTests)
     SetCurrentMsgTime(test_case.msg);
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
     PublishMsg(test_case.msg);
-    status = tree.tickOnce();
+    status = tree.tickWhileRunning();
 
     EXPECT_EQ(status, test_case.result);
   }

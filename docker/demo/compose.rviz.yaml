@@ -18,7 +18,7 @@ x-gpu-config:
 
 services:
   rviz:
-    image: husarion/husarion-ugv:jazzy-devel
+    image: husarion/husarion-ugv:jazzy-ros2-devel
     container_name: rviz
     <<:
       - *common-config

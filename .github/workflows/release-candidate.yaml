@@ -17,7 +17,7 @@ env:
 jobs:
   docs:
     name: Docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Check docs build
         uses: convictional/trigger-workflow-and-wait@v1.6.5
@@ -36,16 +36,16 @@ jobs:
   update_compose_files:
     name: Update compose files
     needs: unit_tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Update docker image tag
         run: |
-          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-          sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+          sed -i 's/\(husarion\/husarion-ugv:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+          sed -i 's/\(husarion\/husarion-ugv:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+          sed -i 's/\(husarion\/husarion-ugv-gazebo:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
@@ -66,7 +66,7 @@ jobs:
   os_image:
     name: OS image
     needs: update_compose_files
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Create new branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5

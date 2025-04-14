@@ -113,32 +113,33 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
   system_ros_interface_ = std::make_unique<SystemROSInterface>("hardware_controller");
 
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/fan_enable",
+    "hardware/fan_enable",
     std::bind(&GPIOControllerInterface::FanEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/aux_power_enable",
+    "hardware/aux_power_enable",
     std::bind(&GPIOControllerInterface::AUXPowerEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/digital_power_enable",
+    "hardware/digital_power_enable",
     std::bind(
       &GPIOControllerInterface::DigitalPowerEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/charger_enable",
+    "hardware/charger_enable",
     std::bind(&GPIOControllerInterface::ChargerEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/led_control_enable",
+    "hardware/led_control_enable",
     std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "~/motor_torque_enable", std::bind(&UGVSystem::MotorTorqueEnable, this, std::placeholders::_1));
+    "hardware/motor_torque_enable",
+    std::bind(&UGVSystem::MotorTorqueEnable, this, std::placeholders::_1));
 
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
-    "~/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,
+    "hardware/e_stop_trigger", std::bind(&EStopInterface::TriggerEStop, e_stop_), 1,
     rclcpp::CallbackGroupType::MutuallyExclusive);
 
-  auto e_stop_reset_qos = rmw_qos_profile_services_default;
-  e_stop_reset_qos.depth = 1;
+  auto e_stop_reset_qos = rclcpp::ServicesQoS();
+  e_stop_reset_qos.keep_last(1);
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
-    "~/e_stop_reset", std::bind(&EStopInterface::ResetEStop, e_stop_), 2,
+    "hardware/e_stop_reset", std::bind(&EStopInterface::ResetEStop, e_stop_), 2,
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
 
   system_ros_interface_->AddDiagnosticTask(

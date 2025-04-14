@@ -51,14 +51,14 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: stable
-      target_distro: humble
+      target_distro: jazzy
       target_release: ${{ inputs.version }}
       target_date: ${{ inputs.date }}
     secrets: inherit
 
   release_project:
     name: Release project
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Release husarion-ugv-rpi-os-img repository
         uses: convictional/trigger-workflow-and-wait@v1.6.5
@@ -94,7 +94,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Rebuild documentation
         uses: convictional/trigger-workflow-and-wait@v1.6.5

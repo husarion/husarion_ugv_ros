@@ -34,7 +34,7 @@ jobs:
       - name: Set variables
         id: variables
         run: |
-          echo "::set-output name=RC_BRANCH_NAME::$RC_BRANCH_NAME"
+          echo "RC_BRANCH_NAME=$RC_BRANCH_NAME" >> $GITHUB_OUTPUT
 
   release_repository:
     name: Release repository

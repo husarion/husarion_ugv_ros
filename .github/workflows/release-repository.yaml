@@ -5,7 +5,8 @@ on:
   workflow_call:
     inputs:
       release_candidate:
-        description: Branch name of the release candidate. WARNING This branch will be deleted!
+        description: Branch name of the release candidate. This branch will will not be deleted, you should
+          delete it manually after the release is done.
         required: true
         type: string
       version:
@@ -88,7 +89,7 @@ jobs:
         if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           gh pr merge ${{ inputs.release_candidate }} \
-          --merge --delete-branch
+          --merge
 
       - name: Create prerelease
         if: ${{ inputs.automatic_mode && inputs.prerelease}}

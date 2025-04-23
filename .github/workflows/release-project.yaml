@@ -26,11 +26,22 @@ env:
   MAIN_BRANCH: ros2
 
 jobs:
+  variables:
+    runs-on: ubuntu-24.04
+    outputs:
+      RC_BRANCH_NAME: ${{ steps.variables.outputs.RC_BRANCH_NAME }}
+    steps:
+      - name: Set variables
+        id: variables
+        run: |
+          echo "RC_BRANCH_NAME=$RC_BRANCH_NAME" >> $GITHUB_OUTPUT
+
   release_repository:
     name: Release repository
+    needs: variables
     uses: ./.github/workflows/release-repository.yaml
     with:
-      release_candidate: ${{ inputs.version }}-${{ inputs.date }}
+      release_candidate: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
       version: ${{ inputs.version }}
       release_name: ${{ inputs.release_name }}
       automatic_mode: true
@@ -43,6 +54,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: development
+      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
     secrets: inherit
 
   tag_docker_as_stable:
@@ -51,6 +63,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: stable
+      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
       target_distro: jazzy
       target_release: ${{ inputs.version }}
       target_date: ${{ inputs.date }}

@@ -210,6 +210,7 @@ protected:
 
   std::unique_ptr<PhidgetImuSensorWrapper> imu_sensor_;
   std::shared_ptr<hardware_interface::ResourceManager> rm_;
+  std::shared_ptr<rclcpp::Node> node_ = std::make_shared<rclcpp::Node>("PhidgetIMUTest");
 };
 
 TestPhidgetImuSensor::TestPhidgetImuSensor()
@@ -222,7 +223,8 @@ TestPhidgetImuSensor::~TestPhidgetImuSensor() { rclcpp::shutdown(); }
 
 void TestPhidgetImuSensor::CreateResourceManagerFromUrdf(const std::string & urdf)
 {
-  rm_ = std::make_shared<hardware_interface::ResourceManager>(urdf);
+  rm_ = std::make_unique<hardware_interface::ResourceManager>(
+    urdf, node_->get_node_clock_interface(), node_->get_node_logging_interface());
 }
 
 hardware_interface::return_type TestPhidgetImuSensor::ConfigurePhidgetImu()

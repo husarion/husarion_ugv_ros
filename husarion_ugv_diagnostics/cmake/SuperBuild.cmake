@@ -26,7 +26,10 @@ ExternalProject_Add(
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ep_cppuprofile
   BUILD_COMMAND $(MAKE) -C <BINARY_DIR>
   INSTALL_COMMAND make install INSTALL_PREFIX=<INSTALL_DIR>
+  # DCMAKE_POLICY_VERSION_MINIMUM is required because of using external
+  # `cppuprofile` repo in the diagnostics pkg
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   BUILD_IN_SOURCE 1)
 
 ExternalProject_Add(

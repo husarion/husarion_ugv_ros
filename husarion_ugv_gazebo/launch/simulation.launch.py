@@ -117,7 +117,6 @@ def generate_launch_description():
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,
-        # Sets use_sim_time for all nodes started below (doesn't work for nodes started from ignition gazebo)
         SetUseSimTime(True),
         gz_sim,
         gz_bridge,

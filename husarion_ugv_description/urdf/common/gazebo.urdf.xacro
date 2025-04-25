@@ -72,7 +72,7 @@
         <topic>${ns}imu/data_raw</topic>
         <visualize>false</visualize>
         <enable_metrics>false</enable_metrics>
-        <ignition_frame_id>imu_link</ignition_frame_id>
+        <gz_frame_id>imu_link</gz_frame_id>
         <imu>
           <orientation_reference_frame>
             <localization>ENU</localization>

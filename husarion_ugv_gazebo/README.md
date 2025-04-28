@@ -28,7 +28,7 @@ The package contains a launch file and source files used to run the robot simula
 
 ### EStopSystem
 
-Plugin based on `ign_system` is responsible for handling sensor interfaces (only IMU for now) and sending requests for joints compatible with `ros2_control`. Plugin also adds E-Stop support.
+Plugin based on `gz_system` is responsible for handling sensor interfaces (only IMU for now) and sending requests for joints compatible with `ros2_control`. Plugin also adds E-Stop support.
 
 #### Publishers
 

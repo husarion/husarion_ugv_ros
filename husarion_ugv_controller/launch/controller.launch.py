@@ -24,7 +24,7 @@ from launch.actions import (
     RegisterEventHandler,
     Shutdown,
 )
-from launch.conditions import UnlessCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -118,6 +118,14 @@ def generate_launch_description():
         choices=["WH01", "WH02", "WH04", "WH05", "custom"],
     )
 
+    heading_correction = LaunchConfiguration("heading_correction")
+    declare_heading_correction_arg = DeclareLaunchArgument(
+        "heading_correction",
+        default_value="false",
+        description="Whether to apply heading correction. Note that this is an experimental feature.",
+        choices=["True", "true", "False", "false"],
+    )
+
     load_urdf = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -158,19 +166,9 @@ def generate_launch_description():
         executable="ros2_control_node",
         parameters=[ns_controller_config_path],
         namespace=namespace,
-        remappings=[
-            ("/diagnostics", "diagnostics"),
-            ("drive_controller/cmd_vel", "cmd_vel"),
-            ("drive_controller/odom", "odometry/wheels"),
-            ("drive_controller/transition_event", "_drive_controller/transition_event"),
-            ("imu_broadcaster/imu", "imu/data"),
-            ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
-            (
-                "joint_state_broadcaster/transition_event",
-                "_joint_state_broadcaster/transition_event",
-            ),
-        ],
         arguments=[
+            "--controller-ros-args",
+            "-r /diagnostics:=diagnostics",
             "--ros-args",
             "--log-level",
             log_level,
@@ -203,7 +201,12 @@ def generate_launch_description():
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", *spawner_common_args],
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-ros-args",
+            "-r joint_state_broadcaster/transition_event:=_joint_state_broadcaster/transition_event",
+            *spawner_common_args,
+        ],
         namespace=namespace,
         emulate_tty=True,
     )
@@ -211,7 +214,14 @@ def generate_launch_description():
     drive_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["drive_controller", *spawner_common_args],
+        arguments=[
+            "drive_controller",
+            "--controller-ros-args",
+            "-r drive_controller/cmd_vel:=cmd_vel "
+            "-r drive_controller/odom:=odometry/wheels "
+            "-r drive_controller/transition_event:=_drive_controller/transition_event",
+            *spawner_common_args,
+        ],
         namespace=namespace,
         emulate_tty=True,
     )
@@ -219,9 +229,57 @@ def generate_launch_description():
     imu_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["imu_broadcaster", *spawner_common_args],
+        arguments=[
+            "imu_broadcaster",
+            "--controller-ros-args",
+            "-r imu_broadcaster/imu:=imu/data "
+            "-r imu_broadcaster/transition_event:=_imu_broadcaster/transition_event",
+            *spawner_common_args,
+        ],
         namespace=namespace,
         emulate_tty=True,
+    )
+
+    low_pass_filter_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "low_pass_filter",
+            "--controller-ros-args",
+            "-r low_pass_filter/transition_event:=_low_pass_filter/transition_event",
+            *spawner_common_args,
+        ],
+        namespace=namespace,
+        emulate_tty=True,
+        condition=IfCondition(heading_correction),
+    )
+
+    pid_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "pid_controller",
+            "--controller-ros-args",
+            "-r pid_controller/transition_event:=_pid_controller/transition_event",
+            *spawner_common_args,
+        ],
+        namespace=namespace,
+        emulate_tty=True,
+        condition=IfCondition(heading_correction),
+    )
+
+    velocity_input_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "velocity_input_controller",
+            "--controller-ros-args",
+            "-r velocity_input_controller/transition_event:=_velocity_input_controller/transition_event",
+            *spawner_common_args,
+        ],
+        namespace=namespace,
+        emulate_tty=True,
+        condition=IfCondition(heading_correction),
     )
 
     # Launch spawner one after another
@@ -240,15 +298,40 @@ def generate_launch_description():
         ),
     )
 
+    delay_low_pass_filter_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=imu_broadcaster_spawner,
+            on_exit=[low_pass_filter_spawner],
+        ),
+    )
+
+    delay_pid_controller_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=low_pass_filter_spawner,
+            on_exit=[pid_controller_spawner],
+        ),
+    )
+
+    delay_velocity_input_controller_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=pid_controller_spawner,
+            on_exit=[velocity_input_controller_spawner],
+        ),
+    )
+
     spawners = GroupAction(
         actions=[
             joint_state_broadcaster_spawner,
             delay_drive_controller_spawner,
             delay_imu_broadcaster_spawner,
+            delay_low_pass_filter_spawner,
+            delay_pid_controller_spawner,
+            delay_velocity_input_controller_spawner,
         ]
     )
 
     actions = [
+        declare_heading_correction_arg,
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path

@@ -9,6 +9,58 @@
         type: diff_drive_controller/DiffDriveController
       imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
+      low_pass_filter:
+        type: low_pass_filter/LowPassFilter
+      pid_controller:
+        type: pid_controller/PidController
+      velocity_input_controller:
+        type: velocity_input_controller/VelocityInputController
+
+  low_pass_filter:
+    ros__parameters:
+      state_interface_prefix: <namespace>/imu
+      state_interface_names: ["angular_velocity.z"]
+      sampling_frequency: 100.0
+      damping_frequency: 0.2
+      damping_intensity: 15.0
+      publish_interface_values: true
+
+  pid_controller:
+    ros__parameters:
+      dof_names:
+      - drive_controller
+
+      command_interface: angular/velocity
+
+      reference_and_state_dof_names: ["low_pass_filter/imu"]
+      reference_and_state_interfaces: ["angular_velocity.z"]
+
+      # gains:
+      #   drive_controller: {
+      #     p: 0.4581,
+      #     i: 4.2227,
+      #     d: 0.0248,
+      #     antiwindup: true,
+      #     i_clamp_max: 5.0,
+      #     i_clamp_min: -5.0,
+      #     # save_i_term: false,
+      #   }
+
+      gains:
+        drive_controller: {
+          p: 0.23036,
+          i: 1.40666,
+          d: 0.0,
+          antiwindup: false,
+          i_clamp_max: 1.0,
+          i_clamp_min: -1.0,
+          # save_i_term: false,
+        }
+
+  velocity_input_controller:
+    ros__parameters:
+      command_interface_linear: drive_controller/linear/velocity
+      command_interface_angular: pid_controller/low_pass_filter/imu/angular_velocity.z
 
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
@@ -34,7 +86,7 @@
       # coefficient isn't totally accurate and this coefficient can differ for various ground types
       wheel_separation_multiplier: 1.37
 
-      left_wheel_radius_multiplier: 1.0
+      left_wheel_radius_multiplier: 1.1
       right_wheel_radius_multiplier: 1.0
 
       publish_rate: 100.0

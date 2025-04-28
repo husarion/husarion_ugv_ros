@@ -37,12 +37,6 @@
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
-          <remapping>drive_controller/cmd_vel:=cmd_vel</remapping>
-          <remapping>drive_controller/odom:=odometry/wheels</remapping>
-          <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
-          <remapping>imu_broadcaster/imu:=imu/data</remapping>
-          <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
-          <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
         </ros>
       </plugin>
     </gazebo>
@@ -80,13 +74,13 @@
           <angular_velocity>
             <!-- rad/s -->
             <x>
-              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+              <xacro:gauss_noise stddev="0.001" bias_mean="3.3e-5" precision="1.2e-3" />
             </x>
             <y>
-              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+              <xacro:gauss_noise stddev="0.001" bias_mean="3.3e-5" precision="1.2e-3" />
             </y>
             <z>
-              <xacro:gauss_noise stddev="0.01" bias_mean="3.3e-5" precision="1.2e-3" />
+              <xacro:gauss_noise stddev="0.001" bias_mean="3.3e-5" precision="1.2e-3" />
             </z>
           </angular_velocity>
           <linear_acceleration>

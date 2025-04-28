@@ -9,6 +9,12 @@
         type: diff_drive_controller/DiffDriveController
       imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
+      low_pass_filter:
+        type: low_pass_filter/LowPassFilter
+      pid_controller:
+        type: pid_controller/PidController
+      velocity_input_controller:
+        type: velocity_input_controller/VelocityInputController
 
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
@@ -21,6 +27,46 @@
       static_covariance_angular_velocity: [1.0e-4, 0.0, 0.0, 0.0, 1.0e-4, 0.0, 0.0, 0.0, 1.0e-4]
       # linear_acceleration_stdev: 2.8 mg (0.0275 m/s^2) accelerometer white noise sigma, according to the manual
       static_covariance_linear_acceleration: [7.6e-4, 0.0, 0.0, 0.0, 7.6e-4, 0.0, 0.0, 0.0, 7.6e-4]
+
+  low_pass_filter:
+    ros__parameters:
+      state_interface_prefix: <namespace>/imu
+      state_interface_names: [angular_velocity.z]
+      sampling_frequency: 100.0
+      damping_frequency: 0.2
+      damping_intensity: 15.0
+      publish_interface_values: true
+      zero_threshold: 0.0025
+
+  pid_controller:
+    ros__parameters:
+      dof_names:
+      - drive_controller
+
+      command_interface: angular/velocity
+
+      reference_and_state_dof_names: ["low_pass_filter/imu"]
+      reference_and_state_interfaces: ["angular_velocity.z"]
+
+      gains:
+        drive_controller: {
+          p: 0.492,
+          i: 5.264,
+          d: 0.0,
+          antiwindup: true,
+          i_clamp_max: 5.0,
+          i_clamp_min: -5.0,
+          save_i_term: false,
+          zero_threshold: 0.0025,
+        }
+
+  velocity_input_controller:
+    ros__parameters:
+      cmd_vel_topic: cmd_vel
+      cmd_vel_inputs: [manual, autonomous]
+      cmd_vel_timeout: 0.5
+      command_interface_linear: drive_controller/linear/velocity
+      command_interface_angular: pid_controller/low_pass_filter/imu/angular_velocity.z
 
   drive_controller:
     ros__parameters:

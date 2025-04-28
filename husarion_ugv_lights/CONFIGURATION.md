@@ -96,7 +96,6 @@ Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to
 - `image_mirrored` [*bool*, default: **false**]: mirrors the provided image horizontally.
 - `position_mirrored` [*bool*, default: **false**]: switches the position of 0.0 and 1.0 values of the param.
 
-![MovingImageAnimation](.docs/MovingImageAnimation.png)
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".docs/MovingImageAnimation.png">
   <source media="(prefers-color-scheme: light)" srcset=".docs/MovingImageAnimationLight.png">

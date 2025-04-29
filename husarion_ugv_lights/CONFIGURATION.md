@@ -27,7 +27,7 @@ The animations work on multiple layers (priorities) and can blend with each othe
 
 Here are some examples of blended animations:
 
-| Animations                       | Image                              |
+| STATE                       | ANIMATION                              |
 | -------------------------------- | ---------------------------------- |
 | E_STOP + CHARGING_BATTERY at 25% | ![e_stop_25](.docs/e_stop_25.webp) |
 | E_STOP + CHARGING_BATTERY at 50% | ![e_stop_50](.docs/e_stop_50.webp) |

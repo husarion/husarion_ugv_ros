@@ -16,6 +16,9 @@ RUN apt-get update  && \
         ros-dev-tools && \
     # Setup workspace
     vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
+    git clone https://github.com/husarion/ros2_controllers -b pid-reset-at-rest src/ros2_controllers && \
+    mv src/ros2_controllers/pid_controller src/pid_controller && \
+    rm -rf src/ros2_controllers && \
     # Install dependencies
     rosdep init && \
     rosdep update --rosdistro $ROS_DISTRO && \

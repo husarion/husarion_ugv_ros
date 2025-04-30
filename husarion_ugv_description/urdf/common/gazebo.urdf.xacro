@@ -37,6 +37,7 @@
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
+          <remapping>/diagnostics:=diagnostics</remapping>
         </ros>
       </plugin>
     </gazebo>

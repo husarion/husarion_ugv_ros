@@ -6,7 +6,7 @@ repositories:
   husarion_controllers:
     type: git
     url: https://github.com/husarion/husarion_controllers
-    version: 632a4d248227288afd99cf11179b019d968bda7b
+    version: ros2-velocity-input-controller
   ros_components_description:
     type: git
     url: https://github.com/husarion/ros_components_description.git

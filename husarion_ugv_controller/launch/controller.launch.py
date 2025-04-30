@@ -166,9 +166,10 @@ def generate_launch_description():
         executable="ros2_control_node",
         parameters=[ns_controller_config_path],
         namespace=namespace,
+        remappings=[
+            ("/diagnostics", "diagnostics"),
+        ],
         arguments=[
-            "--controller-ros-args",
-            "-r /diagnostics:=diagnostics",
             "--ros-args",
             "--log-level",
             log_level,
@@ -198,40 +199,19 @@ def generate_launch_description():
         limit_log_level_to_info("rcl", log_level),
     ]
 
-    joint_state_broadcaster_spawner = Node(
+    main_controllers_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
             "joint_state_broadcaster",
-            "--controller-ros-args",
-            "-r joint_state_broadcaster/transition_event:=_joint_state_broadcaster/transition_event",
-            *spawner_common_args,
-        ],
-        namespace=namespace,
-        emulate_tty=True,
-    )
-
-    drive_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
             "drive_controller",
+            "imu_broadcaster",
+            "--activate-as-group",
             "--controller-ros-args",
+            "-r joint_state_broadcaster/transition_event:=_joint_state_broadcaster/transition_event "
             "-r drive_controller/cmd_vel:=cmd_vel "
             "-r drive_controller/odom:=odometry/wheels "
-            "-r drive_controller/transition_event:=_drive_controller/transition_event",
-            *spawner_common_args,
-        ],
-        namespace=namespace,
-        emulate_tty=True,
-    )
-
-    imu_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "imu_broadcaster",
-            "--controller-ros-args",
+            "-r drive_controller/transition_event:=_drive_controller/transition_event "
             "-r imu_broadcaster/imu:=imu/data "
             "-r imu_broadcaster/transition_event:=_imu_broadcaster/transition_event",
             *spawner_common_args,
@@ -240,40 +220,17 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    low_pass_filter_spawner = Node(
+    heading_controllers_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
             "low_pass_filter",
-            "--controller-ros-args",
-            "-r low_pass_filter/transition_event:=_low_pass_filter/transition_event",
-            *spawner_common_args,
-        ],
-        namespace=namespace,
-        emulate_tty=True,
-        condition=IfCondition(heading_correction),
-    )
-
-    pid_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
             "pid_controller",
-            "--controller-ros-args",
-            "-r pid_controller/transition_event:=_pid_controller/transition_event",
-            *spawner_common_args,
-        ],
-        namespace=namespace,
-        emulate_tty=True,
-        condition=IfCondition(heading_correction),
-    )
-
-    velocity_input_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
             "velocity_input_controller",
+            "--activate-as-group",
             "--controller-ros-args",
+            "-r low_pass_filter/transition_event:=_low_pass_filter/transition_event "
+            "-r pid_controller/transition_event:=_pid_controller/transition_event "
             "-r velocity_input_controller/transition_event:=_velocity_input_controller/transition_event",
             *spawner_common_args,
         ],
@@ -282,51 +239,17 @@ def generate_launch_description():
         condition=IfCondition(heading_correction),
     )
 
-    # Launch spawner one after another
-    # when spawning without delay ros2_control_node sometimes crashed
-    delay_drive_controller_spawner = RegisterEventHandler(
+    delay_heading_controllers_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
-            on_exit=[drive_controller_spawner],
-        ),
-    )
-
-    delay_imu_broadcaster_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=drive_controller_spawner,
-            on_exit=[imu_broadcaster_spawner],
-        ),
-    )
-
-    delay_low_pass_filter_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=imu_broadcaster_spawner,
-            on_exit=[low_pass_filter_spawner],
-        ),
-    )
-
-    delay_pid_controller_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=low_pass_filter_spawner,
-            on_exit=[pid_controller_spawner],
-        ),
-    )
-
-    delay_velocity_input_controller_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=pid_controller_spawner,
-            on_exit=[velocity_input_controller_spawner],
+            target_action=main_controllers_spawner,
+            on_exit=[heading_controllers_spawner],
         ),
     )
 
     spawners = GroupAction(
         actions=[
-            joint_state_broadcaster_spawner,
-            delay_drive_controller_spawner,
-            delay_imu_broadcaster_spawner,
-            delay_low_pass_filter_spawner,
-            delay_pid_controller_spawner,
-            delay_velocity_input_controller_spawner,
+            main_controllers_spawner,
+            delay_heading_controllers_spawner,
         ]
     )
 

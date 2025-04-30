@@ -16,52 +16,6 @@
       velocity_input_controller:
         type: velocity_input_controller/VelocityInputController
 
-  low_pass_filter:
-    ros__parameters:
-      state_interface_prefix: <namespace>/imu
-      state_interface_names: ["angular_velocity.z"]
-      sampling_frequency: 100.0
-      damping_frequency: 0.2
-      damping_intensity: 15.0
-      publish_interface_values: true
-
-  pid_controller:
-    ros__parameters:
-      dof_names:
-      - drive_controller
-
-      command_interface: angular/velocity
-
-      reference_and_state_dof_names: ["low_pass_filter/imu"]
-      reference_and_state_interfaces: ["angular_velocity.z"]
-
-      # gains:
-      #   drive_controller: {
-      #     p: 0.4581,
-      #     i: 4.2227,
-      #     d: 0.0248,
-      #     antiwindup: true,
-      #     i_clamp_max: 5.0,
-      #     i_clamp_min: -5.0,
-      #     # save_i_term: false,
-      #   }
-
-      gains:
-        drive_controller: {
-          p: 0.23036,
-          i: 1.40666,
-          d: 0.0,
-          antiwindup: false,
-          i_clamp_max: 1.0,
-          i_clamp_min: -1.0,
-          # save_i_term: false,
-        }
-
-  velocity_input_controller:
-    ros__parameters:
-      command_interface_linear: drive_controller/linear/velocity
-      command_interface_angular: pid_controller/low_pass_filter/imu/angular_velocity.z
-
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
     ros__parameters:
@@ -130,3 +84,45 @@
           max_deceleration_reverse: 5.74 # rad/s^2
           max_jerk: .NAN # rad/s^3
           min_jerk: .NAN # rad/s^3
+
+  low_pass_filter:
+    ros__parameters:
+      state_interface_prefix: <namespace>/imu
+      state_interface_names: ["angular_velocity.z"]
+      sampling_frequency: 100.0
+      damping_frequency: 0.1
+      damping_intensity: 15.0
+      publish_interface_values: true
+      zero_threshold: 0.0025
+
+  pid_controller:
+    ros__parameters:
+      dof_names:
+        - drive_controller
+
+      command_interface: angular/velocity
+
+      reference_and_state_dof_names: ["low_pass_filter"]
+      reference_and_state_interfaces: ["angular_velocity.z"]
+
+      gains:
+        drive_controller:
+          {
+            p: 0.23036,
+            i: 1.40666,
+            d: 0.0,
+            antiwindup: true,
+            i_clamp_max: 4.0,
+            i_clamp_min: -4.0,
+            save_i_term: false,
+            zero_threshold: 0.0025,
+            zero_threshold_timeout: 0.1,
+          }
+
+  velocity_input_controller:
+    ros__parameters:
+      cmd_vel_topic: cmd_vel
+      cmd_vel_inputs: [manual, auto]
+      cmd_vel_timeout: 0.2
+      command_interface_linear: drive_controller/linear/velocity
+      command_interface_angular: pid_controller/low_pass_filter/angular_velocity.z

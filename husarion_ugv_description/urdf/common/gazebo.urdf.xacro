@@ -10,7 +10,7 @@
 
     <!-- Sim Battery -->
     <gazebo>
-      <plugin filename="ignition-gazebo-linearbatteryplugin-system"
+      <plugin filename="gz-sim-linearbatteryplugin-system"
         name="gz::sim::systems::LinearBatteryPlugin">
         <battery_name>${ns}battery</battery_name>
         <voltage>41.4</voltage>
@@ -33,7 +33,7 @@
   <!-- Controller -->
   <xacro:macro name="controller" params="config_file namespace:=''">
     <gazebo>
-      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>

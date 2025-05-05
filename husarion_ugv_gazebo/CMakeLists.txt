@@ -12,7 +12,7 @@ set(PACKAGE_DEPENDENCIES
     ignition-msgs8
     ignition-plugin1
     ignition-transport11
-    ign_ros2_control
+    gz_ros2_control
     pluginlib
     rclcpp
     realtime_tools
@@ -32,7 +32,7 @@ add_library(estop_system SHARED src/estop_system.cpp)
 ament_target_dependencies(
   estop_system
   hardware_interface
-  ign_ros2_control
+  gz_ros2_control
   rclcpp
   rclcpp_lifecycle
   std_msgs
@@ -81,6 +81,6 @@ ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-pluginlib_export_plugin_description_file(ign_ros2_control plugins.xml)
+pluginlib_export_plugin_description_file(gz_ros2_control plugins.xml)
 
 ament_package()

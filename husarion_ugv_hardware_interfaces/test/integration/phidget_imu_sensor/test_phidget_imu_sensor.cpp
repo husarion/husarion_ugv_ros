@@ -133,7 +133,7 @@ class TestPhidgetImuSensor : public testing::Test
 {
 public:
   TestPhidgetImuSensor();
-  ~TestPhidgetImuSensor();
+  ~TestPhidgetImuSensor() {}
 
   void CreateResourceManagerFromUrdf(const std::string & urdf);
 
@@ -183,6 +183,7 @@ protected:
 
   inline static const std::string kUrdfHeader = R"(<?xml version="1.0" encoding="utf-8"?>
 <robot name="Panther">
+<link name="base_link"/>
 <ros2_control name="imu" type="sensor">
 )";
 
@@ -216,10 +217,7 @@ protected:
 TestPhidgetImuSensor::TestPhidgetImuSensor()
 {
   imu_sensor_ = std::make_unique<PhidgetImuSensorWrapper>();
-  rclcpp::init(0, nullptr);
 }
-
-TestPhidgetImuSensor::~TestPhidgetImuSensor() { rclcpp::shutdown(); }
 
 void TestPhidgetImuSensor::CreateResourceManagerFromUrdf(const std::string & urdf)
 {
@@ -604,7 +602,11 @@ TEST_F(TestPhidgetImuSensor, CheckReadAndConfigureRealSensor)
 
 int main(int argc, char ** argv)
 {
+  rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
 
-  return RUN_ALL_TESTS();
+  auto run_tests = RUN_ALL_TESTS();
+
+  rclcpp::shutdown();
+  return run_tests;
 }

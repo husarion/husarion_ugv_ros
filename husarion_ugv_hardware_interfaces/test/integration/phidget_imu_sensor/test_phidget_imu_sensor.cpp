@@ -565,7 +565,7 @@ TEST_F(TestPhidgetImuSensor, CheckStatesInitialValues)
   auto loaded_state_interfaces = ClaimGoodStateInterfaces();
 
   for (const auto & state_interface : loaded_state_interfaces) {
-    EXPECT_TRUE(std::isnan(state_interface.get_value()));
+    EXPECT_TRUE(std::isnan(state_interface.get_optional().value()));
   }
 
   EXPECT_EQ(ShutdownPhidgetImu(), return_type::OK);
@@ -595,7 +595,7 @@ TEST_F(TestPhidgetImuSensor, CheckReadAndConfigureRealSensor)
 
   auto loaded_state_interfaces = ClaimGoodStateInterfaces();
   for (const auto & state_interface : loaded_state_interfaces) {
-    EXPECT_TRUE(std::isfinite(state_interface.get_value()));
+    EXPECT_TRUE(std::isfinite(state_interface.get_optional().value()));
   }
 
   EXPECT_EQ(UnconfigurePhidgetImu(), return_type::OK);

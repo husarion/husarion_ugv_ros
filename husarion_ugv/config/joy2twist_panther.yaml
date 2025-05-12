@@ -1,0 +1,36 @@
+/**:
+  ros__parameters:
+    cmd_vel_stamped: true
+
+    linear_velocity_factor:
+      fast: 2.0
+      regular: 1.2
+      slow: 0.4
+
+    angular_velocity_factor:
+      fast: 1.88
+      regular: 0.78
+      slow: 0.39
+
+    e_stop:
+      present: true
+      topic: hardware/e_stop
+      reset_srv: hardware/e_stop_reset
+      trigger_srv: hardware/e_stop_trigger
+
+    # This button mapping should be common across all XInput controllers.
+    # Input declaration consists of:
+    # - optional negation '!',
+    # - input type: 'A' for an axis or 'B' for a button,
+    # - axis/button number.
+    input_index_map:
+      axis:
+        angular_z: 'A3' # Right joystick
+        linear_x: 'A1' # Left joystick
+        linear_y: 'A0' # Left joystick
+      dead_man_switch: 'B4' # LB
+      fast_mode: '!A5' # RT
+      slow_mode: 'B5' # RB
+      e_stop_reset: 'B0' # A
+      e_stop_trigger: 'B1' # B
+      enable_e_stop_reset: '!A2' # LT

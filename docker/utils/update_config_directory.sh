@@ -26,8 +26,13 @@ copy_package_file() {
   fi
 }
 
+# source robot environment
+source /run/husarion/robot_config.env
+
+copy_package_file husarion_ugv config/joy2twist_${ROBOT_MODEL_NAME}.yaml
 copy_package_file husarion_ugv_controller config
 copy_package_file husarion_ugv_lights config/user_animations.yaml
+copy_package_file husarion_ugv_lights config/${ROBOT_MODEL_NAME}_animations.yaml
 copy_package_file husarion_ugv_localization config
 rm /config/husarion_ugv_localization/config/nmea_navsat.yaml || true
 copy_package_file husarion_ugv_manager behavior_trees/lights.xml

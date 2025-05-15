@@ -23,14 +23,24 @@ on:
 
 env:
   RC_BRANCH_NAME: ${{ inputs.version }}-${{ inputs.date }}
-  MAIN_BRANCH: ros2
+  MAIN_BRANCH: humble
 
 jobs:
+  variables:
+    runs-on: ubuntu-24.04
+    outputs:
+      RC_BRANCH_NAME: ${{ steps.variables.outputs.RC_BRANCH_NAME }}
+    steps:
+      - name: Set variables
+        id: variables
+        run: |
+          echo "RC_BRANCH_NAME=$RC_BRANCH_NAME" >> $GITHUB_OUTPUT
+
   release_repository:
     name: Release repository
     uses: ./.github/workflows/release-repository.yaml
     with:
-      release_candidate: ${{ inputs.version }}-${{ inputs.date }}
+      release_candidate: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
       version: ${{ inputs.version }}
       release_name: ${{ inputs.release_name }}
       automatic_mode: true
@@ -43,6 +53,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: development
+      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
     secrets: inherit
 
   tag_docker_as_stable:
@@ -51,6 +62,7 @@ jobs:
     uses: ./.github/workflows/build-docker.yaml
     with:
       build_type: stable
+      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
       target_distro: humble
       target_release: ${{ inputs.version }}
       target_date: ${{ inputs.date }}
@@ -65,7 +77,7 @@ jobs:
         with:
           owner: husarion
           repo: husarion-ugv-rpi-os-img
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: release-repository.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
           client_payload: |
@@ -82,7 +94,7 @@ jobs:
         with:
           owner: husarion
           repo: husarion-ugv-rpi-os-img
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.MAIN_BRANCH }}
           client_payload: |
@@ -101,6 +113,6 @@ jobs:
         with:
           owner: husarion
           repo: docs_new
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: build.yml
           ref: master

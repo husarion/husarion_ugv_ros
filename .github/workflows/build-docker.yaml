@@ -9,6 +9,10 @@ on:
         required: true
         type: string
         default: development
+      branch_name:
+        description: Branch name to checkout to. Will default to workflow ref name if not provided.
+        type: string
+        default: ''
       target_distro:
         description: ROS distribution to build docker image for (eg. humble)
         type: string
@@ -33,6 +37,10 @@ on:
         options:
           - development
           - stable
+      branch_name:
+        description: Branch name to checkout to. Will default to workflow ref name if not provided.
+        type: string
+        default: ''
       target_distro:
         description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
           humble)
@@ -49,6 +57,9 @@ on:
         type: string
         default: '20131206'
 
+env:
+  BRANCH_NAME: ${{ inputs.branch_name != '' && inputs.branch_name || github.ref_name }}
+
 jobs:
   build-husarion-ugv:
     runs-on: ubuntu-22.04-arm64
@@ -56,13 +67,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH_NAME }}
+          fetch-depth: 0
 
       - name: Build Docker Image
         uses: husarion-ci/ros-docker-img-action@v0.8
         with:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
-          main_branch_name: ros2
+          main_branch_name: humble
           dockerfile: ./docker/Dockerfile.hardware
           repo_name: husarion-ugv
           build_type: ${{ inputs.build_type }}
@@ -79,13 +93,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH_NAME }}
+          fetch-depth: 0
 
       - name: Build Docker Image
         uses: husarion-ci/ros-docker-img-action@v0.8
         with:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
-          main_branch_name: ros2
+          main_branch_name: humble
           dockerfile: ./docker/Dockerfile.simulation
           repo_name: husarion-ugv-gazebo
           build_type: ${{ inputs.build_type }}

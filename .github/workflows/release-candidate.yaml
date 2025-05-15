@@ -24,10 +24,10 @@ jobs:
         with:
           owner: husarion
           repo: docs_new
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: test-parser.yaml
           ref: master
-          client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
+          client_payload: '{"husarion_ugv_branch": "humble-devel"}'
 
   unit_tests:
     name: Unit tests
@@ -74,15 +74,15 @@ jobs:
           repository_owner: husarion
           repository_name: husarion-ugv-rpi-os-img
           new_branch_name: ${{ env.RC_BRANCH_NAME }}
-          new_branch_ref: ros2-devel
-          access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
+          new_branch_ref: humble-devel
+          access_token: ${{ secrets.GH_PAT}}
 
       - name: Build OS image
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: husarion-ugv-rpi-os-img
-          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GH_PAT }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
           client_payload: |

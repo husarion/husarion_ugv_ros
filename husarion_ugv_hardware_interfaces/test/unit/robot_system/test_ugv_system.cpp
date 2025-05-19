@@ -248,9 +248,7 @@ TEST_F(TestUGVSystem, ExportStateInterfacesInitialValues)
 
   auto all_interfaces_are_nan = std::all_of(
     state_interfaces.begin(), state_interfaces.end(),
-    [](const hardware_interface::StateInterface & state) {
-      return std::isnan(state.get_optional().value());
-    });
+    [](const hardware_interface::StateInterface & state) { return std::isnan(state.get_value()); });
 
   EXPECT_TRUE(all_interfaces_are_nan);
 }
@@ -273,9 +271,9 @@ TEST_F(TestUGVSystem, ExportStateInterfaces)
   ASSERT_EQ(state_interfaces.size(), 12);
 
   for (std::size_t i = 0; i < 4; i++) {
-    EXPECT_DOUBLE_EQ(state_interfaces[i * 3].get_optional().value(), position[i]);
-    EXPECT_DOUBLE_EQ(state_interfaces[i * 3 + 1].get_optional().value(), velocity[i]);
-    EXPECT_DOUBLE_EQ(state_interfaces[i * 3 + 2].get_optional().value(), effort[i]);
+    EXPECT_FLOAT_EQ(state_interfaces[i * 3].get_value(), position[i]);
+    EXPECT_FLOAT_EQ(state_interfaces[i * 3 + 1].get_value(), velocity[i]);
+    EXPECT_FLOAT_EQ(state_interfaces[i * 3 + 2].get_value(), effort[i]);
   }
 }
 
@@ -306,7 +304,7 @@ TEST_F(TestUGVSystem, ExportCommandInterfacesInitialValues)
   std::for_each(
     command_interfaces.begin(), command_interfaces.end(),
     [](const hardware_interface::CommandInterface & command) {
-      EXPECT_DOUBLE_EQ(command.get_optional().value(), 0.0);
+      EXPECT_FLOAT_EQ(command.get_value(), 0.0);
     });
 }
 
@@ -324,7 +322,7 @@ TEST_F(TestUGVSystem, ExportCommandInterfaces)
   ASSERT_EQ(command_interfaces.size(), 4);
 
   for (std::size_t i = 0; i < 4; i++) {
-    EXPECT_DOUBLE_EQ(command_interfaces[i].get_optional().value(), velocity[i]);
+    EXPECT_FLOAT_EQ(command_interfaces[i].get_value(), velocity[i]);
   }
 }
 
@@ -346,7 +344,7 @@ TEST_F(TestUGVSystem, Read)
   EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
 
   auto callback_return = ugv_system_->read(
-    rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0));
+    rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
 
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
 

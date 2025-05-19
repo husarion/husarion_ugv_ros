@@ -18,8 +18,8 @@
 
 #include <memory>
 
-#include <gz_ros2_control/gz_system.hpp>
-#include <gz_ros2_control/gz_system_interface.hpp>
+#include <ign_ros2_control/ign_system.hpp>
+#include <ign_ros2_control/ign_system_interface.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <rclcpp_lifecycle/state.hpp>
@@ -35,10 +35,10 @@ using TriggerSrv = std_srvs::srv::Trigger;
 
 /**
  * @brief Main class for the Husarion UGV which implements a simulated `ros2_control`
- * `hardware_interface::SystemInterface`. This class inherits `gz_ros2_control::GazeboSimSystem`
+ * `hardware_interface::SystemInterface`. This class inherits `ign_ros2_control::IgnitionSystem`
  * and implements additional functionalities like E-stop handling.
  */
-class EStopSystem : public gz_ros2_control::GazeboSimSystem
+class EStopSystem : public ign_ros2_control::IgnitionSystem
 {
 public:
   CallbackReturn on_init(const hardware_interface::HardwareInfo & system_info) override;

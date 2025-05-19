@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include <gz/gui/Plugin.hh>
+#include <ignition/gui/Plugin.hh>
 #include <rclcpp/rclcpp.hpp>
 
 #include <std_msgs/msg/bool.hpp>
@@ -26,7 +26,7 @@
 namespace husarion_ugv_gazebo
 {
 
-class EStop : public gz::gui::Plugin
+class EStop : public ignition::gui::Plugin
 {
   Q_OBJECT
 

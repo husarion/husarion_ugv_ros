@@ -34,11 +34,11 @@ template class ROSServiceWrapper<std_srvs::srv::Trigger, std::function<void()>>;
 template <typename SrvT, typename CallbackT>
 void ROSServiceWrapper<SrvT, CallbackT>::RegisterService(
   const rclcpp::Node::SharedPtr node, const std::string & service_name,
-  rclcpp::CallbackGroup::SharedPtr group, const rclcpp::QoS & qos)
+  rclcpp::CallbackGroup::SharedPtr group, const rmw_qos_profile_t & qos_profile)
 {
   service_ = node->create_service<SrvT>(
     service_name, std::bind(&ROSServiceWrapper<SrvT, CallbackT>::CallbackWrapper, this, _1, _2),
-    qos, group);
+    qos_profile, group);
 }
 
 template <typename SrvT, typename CallbackT>
@@ -83,19 +83,18 @@ SystemROSInterface::SystemROSInterface(
 
   executor_thread_ = std::thread([this]() { executor_->spin(); });
 
-  driver_state_publisher_ = node_->create_publisher<RobotDriverStateMsg>(
-    "hardware/robot_driver_state", 5);
+  driver_state_publisher_ = node_->create_publisher<RobotDriverStateMsg>("~/robot_driver_state", 5);
   realtime_driver_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<RobotDriverStateMsg>>(
       driver_state_publisher_);
 
   io_state_publisher_ = node_->create_publisher<IOStateMsg>(
-    "hardware/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "~/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
   realtime_io_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<IOStateMsg>>(io_state_publisher_);
 
   e_stop_state_publisher_ = node_->create_publisher<BoolMsg>(
-    "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "~/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
   realtime_e_stop_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<BoolMsg>>(e_stop_state_publisher_);
 

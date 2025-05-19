@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>husarion_ugv_gazebo</name>
-  <version>2.3.0</version>
+  <version>2.2.1</version>
   <description>The packages simulating behaviour of the Husarion robots</description>
   <maintainer email="support@husarion.com">Husarion</maintainer>
   <license>Apache License 2.0</license>
@@ -17,8 +17,8 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">gz_ros2_control</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">hardware_interface</depend>
+  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ign_ros2_control</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">pluginlib</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp_lifecycle</depend>

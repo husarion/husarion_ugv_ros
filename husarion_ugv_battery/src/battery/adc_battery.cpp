@@ -139,7 +139,7 @@ void ADCBattery::UpdateBatteryState(const rclcpp::Time & header_stamp, const boo
   battery_state_.power_supply_technology = BatteryStateMsg::POWER_SUPPLY_TECHNOLOGY_LION;
   battery_state_.present = true;
   battery_state_.location = kLocation;
-  battery_state_.power_supply_status = GetBatteryStatus(I_charge, charger_connected);
+  battery_state_.power_supply_status = GetBatteryStatus(charger_connected);
   battery_state_.power_supply_health = GetBatteryHealth(V_bat, temp_bat);
 }
 
@@ -157,24 +157,26 @@ void ADCBattery::UpdateChargingStatus(
   const rclcpp::Time & header_stamp, const bool charger_connected)
 {
   charging_status_.header.stamp = header_stamp;
-  charging_status_.charging = charger_connected;
+  charging_status_.charging = IsCharging(charger_connected);
   charging_status_.current = charge_ma_->GetAverage();
   charging_status_.charger_type = ChargingStatusMsg::UNKNOWN;  // Currently not supported
 }
 
-std::uint8_t ADCBattery::GetBatteryStatus(const float charge, const bool charger_connected)
+std::uint8_t ADCBattery::GetBatteryStatus(const bool charger_connected)
 {
-  if (charger_connected) {
-    if (fabs(battery_state_.percentage - 1.0f) < std::numeric_limits<float>::epsilon()) {
-      return BatteryStateMsg::POWER_SUPPLY_STATUS_FULL;
-    } else if (charge > kChargingCurrentTresh || battery_state_.voltage > kBatteryCCCheckTresh) {
-      return BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
-    } else {
-      return BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;
-    }
-  } else {
+  if (!charger_connected) {
     return BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
   }
+
+  if (fabs(battery_state_.percentage - 1.0f) < std::numeric_limits<float>::epsilon()) {
+    return BatteryStateMsg::POWER_SUPPLY_STATUS_FULL;
+  }
+
+  if (IsCharging(charger_connected)) {
+    return BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
+  }
+
+  return BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
 std::uint8_t ADCBattery::GetBatteryHealth(const float voltage, const float temp)
@@ -195,6 +197,16 @@ std::uint8_t ADCBattery::GetBatteryHealth(const float voltage, const float temp)
     SetErrorMsg("");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
   }
+}
+
+bool ADCBattery::IsCharging(const bool charger_connected) const
+{
+  if (!charger_connected) {
+    return false;
+  }
+
+  return (charge_ma_->GetAverage() > kChargingCurrentTresh) ||
+         (voltage_ma_->GetAverage() > kBatteryCCCheckTresh);
 }
 
 }  // namespace husarion_ugv_battery

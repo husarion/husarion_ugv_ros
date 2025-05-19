@@ -10,7 +10,7 @@
 
     <!-- Sim Battery -->
     <gazebo>
-      <plugin filename="ignition-gazebo-linearbatteryplugin-system"
+      <plugin filename="gz-sim-linearbatteryplugin-system"
         name="gz::sim::systems::LinearBatteryPlugin">
         <battery_name>${ns}battery</battery_name>
         <voltage>41.4</voltage>
@@ -33,16 +33,13 @@
   <!-- Controller -->
   <xacro:macro name="controller" params="config_file namespace:=''">
     <gazebo>
-      <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
-          <remapping>drive_controller/cmd_vel_unstamped:=cmd_vel</remapping>
+          <remapping>drive_controller/cmd_vel:=cmd_vel</remapping>
           <remapping>drive_controller/odom:=odometry/wheels</remapping>
           <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
-          <remapping>gz_ros2_control/e_stop:=hardware/e_stop</remapping>
-          <remapping>gz_ros2_control/e_stop_reset:=hardware/e_stop_reset</remapping>
-          <remapping>gz_ros2_control/e_stop_trigger:=hardware/e_stop_trigger</remapping>
           <remapping>imu_broadcaster/imu:=imu/data</remapping>
           <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
           <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
@@ -75,7 +72,7 @@
         <topic>${ns}imu/data_raw</topic>
         <visualize>false</visualize>
         <enable_metrics>false</enable_metrics>
-        <ignition_frame_id>imu_link</ignition_frame_id>
+        <gz_frame_id>imu_link</gz_frame_id>
         <imu>
           <orientation_reference_frame>
             <localization>ENU</localization>

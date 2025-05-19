@@ -23,7 +23,7 @@ from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
 )
-from launch_ros.actions import SetUseSimTime
+from launch_ros.actions import Node, SetUseSimTime
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import ReplaceString
 
@@ -76,17 +76,14 @@ def generate_launch_description():
         launch_arguments={"gz_gui": namespaced_gz_gui, "gz_log_level": "1"}.items(),
     )
 
-    rviz_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("husarion_ugv_description"),
-                    "launch",
-                    "rviz.launch.py",
-                ]
-            )
-        ),
-        condition=IfCondition(use_rviz),
+    gz_bridge_config = PathJoinSubstitution(
+        [FindPackageShare("husarion_ugv_gazebo"), "config", "gz_bridge.yaml"]
+    )
+    gz_bridge = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        name="gz_bridge",
+        parameters=[{"config_file": gz_bridge_config}],
     )
 
     simulate_robots = IncludeLaunchDescription(
@@ -102,16 +99,29 @@ def generate_launch_description():
         launch_arguments={"log_level": log_level}.items(),
     )
 
+    rviz_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("husarion_ugv_description"),
+                    "launch",
+                    "rviz.launch.py",
+                ]
+            )
+        ),
+        condition=IfCondition(use_rviz),
+    )
+
     actions = [
         declare_gz_gui,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,
-        # Sets use_sim_time for all nodes started below (doesn't work for nodes started from ignition gazebo)
         SetUseSimTime(True),
         gz_sim,
-        rviz_launch,
+        gz_bridge,
         simulate_robots,
+        rviz_launch,
     ]
 
     return LaunchDescription(actions)

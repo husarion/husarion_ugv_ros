@@ -31,7 +31,7 @@ void LEDStrip::Configure(
   const gz::sim::Entity & entity, const std::shared_ptr<const sdf::Element> & sdf,
   gz::sim::EntityComponentManager & ecm, gz::sim::EventManager & /*eventMgr*/)
 {
-  const auto model = gz::gazebo::Model(entity);
+  const auto model = gz::sim::Model(entity);
   if (!model.Valid(ecm)) {
     throw std::runtime_error(
       "Error: Failed to initialize because [" + model.Name(ecm) +
@@ -277,6 +277,6 @@ void LEDStrip::CreateMarker(
 
 }  // namespace husarion_ugv_gazebo
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   husarion_ugv_gazebo::LEDStrip, gz::sim::System, husarion_ugv_gazebo::LEDStrip::ISystemConfigure,
   husarion_ugv_gazebo::LEDStrip::ISystemPreUpdate)

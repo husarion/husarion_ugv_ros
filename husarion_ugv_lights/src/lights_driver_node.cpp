@@ -69,7 +69,7 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
     this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
   enable_led_control_client_ = this->create_client<SetBoolSrv>(
-    "hardware/led_control_enable", rmw_qos_profile_services_default, client_callback_group_);
+    "hardware/led_control_enable", rclcpp::ServicesQoS(), client_callback_group_);
 
   set_brightness_server_ = this->create_service<SetLEDBrightnessSrv>(
     "lights/set_brightness", std::bind(&LightsDriverNode::SetBrightnessCB, this, _1, _2));

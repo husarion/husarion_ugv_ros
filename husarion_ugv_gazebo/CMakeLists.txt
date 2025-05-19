@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.11)
 project(husarion_ugv_gazebo)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -8,11 +8,11 @@ endif()
 set(PACKAGE_DEPENDENCIES
     ament_cmake
     hardware_interface
-    ignition-gazebo6
-    ignition-msgs8
-    ignition-plugin1
-    ignition-transport11
-    ign_ros2_control
+    gz-sim8
+    gz-msgs10
+    gz-plugin2
+    gz-transport13
+    gz_ros2_control
     pluginlib
     rclcpp
     realtime_tools
@@ -32,12 +32,12 @@ add_library(estop_system SHARED src/estop_system.cpp)
 ament_target_dependencies(
   estop_system
   hardware_interface
-  ign_ros2_control
+  gz_ros2_control
   rclcpp
   rclcpp_lifecycle
   std_msgs
   std_srvs)
-target_link_libraries(estop_system ignition-gazebo6)
+target_link_libraries(estop_system gz-sim8)
 
 set(CMAKE_AUTOMOC ON)
 qt5_add_resources(resources_rcc src/gui/EStop.qrc)
@@ -47,8 +47,8 @@ add_library(EStop SHARED include/husarion_ugv_gazebo/gui/e_stop.hpp
 ament_target_dependencies(EStop rclcpp std_msgs std_srvs)
 target_link_libraries(
   EStop
-  ignition-gazebo6
-  ignition-plugin1
+  gz-sim8
+  gz-plugin2
   ${Qt5Core_LIBRARIES}
   ${Qt5Qml_LIBRARIES}
   ${Qt5Quick_LIBRARIES}
@@ -56,8 +56,7 @@ target_link_libraries(
 
 add_library(LEDStrip SHARED src/led_strip.cpp)
 ament_target_dependencies(LEDStrip realtime_tools)
-target_link_libraries(LEDStrip ignition-gazebo6 ignition-msgs8 ignition-plugin1
-                      ignition-transport11)
+target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2 gz-transport13)
 
 install(
   TARGETS estop_system EStop LEDStrip
@@ -81,6 +80,6 @@ ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-pluginlib_export_plugin_description_file(ign_ros2_control plugins.xml)
+pluginlib_export_plugin_description_file(gz_ros2_control plugins.xml)
 
 ament_package()

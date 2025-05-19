@@ -2,7 +2,7 @@
 
 components: []
 
-# If you want to add for example DEV02, LDR06 and CAM01 to your Panther look at this example below:
+# If you want to add for example DEV02, LDR06 and CAM01 to your robot look at the example below:
 
 # components:
 #   - type: DEV02

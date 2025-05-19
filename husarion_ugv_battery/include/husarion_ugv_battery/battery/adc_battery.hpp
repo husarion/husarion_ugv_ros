@@ -62,8 +62,9 @@ private:
   void UpdateBatteryState(const rclcpp::Time & header_stamp, const bool charger_connected);
   void UpdateBatteryStateRaw();
   void UpdateChargingStatus(const rclcpp::Time & header_stamp, const bool charger_connected);
-  std::uint8_t GetBatteryStatus(const float charge, const bool charger_connected);
+  std::uint8_t GetBatteryStatus(const bool charger_connected);
   std::uint8_t GetBatteryHealth(const float voltage, const float temp);
+  bool IsCharging(const bool charger_connected) const;
 
   // ADC conversion parameters. Values were determined based on voltage divider
   // resistance values or differential amplifier gain and resistance values

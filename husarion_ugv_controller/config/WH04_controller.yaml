@@ -55,29 +55,27 @@
       enable_odom_tf: false
 
       cmd_vel_timeout: 0.2
-      #publish_limited_velocity: true
-      use_stamped_vel: false
+      publish_limited_velocity: false
 
       # Velocity and acceleration limits
-      # Whenever a min_* is unspecified, default to -max_*
       linear:
         x:
-          has_velocity_limits: true
-          has_acceleration_limits: true
-          has_jerk_limits: false
           max_velocity: 1.1 # m/s
-          # min_velocity -  When unspecified `min_velocity=-max_velocity`
+          min_velocity: -1.1 # m/s
           max_acceleration: 1.5 # m/s^2
-          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
-          max_jerk: 0.0 # m/s^3
+          max_deceleration: -1.5 # m/s^2
+          max_acceleration_reverse: -1.5 # m/s^2
+          max_deceleration_reverse: 1.5 # m/s^2
+          max_jerk: .NAN # m/s^3
+          min_jerk: .NAN # m/s^3
 
       angular:
         z:
-          has_velocity_limits: true
-          has_acceleration_limits: true
-          has_jerk_limits: false
           max_velocity: 2.2 # rad/s
-          # min_velocity -  When unspecified `min_velocity=-max_velocity`
+          min_velocity: -2.2 # rad/s
           max_acceleration: 3.2 # rad/s^2
-          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
-          max_jerk: 0.0 # rad/s^3
+          max_deceleration: -3.2 # rad/s^2
+          max_acceleration_reverse: -3.2 # rad/s^2
+          max_deceleration_reverse: 3.2 # rad/s^2
+          max_jerk: .NAN # rad/s^3
+          min_jerk: .NAN # rad/s^3

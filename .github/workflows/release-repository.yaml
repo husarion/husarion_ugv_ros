@@ -5,8 +5,7 @@ on:
   workflow_call:
     inputs:
       release_candidate:
-        description: Branch name of the release candidate. This branch will will not be deleted, you should
-          delete it manually after the release is done.
+        description: Branch name of the release candidate. WARNING This branch will be deleted!
         required: true
         type: string
       version:
@@ -30,7 +29,7 @@ on:
 jobs:
   release:
     name: Release repository
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       MAIN_BRANCH: ros2
@@ -89,7 +88,7 @@ jobs:
         if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           gh pr merge ${{ inputs.release_candidate }} \
-          --merge
+          --merge --delete-branch
 
       - name: Create prerelease
         if: ${{ inputs.automatic_mode && inputs.prerelease}}

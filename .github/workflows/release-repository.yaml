@@ -117,5 +117,6 @@ jobs:
       - name: Update devel branch
         if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
+          git config pull.rebase false
           git pull origin ${{ env.MAIN_BRANCH }}
           git push origin ${{ env.DEVEL_BRANCH }}

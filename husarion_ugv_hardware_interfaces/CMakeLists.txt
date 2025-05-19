@@ -272,8 +272,9 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}_test_canopen_manager
       PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
              $<INSTALL_INTERFACE:include>)
-    ament_target_dependencies(${PROJECT_NAME}_test_canopen_manager rclcpp
-                              husarion_ugv_msgs husarion_ugv_utils)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_canopen_manager ament_index_cpp rclcpp
+      husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_canopen_manager
                           PkgConfig::LIBLELY_COAPP)
 
@@ -290,8 +291,9 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}_test_lynx_robot_driver
       PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
              $<INSTALL_INTERFACE:include>)
-    ament_target_dependencies(${PROJECT_NAME}_test_lynx_robot_driver rclcpp
-                              husarion_ugv_msgs husarion_ugv_utils)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_lynx_robot_driver ament_index_cpp rclcpp
+      husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_lynx_robot_driver
                           PkgConfig::LIBLELY_COAPP)
 
@@ -308,8 +310,9 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}_test_panther_robot_driver
       PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
              $<INSTALL_INTERFACE:include>)
-    ament_target_dependencies(${PROJECT_NAME}_test_panther_robot_driver rclcpp
-                              husarion_ugv_msgs husarion_ugv_utils)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_panther_robot_driver ament_index_cpp rclcpp
+      husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_panther_robot_driver
                           PkgConfig::LIBLELY_COAPP)
 
@@ -323,8 +326,9 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}_test_roboteq_driver
       PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
              $<INSTALL_INTERFACE:include>)
-    ament_target_dependencies(${PROJECT_NAME}_test_roboteq_driver rclcpp
-                              husarion_ugv_msgs husarion_ugv_utils)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_roboteq_driver ament_index_cpp rclcpp
+      husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_roboteq_driver
                           PkgConfig::LIBLELY_COAPP)
 
@@ -340,8 +344,9 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}_test_roboteq_robot_driver
       PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
              $<INSTALL_INTERFACE:include>)
-    ament_target_dependencies(${PROJECT_NAME}_test_roboteq_robot_driver rclcpp
-                              husarion_ugv_msgs husarion_ugv_utils)
+    ament_target_dependencies(
+      ${PROJECT_NAME}_test_roboteq_robot_driver ament_index_cpp rclcpp
+      husarion_ugv_msgs husarion_ugv_utils)
     target_link_libraries(${PROJECT_NAME}_test_roboteq_robot_driver
                           PkgConfig::LIBLELY_COAPP)
 

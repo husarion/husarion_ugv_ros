@@ -7,7 +7,7 @@ x-common-config: &common-config
 
 services:
   husarion_ugv_ros:
-    image: husarion/husarion-ugv:jazzy-ros2-devel
+    image: husarion/husarion-ugv:jazzy-2.3.0-20250425
     container_name: husarion_ugv_ros
     <<: *common-config
     security_opt:

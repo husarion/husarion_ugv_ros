@@ -346,7 +346,7 @@ TEST_F(TestUGVSystem, Read)
   EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
 
   auto callback_return = ugv_system_->read(
-    rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
+    rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0));
 
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
 

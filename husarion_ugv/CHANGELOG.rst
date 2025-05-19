@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * bump ros_components_description version (`#545 <https://github.com/husarion/husarion_ugv_ros/issues/545>`_)
 * Jazzy fix components loading (`#534 <https://github.com/husarion/husarion_ugv_ros/issues/534>`_)
 * Merge remote-tracking branch 'origin/ros2-devel' into change-pat

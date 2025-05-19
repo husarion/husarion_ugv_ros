@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * fix lights manager (`#537 <https://github.com/husarion/husarion_ugv_ros/issues/537>`_)
 * Merge remote-tracking branch 'origin/ros2-devel' into change-pat
 * Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw

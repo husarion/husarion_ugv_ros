@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * update wheel parameters (`#544 <https://github.com/husarion/husarion_ugv_ros/issues/544>`_)
 * Merge remote-tracking branch 'origin/ros2-devel' into change-pat
 * Jazzy load urdf (`#520 <https://github.com/husarion/husarion_ugv_ros/issues/520>`_)

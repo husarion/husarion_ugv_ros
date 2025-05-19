@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * Jalisco fix hw interfaces (`#536 <https://github.com/husarion/husarion_ugv_ros/issues/536>`_)
 * Merge pull request `#535 <https://github.com/husarion/husarion_ugv_ros/issues/535>`_ from husarion/release-test-fixes
 * fix integration tests

@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_)
 * Jazzy fix components loading (`#534 <https://github.com/husarion/husarion_ugv_ros/issues/534>`_)
 * Gz ROS bridge with multiple robot support (`#527 <https://github.com/husarion/husarion_ugv_ros/issues/527>`_)

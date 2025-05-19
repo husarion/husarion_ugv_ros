@@ -2,7 +2,7 @@
   <class
     name="husarion_ugv_gazebo/EStopSystem"
     type="husarion_ugv_gazebo::EStopSystem"
-    base_class_type="ign_ros2_control::IgnitionSystemInterface">
+    base_class_type="gz_ros2_control::GazeboSimSystemInterface">
     <description>
       Control joints position with E-Stop functionalities in Gazebo using ROS2.
     </description>

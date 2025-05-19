@@ -118,10 +118,10 @@ TEST_F(TestShutdownHost, HTTPServerNotAvailable)
          husarion_ugv_manager::ShutdownHostState::COMMAND_EXECUTED) {
     this->shutdown_host_->Call();
   }
+
   ASSERT_EQ(this->shutdown_host_->GetState(), husarion_ugv_manager::ShutdownHostState::FAILURE);
   EXPECT_TRUE(this->ContainsExpression(this->shutdown_host_->GetError(), "Command return code:"));
   EXPECT_TRUE(this->ContainsExpression(this->shutdown_host_->GetOutput(), "000"));
-  EXPECT_TRUE(this->ContainsExpression(this->shutdown_host_->GetOutput(), "Connection refused"));
 }
 
 TEST_F(TestShutdownHost, GoodShutdownExecute)

@@ -7,7 +7,7 @@ x-common-config: &common-config
 
 services:
   husarion_ugv_ros:
-    image: husarion/husarion-ugv:humble-2.2.1-20250331
+    image: husarion/husarion-ugv:jazzy-2.3.0-20250425
     container_name: husarion_ugv_ros
     <<: *common-config
     security_opt:
@@ -41,7 +41,7 @@ services:
         common_dir_path:=/config
 
   gamepad_controller:
-    image: husarion/joy2twist:humble-1.0.0-20250131
+    image: husarion/joy2twist:jazzy-1.0.1-20250331
     container_name: gamepad_controller
     <<: *common-config
     volumes:

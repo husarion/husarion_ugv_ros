@@ -37,7 +37,7 @@ cd docker/demo
    > This may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
 
    ```bash
-   docker run --rm -v /home/husarion/config:/config husarion/panther:humble-<newest_tag> update_config_directory
+   docker run --rm -v /home/husarion/config:/config husarion/panther:jazzy-<newest_tag> update_config_directory
    ```
 
 2. Activate Panther

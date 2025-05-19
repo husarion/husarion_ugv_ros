@@ -133,7 +133,7 @@ class TestPhidgetImuSensor : public testing::Test
 {
 public:
   TestPhidgetImuSensor();
-  ~TestPhidgetImuSensor();
+  ~TestPhidgetImuSensor() {}
 
   void CreateResourceManagerFromUrdf(const std::string & urdf);
 
@@ -183,6 +183,7 @@ protected:
 
   inline static const std::string kUrdfHeader = R"(<?xml version="1.0" encoding="utf-8"?>
 <robot name="Panther">
+<link name="base_link"/>
 <ros2_control name="imu" type="sensor">
 )";
 
@@ -210,19 +211,18 @@ protected:
 
   std::unique_ptr<PhidgetImuSensorWrapper> imu_sensor_;
   std::shared_ptr<hardware_interface::ResourceManager> rm_;
+  std::shared_ptr<rclcpp::Node> node_ = std::make_shared<rclcpp::Node>("PhidgetIMUTest");
 };
 
 TestPhidgetImuSensor::TestPhidgetImuSensor()
 {
   imu_sensor_ = std::make_unique<PhidgetImuSensorWrapper>();
-  rclcpp::init(0, nullptr);
 }
-
-TestPhidgetImuSensor::~TestPhidgetImuSensor() { rclcpp::shutdown(); }
 
 void TestPhidgetImuSensor::CreateResourceManagerFromUrdf(const std::string & urdf)
 {
-  rm_ = std::make_shared<hardware_interface::ResourceManager>(urdf);
+  rm_ = std::make_unique<hardware_interface::ResourceManager>(
+    urdf, node_->get_node_clock_interface(), node_->get_node_logging_interface());
 }
 
 hardware_interface::return_type TestPhidgetImuSensor::ConfigurePhidgetImu()
@@ -563,7 +563,7 @@ TEST_F(TestPhidgetImuSensor, CheckStatesInitialValues)
   auto loaded_state_interfaces = ClaimGoodStateInterfaces();
 
   for (const auto & state_interface : loaded_state_interfaces) {
-    EXPECT_TRUE(std::isnan(state_interface.get_value()));
+    EXPECT_TRUE(std::isnan(state_interface.get_optional().value()));
   }
 
   EXPECT_EQ(ShutdownPhidgetImu(), return_type::OK);
@@ -593,7 +593,7 @@ TEST_F(TestPhidgetImuSensor, CheckReadAndConfigureRealSensor)
 
   auto loaded_state_interfaces = ClaimGoodStateInterfaces();
   for (const auto & state_interface : loaded_state_interfaces) {
-    EXPECT_TRUE(std::isfinite(state_interface.get_value()));
+    EXPECT_TRUE(std::isfinite(state_interface.get_optional().value()));
   }
 
   EXPECT_EQ(UnconfigurePhidgetImu(), return_type::OK);
@@ -602,7 +602,11 @@ TEST_F(TestPhidgetImuSensor, CheckReadAndConfigureRealSensor)
 
 int main(int argc, char ** argv)
 {
+  rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
 
-  return RUN_ALL_TESTS();
+  auto run_tests = RUN_ALL_TESTS();
+
+  rclcpp::shutdown();
+  return run_tests;
 }

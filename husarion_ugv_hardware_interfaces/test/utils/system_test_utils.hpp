@@ -115,7 +115,7 @@ hardware_interface::HardwareInfo GenerateDefaultHardwareInfo()
 {
   hardware_interface::HardwareInfo hardware_info;
   hardware_info.name = "test";
-  hardware_info.hardware_class_type = "UGVSystem";
+  hardware_info.hardware_plugin_name = "UGVSystem";
 
   hardware_interface::InterfaceInfo vel_command_interface;
   vel_command_interface.name = "velocity";

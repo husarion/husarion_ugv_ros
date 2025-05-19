@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
 * Revert "Release 2.3.0"
 * Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0

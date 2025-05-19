@@ -17,8 +17,8 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">gz_ros2_control</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">hardware_interface</depend>
+  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ign_ros2_control</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">pluginlib</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp_lifecycle</depend>

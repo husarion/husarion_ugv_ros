@@ -28,16 +28,14 @@
       right_wheel_names: [fr_wheel_joint, rr_wheel_joint]
 
       wheel_separation: 0.45
-      wheel_radius: 0.144
+      wheel_radius: 0.1348
 
       # For skid drive kinematics it will act as ICR coefficient, kinematic model with ICR
       # coefficient isn't totally accurate and this coefficient can differ for various ground types
-      wheel_separation_multiplier: 1.6
+      wheel_separation_multiplier: 1.37
 
-      # This parameter depends on wheels pressure and robot mass.
-      # It was measured experimentally without load and with the pressure of 1.2 bar.
-      left_wheel_radius_multiplier: 0.964
-      right_wheel_radius_multiplier: 0.964
+      left_wheel_radius_multiplier: 1.0
+      right_wheel_radius_multiplier: 1.0
 
       publish_rate: 100.0
       odom_frame_id: odom
@@ -56,27 +54,29 @@
       enable_odom_tf: false
 
       cmd_vel_timeout: 0.2
-      publish_limited_velocity: false
+      #publish_limited_velocity: true
+      use_stamped_vel: false
 
       # Velocity and acceleration limits
+      # Whenever a min_* is unspecified, default to -max_*
       linear:
         x:
+          has_velocity_limits: true
+          has_acceleration_limits: true
+          has_jerk_limits: false
           max_velocity: 1.5 # m/s
-          min_velocity: -1.5 # m/s
+          # min_velocity -  When unspecified `min_velocity=-max_velocity`
           max_acceleration: 2.1 # m/s^2
-          max_deceleration: -2.1 # m/s^2
-          max_acceleration_reverse: -2.1 # m/s^2
-          max_deceleration_reverse: 2.1 # m/s^2
-          max_jerk: .NAN # m/s^3
-          min_jerk: .NAN # m/s^3
+          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
+          max_jerk: 0.0 # m/s^3
 
       angular:
         z:
+          has_velocity_limits: true
+          has_acceleration_limits: true
+          has_jerk_limits: false
           max_velocity: 4.0 # rad/s
-          min_velocity: -4.0 # rad/s
+          # min_velocity -  When unspecified `min_velocity=-max_velocity`
           max_acceleration: 5.74 # rad/s^2
-          max_deceleration: -5.74 # rad/s^2
-          max_acceleration_reverse: -5.74 # rad/s^2
-          max_deceleration_reverse: 5.74 # rad/s^2
-          max_jerk: .NAN # rad/s^3
-          min_jerk: .NAN # rad/s^3
+          # min_acceleration - When unspecified, `min_acceleration=-max_acceleration`
+          max_jerk: 0.0 # rad/s^3

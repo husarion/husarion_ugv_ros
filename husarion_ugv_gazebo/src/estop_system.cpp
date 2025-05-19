@@ -21,9 +21,9 @@
 #include <utility>
 #include <vector>
 
-#include <gz/msgs/imu.pb.h>
-#include <gz/sim/components/Imu.hh>
-#include <gz/transport/Node.hh>
+#include <ignition/msgs/imu.pb.h>
+#include <ignition/gazebo/components/Imu.hh>
+#include <ignition/transport/Node.hh>
 
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/lexical_casts.hpp>
@@ -40,8 +40,8 @@ struct jointData
   double joint_velocity_cmd;
   double joint_effort_cmd;
   bool is_actuated;
-  gz::sim::Entity sim_joint;
-  gz_ros2_control::GazeboSimSystemInterface::ControlMethod joint_control_method;
+  ignition::gazebo::Entity sim_joint;
+  ign_ros2_control::IgnitionSystemInterface::ControlMethod joint_control_method;
 };
 
 struct MimicJoint
@@ -57,12 +57,12 @@ class ImuData
 public:
   std::string name{};
   std::string topicName{};
-  gz::sim::Entity sim_imu_sensors_ = gz::sim::kNullEntity;
+  ignition::gazebo::Entity sim_imu_sensors_ = ignition::gazebo::kNullEntity;
   std::array<double, 10> imu_sensor_data_;
-  void OnIMU(const gz::msgs::IMU & _msg);
+  void OnIMU(const ignition::msgs::IMU & _msg);
 };
 
-void ImuData::OnIMU(const gz::msgs::IMU & _msg)
+void ImuData::OnIMU(const ignition::msgs::IMU & _msg)
 {
   this->imu_sensor_data_[0] = _msg.orientation().x();
   this->imu_sensor_data_[1] = _msg.orientation().y();
@@ -76,20 +76,20 @@ void ImuData::OnIMU(const gz::msgs::IMU & _msg)
   this->imu_sensor_data_[9] = _msg.linear_acceleration().z();
 }
 
-class gz_ros2_control::GazeboSimSystemPrivate
+class ign_ros2_control::IgnitionSystemPrivate
 {
 public:
-  GazeboSimSystemPrivate() = default;
-  ~GazeboSimSystemPrivate() = default;
+  IgnitionSystemPrivate() = default;
+  ~IgnitionSystemPrivate() = default;
   size_t n_dof_;
   rclcpp::Time last_update_sim_time_ros_;
   std::vector<struct jointData> joints_;
   std::vector<std::shared_ptr<ImuData>> imus_;
   std::vector<hardware_interface::StateInterface> state_interfaces_;
   std::vector<hardware_interface::CommandInterface> command_interfaces_;
-  gz::sim::EntityComponentManager * ecm;
+  ignition::gazebo::EntityComponentManager * ecm;
   int * update_rate;
-  gz::transport::Node node;
+  ignition::transport::Node node;
   std::vector<MimicJoint> mimic_joints_;
   double position_proportional_gain_;
 };
@@ -132,21 +132,21 @@ hardware_interface::return_type EStopSystem::write(
     return hardware_interface::return_type::OK;
   }
 
-  return GazeboSimSystem::write(time, period);
+  return IgnitionSystem::write(time, period);
 }
 
 void EStopSystem::SetupEStop()
 {
   e_stop_publisher_ = nh_->create_publisher<BoolMsg>(
-    "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "~/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
 
   e_stop_reset_service_ = nh_->create_service<TriggerSrv>(
-    "hardware/e_stop_reset",
+    "~/e_stop_reset",
     std::bind(
       &EStopSystem::EStopResetCallback, this, std::placeholders::_1, std::placeholders::_2));
 
   e_stop_trigger_service_ = nh_->create_service<TriggerSrv>(
-    "hardware/e_stop_trigger",
+    "~/e_stop_trigger",
     std::bind(
       &EStopSystem::EStopTriggerCallback, this, std::placeholders::_1, std::placeholders::_2));
 }
@@ -179,4 +179,4 @@ void EStopSystem::EStopTriggerCallback(
 }  // namespace husarion_ugv_gazebo
 
 #include "pluginlib/class_list_macros.hpp"  // NOLINT
-PLUGINLIB_EXPORT_CLASS(husarion_ugv_gazebo::EStopSystem, gz_ros2_control::GazeboSimSystemInterface)
+PLUGINLIB_EXPORT_CLASS(husarion_ugv_gazebo::EStopSystem, ign_ros2_control::IgnitionSystemInterface)

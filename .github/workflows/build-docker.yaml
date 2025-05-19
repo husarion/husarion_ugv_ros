@@ -9,14 +9,10 @@ on:
         required: true
         type: string
         default: development
-      branch_name:
-        description: Branch name to checkout to. Will default to workflow ref name if not provided.
-        type: string
-        default: ''
       target_distro:
-        description: ROS distribution to build docker image for (eg. jazzy)
+        description: ROS distribution to build docker image for (eg. humble)
         type: string
-        default: jazzy
+        default: humble
       target_release:
         description: In case of "stable" release specify the version of the existing docker image (eg.
           1.0.12)
@@ -37,15 +33,11 @@ on:
         options:
           - development
           - stable
-      branch_name:
-        description: Branch name to checkout to. Will default to workflow ref name if not provided.
-        type: string
-        default: ''
       target_distro:
         description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
-          jazzy)
+          humble)
         type: string
-        default: jazzy
+        default: humble
       target_release:
         description: In case of "stable" release specify the version of the existing docker image (eg.
           1.0.12)
@@ -57,19 +49,13 @@ on:
         type: string
         default: '20131206'
 
-env:
-  BRANCH_NAME: ${{ inputs.branch_name != '' && inputs.branch_name || github.ref_name }}
-
 jobs:
   build-husarion-ugv:
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-22.04-arm64
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.BRANCH_NAME }}
-          fetch-depth: 0
 
       - name: Build Docker Image
         uses: husarion-ci/ros-docker-img-action@v0.8
@@ -88,14 +74,11 @@ jobs:
           target_date: ${{ inputs.target_date }}
 
   build-husarion-ugv-gazebo:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.BRANCH_NAME }}
-          fetch-depth: 0
 
       - name: Build Docker Image
         uses: husarion-ci/ros-docker-img-action@v0.8

@@ -17,14 +17,14 @@ env:
 jobs:
   docs:
     name: Docs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Check docs build
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: docs_new
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: test-parser.yaml
           ref: master
           client_payload: '{"husarion_ugv_branch": "ros2-devel"}'
@@ -36,16 +36,16 @@ jobs:
   update_compose_files:
     name: Update compose files
     needs: unit_tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Update docker image tag
         run: |
-          sed -i 's/\(husarion\/husarion-ugv:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
-          sed -i 's/\(husarion\/husarion-ugv:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
-          sed -i 's/\(husarion\/husarion-ugv-gazebo:jazzy-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.hardware.yaml
+          sed -i 's/\(husarion\/husarion-ugv:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.rviz.yaml
+          sed -i 's/\(husarion\/husarion-ugv-gazebo:humble-\)[^[:space:]]*/\1${{ env.RC_BRANCH_NAME }}/g' docker/demo/compose.simulation.yaml
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
@@ -66,7 +66,7 @@ jobs:
   os_image:
     name: OS image
     needs: update_compose_files
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Create new branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
@@ -75,14 +75,14 @@ jobs:
           repository_name: husarion-ugv-rpi-os-img
           new_branch_name: ${{ env.RC_BRANCH_NAME }}
           new_branch_ref: ros2-devel
-          access_token: ${{ secrets.GH_PAT}}
+          access_token: ${{ secrets.RAFAL_ACCESS_TOKEN}}
 
       - name: Build OS image
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           owner: husarion
           repo: husarion-ugv-rpi-os-img
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ secrets.RAFAL_ACCESS_TOKEN }}
           workflow_file_name: build_and_deploy_image.yaml
           ref: ${{ env.RC_BRANCH_NAME }}
           client_payload: |

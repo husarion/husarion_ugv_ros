@@ -2,6 +2,26 @@
 Changelog for package husarion_ugv_diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2025-05-19)
+------------------
+* Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
+* Revert "Release 2.3.0"
+* Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0
+* 2.3.0
+* Update changelog
+* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
+* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-hw
+* Pre-commit
+* Fix cmake version
+* Add robot_localization and DCMAKE_POLICY_VERSION_MINIMUM
+* Update minimal cmake version
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Contributors: Dawid Kmak, action-bot, github-actions[bot], rafal-gorecki, rafal.gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request

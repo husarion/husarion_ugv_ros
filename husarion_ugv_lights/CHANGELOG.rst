@@ -2,6 +2,28 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2025-05-19)
+------------------
+* Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
+* Revert "Release 2.3.0"
+* Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0
+* 2.3.0
+* Update changelog
+* update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
+* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-hw
+* Migrate simulation code to run on ROS2 Jazzy (`#511 <https://github.com/husarion/husarion_ugv_ros/issues/511>`_)
+* Update minimal cmake version
+* Update workflow to jazzy
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Fix deprecated service
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Contributors: Dawid Kmak, Rafal Gorecki, action-bot, github-actions[bot], rafal-gorecki, rafal.gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * merge front rear animations for docs (`#516 <https://github.com/husarion/husarion_ugv_ros/issues/516>`_)

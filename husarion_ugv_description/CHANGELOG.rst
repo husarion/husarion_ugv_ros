@@ -2,6 +2,25 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2025-05-19)
+------------------
+* update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_)
+* Jazzy fix components loading (`#534 <https://github.com/husarion/husarion_ugv_ros/issues/534>`_)
+* Gz ROS bridge with multiple robot support (`#527 <https://github.com/husarion/husarion_ugv_ros/issues/527>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
+* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-hw
+* Migrate simulation code to run on ROS2 Jazzy (`#511 <https://github.com/husarion/husarion_ugv_ros/issues/511>`_)
+* Update minimal cmake version
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Add updated ros_components_descriptions
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Use stamped msgs
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Fixes related with building simulation on Jazzy
+* Contributors: Dawid Kmak, Rafal Gorecki, Stefan, rafal-gorecki, rafal.gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)

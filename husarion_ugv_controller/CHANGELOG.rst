@@ -2,6 +2,29 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
+* Revert "Release 2.3.0"
+* Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0
+* 2.3.0
+* Update changelog
+* update wheel parameters (`#544 <https://github.com/husarion/husarion_ugv_ros/issues/544>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
+* Jazzy load urdf (`#520 <https://github.com/husarion/husarion_ugv_ros/issues/520>`_)
+* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-hw
+* Migrate simulation code to run on ROS2 Jazzy (`#511 <https://github.com/husarion/husarion_ugv_ros/issues/511>`_)
+* Update minimal cmake version
+* Use `hardware` instead of private topic
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Fix controllers
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Use stamped msgs
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Contributors: Dawid Kmak, Rafal Gorecki, action-bot, github-actions[bot], rafal-gorecki, rafal.gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * Merge pull request `#509 <https://github.com/husarion/husarion_ugv_ros/issues/509>`_ from husarion/ros2-imu-ros2-controll-fix

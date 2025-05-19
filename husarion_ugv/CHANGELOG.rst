@@ -2,6 +2,44 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Revert "Update changelog"
+* Revert "2.3.0"
+* Revert "2.3.0"
+* Revert "Update changelog"
+* Reapply "Release 2.3.0 to ros2"
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into rel-test
+* Merge pull request `#550 <https://github.com/husarion/husarion_ugv_ros/issues/550>`_ from husarion/release-2.3.0
+* 2.3.0
+* Update changelog
+* Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
+* Revert "Release 2.3.0"
+* Merge pull request `#548 <https://github.com/husarion/husarion_ugv_ros/issues/548>`_ from husarion/revert-547-2.3.0-20250425
+* Revert "Release 2.3.0 to ros2"
+* Merge pull request `#547 <https://github.com/husarion/husarion_ugv_ros/issues/547>`_ from husarion/2.3.0-20250425
+* Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0
+* 2.3.0
+* Update changelog
+* bump ros_components_description version (`#545 <https://github.com/husarion/husarion_ugv_ros/issues/545>`_)
+* Jazzy fix components loading (`#534 <https://github.com/husarion/husarion_ugv_ros/issues/534>`_)
+* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
+* Jazzy load urdf (`#520 <https://github.com/husarion/husarion_ugv_ros/issues/520>`_)
+* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
+* Dawid suggestions
+* Merge branch 'ros2-devel' into jazzy-devel-hw
+* Migrate simulation code to run on ROS2 Jazzy (`#511 <https://github.com/husarion/husarion_ugv_ros/issues/511>`_)
+* Add robot_localization and DCMAKE_POLICY_VERSION_MINIMUM
+* Update minimal cmake version
+* Update deps
+* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
+* Add updated ros_components_descriptions
+* Update deps
+* Fix pre-commit
+* Merge branch 'ros2-devel' into jazzy-devel-sim
+* Fixes related with building simulation on Jazzy
+* Contributors: Dawid Kmak, Rafal Gorecki, Stefan, action-bot, github-actions[bot], kmakd, rafal.gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)

@@ -101,12 +101,13 @@ public:
    * advertised over ROS.
    * @param group The shared pointer to the node's callback group. Defaults to nullptr, which
    * indicates that the node's default callback group will be used.
-   * @param qos The QoS settings for the service. Defaults to ServicesQoS.
+   * @param qos_profile The QoS settings for the service. Defaults to
+   * rmw_qos_profile_services_default.
    */
   void RegisterService(
     const rclcpp::Node::SharedPtr node, const std::string & service_name,
     rclcpp::CallbackGroup::SharedPtr group = nullptr,
-    const rclcpp::QoS & qos = rclcpp::ServicesQoS());
+    const rmw_qos_profile_t & qos_profile = rmw_qos_profile_services_default);
 
 private:
   /**
@@ -176,19 +177,20 @@ public:
    * enumerated value of `rclcpp::CallbackGroupType`. If a new group must be created, this specifies
    * whether it should be `MutuallyExclusive` or `Reentrant`. The default value is
    * `MutuallyExclusive`.
-   * @param qos The QoS settings for the service. Defaults to ServicesQoS.
+   * @param qos_profile The QoS settings for the service. Defaults to
+   * rmw_qos_profile_services_default.
    */
   template <class SrvT, class CallbackT>
   inline void AddService(
     const std::string & service_name, const CallbackT & callback, const unsigned group_id = 0,
     rclcpp::CallbackGroupType callback_group_type = rclcpp::CallbackGroupType::MutuallyExclusive,
-    const rclcpp::QoS & qos = rclcpp::ServicesQoS())
+    const rmw_qos_profile_t & qos_profile = rmw_qos_profile_services_default)
   {
     rclcpp::CallbackGroup::SharedPtr callback_group = GetOrCreateNodeCallbackGroup(
       group_id, callback_group_type);
 
     auto wrapper = std::make_shared<ROSServiceWrapper<SrvT, CallbackT>>(callback);
-    wrapper->RegisterService(node_, service_name, callback_group, qos);
+    wrapper->RegisterService(node_, service_name, callback_group, qos_profile);
     service_wrappers_storage_.push_back(wrapper);
   }
 

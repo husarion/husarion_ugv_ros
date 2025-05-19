@@ -2,8 +2,8 @@
 Changelog for package panther_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.0 (2025-05-19)
+------------------
 * Revert "Update changelog"
 * Revert "2.3.0"
 * Revert "2.3.0"

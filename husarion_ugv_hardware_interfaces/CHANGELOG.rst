@@ -2,32 +2,6 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
-* Merge pull request `#549 <https://github.com/husarion/husarion_ugv_ros/issues/549>`_ from husarion/revert-546-release-2.3.0
-* Revert "Release 2.3.0"
-* Merge pull request `#546 <https://github.com/husarion/husarion_ugv_ros/issues/546>`_ from husarion/release-2.3.0
-* 2.3.0
-* Update changelog
-* Jalisco fix hw interfaces (`#536 <https://github.com/husarion/husarion_ugv_ros/issues/536>`_)
-* Merge pull request `#535 <https://github.com/husarion/husarion_ugv_ros/issues/535>`_ from husarion/release-test-fixes
-* fix integration tests
-* Merge remote-tracking branch 'origin/ros2-devel' into change-pat
-* Merge pull request `#518 <https://github.com/husarion/husarion_ugv_ros/issues/518>`_ from husarion/jazzy-devel-hw
-* Merge branch 'ros2-devel' into jazzy-devel-hw
-* Update minimal cmake version
-* Use `hardware` instead of private topic
-* Fix pre-commit
-* Fix deprecation warnings
-* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
-* Merge branch 'ros2-devel' into jazzy-devel-sim
-* Merge branch 'ros2-devel' into jazzy-devel-sim
-* Merge branch 'jazzy-devel-sim' into jazzy-devel-hw
-* Merge branch 'ros2-devel' into jazzy-devel-sim
-* Pre-commit
-* Build hardware
-* Contributors: Dawid Kmak, Rafal Gorecki, action-bot, github-actions[bot], kmakd, rafal-gorecki, rafal.gorecki
-
 2.2.1 (2025-04-04)
 ------------------
 * Merge pull request `#512 <https://github.com/husarion/husarion_ugv_ros/issues/512>`_ from husarion/ros2-fix-intergration-tests

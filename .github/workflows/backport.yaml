@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "Pull request number to backport. Please add backport labels to the PR before running this workflow."
+        description: Pull request number to backport. Please add backport labels to the PR before running
+          this workflow.
         required: true
 
 jobs:

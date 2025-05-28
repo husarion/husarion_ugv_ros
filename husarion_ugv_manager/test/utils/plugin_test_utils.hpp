@@ -265,11 +265,11 @@ protected:
   )";
 
   const std::string sequence_open_tag_ = R"(
-            <Sequence>
+          <Sequence>
   )";
 
   const std::string sequence_close_tag_ = R"(
-            </Sequence>
+          </Sequence>
   )";
 };
 }  // namespace husarion_ugv_manager::plugin_test_utils

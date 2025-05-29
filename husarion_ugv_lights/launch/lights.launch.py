@@ -47,7 +47,7 @@ def generate_launch_description():
             "/husarion_ugv_lights' if '",
             common_dir_path,
             "' else '",
-            FindPackageShare("husarion_ugv_lights"),
+            husarion_ugv_lights_pkg,
             "'",
         ]
     )
@@ -57,7 +57,9 @@ def generate_launch_description():
     animations_config_path = LaunchConfiguration("animations_config_path")
     declare_animations_config_path_arg = DeclareLaunchArgument(
         "animations_config_path",
-        default_value=PathJoinSubstitution([husarion_ugv_lights_pkg, "config", animations_config]),
+        default_value=PathJoinSubstitution(
+            [husarion_ugv_lights_common_dir, "config", animations_config]
+        ),
         description="Path to a YAML file with a description of led configuration.",
     )
 

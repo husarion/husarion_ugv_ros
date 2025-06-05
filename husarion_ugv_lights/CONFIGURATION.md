@@ -49,6 +49,9 @@ The `segments` section is used to create virtual segments on the robot by dividi
 - `channel`: This specifies which LED panel the segment belongs to. It has to match one of the channels defined in the `panels` section.
 - `led_range`: This defines the range of LEDs within the panel that the segment covers. The range is specified as a start-end pair (e.g. 0-45). The range can be specified in reverse order (e.g. 45-0), which may be useful for wiring or orientation reasons.
 
+> [!IMPORTANT]
+> Each LED in a panel can only belong to one segment. If multiple segments are defined with overlapping `led_range` values on the same panel, only the first occurrence of each LED will be considered.
+
 ### Segments map
 
 The `segments_map` section allows creating named groups of segments on which animations can be displayed. Each entry under `segments_map` consists of a key representing the group name and a list of segments included in the group. Segment names have to match one of the segments defined in the `segments` section. By default, you can use provided mapping:

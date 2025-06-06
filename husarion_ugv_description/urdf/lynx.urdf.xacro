@@ -33,6 +33,7 @@
     <xacro:husarion_components.create_components
       components_config_path="${components_config_path_property}"
       namespace="$(arg namespace)"
+      use_sim="$(arg use_sim)"
     />
   </xacro:unless>
 </robot>

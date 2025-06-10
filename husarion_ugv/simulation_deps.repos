@@ -11,7 +11,7 @@ repositories:
     type: git
     url: https://github.com/husarion/husarion_gz_worlds.git
     version: 97275568c34e6fe191ca34fa1c1c2b897faf9610
-  ros_components_description:
+  husarion_components_description:
     type: git
-    url: https://github.com/husarion/ros_components_description.git
-    version: 8247a78cc1dae3b381dbed4d20bbe4f67d25c2d1
+    url: https://github.com/husarion/husarion_components_description.git
+    version: 0a828de00e2ab59cfd7bc397b8af021c60d52ba5

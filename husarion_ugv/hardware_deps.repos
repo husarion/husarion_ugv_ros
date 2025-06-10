@@ -7,10 +7,10 @@ repositories:
     type: git
     url: https://github.com/husarion/husarion_controllers
     version: 632a4d248227288afd99cf11179b019d968bda7b
-  ros_components_description:
+  husarion_components_description:
     type: git
-    url: https://github.com/husarion/ros_components_description.git
-    version: 8247a78cc1dae3b381dbed4d20bbe4f67d25c2d1
+    url: https://github.com/husarion/husarion_components_description.git
+    version: 0a828de00e2ab59cfd7bc397b8af021c60d52ba5
   joy2twist:
     type: git
     url: https://github.com/husarion/joy2twist.git

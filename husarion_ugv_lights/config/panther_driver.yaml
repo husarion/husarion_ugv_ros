@@ -1,3 +1,5 @@
 # In ComposableNode ros__parameters are not supported:
+frame_timeout: 0.1
+global_brightness: 1.0
 channel_1_num_led: 46
 channel_2_num_led: 46

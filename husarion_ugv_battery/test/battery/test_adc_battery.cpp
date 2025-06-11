@@ -276,7 +276,13 @@ TEST_F(TestADCBattery, ChargingStatusMsgCharging)
 
 TEST_F(TestADCBattery, ChargingStatusMsgNotCharging)
 {
-  UpdateBattery(1.5, 0.01, 0.98, 0.04, false);
+  // Charger connected but not charging
+  UpdateBattery(1.5, 0.01, 0.98, 0.04, true);
+
+  EXPECT_EQ(charging_status_.charging, false);
+
+  // Charger disconnected
+  UpdateBattery(1.5, 0.01, 0.98, 0.5, false);
 
   EXPECT_FALSE(charging_status_.charging);
 }

@@ -190,7 +190,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ros_components_description"),
+                    FindPackageShare("husarion_components_description"),
                     "launch",
                     "gz_components.launch.py",
                 ]

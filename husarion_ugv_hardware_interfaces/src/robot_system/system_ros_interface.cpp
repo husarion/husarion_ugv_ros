@@ -83,18 +83,19 @@ SystemROSInterface::SystemROSInterface(
 
   executor_thread_ = std::thread([this]() { executor_->spin(); });
 
-  driver_state_publisher_ = node_->create_publisher<RobotDriverStateMsg>("~/robot_driver_state", 5);
+  driver_state_publisher_ = node_->create_publisher<RobotDriverStateMsg>(
+    "hardware/robot_driver_state", 5);
   realtime_driver_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<RobotDriverStateMsg>>(
       driver_state_publisher_);
 
   io_state_publisher_ = node_->create_publisher<IOStateMsg>(
-    "~/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "hardware/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
   realtime_io_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<IOStateMsg>>(io_state_publisher_);
 
   e_stop_state_publisher_ = node_->create_publisher<BoolMsg>(
-    "~/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+    "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
   realtime_e_stop_state_publisher_ =
     std::make_unique<realtime_tools::RealtimePublisher<BoolMsg>>(e_stop_state_publisher_);
 

@@ -33,6 +33,27 @@ from nav2_common.launch import ReplaceString
 
 
 def generate_launch_description():
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+
+    description_pkg = FindPackageShare("husarion_ugv_description")
+    description_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_description",
+            "' if '",
+            common_dir_path,
+            "' else '",
+            description_pkg,
+            "'",
+        ]
+    )
+
     battery_config_path = LaunchConfiguration("battery_config_path")
     declare_battery_config_path_arg = DeclareLaunchArgument(
         "battery_config_path",
@@ -46,9 +67,7 @@ def generate_launch_description():
     components_config_path = LaunchConfiguration("components_config_path")
     declare_components_config_path_arg = DeclareLaunchArgument(
         "components_config_path",
-        default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_description"), "config", "components.yaml"]
-        ),
+        default_value=PathJoinSubstitution([description_common_dir, "config", "components.yaml"]),
         description=(
             "Specify file which contains components. These components will be included in URDF."
             "Available options can be found in manuals: https://husarion.com/manuals"
@@ -176,6 +195,7 @@ def generate_launch_description():
     )
 
     actions = [
+        declare_common_dir_path_arg,
         declare_battery_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.11)
 
 # Handle superbuild first
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)

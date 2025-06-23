@@ -80,7 +80,7 @@ def generate_launch_description():
     declare_gz_bridge_config_path_arg = DeclareLaunchArgument(
         "gz_bridge_config_path",
         default_value=PathJoinSubstitution(
-            [FindPackageShare("husarion_ugv_gazebo"), "config", "gz_bridge.yaml"]
+            [FindPackageShare("husarion_ugv_gazebo"), "config", "robot_bridge.yaml"]
         ),
         description="Path to the parameter_bridge configuration file.",
     )
@@ -204,10 +204,10 @@ def generate_launch_description():
     )
 
     model_name = PythonExpression(["'", namespace, "' if '", namespace, "' else 'panther'"])
-
+    ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
     namespaced_gz_bridge_config_path = ReplaceString(
         source_file=gz_bridge_config_path,
-        replacements={"<model_name>": model_name, "<namespace>": namespace, "//": "/"},
+        replacements={"<model_name>": model_name, "<namespace>/": ns},
     )
 
     gz_bridge = Node(

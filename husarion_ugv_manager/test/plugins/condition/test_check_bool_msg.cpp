@@ -85,10 +85,11 @@ TEST_F(TestCheckBoolMsg, OnTickBehavior)
 
   for (auto & test_case : test_cases) {
     CreateTree(PLUGIN, test_case.input);
-    PublishMsg(test_case.msg);
-
     auto & tree = GetTree();
-    auto status = tree.tickWhileRunning();
+    auto status = tree.tickOnce();
+
+    PublishMsg(test_case.msg);
+    status = tree.tickWhileRunning();
 
     EXPECT_EQ(status, test_case.result);
   }

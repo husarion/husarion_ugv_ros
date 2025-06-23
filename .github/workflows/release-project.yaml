@@ -38,6 +38,7 @@ jobs:
 
   release_repository:
     name: Release repository
+    needs: variables
     uses: ./.github/workflows/release-repository.yaml
     with:
       release_candidate: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
@@ -114,5 +115,5 @@ jobs:
           owner: husarion
           repo: docs_new
           github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: build.yml
+          workflow_file_name: build.yaml
           ref: master

@@ -35,7 +35,7 @@ using TriggerSrv = std_srvs::srv::Trigger;
 
 /**
  * @brief Main class for the Husarion UGV which implements a simulated `ros2_control`
- * `hardware_interface::SystemInterface`. This class inherits `gz_ros2_control::GazeboSystem`
+ * `hardware_interface::SystemInterface`. This class inherits `gz_ros2_control::GazeboSimSystem`
  * and implements additional functionalities like E-stop handling.
  */
 class EStopSystem : public gz_ros2_control::GazeboSimSystem

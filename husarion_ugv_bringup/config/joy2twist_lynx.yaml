@@ -4,13 +4,13 @@
 
     linear_velocity_factor:
       fast: 1.5
-      regular: 0.9
-      slow: 0.3
+      regular: 1.2
+      slow: 0.4
 
     angular_velocity_factor:
       fast: 2.0
-      regular: 0.9
-      slow: 0.3
+      regular: 0.78
+      slow: 0.39
 
     e_stop:
       present: true

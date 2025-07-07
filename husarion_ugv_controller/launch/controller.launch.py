@@ -17,15 +17,8 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    GroupAction,
-    IncludeLaunchDescription,
-    RegisterEventHandler,
-    Shutdown,
-)
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
 from launch.conditions import UnlessCondition
-from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
@@ -200,52 +193,18 @@ def generate_launch_description():
         limit_log_level_to_info("rcl", log_level),
     ]
 
-    joint_state_broadcaster_spawner = Node(
+    controllers_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", *spawner_common_args],
+        arguments=[
+            "joint_state_broadcaster",
+            "drive_controller",
+            "imu_broadcaster",
+            "--activate-as-group",
+            *spawner_common_args,
+        ],
         namespace=namespace,
         emulate_tty=True,
-    )
-
-    drive_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["drive_controller", *spawner_common_args],
-        namespace=namespace,
-        emulate_tty=True,
-    )
-
-    imu_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["imu_broadcaster", *spawner_common_args],
-        namespace=namespace,
-        emulate_tty=True,
-    )
-
-    # Launch spawner one after another
-    # when spawning without delay ros2_control_node sometimes crashed
-    delay_drive_controller_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
-            on_exit=[drive_controller_spawner],
-        ),
-    )
-
-    delay_imu_broadcaster_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=drive_controller_spawner,
-            on_exit=[imu_broadcaster_spawner],
-        ),
-    )
-
-    spawners = GroupAction(
-        actions=[
-            joint_state_broadcaster_spawner,
-            delay_drive_controller_spawner,
-            delay_imu_broadcaster_spawner,
-        ]
     )
 
     actions = [
@@ -259,7 +218,7 @@ def generate_launch_description():
         SetParameter(name="use_sim_time", value=use_sim),
         load_urdf,
         control_node,
-        spawners,
+        controllers_spawner,
     ]
 
     return LaunchDescription(actions)

@@ -67,12 +67,6 @@ public:
   MOCK_METHOD(void, DiagnoseErrors, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
   MOCK_METHOD(void, DiagnoseStatus, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
 
-  void DefaultDefineRobotDriver()
-  {
-    robot_driver_ =
-      std::make_shared<husarion_ugv_hardware_interfaces_test::MockRobotDriver::NiceMock>();
-  }
-
   void SetHwCommandVelocity(const std::vector<double> & velocity)
   {
     hw_commands_velocities_ = velocity;
@@ -140,20 +134,27 @@ TEST_F(TestUGVSystem, OnInit)
 
 TEST_F(TestUGVSystem, OnConfigure)
 {
+  rclcpp::init(0, nullptr);
+
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
 
-  EXPECT_CALL(*ugv_system_, DefineRobotDriver()).WillOnce(::testing::Invoke([&]() {
-    ugv_system_->DefaultDefineRobotDriver();
-  }));
+  EXPECT_CALL(*ugv_system_, DefineRobotDriver()).Times(1);
   EXPECT_CALL(*ugv_system_, ConfigureGPIOController()).Times(1);
   EXPECT_CALL(*ugv_system_, ConfigureEStop()).Times(1);
+  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), Activate()).Times(1);
+  EXPECT_CALL(*ugv_system_->GetMockGPIOController(), QueryControlInterfaceIOStates()).Times(1);
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
   auto callback_return = ugv_system_->on_configure(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
+
+  rclcpp::shutdown();
 }
 
 TEST_F(TestUGVSystem, OnCleanup)
 {
+  rclcpp::init(0, nullptr);
+
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
@@ -161,6 +162,8 @@ TEST_F(TestUGVSystem, OnCleanup)
   auto callback_return = ugv_system_->on_cleanup(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
+
+  rclcpp::shutdown();
 }
 
 TEST_F(TestUGVSystem, OnActivate)
@@ -169,10 +172,6 @@ TEST_F(TestUGVSystem, OnActivate)
 
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
-
-  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), Activate()).Times(1);
-  EXPECT_CALL(*ugv_system_->GetMockGPIOController(), QueryControlInterfaceIOStates()).Times(1);
-  EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
   auto callback_return = ugv_system_->on_activate(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
@@ -198,6 +197,8 @@ TEST_F(TestUGVSystem, OnDeactivate)
 
 TEST_F(TestUGVSystem, OnShutdown)
 {
+  rclcpp::init(0, nullptr);
+
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
@@ -206,10 +207,14 @@ TEST_F(TestUGVSystem, OnShutdown)
   auto callback_return = ugv_system_->on_shutdown(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
+
+  rclcpp::shutdown();
 }
 
 TEST_F(TestUGVSystem, OnError)
 {
+  rclcpp::init(0, nullptr);
+
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
@@ -218,6 +223,8 @@ TEST_F(TestUGVSystem, OnError)
   auto callback_return = ugv_system_->on_error(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
+
+  rclcpp::shutdown();
 }
 
 TEST_F(TestUGVSystem, ExportStateInterfacesInitialValues)
@@ -359,16 +366,39 @@ TEST_F(TestUGVSystem, Write)
 
   const auto velocity = std::vector<float>{1.0, 2.0, 3.0, 4.0};
 
+  // System is deactivated, no speed commands sent
   ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
-  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
 
-  EXPECT_CALL(*ugv_system_, GetSpeedCommands()).WillOnce(::testing::Return(velocity));
   EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
-  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), SendSpeedCommands(velocity)).Times(1);
+  EXPECT_CALL(*ugv_system_, GetSpeedCommands()).Times(0);
+  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), SendSpeedCommands(velocity)).Times(0);
 
   auto callback_return = ugv_system_->write(
     rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
+
+  EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
+
+  // System is activated, speed commands sent
+  ugv_system_->set_lifecycle_state(
+    rclcpp_lifecycle::State(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, "test_active"));
+
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);
+  EXPECT_CALL(*ugv_system_, GetSpeedCommands()).WillOnce(::testing::Return(velocity));
+  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), SendSpeedCommands(velocity)).Times(1);
+
+  callback_return = ugv_system_->write(rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
+
+  EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
+
+  // System is activated, but e-stop was triggered
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).WillOnce(::testing::Return(true));
+  EXPECT_CALL(*ugv_system_, GetSpeedCommands()).Times(0);
+  EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), SendSpeedCommands(velocity)).Times(0);
+
+  callback_return = ugv_system_->write(rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
 
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
 

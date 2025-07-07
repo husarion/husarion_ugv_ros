@@ -80,22 +80,6 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
-{
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
-  gpio_controller_.reset();
-  e_stop_.reset();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
-{
   std::fill(hw_commands_velocities_.begin(), hw_commands_velocities_.end(), 0.0);
   std::fill(hw_states_positions_.begin(), hw_states_positions_.end(), 0.0);
   std::fill(hw_states_velocities_.begin(), hw_states_velocities_.end(), 0.0);
@@ -159,6 +143,24 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
+CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
+{
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
+
+  gpio_controller_.reset();
+
+  system_ros_interface_.reset();
+  e_stop_.reset();
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
+{
+  return CallbackReturn::SUCCESS;
+}
+
 CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
 {
   try {
@@ -167,8 +169,6 @@ CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
     RCLCPP_ERROR_STREAM(logger_, "Deactivation failed: " << e.what());
     return CallbackReturn::ERROR;
   }
-
-  system_ros_interface_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -263,9 +263,10 @@ return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & 
 
 return_type UGVSystem::write(const rclcpp::Time & /* time */, const rclcpp::Duration & /* period */)
 {
+  const auto lifecycle_state = this->get_lifecycle_state().id();
   const bool e_stop = e_stop_->ReadEStopState();
 
-  if (!e_stop) {
+  if (lifecycle_state == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE && !e_stop) {
     HandleRobotDriverWriteOperation([this] {
       const auto speed_cmds = GetSpeedCommands();
       robot_driver_->SendSpeedCommands(speed_cmds);

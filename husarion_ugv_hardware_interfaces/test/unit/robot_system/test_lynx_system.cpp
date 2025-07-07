@@ -86,6 +86,8 @@ class TestLynxSystem : public ::testing::Test
 public:
   TestLynxSystem()
   {
+    rclcpp::init(0, nullptr);
+
     lynx_system_ = std::make_shared<LynxSystemWrapper>();
 
     hardware_info_ = husarion_ugv_hardware_interfaces_test::GenerateDefaultHardwareInfo();
@@ -95,7 +97,7 @@ public:
     lynx_system_->on_configure(rclcpp_lifecycle::State());
   }
 
-  ~TestLynxSystem() {}
+  ~TestLynxSystem() { rclcpp::shutdown(); }
 
 protected:
   std::shared_ptr<LynxSystemWrapper> lynx_system_;

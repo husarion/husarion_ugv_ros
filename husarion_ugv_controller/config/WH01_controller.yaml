@@ -10,6 +10,10 @@
       imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
 
+      hardware_components_initial_state:
+        inactive:
+          - panther_system
+
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
     ros__parameters:

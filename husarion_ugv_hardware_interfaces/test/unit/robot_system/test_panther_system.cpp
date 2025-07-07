@@ -100,6 +100,8 @@ class TestPantherSystem : public ::testing::Test
 public:
   TestPantherSystem()
   {
+    rclcpp::init(0, nullptr);
+
     panther_system_ = std::make_shared<PantherSystemWrapper>();
 
     hardware_info_ = husarion_ugv_hardware_interfaces_test::GenerateDefaultHardwareInfo();
@@ -110,7 +112,7 @@ public:
     panther_system_->on_configure(rclcpp_lifecycle::State());
   }
 
-  ~TestPantherSystem() {}
+  ~TestPantherSystem() { rclcpp::shutdown(); }
 
 protected:
   std::shared_ptr<PantherSystemWrapper> panther_system_;

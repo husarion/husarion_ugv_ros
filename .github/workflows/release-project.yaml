@@ -50,23 +50,21 @@ jobs:
   build_docker:
     name: Build Docker
     needs: release_repository
-    uses: ./.github/workflows/build-docker.yaml
-    with:
-      build_type: development
-      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
-    secrets: inherit
-
-  tag_docker_as_stable:
-    name: Tag Docker as stable
-    needs: build_docker
-    uses: ./.github/workflows/build-docker.yaml
-    with:
-      build_type: stable
-      branch_name: ${{ needs.variables.outputs.RC_BRANCH_NAME }}
-      target_distro: humble
-      target_release: ${{ inputs.version }}
-      target_date: ${{ inputs.date }}
-    secrets: inherit
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Build Docker Image
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: husarion
+          repo: husarion_ugv_ros
+          github_token: ${{ secrets.GH_PAT }}
+          workflow_file_name: build-docker.yaml
+          ref: ${{ env.RC_BRANCH_NAME }}
+          client_payload: |
+            {
+              "build_type": "development",
+              "branch_name": "${{ env.RC_BRANCH_NAME }}"
+            }
 
   release_project:
     name: Release project

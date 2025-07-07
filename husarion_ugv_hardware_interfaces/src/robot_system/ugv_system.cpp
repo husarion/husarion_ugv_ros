@@ -123,7 +123,7 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
   auto e_stop_reset_qos = rclcpp::ServicesQoS();
   e_stop_reset_qos.keep_last(1);
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
-    "hardware/e_stop_reset", std::bind(&EStopInterface::ResetEStop, e_stop_), 2,
+    "hardware/e_stop_reset", std::bind(&UGVSystem::ResetEStop, this), 2,
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
 
   system_ros_interface_->AddDiagnosticTask(
@@ -455,6 +455,18 @@ void UGVSystem::ConfigureEStop()
     std::bind(&UGVSystem::AreVelocityCommandsNearZero, this));
 
   RCLCPP_INFO(logger_, "Successfully configured E-Stop");
+}
+
+void UGVSystem::ResetEStop()
+{
+  const auto lifecycle_state = this->get_lifecycle_state().id();
+
+  if (lifecycle_state != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+    throw std::runtime_error(
+      "Can't reset E-Stop when the hardware interface is not in ACTIVE state.");
+  }
+
+  e_stop_->ResetEStop();
 }
 
 void UGVSystem::UpdateMotorsState()

@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2025-07-09)
+------------------
 * update wheel parameters (`#544 <https://github.com/husarion/husarion_ugv_ros/issues/544>`_) (`#580 <https://github.com/husarion/husarion_ugv_ros/issues/580>`_)
 * Contributors: Infra Man
 

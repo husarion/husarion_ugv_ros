@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2025-07-09)
+------------------
 * 2.2.2 release candidate fixes (`#589 <https://github.com/husarion/husarion_ugv_ros/issues/589>`_)
 * [Backport humble-devel] Add joy2twist dependency  (`#581 <https://github.com/husarion/husarion_ugv_ros/issues/581>`_)
 * Contributors: Dawid Kmak

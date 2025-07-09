@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_battery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2025-07-09)
+------------------
 * fix charging status charging detection (`#542 <https://github.com/husarion/husarion_ugv_ros/issues/542>`_) (`#578 <https://github.com/husarion/husarion_ugv_ros/issues/578>`_)
 * Contributors: Infra Man
 

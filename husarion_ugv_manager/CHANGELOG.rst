@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2025-07-09)
+------------------
 * Fix manager tests (`#567 <https://github.com/husarion/husarion_ugv_ros/issues/567>`_) (`#568 <https://github.com/husarion/husarion_ugv_ros/issues/568>`_)
 * lights manager fix (`#538 <https://github.com/husarion/husarion_ugv_ros/issues/538>`_)
 * Contributors: Dawid Kmak, Infra Man

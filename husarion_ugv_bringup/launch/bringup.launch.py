@@ -172,14 +172,14 @@ def generate_launch_description():
         }.items(),
     )
 
-    husarion_ugv_common_dir = PythonExpression(
+    husarion_ugv_bringup_common_dir = PythonExpression(
         [
             "'",
             common_dir_path,
-            "/husarion_ugv' if '",
+            "/husarion_ugv_bringup' if '",
             common_dir_path,
             "' else '",
-            FindPackageShare("husarion_ugv"),
+            FindPackageShare("husarion_ugv_bringup"),
             "'",
         ]
     )
@@ -195,7 +195,7 @@ def generate_launch_description():
             "namespace": namespace,
             "joy2twist_params_file": PathJoinSubstitution(
                 [
-                    husarion_ugv_common_dir,
+                    husarion_ugv_bringup_common_dir,
                     "config",
                     PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
                 ]

@@ -2,6 +2,15 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_)
+* Added use_sim to compontnts (`#574 <https://github.com/husarion/husarion_ugv_ros/issues/574>`_)
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Contributors: Dawid Kmak, Jakub Delicat, action-bot, kmakd
+
 2.3.0 (2025-05-19)
 ------------------
 * Revert "Update changelog"

@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.2.2 (2025-07-09)
-------------------
+Forthcoming
+-----------
 * use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_) (`#583 <https://github.com/husarion/husarion_ugv_ros/issues/583>`_)
 * update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_) (`#579 <https://github.com/husarion/husarion_ugv_ros/issues/579>`_)
 * Added use_sim to compontnts (`#574 <https://github.com/husarion/husarion_ugv_ros/issues/574>`_) (`#576 <https://github.com/husarion/husarion_ugv_ros/issues/576>`_)

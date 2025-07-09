@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.2.2 (2025-07-09)
-------------------
+Forthcoming
+-----------
 * docs hotfix
 * update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_) (`#579 <https://github.com/husarion/husarion_ugv_ros/issues/579>`_)
 * update led docs (`#572 <https://github.com/husarion/husarion_ugv_ros/issues/572>`_) (`#573 <https://github.com/husarion/husarion_ugv_ros/issues/573>`_)

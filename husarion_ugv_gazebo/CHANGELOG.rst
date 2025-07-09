@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.2.2 (2025-07-09)
-------------------
+Forthcoming
+-----------
 * use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_) (`#583 <https://github.com/husarion/husarion_ugv_ros/issues/583>`_)
 * Update GZ topics (`#575 <https://github.com/husarion/husarion_ugv_ros/issues/575>`_)
 * Humble gz hotfix (`#530 <https://github.com/husarion/husarion_ugv_ros/issues/530>`_)

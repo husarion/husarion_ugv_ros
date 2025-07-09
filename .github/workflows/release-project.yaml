@@ -114,5 +114,5 @@ jobs:
           owner: husarion
           repo: docs_new
           github_token: ${{ secrets.GH_PAT }}
-          workflow_file_name: build.yml
+          workflow_file_name: build.yaml
           ref: master

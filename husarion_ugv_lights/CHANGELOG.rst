@@ -2,6 +2,15 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* docs hotfix
+* update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_) (`#579 <https://github.com/husarion/husarion_ugv_ros/issues/579>`_)
+* update led docs (`#572 <https://github.com/husarion/husarion_ugv_ros/issues/572>`_) (`#573 <https://github.com/husarion/husarion_ugv_ros/issues/573>`_)
+* Update common config dir (`#562 <https://github.com/husarion/husarion_ugv_ros/issues/562>`_)
+* Lights docs update (`#532 <https://github.com/husarion/husarion_ugv_ros/issues/532>`_)
+* Contributors: Infra Man, Stefan
+
 2.2.1 (2025-04-04)
 ------------------
 * merge front rear animations for docs (`#516 <https://github.com/husarion/husarion_ugv_ros/issues/516>`_)

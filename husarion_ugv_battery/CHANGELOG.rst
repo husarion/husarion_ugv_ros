@@ -2,6 +2,11 @@
 Changelog for package husarion_ugv_battery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix charging status charging detection (`#542 <https://github.com/husarion/husarion_ugv_ros/issues/542>`_) (`#578 <https://github.com/husarion/husarion_ugv_ros/issues/578>`_)
+* Contributors: Infra Man
+
 2.2.1 (2025-04-04)
 ------------------
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request

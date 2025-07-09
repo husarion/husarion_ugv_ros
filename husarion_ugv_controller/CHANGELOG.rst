@@ -2,6 +2,11 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* update wheel parameters (`#544 <https://github.com/husarion/husarion_ugv_ros/issues/544>`_) (`#580 <https://github.com/husarion/husarion_ugv_ros/issues/580>`_)
+* Contributors: Infra Man
+
 2.2.1 (2025-04-04)
 ------------------
 * Merge pull request `#509 <https://github.com/husarion/husarion_ugv_ros/issues/509>`_ from husarion/ros2-imu-ros2-controll-fix

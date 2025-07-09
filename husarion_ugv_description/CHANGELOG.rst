@@ -2,6 +2,14 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_) (`#583 <https://github.com/husarion/husarion_ugv_ros/issues/583>`_)
+* update lights driver config (`#543 <https://github.com/husarion/husarion_ugv_ros/issues/543>`_) (`#579 <https://github.com/husarion/husarion_ugv_ros/issues/579>`_)
+* Added use_sim to compontnts (`#574 <https://github.com/husarion/husarion_ugv_ros/issues/574>`_) (`#576 <https://github.com/husarion/husarion_ugv_ros/issues/576>`_)
+* Humble gz hotfix (`#530 <https://github.com/husarion/husarion_ugv_ros/issues/530>`_)
+* Contributors: Dawid Kmak, Infra Man, Jakub Delicat
+
 2.2.1 (2025-04-04)
 ------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)

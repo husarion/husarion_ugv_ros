@@ -2,6 +2,15 @@
 Changelog for package husarion_ugv_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2025-07-09)
+------------------
+* 2.3.1 release candidate fixes (`#588 <https://github.com/husarion/husarion_ugv_ros/issues/588>`_)
+* Add joy2twist dependency (`#555 <https://github.com/husarion/husarion_ugv_ros/issues/555>`_)
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Contributors: Dawid Kmak, action-bot, kmakd
+
 2.3.0 (2025-05-19)
 ------------------
 * Revert "Update changelog"

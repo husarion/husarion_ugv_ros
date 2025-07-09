@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>husarion_ugv_gazebo</name>
-  <version>2.3.0</version>
+  <version>2.3.1</version>
   <description>The packages simulating behaviour of the Husarion robots</description>
   <maintainer email="support@husarion.com">Husarion</maintainer>
   <license>Apache License 2.0</license>
@@ -28,6 +28,7 @@
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_srvs</depend>
 
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_components_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_controller</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_description</exec_depend>
@@ -39,7 +40,6 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">launch_ros</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">nav2_common</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">robot_state_publisher</exec_depend>
-  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_components_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_gz_bridge</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">tf2_ros</exec_depend>
 

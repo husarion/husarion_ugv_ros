@@ -7,7 +7,7 @@ x-common-config: &common-config
 
 services:
   husarion_ugv_ros:
-    image: husarion/husarion-ugv:jazzy-2.3.0-20250425
+    image: husarion/husarion-ugv:jazzy-2.3.1-20250701
     container_name: husarion_ugv_ros
     <<: *common-config
     security_opt:
@@ -17,10 +17,12 @@ services:
       - /dev/gpiochip0
       - /dev/spiled-channel1
       - /dev/spiled-channel2
+      - /dev/input/js0
     device_cgroup_rules:
       - 'c 189:* rmw' # USB devices
       - 'c 254:0 rmw' # gpiochip0
       - 'c 153:* rmw' # spiled-channel1, spiled-channel2
+      - 'c 13:0 rmw' # gamepad
     volumes:
       - /run/husarion/robot_config.env:/run/husarion/robot_config.env
       - /run/husarion/robot_config.yaml:/run/husarion/robot_config.yaml
@@ -39,18 +41,4 @@ services:
     command: >
       ros2 launch husarion_ugv_bringup bringup.launch.py
         common_dir_path:=/config
-
-  gamepad_controller:
-    image: husarion/joy2twist:jazzy-1.0.1-20250331
-    container_name: gamepad_controller
-    <<: *common-config
-    volumes:
-      - /home/husarion/config/common/joy2twist.yaml:/joy2twist.yaml
-    devices:
-      - /dev/input/js0
-    device_cgroup_rules:
-      - 'c 13:0 rmw' # gamepad
-    stop_signal: SIGINT
-    command: >
-      ros2 launch joy2twist gamepad_controller.launch.py
-        joy2twist_params_file:=/joy2twist.yaml
+        launch_gamepad:=true

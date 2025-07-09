@@ -164,6 +164,7 @@ public:
     std::stringstream bt;
 
     bt << tree_header_ << std::endl;
+    bt << sequence_open_tag_ << std::endl;
 
     bt << "\t\t\t\t<" << plugin_name << " ";
 
@@ -173,6 +174,7 @@ public:
 
     bt << " />" << std::endl;
 
+    bt << sequence_close_tag_ << std::endl;
     bt << tree_footer_;
 
     return bt.str();
@@ -255,13 +257,19 @@ protected:
   const std::string tree_header_ = R"(
       <root BTCPP_format="4">
         <BehaviorTree>
-          <Sequence>
   )";
 
   const std::string tree_footer_ = R"(
-            </Sequence>
         </BehaviorTree>
       </root>
+  )";
+
+  const std::string sequence_open_tag_ = R"(
+          <Sequence>
+  )";
+
+  const std::string sequence_close_tag_ = R"(
+          </Sequence>
   )";
 };
 }  // namespace husarion_ugv_manager::plugin_test_utils

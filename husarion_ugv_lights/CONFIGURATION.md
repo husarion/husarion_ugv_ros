@@ -23,6 +23,17 @@ Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config)
 |  14   | BLINKER_LEFT      |    1     | ![BLINKER_LEFT](.docs/blinker_left.webp)           |
 |  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)         |
 
+The animations work on multiple layers (priorities) and can blend with each other. On a given layer, there can be only one animation at a time. Animations with a lower priority cover those with higher priority, while respecting transparency.
+
+Here are some examples of blended animations:
+
+| STATE                       | ANIMATION                              |
+| -------------------------------- | ---------------------------------- |
+| E_STOP + CHARGING_BATTERY at 25% | ![e_stop_25](.docs/e_stop_25.webp) |
+| E_STOP + CHARGING_BATTERY at 50% | ![e_stop_50](.docs/e_stop_50.webp) |
+| E_STOP + CHARGING_BATTERY at 75% | ![e_stop_75](.docs/e_stop_75.webp) |
+| READY + CHARGING_BATTERY at 50%  | ![ready_50](.docs/ready_50.webp)   |
+
 ### Panels
 
 The `panels` section of the YAML file lists all the physical LED panels on the robot. Each panel has two attributes:
@@ -37,6 +48,9 @@ The `segments` section is used to create virtual segments on the robot by dividi
 - `name`: the identifier for the segment, such as "front" or "rear". It is used to differentiate between multiple segments.
 - `channel`: This specifies which LED panel the segment belongs to. It has to match one of the channels defined in the `panels` section.
 - `led_range`: This defines the range of LEDs within the panel that the segment covers. The range is specified as a start-end pair (e.g. 0-45). The range can be specified in reverse order (e.g. 45-0), which may be useful for wiring or orientation reasons.
+
+> [!IMPORTANT]
+> Each LED in a panel can only belong to one segment. If multiple segments are defined with overlapping `led_range` values on the same panel, only the first occurrence of each LED will be considered.
 
 ### Segments map
 
@@ -55,7 +69,7 @@ The `led_animations` section contains a list with definitions for various animat
   - `segments` [*string*, default **None**]: Indicates which segment mapping this particular animation applies to (e.g., all, front, rear).
   - `animation` [*yaml*, default: **None**]: An animation to be displayed on segments. The keys for the configuration of different animation types are explained in detail under the [**Animation Types**](#animation-types) section.
 - `id` [*int*, default: **None**]: unique ID of an animation.
-- `name` [*string*, default: **ANIMATION_`ID`**]: name of an animation. If not provided, it will default to **ANIMATION_`ID`**, where `ID` is equal to `id` parameter of the given animation.
+- `name` [*string*, default: **ANIMATION_`ID`**]: name of an animation. If not provided, it will default to **ANIMATION\_`ID`**, where `ID` is equal to `id` parameter of the given animation.
 - `priority` [*int*, default: **3**]: defines at what layer animation will be assigned. Animations with higher priority (0 corresponds to the highest) will be on top of animations with lower priority. Priorities are defined as follow:
   - **0 - ERROR** highest priority designed to signal critical errors in the system.
   - **1 - ALERT** dedicated to display one-time events e.g. goal reached etc.
@@ -73,7 +87,7 @@ Basic animation definition. Keys are inherited from the basic **Animation** clas
 - `repeat` [*int*, default: **1**]: number of times the animation will be repeated.
 
 > [!NOTE]
-> Overall display duration of an animation is a product of a single image duration and repeat count. The result of `duration` x `repeat`  can't exceed 10 **[s]**. If animation fails to fulfill the requirement, it will result in an error.
+> Overall display duration of an animation is a product of a single image duration and repeat count. The result of `duration` x `repeat` can't exceed 10 **[s]**. If animation fails to fulfill the requirement, it will result in an error.
 
 #### ImageAnimation
 
@@ -96,7 +110,11 @@ Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to
 - `image_mirrored` [*bool*, default: **false**]: mirrors the provided image horizontally.
 - `position_mirrored` [*bool*, default: **false**]: switches the position of 0.0 and 1.0 values of the param.
 
-![MovingImageAnimation](.docs/MovingImageAnimation.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcSet=".docs/MovingImageAnimation.png" />
+  <source media="(prefers-color-scheme: light)" srcSet=".docs/MovingImageAnimationLight.png" />
+  <img alt="MovingImageAnimation" src=".docs/MovingImageAnimation.png" />
+</picture>
 
 ### Defining Animations
 
@@ -170,7 +188,7 @@ user_animations:
 
 Remember to modify launch command to use user animations:
 
-``` bash
+```bash
 ros2 launch husarion_ugv_bringup bringup.launch user_animations_file:=/my_awesome_user_animations.yaml
 ```
 

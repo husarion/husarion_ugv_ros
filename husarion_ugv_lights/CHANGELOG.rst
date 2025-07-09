@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.1 (2025-07-09)
+------------------
 * Add closing bracket
 * update led docs (`#572 <https://github.com/husarion/husarion_ugv_ros/issues/572>`_)
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

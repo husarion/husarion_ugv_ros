@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.1 (2025-07-09)
+------------------
 * Move hw activate (`#585 <https://github.com/husarion/husarion_ugv_ros/issues/585>`_)
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

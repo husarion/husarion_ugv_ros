@@ -2,6 +2,17 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2025-07-09)
+------------------
+* Add closing bracket
+* update led docs (`#572 <https://github.com/husarion/husarion_ugv_ros/issues/572>`_)
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel
+* Update common config dir (`#540 <https://github.com/husarion/husarion_ugv_ros/issues/540>`_)
+* Better husarion_ugv_lights documentation  (`#531 <https://github.com/husarion/husarion_ugv_ros/issues/531>`_)
+* Contributors: Dawid Kmak, Stefan, action-bot, kmakd, rafal-gorecki
+
 2.3.0 (2025-05-19)
 ------------------
 * Revert "Update changelog"

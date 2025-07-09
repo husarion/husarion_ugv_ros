@@ -38,6 +38,7 @@ jobs:
 
   release_repository:
     name: Release repository
+    needs: variables
     uses: ./.github/workflows/release-repository.yaml
     with:
       release_candidate: ${{ needs.variables.outputs.RC_BRANCH_NAME }}

@@ -27,12 +27,13 @@
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />
 
   <xacro:unless value="${components_config_path_property == 'None'}">
-    <xacro:include filename="$(find ros_components_description)/urdf/components.urdf.xacro"
+    <xacro:include filename="$(find husarion_components_description)/urdf/components.urdf.xacro"
       ns="husarion_components" />
 
     <xacro:husarion_components.create_components
       components_config_path="${components_config_path_property}"
       namespace="$(arg namespace)"
+      use_sim="$(arg use_sim)"
     />
   </xacro:unless>
 </robot>

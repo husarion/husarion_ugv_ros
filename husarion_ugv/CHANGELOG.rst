@@ -2,6 +2,14 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.2 (2025-07-09)
+------------------
+* 2.2.2 release candidate fixes (`#589 <https://github.com/husarion/husarion_ugv_ros/issues/589>`_)
+* use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_) (`#583 <https://github.com/husarion/husarion_ugv_ros/issues/583>`_)
+* [Backport humble-devel] Add joy2twist dependency  (`#581 <https://github.com/husarion/husarion_ugv_ros/issues/581>`_)
+* Update ros_components deps (`#526 <https://github.com/husarion/husarion_ugv_ros/issues/526>`_)
+* Contributors: Dawid Kmak, Rafal Gorecki
+
 2.2.1 (2025-04-04)
 ------------------
 * bump components version (`#519 <https://github.com/husarion/husarion_ugv_ros/issues/519>`_)

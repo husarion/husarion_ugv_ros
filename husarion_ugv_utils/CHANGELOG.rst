@@ -2,6 +2,9 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.2 (2025-07-09)
+------------------
+
 2.2.1 (2025-04-04)
 ------------------
 * Merge branch 'ros2-devel' of https://github.com/husarion/panther_ros into ros2-shutdown-request

@@ -5,7 +5,8 @@ on:
   workflow_call:
     inputs:
       release_candidate:
-        description: Branch name of the release candidate. WARNING This branch will be deleted!
+        description: Branch name of the release candidate. This branch will will not be deleted, you should
+          delete it manually after the release is done.
         required: true
         type: string
       version:
@@ -32,8 +33,8 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      MAIN_BRANCH: ros2
-      DEVEL_BRANCH: ros2-devel
+      MAIN_BRANCH: humble
+      DEVEL_BRANCH: humble-devel
     steps:
       - name: Checkout to rc branch
         uses: actions/checkout@v4
@@ -88,7 +89,7 @@ jobs:
         if: ${{ inputs.release_candidate != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
           gh pr merge ${{ inputs.release_candidate }} \
-          --merge --delete-branch
+          --merge
 
       - name: Create prerelease
         if: ${{ inputs.automatic_mode && inputs.prerelease}}
@@ -117,5 +118,6 @@ jobs:
       - name: Update devel branch
         if: ${{ env.DEVEL_BRANCH != env.MAIN_BRANCH && inputs.automatic_mode }}
         run: |
+          git config pull.rebase false
           git pull origin ${{ env.MAIN_BRANCH }}
           git push origin ${{ env.DEVEL_BRANCH }}

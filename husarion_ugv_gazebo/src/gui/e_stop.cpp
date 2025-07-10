@@ -14,14 +14,14 @@
 
 #include "husarion_ugv_gazebo/gui/e_stop.hpp"
 
-#include <ignition/common/Console.hh>
-#include <ignition/gui/Application.hh>
-#include <ignition/plugin/Register.hh>
+#include <gz/common/Console.hh>
+#include <gz/gui/Application.hh>
+#include <gz/plugin/Register.hh>
 
 namespace husarion_ugv_gazebo
 {
 
-EStop::EStop() : ignition::gui::Plugin()
+EStop::EStop() : gz::gui::Plugin()
 {
   rclcpp::init(0, nullptr);
   node_ = std::make_shared<rclcpp::Node>("gz_estop_gui");

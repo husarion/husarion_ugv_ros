@@ -110,7 +110,8 @@ protected:
   static constexpr int kBatPresentMeanLen = 10;
   static constexpr float kChargingCurrentTresh = 0.1;
   static constexpr float kBatDetectTresh = 3.03;
-  static constexpr float kVBatFatalMin = 27.0;
+  static constexpr float kVBatFatalMinRangeMax = 27.0;
+  static constexpr float kVBatFatalMinRangeMin = 20.0;
   static constexpr float kVBatFatalMax = 43.0;
   static constexpr float kLowBatTemp = -10.0;
   static constexpr float kOverheatBatTemp = 45.0;

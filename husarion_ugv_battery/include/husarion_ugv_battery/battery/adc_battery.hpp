@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -63,7 +64,8 @@ private:
   void UpdateBatteryStateRaw();
   void UpdateChargingStatus(const rclcpp::Time & header_stamp, const bool charger_connected);
   std::uint8_t GetBatteryStatus(const bool charger_connected);
-  std::uint8_t GetBatteryHealth(const float voltage, const float temp);
+  std::uint8_t GetBatteryHealth(
+    const rclcpp::Time & header_stamp, const float voltage, const float temp);
   bool IsCharging(const bool charger_connected) const;
 
   // ADC conversion parameters. Values were determined based on voltage divider
@@ -85,6 +87,9 @@ private:
   // may be broken.
   static constexpr float kBatteryCCCheckTresh = 41.2;
 
+  // Timeout for battery dead detection
+  static constexpr float kBatteryDeadDetectionTimeout = 2.0;
+
   float voltage_raw_;
   float current_raw_;
   float temp_raw_;
@@ -94,6 +99,8 @@ private:
   const std::function<float()> ReadCurrent;
   const std::function<float()> ReadTemp;
   const std::function<float()> ReadCharge;
+
+  std::optional<rclcpp::Time> battery_dead_detection_time_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> voltage_ma_;
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> current_ma_;

@@ -18,6 +18,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -116,7 +117,7 @@ void RoboteqBattery::UpdateBatteryState(const rclcpp::Time & header_stamp)
   battery_state_.present = true;
   battery_state_.location = kLocation;
   battery_state_.power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
-  battery_state_.power_supply_health = GetBatteryHealth(V_bat);
+  battery_state_.power_supply_health = GetBatteryHealth(header_stamp, V_bat);
 }
 
 void RoboteqBattery::UpdateBatteryStateRaw()
@@ -136,18 +137,29 @@ void RoboteqBattery::UpdateChargingStatus(const rclcpp::Time & header_stamp)
   charging_status_.charger_type = ChargingStatusMsg::UNKNOWN;
 }
 
-std::uint8_t RoboteqBattery::GetBatteryHealth(const float voltage)
+std::uint8_t RoboteqBattery::GetBatteryHealth(
+  const rclcpp::Time & header_stamp, const float voltage)
 {
-  if (voltage < kVBatFatalMin) {
-    SetErrorMsg("Battery voltage is critically low!");
-    return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
-  } else if (voltage > kVBatFatalMax) {
+  if (voltage > kVBatFatalMinRangeMin && voltage < kVBatFatalMinRangeMax) {
+    if (!battery_dead_detection_time_.has_value()) {
+      battery_dead_detection_time_ = header_stamp;
+    } else if (
+      (header_stamp - battery_dead_detection_time_.value()) >
+      std::chrono::duration<float>(kBatteryDeadDetectionTimeout)) {
+      SetErrorMsg("Battery voltage is critically low!");
+      return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
+    }
+  } else {
+    battery_dead_detection_time_.reset();
+  }
+
+  if (voltage > kVBatFatalMax) {
     SetErrorMsg("Battery overvoltage!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERVOLTAGE;
-  } else {
-    SetErrorMsg("");
-    return BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
   }
+
+  SetErrorMsg("");
+  return BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
 }
 
 bool RoboteqBattery::DriverStateHeartbeatTimeout()

@@ -10,7 +10,7 @@ repositories:
   husarion_gz_worlds:
     type: git
     url: https://github.com/husarion/husarion_gz_worlds.git
-    version: 97275568c34e6fe191ca34fa1c1c2b897faf9610
+    version: 3cc8018a49de082f5e4d3fa7afa4e30dda9307c6
   husarion_components_description:
     type: git
     url: https://github.com/husarion/husarion_components_description.git

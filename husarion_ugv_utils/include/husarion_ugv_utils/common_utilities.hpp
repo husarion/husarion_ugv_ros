@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_
-#define HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_
 
 #include <cmath>
 #include <fstream>
@@ -123,4 +123,4 @@ inline bool MeetsVersionRequirement(const float version, const float required_ve
 
 }  // namespace husarion_ugv_utils::common_utilities
 
-#endif  // HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_COMMON_UTILITIES_HPP_

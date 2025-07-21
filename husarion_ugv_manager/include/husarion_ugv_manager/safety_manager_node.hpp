@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
-#define HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
 
 #include <map>
 #include <memory>
@@ -111,4 +111,4 @@ private:
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_

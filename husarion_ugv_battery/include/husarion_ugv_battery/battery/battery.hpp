@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
-#define HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
+#ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
+#define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
 
 #include <algorithm>
 #include <limits>
@@ -130,4 +130,4 @@ protected:
 
 }  // namespace husarion_ugv_battery
 
-#endif  // HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
+#endif  // HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_

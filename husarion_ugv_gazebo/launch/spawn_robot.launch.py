@@ -60,7 +60,7 @@ def generate_launch_description():
 
     y = LaunchConfiguration("y")
     declare_y_arg = DeclareLaunchArgument(
-        "y", default_value="-2.0", description="Initial robot position in the global 'y' axis."
+        "y", default_value="0.0", description="Initial robot position in the global 'y' axis."
     )
 
     z = LaunchConfiguration("z")

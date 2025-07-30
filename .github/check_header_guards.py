@@ -70,10 +70,17 @@ def has_endif(lines, expected_macro):
 
 def check_guard(filepath, repo_root):
     filepath = Path(filepath)
+
+    if not filepath.exists():
+        return False, f"File not found: {filepath}"
+
     expected_macro = to_macro_name(filepath, repo_root)
 
-    with filepath.open("r") as f:
-        lines = f.readlines()
+    try:
+        with filepath.open("r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except (IOError, UnicodeDecodeError) as e:
+        return False, f"Error reading file {filepath}: {e}"
 
     ifndef_line, define_line = find_guard_lines(lines, expected_macro)
     endif_ok = has_endif(lines, expected_macro)

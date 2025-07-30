@@ -87,9 +87,6 @@ private:
   // may be broken.
   static constexpr float kBatteryCCCheckTresh = 41.2;
 
-  // Timeout for battery dead detection
-  static constexpr float kBatteryDeadDetectionTimeout = 2.0;
-
   float voltage_raw_;
   float current_raw_;
   float temp_raw_;
@@ -99,8 +96,6 @@ private:
   const std::function<float()> ReadCurrent;
   const std::function<float()> ReadTemp;
   const std::function<float()> ReadCharge;
-
-  std::optional<rclcpp::Time> battery_dead_detection_time_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> voltage_ma_;
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> current_ma_;

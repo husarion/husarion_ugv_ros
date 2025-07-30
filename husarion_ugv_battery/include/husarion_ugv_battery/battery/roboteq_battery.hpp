@@ -69,15 +69,10 @@ private:
 
   std::function<RobotDriverStateMsg::SharedPtr()> GetRobotDriverState;
 
-  // Timeout for battery dead detection
-  static constexpr float kBatteryDeadDetectionTimeout = 2.0;
-
   const float driver_state_timeout_;
   float voltage_raw_;
   float current_raw_;
   RobotDriverStateMsg::SharedPtr driver_state_;
-
-  std::optional<rclcpp::Time> battery_dead_detection_time_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> voltage_ma_;
   std::unique_ptr<husarion_ugv_utils::MovingAverage<float>> current_ma_;

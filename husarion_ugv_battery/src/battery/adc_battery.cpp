@@ -183,17 +183,9 @@ std::uint8_t ADCBattery::GetBatteryStatus(const bool charger_connected)
 std::uint8_t ADCBattery::GetBatteryHealth(
   const rclcpp::Time & header_stamp, const float voltage, const float temp)
 {
-  if (voltage > kVBatFatalMinRangeMin && voltage < kVBatFatalMinRangeMax) {
-    if (!battery_dead_detection_time_.has_value()) {
-      battery_dead_detection_time_ = header_stamp;
-    } else if (
-      (header_stamp - battery_dead_detection_time_.value()) >
-      std::chrono::duration<float>(kBatteryDeadDetectionTimeout)) {
-      SetErrorMsg("Battery voltage is critically low!");
-      return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
-    }
-  } else {
-    battery_dead_detection_time_.reset();
+  if (this->IsBatteryDead(header_stamp, voltage)) {
+    SetErrorMsg("Battery voltage is critically low!");
+    return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
   }
 
   if (temp >= kOverheatBatTemp) {

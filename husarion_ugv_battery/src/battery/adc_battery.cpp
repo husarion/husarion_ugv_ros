@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -140,7 +141,7 @@ void ADCBattery::UpdateBatteryState(const rclcpp::Time & header_stamp, const boo
   battery_state_.present = true;
   battery_state_.location = kLocation;
   battery_state_.power_supply_status = GetBatteryStatus(charger_connected);
-  battery_state_.power_supply_health = GetBatteryHealth(V_bat, temp_bat);
+  battery_state_.power_supply_health = GetBatteryHealth(header_stamp, V_bat, temp_bat);
 }
 
 void ADCBattery::UpdateBatteryStateRaw()
@@ -179,24 +180,31 @@ std::uint8_t ADCBattery::GetBatteryStatus(const bool charger_connected)
   return BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
-std::uint8_t ADCBattery::GetBatteryHealth(const float voltage, const float temp)
+std::uint8_t ADCBattery::GetBatteryHealth(
+  const rclcpp::Time & header_stamp, const float voltage, const float temp)
 {
-  if (voltage < kVBatFatalMin) {
+  if (this->IsBatteryDead(header_stamp, voltage)) {
     SetErrorMsg("Battery voltage is critically low!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
-  } else if (temp >= kOverheatBatTemp) {
+  }
+
+  if (temp >= kOverheatBatTemp) {
     SetErrorMsg("Battery is overheating!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT;
-  } else if (voltage > kVBatFatalMax) {
+  }
+
+  if (voltage > kVBatFatalMax) {
     SetErrorMsg("Battery overvoltage!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERVOLTAGE;
-  } else if (temp < kLowBatTemp) {
+  }
+
+  if (temp < kLowBatTemp) {
     SetErrorMsg("The battery is too cold! It may result in reduced effectiveness.");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD;
-  } else {
-    SetErrorMsg("");
-    return BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
   }
+
+  SetErrorMsg("");
+  return BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
 }
 
 bool ADCBattery::IsCharging(const bool charger_connected) const

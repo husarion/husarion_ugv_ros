@@ -56,7 +56,9 @@ public:
   ~TestRoboteqBattery() {}
 
 protected:
-  void UpdateBattery(const float voltage, const float current);
+  void UpdateBattery(
+    const float voltage, const float current,
+    const rclcpp::Time & stamp = rclcpp::Time(0, 0, RCL_ROS_TIME));
   void TestDefaultBatteryStateMsg(
     const std::uint8_t power_supply_status, const std::uint8_t power_supply_health);
 
@@ -77,15 +79,14 @@ TestRoboteqBattery::TestRoboteqBattery()
   battery_ = std::make_unique<RoboteqBatteryWrapper>([&]() { return driver_state_; }, params);
 }
 
-void TestRoboteqBattery::UpdateBattery(const float voltage, const float current)
+void TestRoboteqBattery::UpdateBattery(
+  const float voltage, const float current, const rclcpp::Time & stamp)
 {
   if (!driver_state_) {
     driver_state_ = std::make_shared<RobotDriverStateMsg>();
     driver_state_->driver_states.push_back(husarion_ugv_msgs::msg::DriverStateNamed());
     driver_state_->driver_states.push_back(husarion_ugv_msgs::msg::DriverStateNamed());
   }
-
-  auto stamp = rclcpp::Time(0, 0, RCL_ROS_TIME);
 
   driver_state_->header.stamp = stamp;
   driver_state_->driver_states.at(0).state.voltage = voltage;
@@ -195,11 +196,26 @@ TEST_F(TestRoboteqBattery, BatteryMsgValues)
 
 TEST_F(TestRoboteqBattery, BatteryMsgHealthDead)
 {
-  UpdateBattery(26.0, 0.1);
+  const auto detection_timeout = 2.0f;
+  const rclcpp::Time detection_start_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  const rclcpp::Time detection_timeout_time =
+    detection_start_time + std::chrono::duration<float>(detection_timeout + 0.01);
 
+  UpdateBattery(26.0, 0.1, detection_start_time);
+  EXPECT_FLOAT_EQ(0.0, battery_state_.percentage);
+  EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD, battery_state_.power_supply_health);
+  EXPECT_FALSE(battery_->HasErrorMsg());
+
+  UpdateBattery(26.0, 0.1, detection_timeout_time);
   EXPECT_FLOAT_EQ(0.0, battery_state_.percentage);
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD, battery_state_.power_supply_health);
   EXPECT_TRUE(battery_->HasErrorMsg());
+
+  // With voltage below 20.0V battery should not be considered dead
+  UpdateBattery(0.0, 0.1, detection_timeout_time);
+  EXPECT_FLOAT_EQ(0.0, battery_state_.percentage);
+  EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD, battery_state_.power_supply_health);
+  EXPECT_FALSE(battery_->HasErrorMsg());
 }
 
 TEST_F(TestRoboteqBattery, BatteryMsgHealthOvervoltage)

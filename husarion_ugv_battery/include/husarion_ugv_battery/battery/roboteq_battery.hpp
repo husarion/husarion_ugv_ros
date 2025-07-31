@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -63,7 +64,7 @@ private:
   void UpdateBatteryState(const rclcpp::Time & header_stamp);
   void UpdateBatteryStateRaw();
   void UpdateChargingStatus(const rclcpp::Time & header_stamp);
-  std::uint8_t GetBatteryHealth(const float voltage);
+  std::uint8_t GetBatteryHealth(const rclcpp::Time & header_stamp, const float voltage);
   bool DriverStateHeartbeatTimeout();
 
   std::function<RobotDriverStateMsg::SharedPtr()> GetRobotDriverState;

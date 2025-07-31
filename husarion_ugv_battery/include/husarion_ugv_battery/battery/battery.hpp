@@ -106,15 +106,34 @@ protected:
     charging_status_.charger_type = ChargingStatusMsg::UNKNOWN;
   }
 
+  bool IsBatteryDead(const rclcpp::Time & header_stamp, const float voltage)
+  {
+    if (voltage > kVBatFatalMinRangeMin && voltage < kVBatFatalMinRangeMax) {
+      if (!battery_dead_detection_time_.has_value()) {
+        battery_dead_detection_time_ = header_stamp;
+      } else if (
+        (header_stamp - battery_dead_detection_time_.value()) >
+        std::chrono::duration<float>(kBatteryDeadDetectionTimeout)) {
+        return true;
+      }
+    } else {
+      battery_dead_detection_time_.reset();
+    }
+
+    return false;
+  }
+
   static constexpr int kNumberOfCells = 10;
   static constexpr int kBatPresentMeanLen = 10;
   static constexpr float kChargingCurrentTresh = 0.1;
   static constexpr float kBatDetectTresh = 3.03;
-  static constexpr float kVBatFatalMin = 27.0;
+  static constexpr float kVBatFatalMinRangeMax = 27.0;
+  static constexpr float kVBatFatalMinRangeMin = 20.0;
   static constexpr float kVBatFatalMax = 43.0;
   static constexpr float kLowBatTemp = -10.0;
   static constexpr float kOverheatBatTemp = 45.0;
   static constexpr float kDesignedCapacity = 20.0;
+  static constexpr float kBatteryDeadDetectionTimeout = 2.0;
   static constexpr std::string_view kLocation = "user_compartment";
 
   static constexpr float battery_approx_ranges[5] = {41.25, 37.0, 36.0, 35.0, 33.7};
@@ -126,6 +145,7 @@ protected:
   BatteryStateMsg battery_state_;
   BatteryStateMsg battery_state_raw_;
   ChargingStatusMsg charging_status_;
+  std::optional<rclcpp::Time> battery_dead_detection_time_;
 };
 
 }  // namespace husarion_ugv_battery

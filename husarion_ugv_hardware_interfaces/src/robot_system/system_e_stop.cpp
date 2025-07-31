@@ -32,11 +32,12 @@ bool EStop::ReadEStopState()
     // Roboteq or Safety Board), disabling the software Watchdog is necessary to prevent an
     // uncontrolled reset.
     if (e_stop_triggered_) {
+      software_e_stop_triggered_ = true;
       gpio_controller_->EStopTrigger();
     }
   }
 
-  return e_stop_triggered_;
+  return e_stop_triggered_ || software_e_stop_triggered_;
 }
 
 void EStop::TriggerEStop()
@@ -45,6 +46,7 @@ void EStop::TriggerEStop()
 
   std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
   try {
+    software_e_stop_triggered_ = true;
     gpio_controller_->EStopTrigger();
   } catch (const std::runtime_error & e) {
     throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
@@ -79,6 +81,7 @@ void EStop::ResetEStop()
     roboteq_error_filter_->SetClearErrorsFlag();
 
     e_stop_triggered_ = false;
+    software_e_stop_triggered_ = false;
   } else {
     std::fprintf(stdout, "E-stop trigger operation is in progress, skipping reset.");
   }

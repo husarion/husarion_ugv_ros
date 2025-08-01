@@ -97,3 +97,11 @@ repos:
     hooks:
       - id: prettier-package-xml
       - id: sort-package-xml
+
+  - repo: local
+    hooks:
+      - id: header-guard-check
+        name: header guard check
+        entry: python3 .github/check_header_guards.py
+        language: system
+        files: \.hpp$

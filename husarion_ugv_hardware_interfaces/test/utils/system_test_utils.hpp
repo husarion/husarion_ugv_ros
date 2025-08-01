@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_HARDWARE_INTERFACES_TEST_SYSTEM_TEST_UTILS_HPP_
-#define HUSARION_UGV_HARDWARE_INTERFACES_TEST_SYSTEM_TEST_UTILS_HPP_
+#ifndef HUSARION_UGV_HARDWARE_INTERFACES_TEST_UTILS_SYSTEM_TEST_UTILS_HPP_
+#define HUSARION_UGV_HARDWARE_INTERFACES_TEST_UTILS_SYSTEM_TEST_UTILS_HPP_
 
 #include <cstdint>
 #include <future>
@@ -176,4 +176,4 @@ hardware_interface::HardwareInfo GenerateDefaultHardwareInfo()
 
 }  // namespace husarion_ugv_hardware_interfaces_test
 
-#endif  // HUSARION_UGV_HARDWARE_INTERFACES_TEST_SYSTEM_TEST_UTILS_HPP_
+#endif  // HUSARION_UGV_HARDWARE_INTERFACES_TEST_UTILS_SYSTEM_TEST_UTILS_HPP_

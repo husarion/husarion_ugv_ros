@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
-#define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
 
 #include <any>
 #include <iostream>
@@ -151,4 +151,4 @@ private:
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_MANAGER_HPP_

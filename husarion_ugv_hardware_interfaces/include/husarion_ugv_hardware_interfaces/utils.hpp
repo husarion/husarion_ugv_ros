@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
-#define HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
+#ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
+#define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
 
 #include <cstdint>
 #include <functional>
@@ -61,4 +61,4 @@ bool CheckIfJointNameContainValidSequence(const std::string & name, const std::s
 
 }  // namespace husarion_ugv_hardware_interfaces
 
-#endif  // HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
+#endif  // HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_

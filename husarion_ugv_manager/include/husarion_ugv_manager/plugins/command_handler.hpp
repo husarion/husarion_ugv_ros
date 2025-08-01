@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_HPP_
-#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_COMMAND_HANDLER_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_COMMAND_HANDLER_HPP_
 
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -228,4 +228,4 @@ inline void CommandHandler::KillChildProcess()
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_COMMAND_HANDLER_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_COMMAND_HANDLER_HPP_

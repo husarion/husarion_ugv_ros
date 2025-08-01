@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
-#define HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
+#ifndef HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_
+#define HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_
 
 #include <functional>
 #include <limits>
@@ -273,4 +273,4 @@ protected:
   )";
 };
 }  // namespace husarion_ugv_manager::plugin_test_utils
-#endif  // HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
+#endif  // HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_

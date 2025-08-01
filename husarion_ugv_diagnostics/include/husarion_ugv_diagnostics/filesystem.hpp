@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_
-#define HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_
+#ifndef HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_
+#define HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_
 
 #include <filesystem>
 #include <fstream>
@@ -112,4 +112,4 @@ public:
 
 }  // namespace husarion_ugv_diagnostics
 
-#endif  // HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_
+#endif  // HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_FILESYSTEM_HPP_

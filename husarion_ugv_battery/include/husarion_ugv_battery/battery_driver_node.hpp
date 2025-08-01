@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_
-#define HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_
+#ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_
+#define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_
 
 #include <memory>
 #include <string>
@@ -67,4 +67,4 @@ private:
 
 }  // namespace husarion_ugv_battery
 
-#endif  // HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_
+#endif  // HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_DRIVER_NODE_HPP_

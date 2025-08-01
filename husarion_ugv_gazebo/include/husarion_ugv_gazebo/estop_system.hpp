@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_GAZEBO_ESTOP_SYSTEM
-#define HUSARION_UGV_GAZEBO_ESTOP_SYSTEM
+#ifndef HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_ESTOP_SYSTEM_HPP_
+#define HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_ESTOP_SYSTEM_HPP_
 
 #include <memory>
 
@@ -71,4 +71,4 @@ private:
 
 }  // namespace husarion_ugv_gazebo
 
-#endif  // HUSARION_UGV_GAZEBO_ESTOP_SYSTEM
+#endif  // HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_ESTOP_SYSTEM_HPP_

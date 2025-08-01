@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
-#define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
 
 #include <any>
 #include <chrono>
@@ -175,4 +175,4 @@ inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::Pos
 
 }  // namespace BT
 
-#endif  // HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_

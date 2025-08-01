@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_
-#define HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_
 
 #include <map>
 #include <string>
@@ -51,4 +51,4 @@ void AddKeyValueIfTrue(
 
 }  // namespace husarion_ugv_utils::diagnostics
 
-#endif  // HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_DIAGNOSTICS_HPP_

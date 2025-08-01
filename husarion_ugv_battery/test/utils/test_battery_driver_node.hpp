@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_
-#define HUSARION_UGV_BATTERY_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_
+#ifndef HUSARION_UGV_BATTERY_TEST_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_
+#define HUSARION_UGV_BATTERY_TEST_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_
 
 #include <filesystem>
 #include <fstream>
@@ -146,4 +146,4 @@ void TestBatteryNode::WriteNumberToFile(const T number, const std::string & file
   }
 }
 
-#endif  // HUSARION_UGV_BATTERY_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_
+#endif  // HUSARION_UGV_BATTERY_TEST_UTILS_TEST_BATTERY_DRIVER_NODE_HPP_

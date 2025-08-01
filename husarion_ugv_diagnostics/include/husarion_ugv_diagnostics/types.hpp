@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_
-#define HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_
+#ifndef HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_
+#define HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_
 
 #include <vector>
 
@@ -37,4 +37,4 @@ struct SystemStatus
 
 }  // namespace husarion_ugv_diagnostics
 
-#endif  // HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_
+#endif  // HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_TYPES_HPP_

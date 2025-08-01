@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
-#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
+#ifndef HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
+#define HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
 
 #include <array>
 #include <cstdint>
@@ -121,4 +121,4 @@ private:
 
 }  // namespace husarion_ugv_lights
 
-#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_
+#endif  // HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_LED_ANIMATION_HPP_

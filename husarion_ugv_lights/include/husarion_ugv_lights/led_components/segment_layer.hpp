@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
-#define HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
+#ifndef HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
+#define HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
 
 #include <cstdint>
 #include <string>
@@ -74,4 +74,4 @@ protected:
 
 }  // namespace husarion_ugv_lights
 
-#endif  // HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_
+#endif  // HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LED_COMPONENTS_SEGMENT_LAYER_HPP_

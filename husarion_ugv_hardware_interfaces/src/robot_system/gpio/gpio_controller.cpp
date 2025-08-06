@@ -133,13 +133,14 @@ void GPIOController::EStopReset()
   const auto e_stop_pin = GPIOPin::E_STOP_RESET;
   bool e_stop_state = !gpio_driver_->IsPinActive(e_stop_pin);
 
+  watchdog_->TurnOn();
+
   if (!e_stop_state) {
     fprintf(stdout, "[GPIOController] E-stop is not active, reset is not needed\n");
     return;
   }
 
   gpio_driver_->ChangePinDirection(e_stop_pin, gpiod::line::direction::OUTPUT);
-  watchdog_->TurnOn();
   gpio_driver_->SetPinValue(e_stop_pin, true);
 
   if (!WaitFor(std::chrono::milliseconds(100))) {

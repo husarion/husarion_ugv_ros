@@ -113,6 +113,7 @@ protected:
 
   std::mutex e_stop_manipulation_mtx_;
   std::atomic_bool e_stop_triggered_ = true;
+  std::atomic_bool software_e_stop_triggered_ = true;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

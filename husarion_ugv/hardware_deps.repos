@@ -6,7 +6,7 @@ repositories:
   husarion_controllers:
     type: git
     url: https://github.com/husarion/husarion_controllers
-    version: 632a4d248227288afd99cf11179b019d968bda7b
+    version: 9916ab4e087930b3ff947efec321ab9f8df531c5
   husarion_components_description:
     type: git
     url: https://github.com/husarion/husarion_components_description.git
@@ -14,7 +14,7 @@ repositories:
   joy2twist:
     type: git
     url: https://github.com/husarion/joy2twist.git
-    version: 8be8ae24bd0dbfc9f6d557168107f605ba61bf53
+    version: 05a699aea7fa67c82db9c5c9c218b55b61626da2
   launch: # There is a bug in official launch package. Track issue: https://github.com/ros2/launch/issues/894
     type: git
     url: https://github.com/rafal-gorecki/launch.git

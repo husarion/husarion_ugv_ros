@@ -107,22 +107,35 @@
 
   <BehaviorTree ID="StateAnimationSubtree">
     <Sequence>
-      <Sequence _skipIf="e_stop_state">
-        <CallSetLedAnimationService name="SetReadyAnimation"
-                                    id="{READY_ANIM_ID}"
-                                    param=""
-                                    repeating="true"
-                                    service_name="lights/set_animation"
-                                    _skipIf="drive_state || current_anim_id == READY_ANIM_ID"
-                                    _onSuccess="current_anim_id = READY_ANIM_ID"/>
+      <IfThenElse _skipIf="e_stop_state">
+        <CheckStringMsg topic_name="twist_mux_controller/source"
+                        data="manual"/>
         <CallSetLedAnimationService name="SetManualActionAnimation"
                                     id="{MANUAL_ACTION_ANIM_ID}"
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
-                                    _skipIf="(!drive_state) || current_anim_id == MANUAL_ACTION_ANIM_ID"
+                                    _skipIf="current_anim_id == MANUAL_ACTION_ANIM_ID"
                                     _onSuccess="current_anim_id = MANUAL_ACTION_ANIM_ID"/>
-      </Sequence>
+        <IfThenElse>
+          <CheckStringMsg topic_name="twist_mux_controller/source"
+                          data="autonomous"/>
+          <CallSetLedAnimationService name="SetManualActionAnimation"
+                                      id="{AUTONOMOUS_ACTION_ANIM_ID}"
+                                      param=""
+                                      repeating="true"
+                                      service_name="lights/set_animation"
+                                      _skipIf="current_anim_id == AUTONOMOUS_ACTION_ANIM_ID"
+                                      _onSuccess="current_anim_id = AUTONOMOUS_ACTION_ANIM_ID"/>
+          <CallSetLedAnimationService name="SetReadyAnimation"
+                                      id="{READY_ANIM_ID}"
+                                      param=""
+                                      repeating="true"
+                                      service_name="lights/set_animation"
+                                      _skipIf="current_anim_id == READY_ANIM_ID"
+                                      _onSuccess="current_anim_id = READY_ANIM_ID"/>
+        </IfThenElse>
+      </IfThenElse>
       <CallSetLedAnimationService name="SetEStopAnimation"
                                   id="{E_STOP_ANIM_ID}"
                                   param=""
@@ -143,6 +156,11 @@
                   default="false">indicates if animation should repeat</input_port>
       <input_port name="service_name">ROS service name</input_port>
     </Action>
+    <Condition ID="CheckStringMsg"
+               editable="true">
+      <input_port name="topic_name">Topic name</input_port>
+      <input_port name="data">Specifies the expected state of the data field</input_port>
+    </Condition>
     <Decorator ID="TickAfterTimeout"
                editable="true">
       <input_port name="timeout">time in s to wait before ticking child again</input_port>

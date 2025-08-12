@@ -10,17 +10,17 @@
 - topic_name: /<namespace>/manual/cmd_vel
   ros_type_name: geometry_msgs/msg/TwistStamped
   gz_type_name: gz.msgs.Twist
-  direction: BIDIRECTIONAL
+  direction: GZ_TO_ROS
 
 - topic_name: /<namespace>/autonomous/cmd_vel
   ros_type_name: geometry_msgs/msg/TwistStamped
   gz_type_name: gz.msgs.Twist
-  direction: BIDIRECTIONAL
+  direction: GZ_TO_ROS
 
 - topic_name: /<namespace>/cmd_vel
   ros_type_name: geometry_msgs/msg/TwistStamped
   gz_type_name: gz.msgs.Twist
-  direction: BIDIRECTIONAL
+  direction: GZ_TO_ROS
 
 - topic_name: /<namespace>/lights/channel_1_frame
   ros_type_name: sensor_msgs/msg/Image

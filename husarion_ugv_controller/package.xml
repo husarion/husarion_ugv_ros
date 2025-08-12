@@ -28,6 +28,7 @@
   <exec_depend>mecanum_drive_controller</exec_depend>
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>twist_mux_controller</exec_depend>
   <exec_depend>xacro</exec_depend>
 
   <export>

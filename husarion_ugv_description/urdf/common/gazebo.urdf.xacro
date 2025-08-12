@@ -43,6 +43,7 @@
           <remapping>imu_broadcaster/imu:=imu/data</remapping>
           <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
           <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
+          <remapping>twist_mux_controller/transition_event:=twist_mux_controller/_transition_event</remapping>
         </ros>
       </plugin>
     </gazebo>

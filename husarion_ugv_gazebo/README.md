@@ -20,6 +20,7 @@ ros2 launch husarion_ugv_gazebo simulation.launch.py gz_world:=<world>
 Where `<world>` is either a path to an SDF file or the name of a built-in world in `husarion_gz_worlds`. The default world is `husarion_world`.
 
 Available worlds:
+
 - `cave`
 - `empty_with_plugins`
 - `husarion_office`

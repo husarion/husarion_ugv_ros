@@ -31,6 +31,7 @@ Node responsible for managing Bumper Lights animation scheduling.
 
 - `battery/battery_status` [*sensor_msgs/BatteryState*]: State of the internal Battery.
 - `hardware/e_stop` [*std_msgs/Bool*]: State of emergency stop.
+- `twist_mux_controller/source` [*std_msgs/String]: Source of the command velocity.
 
 #### Service Clients (for Default Trees)
 

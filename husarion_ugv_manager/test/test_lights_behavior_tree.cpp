@@ -131,6 +131,7 @@ std::vector<rclcpp::Parameter> TestLightsBehaviorTree::CreateTestParameters() co
 
   std::vector<std::string> ros_plugin_libs;
   ros_plugin_libs.push_back("call_set_led_animation_service_bt_node");
+  ros_plugin_libs.push_back("check_string_msg_bt_node");
 
   std::vector<rclcpp::Parameter> params;
   params.push_back(rclcpp::Parameter("bt_project_path", bt_project_path));

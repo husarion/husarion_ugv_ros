@@ -25,7 +25,10 @@ namespace husarion_ugv_manager
 BT::NodeStatus CheckStringMsg::onTick(const StringMsg::SharedPtr & last_msg)
 {
   std::string expected_data;
-  getInput<std::string>("data", expected_data);
+  if (!getInput<std::string>("data", expected_data)) {
+    RCLCPP_ERROR_STREAM(this->logger(), GetLoggerPrefix(name()) << "Failed to get input [data]");
+    return BT::NodeStatus::FAILURE;
+  }
 
   return (last_msg && last_msg->data == expected_data) ? BT::NodeStatus::SUCCESS
                                                        : BT::NodeStatus::FAILURE;

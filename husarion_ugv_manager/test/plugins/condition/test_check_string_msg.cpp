@@ -65,6 +65,21 @@ StringMsg TestCheckStringMsg::CreateMsg(const std::string & data)
   return msg;
 }
 
+TEST_F(TestCheckStringMsg, NoInputData)
+{
+  bt_ports input = {{"topic_name", TOPIC}};
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
+
+  auto & tree = GetTree();
+  auto status = tree.tickOnce();
+
+  // publish empty msg, to make sure that node fails because there is no data and not because it
+  // reads empty string
+  PublishMsg(CreateMsg(""));
+  status = tree.tickWhileRunning();
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+}
+
 TEST_F(TestCheckStringMsg, NoMessageArrived)
 {
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name"}};

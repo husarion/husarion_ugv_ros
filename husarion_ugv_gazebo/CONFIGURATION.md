@@ -15,7 +15,7 @@ To obtain GPS data in Ignition, follow these steps:
     parent_link: cover_link
     xyz: 0.185 -0.12 0.0
     rpy: 0.0 0.0 3.14
-    device_namespace: gps
+    name: gps
 ```
 
 - Add the following tag to your world's SDF file and specify this file using the `world` parameter (the default `husarion_world.sdf` file already includes this tag):

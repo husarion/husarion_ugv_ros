@@ -116,7 +116,7 @@ Animation of type `husarion_ugv_lights::MovingImageAnimation`, returns frames to
   <img alt="MovingImageAnimation" src=".docs/MovingImageAnimation.png" />
 </picture>
 
-### Defining Animations
+## Defining Animations
 
 Users can define their own LED animations using basic animation types. Similar to basic ones, user animations are parsed using YAML file and loaded on node start. For `ImageAnimation` you can use basic images from the `animations` folder and change their color with the `color` key ([see ImageAnimation](#imageanimation)). Follow the example below to add custom animations.
 

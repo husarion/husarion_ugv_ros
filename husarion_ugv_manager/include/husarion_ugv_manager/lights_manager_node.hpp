@@ -73,8 +73,6 @@ private:
   void EStopCB(const BoolMsg::SharedPtr e_stop);
   void LightsTreeTimerCB();
 
-  static constexpr std::size_t kDeadManButtonIndex = 4;
-
   float update_charging_anim_step_;
 
   std::shared_ptr<lights_manager::ParamListener> param_listener_;

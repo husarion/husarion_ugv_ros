@@ -148,6 +148,7 @@ def generate_launch_description():
         gz_bridge,
         simulate_robots,
         rviz_launch,
+        gamepad_launch,
     ]
 
     return LaunchDescription(actions)

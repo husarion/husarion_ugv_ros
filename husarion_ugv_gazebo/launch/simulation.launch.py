@@ -22,6 +22,7 @@ from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node, SetUseSimTime
 from launch_ros.substitutions import FindPackageShare
@@ -130,11 +131,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "joy2twist_params_file": PathJoinSubstitution(
-                [
-                    husarion_ugv_bringup_common_dir,
-                    "config",
-                    PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
-                ]
+                [FindPackageShare("joy2twist"), "config", "joy2twist.yaml"]
             ),
         }.items(),
         condition=IfCondition(launch_gamepad),

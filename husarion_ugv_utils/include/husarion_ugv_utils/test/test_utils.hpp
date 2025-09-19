@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_TEST_UTILS_HPP_
-#define HUSARION_UGV_UTILS_TEST_UTILS_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_TEST_UTILS_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_TEST_UTILS_HPP_
 
 #include <algorithm>
 #include <cmath>
@@ -71,4 +71,4 @@ bool IsMessageThrown(const Func & func, const std::string & error_msg)
 
 }  // namespace husarion_ugv_utils::test_utils
 
-#endif  // HUSARION_UGV_UTILS_TEST_UTILS_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_TEST_UTILS_HPP_

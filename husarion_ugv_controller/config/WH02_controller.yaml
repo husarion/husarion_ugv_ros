@@ -9,6 +9,8 @@
         type: mecanum_drive_controller/MecanumDriveController
       imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
+      twist_mux_controller:
+        type: twist_mux_controller/TwistMuxController
 
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
@@ -79,3 +81,23 @@
           max_deceleration_reverse: 3.2 # rad/s^2
           max_jerk: .NAN # rad/s^3
           min_jerk: .NAN # rad/s^3
+
+  twist_mux_controller:
+    ros__parameters:
+      holonomic: true
+      cmd_vel_inputs:
+        manual:
+          topic: manual/cmd_vel
+          timeout: 0.2
+          priority: 100
+        autonomous:
+          topic: autonomous/cmd_vel
+          timeout: 0.2
+          priority: 10
+        unknown:
+          topic: cmd_vel
+          timeout: 0.2
+          priority: 1
+      command_interface_linear_x: drive_controller/linear/x/velocity
+      command_interface_linear_y: drive_controller/linear/y/velocity
+      command_interface_angular_z: drive_controller/angular/z/velocity

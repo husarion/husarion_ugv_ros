@@ -155,12 +155,16 @@ def generate_launch_description():
             ("/diagnostics", "diagnostics"),
             ("drive_controller/cmd_vel", "cmd_vel"),
             ("drive_controller/odom", "odometry/wheels"),
-            ("drive_controller/transition_event", "_drive_controller/transition_event"),
+            ("drive_controller/transition_event", "drive_controller/_transition_event"),
             ("imu_broadcaster/imu", "imu/data"),
-            ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
+            ("imu_broadcaster/transition_event", "imu_broadcaster/_transition_event"),
             (
                 "joint_state_broadcaster/transition_event",
-                "_joint_state_broadcaster/transition_event",
+                "joint_state_broadcaster/_transition_event",
+            ),
+            (
+                "twist_mux_controller/transition_event",
+                "twist_mux_controller/_transition_event",
             ),
         ],
         arguments=[
@@ -200,6 +204,7 @@ def generate_launch_description():
             "joint_state_broadcaster",
             "drive_controller",
             "imu_broadcaster",
+            "twist_mux_controller",
             "--activate-as-group",
             *spawner_common_args,
         ],

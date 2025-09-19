@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_
-#define HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_
+#ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_
+#define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_
 
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -63,7 +64,8 @@ private:
   void UpdateBatteryStateRaw();
   void UpdateChargingStatus(const rclcpp::Time & header_stamp, const bool charger_connected);
   std::uint8_t GetBatteryStatus(const bool charger_connected);
-  std::uint8_t GetBatteryHealth(const float voltage, const float temp);
+  std::uint8_t GetBatteryHealth(
+    const rclcpp::Time & header_stamp, const float voltage, const float temp);
   bool IsCharging(const bool charger_connected) const;
 
   // ADC conversion parameters. Values were determined based on voltage divider
@@ -103,4 +105,4 @@ private:
 
 }  // namespace husarion_ugv_battery
 
-#endif  // HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_
+#endif  // HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ADC_BATTERY_HPP_

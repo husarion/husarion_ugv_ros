@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
-#define HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
+#ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
+#define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
 
 #include <filesystem>
 #include <fstream>
@@ -77,4 +77,4 @@ private:
 
 }  // namespace husarion_ugv_battery
 
-#endif  // HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
+#endif  // HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_

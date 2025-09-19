@@ -44,7 +44,7 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_gz_bridge</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">tf2_ros</exec_depend>
 
-  <!-- Ignition dependency is specified in the ros_gz_sim package,
+  <!-- Gazebo dependency is specified in the ros_gz_sim package,
     version can chosen using GZ_VERSION (or IGNITION_VERSION) env variable,
     for details refer to the ros_gz_sim package -->
 

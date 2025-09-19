@@ -19,3 +19,4 @@
         - tick_after_timeout_bt_node
       ros_plugin_libs:
         - call_set_led_animation_service_bt_node
+        - check_string_msg_bt_node

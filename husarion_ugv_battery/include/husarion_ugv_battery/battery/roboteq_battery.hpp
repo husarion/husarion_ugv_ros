@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_
-#define HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_
+#ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_
+#define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_
 
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -63,7 +64,7 @@ private:
   void UpdateBatteryState(const rclcpp::Time & header_stamp);
   void UpdateBatteryStateRaw();
   void UpdateChargingStatus(const rclcpp::Time & header_stamp);
-  std::uint8_t GetBatteryHealth(const float voltage);
+  std::uint8_t GetBatteryHealth(const rclcpp::Time & header_stamp, const float voltage);
   bool DriverStateHeartbeatTimeout();
 
   std::function<RobotDriverStateMsg::SharedPtr()> GetRobotDriverState;
@@ -79,4 +80,4 @@ private:
 
 }  // namespace husarion_ugv_battery
 
-#endif  // HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_
+#endif  // HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_ROBOTEQ_BATTERY_HPP_

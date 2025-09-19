@@ -131,7 +131,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "joy2twist_params_file": PathJoinSubstitution(
-                [FindPackageShare("joy2twist"), "config", "joy2twist.yaml"]
+                [FindPackageShare("husarion_ugv_gazebo"), "config", "joy2twist.yaml"]
             ),
         }.items(),
         condition=IfCondition(launch_gamepad),

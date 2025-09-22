@@ -51,7 +51,7 @@ def generate_launch_description():
         description="Namespace to all launched nodes and use namespace as tf_prefix. This aids in differentiating between multiple robots with the same devices.",
     )
 
-    component_name = "gps"
+    device_namespace = "gps"
     nmea_driver_node = Node(
         package="nmea_navsat_driver",
         executable="nmea_socket_driver",
@@ -59,16 +59,16 @@ def generate_launch_description():
         namespace=namespace,
         parameters=[
             {
-                "frame_id": component_name + "_antenna",
+                "frame_id": device_namespace,
                 "tf_prefix": namespace,
             },
             nmea_params_path,
         ],
         remappings=[
-            ("fix", [component_name, "/fix"]),
-            ("time_reference", [component_name, "/time_reference"]),
-            ("vel", [component_name, "/vel"]),
-            ("heading", ["_", component_name, "/heading"]),
+            ("fix", [device_namespace, "/fix"]),
+            ("time_reference", [device_namespace, "/time_reference"]),
+            ("vel", [device_namespace, "/vel"]),
+            ("heading", ["_", device_namespace, "/heading"]),
         ],
         arguments=[
             "--ros-args",

@@ -12,7 +12,7 @@ components:
     parent_link: cover_link
     xyz: 0.2 -0.2 0.0
     rpy: 0.0 0.0 0.0
-    name: ur5
+    device_namespace: ur5
 ```
 
 In this example:
@@ -20,7 +20,7 @@ In this example:
     - `parent_link`: cover_link: Defines the parent link to attach the component.
     - `xyz`: 0.2 -0.2 0.0: Sets the position of the component.
     - `rpy`: 0.0 0.0 0.0: Sets the rotation of the component.
-    - `name`: ur5: Sets the component name.
+    - `device_namespace`: ur5: Sets the device namespace.
 
 ### Visualize Robot Model Configuration
 
@@ -50,12 +50,12 @@ components:
     parent_link: cover_link
     xyz: 0.2 -0.2 0.0
     rpy: 0.0 0.0 0.0
-    name: left_ur5
+    device_namespace: left_ur5
   - type: MAN02
     parent_link: cover_link
     xyz: 0.2 0.2 0.0
     rpy: 0.0 0.0 0.0
-    name: right_ur5
+    device_namespace: right_ur5
 ```
 
 To use the `ros2 launch` command to launch the `overwrite_robot_description.launch.py` file with the appropriate arguments to overwrite the robot model, follow these steps:

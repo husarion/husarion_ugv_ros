@@ -1,16 +1,5 @@
 # ROS API
 
-> [!IMPORTANT]
-> **Beta Release**
->
-> Please be advised that the software you are about to use is a Beta version of the ROS 2 Driver for Lynx and Panther. It is functional, and the architecture will not change significantly. Although it has been tested by the Husarion team, some stability issues and bugs may still occur.
->
-> We would greatly appreciate your feedback regarding the Husarion UGV ROS 2 driver. You can reach us in the following ways:
->
-> - By email at: [support@husarion.com](mailto:support@husarion.com)
-> - Via our community forum: [Husarion Community](https://community.husarion.com)
-> - By submitting an issue request on: [GitHub](https://github.com/husarion/husarion_ugv_ros/issues)
-
 ## ROS 2 System Design
 
 This section describes the ROS packages used in Husarion UGV. These packages are located in the [husarion_ugv_ros](https://github.com/husarion/husarion_ugv_ros) GitHub repository.
@@ -87,20 +76,22 @@ Below is information about the physical robot API. For the simulation, topics an
 | ✅   | ✅   | `localization/set_pose`       | Sets the pose of the EKF node.<br/> [*geometry_msgs/PoseWithCovarianceStamped*](https://docs.ros2.org/latest/api/geometry_msgs/msg/PoseWithCovarianceStamped.html)                                                                                                                                                                                                        |
 | ✅   | ✅   | `manual/cmd_vel`              | Command velocity value for manual inputs.<br/> [*geometry_msgs/TwistStamped*](https://docs.ros2.org/latest/api/geometry_msgs/msg/TwistStamped.html)                                                                                                                                                                                                                                                       |
 | ✅   | ✅   | `odometry/filtered`           | Contains information about the filtered position and orientation. When `localization_mode` is `relative`, the position and orientation are relative to the starting point. When `localization_mode` is `enu`, the orientation is relative to the east-north-up (ENU) coordinates.<br/> [*nav_msgs/Odometry*](https://docs.ros2.org/latest/api/nav_msgs/msg/Odometry.html) |
+| ❌   | ✅   | `odometry/ground_truth`       | Robot odometry with ground truth values.<br/> [*nav_msgs/Odometry*](https://docs.ros2.org/latest/api/nav_msgs/msg/Odometry.html)                                                                                                                                                                                                                                            |
 | ✅   | ✅   | `odometry/wheels`             | Robot odometry calculated from wheels.<br/> [*nav_msgs/Odometry*](https://docs.ros2.org/latest/api/nav_msgs/msg/Odometry.html)                                                                                                                                                                                                                                            |
 | ✅   | ✅   | `robot_description`           | Contains information about robot description from URDF file. <br/> [*std_msgs/String*](https://docs.ros2.org/latest/api/std_msgs/msg/String.html)                                                                                                                                                                                                                         |
 | ✅   | ❌   | `system_status`               | State of the system, including Built-in Computer's CPU temperature and load. <br/> [*husarion_ugv_msgs/SystemStatus*](husarion_ugv_msgs/msg/SystemStatus.msg)                                                                                                                                                                                                                |
 | ✅   | ✅   | `tf`                          | Transforms of robot system.<br/> [*tf2_msgs/TFMessage*](https://docs.ros2.org/latest/api/tf2_msgs/msg/TFMessage.html)                                                                                                                                                                                                                                                     |
+| ❌   | ✅   | `tf_gt`                       | Ground truth transform of robot system. Provides transform from `world` to `base_link` frame.<br/> [*tf2_msgs/TFMessage*](https://docs.ros2.org/latest/api/tf2_msgs/msg/TFMessage.html)                                                                                                                                                                                                                                                     |
 | ✅   | ✅   | `tf_static`                   | Static transforms of robot system.<br/> [*tf2_msgs/TFMessage*](https://docs.ros2.org/latest/api/tf2_msgs/msg/TFMessage.html)                                                                                                                                                                                                                                              |
 
 #### Hidden topics
 
 | 🤖   | 🖥️   | Topic                           | Description                                                                                                                                                            |
 | --- | --- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅   | ❌   | `_battery/battery_1_status_raw` | First battery raw state. <br/> [_sensor_msgs/BatteryState_](https://docs.ros2.org/latest/api/sensor_msgs/msg/BatteryState.html)                                        |
-| ✅   | ❌   | `_battery/battery_2_status_raw` | Second battery raw state. Published if second battery detected. <br/> [_sensor_msgs/BatteryState_](https://docs.ros2.org/latest/api/sensor_msgs/msg/BatteryState.html) |
-| ✅   | ❌   | `_gps/heading`                  | Not supported for current configuration. <br/> [_geometry_msgs/QuaternionStamped_](https://docs.ros2.org/latest/api/geometry_msgs/msg/QuaternionStamped.html)          |
-| ✅   | ✅   | ⚙️ `_odometry/gps` ⚙️             | Transformed raw GPS data to odometry format. <br/> [_nav_msgs/Odometry_](https://docs.ros2.org/latest/api/nav_msgs/msg/Odometry.html)                                  |
+| ✅   | ❌   | `_battery/battery_1_status_raw` | First battery raw state. <br/> [*sensor_msgs/BatteryState*](https://docs.ros2.org/latest/api/sensor_msgs/msg/BatteryState.html)                                        |
+| ✅   | ❌   | `_battery/battery_2_status_raw` | Second battery raw state. Published if second battery detected. <br/> [*sensor_msgs/BatteryState*](https://docs.ros2.org/latest/api/sensor_msgs/msg/BatteryState.html) |
+| ✅   | ❌   | `_gps/heading`                  | Not supported for current configuration. <br/> [*geometry_msgs/QuaternionStamped*](https://docs.ros2.org/latest/api/geometry_msgs/msg/QuaternionStamped.html)          |
+| ✅   | ✅   | ⚙️ `_odometry/gps` ⚙️             | Transformed raw GPS data to odometry format. <br/> [*nav_msgs/Odometry*](https://docs.ros2.org/latest/api/nav_msgs/msg/Odometry.html)                                  |
 
 ### Services
 

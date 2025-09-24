@@ -62,14 +62,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    launch_gamepad = LaunchConfiguration("launch_gamepad")
-    declare_launch_gamepad_arg = DeclareLaunchArgument(
-        "launch_gamepad",
-        default_value="false",
-        description="Launch gamepad node.",
-        choices=["True", "true", "False", "false"],
-    )
-
     namespaced_gz_gui = ReplaceString(
         source_file=gz_gui,
         replacements={"{namespace}": namespace},
@@ -120,20 +112,12 @@ def generate_launch_description():
         condition=IfCondition(use_rviz),
     )
 
-    gamepad_launch = IncludeLaunchDescription(
+    teleop_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("joy2twist"), "launch", "gamepad_controller.launch.py"]
+                [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
-        ),
-        launch_arguments={
-            "log_level": log_level,
-            "namespace": namespace,
-            "joy2twist_params_file": PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_gazebo"), "config", "joy2twist.yaml"]
-            ),
-        }.items(),
-        condition=IfCondition(launch_gamepad),
+        )
     )
 
     actions = [
@@ -141,13 +125,12 @@ def generate_launch_description():
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,
-        declare_launch_gamepad_arg,
         SetUseSimTime(True),
         gz_sim,
         gz_bridge,
         simulate_robots,
         rviz_launch,
-        gamepad_launch,
+        teleop_launch,
     ]
 
     return LaunchDescription(actions)

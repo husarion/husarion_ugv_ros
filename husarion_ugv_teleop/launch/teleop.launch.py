@@ -22,6 +22,7 @@ from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.substitutions import FindPackageShare
 
@@ -51,6 +52,8 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
+
     gamepad_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -61,7 +64,11 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "joy2twist_params_file": PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_teleop"), "config", "joy2twist.yaml"]
+                [
+                    FindPackageShare("husarion_ugv_teleop"),
+                    "config",
+                    PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
+                ]
             ),
         }.items(),
         condition=IfCondition(launch_gamepad),

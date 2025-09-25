@@ -169,7 +169,8 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
-        )
+        ),
+        launch_arguments={"launch_gamepad": "True"}.items(),
     )
 
     hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")

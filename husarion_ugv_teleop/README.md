@@ -8,4 +8,4 @@ The package contains configuration and launch files necessary to control the rob
 
 ## Configuration Files
 
-- `joy2twist.yaml`: Describes button mappings of a gamepad and parameters such as linear and angular velocity.
+- `joy2twist_${ROBOT_MODEL_NAME}.yaml`: Describes button mappings of a gamepad and parameters such as linear and angular velocity.

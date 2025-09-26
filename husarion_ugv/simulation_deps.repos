@@ -19,3 +19,7 @@ repositories:
     type: git
     url: https://github.com/rafal-gorecki/launch.git
     version: backport-timer-reset
+  joy2twist:
+    type: git
+    url: https://github.com/husarion/joy2twist.git
+    version: 05a699aea7fa67c82db9c5c9c218b55b61626da2

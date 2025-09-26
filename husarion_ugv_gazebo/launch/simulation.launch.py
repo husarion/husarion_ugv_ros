@@ -112,6 +112,14 @@ def generate_launch_description():
         condition=IfCondition(use_rviz),
     )
 
+    teleop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
+            )
+        )
+    )
+
     actions = [
         declare_gz_gui,
         declare_log_level_arg,
@@ -122,6 +130,7 @@ def generate_launch_description():
         gz_bridge,
         simulate_robots,
         rviz_launch,
+        teleop_launch,
     ]
 
     return LaunchDescription(actions)

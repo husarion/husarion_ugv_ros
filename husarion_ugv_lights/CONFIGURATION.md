@@ -22,6 +22,8 @@ Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config)
 |  13   | GOAL_ACHIEVED     |    1     | ![GOAL_ACHIEVED](.docs/goal_achieved.webp)         |
 |  14   | BLINKER_LEFT      |    1     | ![BLINKER_LEFT](.docs/blinker_left.webp)           |
 |  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)         |
+|  16   | GOAL_FAILED       |    1     | ![GOAL_FAILED](.docs/goal_failed.webp)             |
+|  17   | FLOOD_LIGHT       |    3     | ![FLOOD_LIGHT](.docs/flood_light.webp)             |
 
 The animations work on multiple layers (priorities) and can blend with each other. On a given layer, there can be only one animation at a time. Animations with a lower priority cover those with higher priority, while respecting transparency.
 

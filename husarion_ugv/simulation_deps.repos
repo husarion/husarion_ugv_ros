@@ -14,7 +14,7 @@ repositories:
   husarion_components_description:
     type: git
     url: https://github.com/husarion/husarion_components_description.git
-    version: a46871980289a845c0b6defaba5161e3b505daa8
+    version: 966e0f00857b90a6322fac8461c2f91d6582473a
   launch: # There is a bug in official launch package. Track issue: https://github.com/ros2/launch/issues/894
     type: git
     url: https://github.com/rafal-gorecki/launch.git

@@ -59,7 +59,7 @@ def generate_launch_description():
         namespace=namespace,
         parameters=[
             {
-                "frame_id": component_name + "_antenna",
+                "frame_id": component_name,
                 "tf_prefix": namespace,
             },
             nmea_params_path,

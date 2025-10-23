@@ -9,6 +9,10 @@
             <input_port name="repeating" default="false">indicates if animation should repeat</input_port>
             <input_port name="service_name">ROS service name</input_port>
         </Action>
+        <Condition ID="CheckStringMsg" editable="true">
+            <input_port name="topic_name">Topic name</input_port>
+            <input_port name="data">Specifies the expected state of the data field</input_port>
+        </Condition>
         <Decorator ID="TickAfterTimeout" editable="true">
             <input_port name="timeout">time in s to wait before ticking child again</input_port>
         </Decorator>

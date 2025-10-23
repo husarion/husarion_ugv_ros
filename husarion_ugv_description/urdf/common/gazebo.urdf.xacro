@@ -142,4 +142,22 @@
     </gazebo>
   </xacro:macro>
 
+  <xacro:macro name="odometry_publisher" params="namespace:=''">
+
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+
+    <gazebo>
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>world</odom_frame>
+        <robot_base_frame>${ns}base_link</robot_base_frame>
+        <odom_topic>${ns}odometry/ground_truth</odom_topic>
+        <odom_covariance_topic>${ns}odometry/ground_truth_covariance</odom_covariance_topic>
+        <tf_topic>tf_gt</tf_topic>
+        <odom_publish_frequency>50.0</odom_publish_frequency>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
 </robot>

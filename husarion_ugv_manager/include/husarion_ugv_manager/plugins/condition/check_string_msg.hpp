@@ -34,6 +34,12 @@ class CheckStringMsg : public BT::RosTopicSubNode<std_msgs::msg::String>
   using StringMsg = std_msgs::msg::String;
 
 public:
+  CheckStringMsg(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosTopicSubNode<StringMsg>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CheckStringMsg(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosTopicSubNode<StringMsg>(name, conf, params)

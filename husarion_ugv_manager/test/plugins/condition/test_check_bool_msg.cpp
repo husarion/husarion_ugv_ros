@@ -44,7 +44,9 @@ constexpr auto PLUGIN = "CheckBoolMsg";
 class TestCheckBoolMsg : public husarion_ugv_manager::plugin_test_utils::PluginTestUtils
 {
 public:
-  TestCheckBoolMsg();
+  TestCheckBoolMsg() {}
+
+  void Initialize();
   BoolMsg CreateMsg(bool data);
   void PublishMsg(BoolMsg msg) { publisher_->publish(msg); }
 
@@ -52,7 +54,7 @@ protected:
   rclcpp::Publisher<BoolMsg>::SharedPtr publisher_;
 };
 
-TestCheckBoolMsg::TestCheckBoolMsg()
+void TestCheckBoolMsg::Initialize()
 {
   RegisterNodeWithParams<husarion_ugv_manager::CheckBoolMsg>(PLUGIN);
   publisher_ = bt_node_->create_publisher<BoolMsg>(TOPIC, 10);
@@ -65,8 +67,27 @@ BoolMsg TestCheckBoolMsg::CreateMsg(bool data)
   return msg;
 }
 
+TEST_F(TestCheckBoolMsg, GoodLoadingCheckBoolMsgRosPlugin)
+{
+  this->Initialize();
+  bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
+}
+
+TEST_F(TestCheckBoolMsg, GoodLoadingCheckBoolMsgPlugin)
+{
+  bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CheckBoolMsg>(PLUGIN);
+
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input, blackboard); });
+}
+
 TEST_F(TestCheckBoolMsg, NoMessageArrived)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
@@ -77,6 +98,7 @@ TEST_F(TestCheckBoolMsg, NoMessageArrived)
 
 TEST_F(TestCheckBoolMsg, OnTickBehavior)
 {
+  this->Initialize();
   std::vector<TestCase> test_cases = {
     {BT::NodeStatus::SUCCESS, {{"topic_name", TOPIC}, {"data", "true"}}, CreateMsg(true)},
     {BT::NodeStatus::SUCCESS, {{"topic_name", TOPIC}, {"data", "false"}}, CreateMsg(false)},

@@ -41,13 +41,25 @@ void TestCallTriggerService::ServiceCallback(
   RCLCPP_INFO_STREAM(rclcpp::get_logger("test_trigger_plugin"), response->message);
 }
 
-TEST_F(TestCallTriggerService, GoodLoadingCallTriggerServicePlugin)
+TEST_F(TestCallTriggerService, GoodLoadingCallTriggerServiceRosPlugin)
 {
   std::map<std::string, std::string> service = {{"service_name", "trigger"}};
 
   RegisterNodeWithParams<husarion_ugv_manager::CallTriggerService>("CallTriggerService");
 
   ASSERT_NO_THROW({ CreateTree("CallTriggerService", service); });
+}
+
+TEST_F(TestCallTriggerService, GoodLoadingCallTriggerServicePlugin)
+{
+  std::map<std::string, std::string> service = {{"service_name", "trigger"}};
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CallTriggerService>("CallTriggerService");
+
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  ASSERT_NO_THROW({ CreateTree("CallTriggerService", service, blackboard); });
 }
 
 TEST_F(TestCallTriggerService, WrongPluginNameLoadingCallTriggerServicePlugin)

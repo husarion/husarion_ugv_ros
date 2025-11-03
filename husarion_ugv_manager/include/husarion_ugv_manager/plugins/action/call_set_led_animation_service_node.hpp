@@ -22,6 +22,8 @@
 
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+
 namespace husarion_ugv_manager
 {
 
@@ -29,6 +31,12 @@ class CallSetLedAnimationService
 : public BT::RosServiceNode<husarion_ugv_msgs::srv::SetLEDAnimation>
 {
 public:
+  CallSetLedAnimationService(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosServiceNode<husarion_ugv_msgs::srv::SetLEDAnimation>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CallSetLedAnimationService(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosServiceNode<husarion_ugv_msgs::srv::SetLEDAnimation>(name, conf, params)

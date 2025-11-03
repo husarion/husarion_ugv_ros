@@ -315,6 +315,7 @@ if(BUILD_TESTING)
                         safety_manager_parameters OpenSSL::SSL)
 endif()
 
+ament_export_libraries(${plugin_libs})
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 ament_export_include_directories(include/${PROJECT_NAME})
 

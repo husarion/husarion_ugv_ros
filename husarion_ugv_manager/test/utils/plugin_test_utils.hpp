@@ -185,7 +185,7 @@ public:
     BT::Blackboard::Ptr blackboard = BT::Blackboard::create())
   {
     auto xml_text = BuildBehaviorTree(plugin_name, bb_ports);
-    tree_ = factory_.createTreeFromText(xml_text, blackboard);  
+    tree_ = factory_.createTreeFromText(xml_text, blackboard);
   }
 
   inline BT::Tree & GetTree() { return tree_; }

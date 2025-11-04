@@ -145,11 +145,11 @@ TEST(TestCreateRosNodeParamsFromBlackboard, NodeNullPtr)
 {
   BT::NodeConfiguration config;
   config.blackboard = BT::Blackboard::create();
-  config.blackboard->set("node", nullptr);
+  config.blackboard->set("node", rclcpp::Node::SharedPtr());
 
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<BT::RuntimeError>(
     [&]() { husarion_ugv_manager::behavior_tree_utils::CreateRosNodeParamsFromBlackboard(config); },
-    "Failed to get rclcpp::Node"));
+    "rclcpp::Node is nullptr"));
 }
 
 TEST(TestCreateRosNodeParamsFromBlackboard, GoodInput)

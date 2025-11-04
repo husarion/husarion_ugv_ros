@@ -101,6 +101,10 @@ inline BT::RosNodeParams CreateRosNodeParamsFromBlackboard(const BT::NodeConfig 
     throw BT::RuntimeError("Failed to get rclcpp::Node from blackboard: ", e.what());
   }
 
+  if (!node) {
+    throw BT::RuntimeError("rclcpp::Node is nullptr");
+  }
+
   return BT::RosNodeParams(node);
 }
 

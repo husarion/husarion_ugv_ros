@@ -40,3 +40,9 @@ bool CheckStringMsg::latchLastMessage() const { return true; }
 
 #include "behaviortree_ros2/plugins.hpp"
 CreateRosNodePlugin(husarion_ugv_manager::CheckStringMsg, "CheckStringMsg");
+
+#include "behaviortree_cpp/bt_factory.h"
+BT_REGISTER_NODES(factory)
+{
+  factory.registerNodeType<husarion_ugv_manager::CheckStringMsg>("CheckStringMsg");
+}

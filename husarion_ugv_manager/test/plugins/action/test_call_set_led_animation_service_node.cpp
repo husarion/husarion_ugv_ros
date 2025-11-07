@@ -50,7 +50,7 @@ void TestCallSetLedAnimationService::ServiceCallback(
   EXPECT_EQ(request->repeating, repeating);
 }
 
-TEST_F(TestCallSetLedAnimationService, GoodLoadingCallSetLedAnimationServicePlugin)
+TEST_F(TestCallSetLedAnimationService, GoodLoadingCallSetLedAnimationServiceRosPlugin)
 {
   std::map<std::string, std::string> service = {
     {"service_name", "set_led_animation"}, {"id", "0"}, {"param", ""}, {"repeating", "true"}};
@@ -59,6 +59,20 @@ TEST_F(TestCallSetLedAnimationService, GoodLoadingCallSetLedAnimationServicePlug
     "CallSetLedAnimationService");
 
   ASSERT_NO_THROW({ CreateTree("CallSetLedAnimationService", service); });
+}
+
+TEST_F(TestCallSetLedAnimationService, GoodLoadingCallSetLedAnimationServicePlugin)
+{
+  std::map<std::string, std::string> service = {
+    {"service_name", "set_led_animation"}, {"id", "0"}, {"param", ""}, {"repeating", "true"}};
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CallSetLedAnimationService>(
+    "CallSetLedAnimationService");
+
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  ASSERT_NO_THROW({ CreateTree("CallSetLedAnimationService", service, blackboard); });
 }
 
 TEST_F(TestCallSetLedAnimationService, WrongPluginNameLoadingCallSetLedAnimationServicePlugin)

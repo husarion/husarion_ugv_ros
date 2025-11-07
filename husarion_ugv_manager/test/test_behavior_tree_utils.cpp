@@ -123,6 +123,51 @@ TEST_F(TestRegisterBT, RegisterBehaviorTreeROS)
   rclcpp::shutdown();
 }
 
+TEST(TestCreateRosNodeParamsFromBlackboard, EmptyBlackboard)
+{
+  BT::NodeConfiguration config;
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { husarion_ugv_manager::behavior_tree_utils::CreateRosNodeParamsFromBlackboard(config); },
+    "Blackboard is nullptr"));
+}
+
+TEST(TestCreateRosNodeParamsFromBlackboard, MissingKeyNode)
+{
+  BT::NodeConfiguration config;
+  config.blackboard = BT::Blackboard::create();
+
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<BT::RuntimeError>(
+    [&]() { husarion_ugv_manager::behavior_tree_utils::CreateRosNodeParamsFromBlackboard(config); },
+    "Failed to get rclcpp::Node"));
+}
+
+TEST(TestCreateRosNodeParamsFromBlackboard, NodeNullPtr)
+{
+  BT::NodeConfiguration config;
+  config.blackboard = BT::Blackboard::create();
+  config.blackboard->set("node", rclcpp::Node::SharedPtr());
+
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<BT::RuntimeError>(
+    [&]() { husarion_ugv_manager::behavior_tree_utils::CreateRosNodeParamsFromBlackboard(config); },
+    "rclcpp::Node is nullptr"));
+}
+
+TEST(TestCreateRosNodeParamsFromBlackboard, GoodInput)
+{
+  rclcpp::init(0, nullptr);
+  BT::NodeConfiguration config;
+  config.blackboard = BT::Blackboard::create();
+  auto node = std::make_shared<rclcpp::Node>("test_node");
+  config.blackboard->set("node", node);
+
+  auto params =
+    husarion_ugv_manager::behavior_tree_utils::CreateRosNodeParamsFromBlackboard(config);
+
+  EXPECT_FALSE(params.nh.expired());
+
+  rclcpp::shutdown();
+}
+
 TEST(TestConvertFromStringPoseStamped, GoodInput)
 {
   constexpr double time_threshold = 0.1;

@@ -22,12 +22,20 @@
 
 #include "std_srvs/srv/trigger.hpp"
 
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+
 namespace husarion_ugv_manager
 {
 
 class CallTriggerService : public BT::RosServiceNode<std_srvs::srv::Trigger>
 {
 public:
+  CallTriggerService(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosServiceNode<std_srvs::srv::Trigger>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CallTriggerService(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosServiceNode<std_srvs::srv::Trigger>(name, conf, params)

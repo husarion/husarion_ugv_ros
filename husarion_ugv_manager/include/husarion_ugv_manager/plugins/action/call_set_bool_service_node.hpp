@@ -22,12 +22,20 @@
 
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+
 namespace husarion_ugv_manager
 {
 
 class CallSetBoolService : public BT::RosServiceNode<std_srvs::srv::SetBool>
 {
 public:
+  CallSetBoolService(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosServiceNode<std_srvs::srv::SetBool>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CallSetBoolService(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosServiceNode<std_srvs::srv::SetBool>(name, conf, params)

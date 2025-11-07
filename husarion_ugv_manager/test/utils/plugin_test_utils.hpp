@@ -181,10 +181,11 @@ public:
   }
 
   void CreateTree(
-    const std::string & plugin_name, const std::map<std::string, std::string> & bb_ports)
+    const std::string & plugin_name, const std::map<std::string, std::string> & bb_ports,
+    BT::Blackboard::Ptr blackboard = BT::Blackboard::create())
   {
     auto xml_text = BuildBehaviorTree(plugin_name, bb_ports);
-    tree_ = factory_.createTreeFromText(xml_text);
+    tree_ = factory_.createTreeFromText(xml_text, blackboard);
   }
 
   inline BT::Tree & GetTree() { return tree_; }

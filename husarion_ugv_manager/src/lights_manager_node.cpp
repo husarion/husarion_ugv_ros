@@ -143,6 +143,8 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"GOAL_ACHIEVED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_ACHIEVED)},
     {"BLINKER_LEFT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_LEFT)},
     {"BLINKER_RIGHT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_RIGHT)},
+    {"GOAL_FAILED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_FAILED)},
+    {"FLOOD_LIGHT_ANIM_ID", unsigned(LEDAnimationMsg::FLOOD_LIGHT)},
     // battery status constants
     {"POWER_SUPPLY_STATUS_UNKNOWN", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_UNKNOWN)},
     {"POWER_SUPPLY_STATUS_CHARGING", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING)},

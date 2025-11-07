@@ -44,7 +44,9 @@ constexpr auto PLUGIN = "CheckStringMsg";
 class TestCheckStringMsg : public husarion_ugv_manager::plugin_test_utils::PluginTestUtils
 {
 public:
-  TestCheckStringMsg();
+  TestCheckStringMsg() {}
+
+  void Initialize();
   StringMsg CreateMsg(const std::string & data);
   void PublishMsg(StringMsg msg) { publisher_->publish(msg); }
 
@@ -52,7 +54,7 @@ protected:
   rclcpp::Publisher<StringMsg>::SharedPtr publisher_;
 };
 
-TestCheckStringMsg::TestCheckStringMsg()
+void TestCheckStringMsg::Initialize()
 {
   RegisterNodeWithParams<husarion_ugv_manager::CheckStringMsg>(PLUGIN);
   publisher_ = bt_node_->create_publisher<StringMsg>(TOPIC, 10);
@@ -65,8 +67,27 @@ StringMsg TestCheckStringMsg::CreateMsg(const std::string & data)
   return msg;
 }
 
+TEST_F(TestCheckStringMsg, GoodLoadingCheckStringMsgRosPlugin)
+{
+  this->Initialize();
+  bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
+}
+
+TEST_F(TestCheckStringMsg, GoodLoadingCheckStringMsgPlugin)
+{
+  bt_ports input = {{"topic_name", TOPIC}, {"data", "true"}};
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CheckStringMsg>(PLUGIN);
+
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input, blackboard); });
+}
+
 TEST_F(TestCheckStringMsg, NoInputData)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}};
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
@@ -82,6 +103,7 @@ TEST_F(TestCheckStringMsg, NoInputData)
 
 TEST_F(TestCheckStringMsg, NoMessageArrived)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name"}};
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
@@ -92,6 +114,7 @@ TEST_F(TestCheckStringMsg, NoMessageArrived)
 
 TEST_F(TestCheckStringMsg, SuccessOnExactMatch)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name"}};
   CreateTree(PLUGIN, input);
   auto & tree = GetTree();
@@ -105,6 +128,7 @@ TEST_F(TestCheckStringMsg, SuccessOnExactMatch)
 
 TEST_F(TestCheckStringMsg, SuccessOnMatchWithSpaces)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name with spaces"}};
   CreateTree(PLUGIN, input);
   auto & tree = GetTree();
@@ -118,6 +142,7 @@ TEST_F(TestCheckStringMsg, SuccessOnMatchWithSpaces)
 
 TEST_F(TestCheckStringMsg, SuccessOnMatchWithDots)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name.with.dots"}};
   CreateTree(PLUGIN, input);
   auto & tree = GetTree();
@@ -131,6 +156,7 @@ TEST_F(TestCheckStringMsg, SuccessOnMatchWithDots)
 
 TEST_F(TestCheckStringMsg, SuccessOnMatchWithMixedLetters)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "MiXeDlEtTeRs"}};
   CreateTree(PLUGIN, input);
   auto & tree = GetTree();
@@ -144,6 +170,7 @@ TEST_F(TestCheckStringMsg, SuccessOnMatchWithMixedLetters)
 
 TEST_F(TestCheckStringMsg, SuccessWhenValueChanges)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"data", "name"}};
   CreateTree(PLUGIN, input);
   auto & tree = GetTree();

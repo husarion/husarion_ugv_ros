@@ -2,7 +2,18 @@ cmake_minimum_required(VERSION 3.11)
 project(husarion_ugv_gazebo)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wold-style-cast)
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wpedantic
+    # -Werror cannot fix deprecated warnings in dependencies
+    -Wsuggest-override
+    -Wold-style-cast
+    -Wno-array-bounds
+    -pedantic-errors
+    -Wshadow
+    -Wswitch-enum
+    -Wswitch-default)
 endif()
 
 set(PACKAGE_DEPENDENCIES

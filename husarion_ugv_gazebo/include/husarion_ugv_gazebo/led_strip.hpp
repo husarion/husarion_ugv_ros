@@ -18,7 +18,7 @@
 #include <chrono>
 #include <string>
 
-#include <realtime_tools/realtime_box.hpp>
+#include <realtime_tools/realtime_thread_safe_box.hpp>
 
 #include <gz/math/Color.hh>
 #include <gz/math/Pose3.hh>
@@ -137,7 +137,7 @@ private:
 
   bool new_image_available_ = false;
   gz::msgs::Light light_cmd_;
-  realtime_tools::RealtimeBox<gz::msgs::Image> last_image_;
+  realtime_tools::RealtimeThreadSafeBox<gz::msgs::Image> last_image_;
   gz::sim::Entity light_entity_{gz::sim::kNullEntity};
   gz::transport::Node node_;
   std::chrono::steady_clock::duration last_update_time_{std::chrono::seconds(

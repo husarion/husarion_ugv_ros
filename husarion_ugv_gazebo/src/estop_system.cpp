@@ -22,8 +22,12 @@
 #include <vector>
 
 #include <gz/msgs/imu.pb.h>
+#include <gz/msgs/wrench.pb.h>
 #include <gz/sim/components/Imu.hh>
 #include <gz/transport/Node.hh>
+
+#define GZ_TRANSPORT_NAMESPACE gz::transport::
+#define GZ_MSGS_NAMESPACE gz::msgs::
 
 #include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/lexical_casts.hpp>
@@ -32,37 +36,92 @@
 
 struct jointData
 {
+  /// \brief Joint's names.
   std::string name;
+
+  /// \brief Joint's type.
+  sdf::JointType joint_type;
+
+  /// \brief Joint's axis.
+  sdf::JointAxis joint_axis;
+
+  /// \brief Current joint position
   double joint_position;
+
+  /// \brief Current joint velocity
   double joint_velocity;
+
+  /// \brief Current joint effort
   double joint_effort;
+
+  /// \brief Current cmd joint position
   double joint_position_cmd;
+
+  /// \brief Current cmd joint velocity
   double joint_velocity_cmd;
+
+  /// \brief Current cmd joint effort
   double joint_effort_cmd;
+
+  /// \brief flag if joint is actuated (has command interfaces) or passive
   bool is_actuated;
-  gz::sim::Entity sim_joint;
+
+  /// \brief handles to the joints from within Gazebo
+  sim::Entity sim_joint;
+
+  /// \brief Control method defined in the URDF for each joint.
   gz_ros2_control::GazeboSimSystemInterface::ControlMethod joint_control_method;
 };
 
-struct MimicJoint
+class ForceTorqueData
 {
-  std::size_t joint_index;
-  std::size_t mimicked_joint_index;
-  double multiplier = 1.0;
-  std::vector<std::string> interfaces_to_mimic;
+public:
+  /// \brief force torque sensor's name.
+  std::string name{};
+
+  /// \brief force torque sensor's topic name.
+  std::string topicName{};
+
+  /// \brief handles to the force torque from within Gazebo
+  sim::Entity sim_ft_sensors_ = sim::kNullEntity;
+
+  /// \brief An array per FT
+  std::array<double, 6> ft_sensor_data_;
+
+  /// \brief callback to get the Force Torque topic values
+  void OnForceTorque(const GZ_MSGS_NAMESPACE Wrench & _msg);
 };
+
+void ForceTorqueData::OnForceTorque(const GZ_MSGS_NAMESPACE Wrench & _msg)
+{
+  this->ft_sensor_data_[0] = _msg.force().x();
+  this->ft_sensor_data_[1] = _msg.force().y();
+  this->ft_sensor_data_[2] = _msg.force().z();
+  this->ft_sensor_data_[3] = _msg.torque().x();
+  this->ft_sensor_data_[4] = _msg.torque().y();
+  this->ft_sensor_data_[5] = _msg.torque().z();
+}
 
 class ImuData
 {
 public:
+  /// \brief imu's name.
   std::string name{};
+
+  /// \brief imu's topic name.
   std::string topicName{};
-  gz::sim::Entity sim_imu_sensors_ = gz::sim::kNullEntity;
+
+  /// \brief handles to the imu from within Gazebo
+  sim::Entity sim_imu_sensors_ = sim::kNullEntity;
+
+  /// \brief An array per IMU with 4 orientation, 3 angular velocity and 3 linear acceleration
   std::array<double, 10> imu_sensor_data_;
-  void OnIMU(const gz::msgs::IMU & _msg);
+
+  /// \brief callback to get the IMU topic values
+  void OnIMU(const GZ_MSGS_NAMESPACE IMU & _msg);
 };
 
-void ImuData::OnIMU(const gz::msgs::IMU & _msg)
+void ImuData::OnIMU(const GZ_MSGS_NAMESPACE IMU & _msg)
 {
   this->imu_sensor_data_[0] = _msg.orientation().x();
   this->imu_sensor_data_[1] = _msg.orientation().y();
@@ -80,18 +139,44 @@ class gz_ros2_control::GazeboSimSystemPrivate
 {
 public:
   GazeboSimSystemPrivate() = default;
+
   ~GazeboSimSystemPrivate() = default;
+  /// \brief Degrees od freedom.
   size_t n_dof_;
+
+  /// \brief last time the write method was called.
   rclcpp::Time last_update_sim_time_ros_;
+
+  /// \brief vector with the joint's names.
   std::vector<struct jointData> joints_;
+
+  /// \brief vector with the imus.
   std::vector<std::shared_ptr<ImuData>> imus_;
+
+  /// \brief vector with the force torque sensors.
+  std::vector<std::shared_ptr<ForceTorqueData>> ft_sensors_;
+
+  /// \brief state interfaces that will be exported to the Resource Manager
   std::vector<hardware_interface::StateInterface> state_interfaces_;
+
+  /// \brief command interfaces that will be exported to the Resource Manager
   std::vector<hardware_interface::CommandInterface> command_interfaces_;
-  gz::sim::EntityComponentManager * ecm;
-  int * update_rate;
-  gz::transport::Node node;
-  std::vector<MimicJoint> mimic_joints_;
+
+  /// \brief Entity component manager, ECM shouldn't be accessed outside those
+  /// methods, otherwise the app will crash
+  sim::EntityComponentManager * ecm;
+
+  /// \brief controller update rate
+  unsigned int update_rate;
+
+  /// \brief Gazebo communication node.
+  GZ_TRANSPORT_NAMESPACE Node node;
+
+  /// \brief Gain which converts position error to a velocity command
   double position_proportional_gain_;
+
+  // Should hold the joints if no control_mode is active
+  bool hold_joints_ = true;
 };
 
 namespace husarion_ugv_gazebo

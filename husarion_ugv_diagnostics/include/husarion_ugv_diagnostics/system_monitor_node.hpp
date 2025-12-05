@@ -77,7 +77,6 @@ private:
   system_monitor::Params params_;
   std::shared_ptr<system_monitor::ParamListener> param_listener_;
 
-  static constexpr char kTemperatureInfoFilename[] = "/sys/class/thermal/thermal_zone0/temp";
   static constexpr char kRootDirectory[] = "/";
 };
 }  // namespace husarion_ugv_diagnostics

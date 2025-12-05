@@ -111,7 +111,7 @@ float SystemMonitorNode::GetCPUTemperature() const
   float temperature = std::numeric_limits<float>::quiet_NaN();
 
   try {
-    const auto temperature_str = filesystem_->ReadFile(kTemperatureInfoFilename);
+    const auto temperature_str = filesystem_->ReadFile(params_.cpu_temp_file_path);
     temperature = husarion_ugv_utils::common_utilities::SetPrecision(
       std::stof(temperature_str) / 1000.0, 2);
   } catch (const std::exception & e) {

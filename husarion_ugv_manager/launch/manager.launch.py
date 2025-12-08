@@ -121,7 +121,6 @@ def generate_launch_description():
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
         ],
-        emulate_tty=True,
     )
 
     safety_manager_node = Node(
@@ -143,7 +142,6 @@ def generate_launch_description():
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
         ],
-        emulate_tty=True,
         condition=UnlessCondition(use_sim),
     )
 

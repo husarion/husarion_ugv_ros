@@ -120,7 +120,6 @@ def generate_launch_description():
         package="joint_state_publisher",
         executable="joint_state_publisher",
         namespace=namespace,
-        emulate_tty=True,
         condition=IfCondition(use_joint_state_publisher),
     )
 
@@ -128,7 +127,6 @@ def generate_launch_description():
         package="joint_state_publisher_gui",
         executable="joint_state_publisher_gui",
         namespace=namespace,
-        emulate_tty=True,
         condition=IfCondition(use_joint_state_publisher_gui),
     )
 

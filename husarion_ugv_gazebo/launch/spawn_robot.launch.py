@@ -130,7 +130,6 @@ def generate_launch_description():
             limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [

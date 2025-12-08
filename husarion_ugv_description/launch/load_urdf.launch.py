@@ -191,7 +191,6 @@ def generate_launch_description():
             {"frame_prefix": namespace_ext},
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [

@@ -223,7 +223,6 @@ def generate_launch_description():
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
         ],
-        emulate_tty=True,
     )
 
     child_tf = PythonExpression(["'", namespace, "' + '/odom' if '", namespace, "' else 'odom'"])
@@ -251,7 +250,6 @@ def generate_launch_description():
             child_tf,
         ],
         namespace=namespace,
-        emulate_tty=True,
         condition=IfCondition(add_world_transform),
     )
 

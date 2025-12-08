@@ -30,6 +30,7 @@ from launch.actions import (
     ExecuteProcess,
     GroupAction,
     IncludeLaunchDescription,
+    SetEnvironmentVariable,
     TimerAction,
 )
 from launch.conditions import IfCondition, UnlessCondition
@@ -224,6 +225,7 @@ def generate_launch_description():
     )
 
     actions = [
+        SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,

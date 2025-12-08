@@ -181,7 +181,6 @@ def generate_launch_description():
             limit_log_level_to_info(controller_manager_log_unit, log_level),
         ],
         condition=UnlessCondition(use_sim),
-        emulate_tty=True,
         on_exit=Shutdown(),
     )
 
@@ -209,7 +208,6 @@ def generate_launch_description():
             *spawner_common_args,
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [

@@ -37,6 +37,7 @@
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
+          <remapping>/diagnostics:=diagnostics</remapping>
           <remapping>drive_controller/cmd_vel:=cmd_vel</remapping>
           <remapping>drive_controller/odom:=odometry/wheels</remapping>
           <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>

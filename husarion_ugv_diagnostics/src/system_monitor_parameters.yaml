@@ -24,3 +24,7 @@ system_monitor:
     default_value: 5.0
     description: System status publishing frequency [Hz].
     validation: { bounds<>: [0.1, 10.0] }
+  cpu_temp_file_path:
+    type: string
+    default_value: "/sys/class/thermal/thermal_zone0/temp"
+    description: Path to the CPU temperature info file.

@@ -16,7 +16,7 @@ on:
       target_distro:
         description: ROS distribution to build docker image for (eg. jazzy)
         type: string
-        default: jazzy
+        default: rolling
       target_release:
         description: In case of "stable" release specify the version of the existing docker image (eg.
           1.0.12)
@@ -45,7 +45,7 @@ on:
         description: In case of "stable" release specify the ROS distro of the existing docker image (eg.
           jazzy)
         type: string
-        default: jazzy
+        default: rolling
       target_release:
         description: In case of "stable" release specify the version of the existing docker image (eg.
           1.0.12)

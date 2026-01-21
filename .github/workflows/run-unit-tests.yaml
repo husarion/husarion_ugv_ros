@@ -30,13 +30,6 @@ jobs:
       - name: Setup ROS
         uses: ros-tooling/setup-ros@v0.7
 
-      - name: Install missing ROS Python deps
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            python3-ament-package \
-            ros-jazzy-rosidl-typesupport-c
-
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3
         id: build_test_1

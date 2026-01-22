@@ -16,8 +16,6 @@ jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
     runs-on: ubuntu-24.04
-    container:
-      image: rostooling/setup-ros-docker:ubuntu-noble-latest
     strategy:
       matrix:
         build_type: [simulation, hardware]
@@ -28,6 +26,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup ROS
+        uses: ros-tooling/setup-ros@v0.7
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

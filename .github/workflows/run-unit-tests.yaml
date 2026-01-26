@@ -16,8 +16,6 @@ jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
     runs-on: ubuntu-24.04
-    container:
-      image: ros:jazzy-ros-core
     strategy:
       matrix:
         build_type: [simulation, hardware]

@@ -16,6 +16,8 @@ jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
     runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy-ros-core
     strategy:
       matrix:
         build_type: [simulation, hardware]
@@ -27,8 +29,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup ROS
-        uses: ros-tooling/setup-ros@v0.7
+      - name: Install ROS test dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            ros-dev-tools \
+            python3-colcon-coveragepy-result
+
+      - name: Initialize rosdep
+        run: rosdep init
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

@@ -29,14 +29,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install ROS test dependencies
-        run: |
-          apt-get update && apt-get install -y \
-            ros-dev-tools \
-            python3-colcon-coveragepy-result
-
-      - name: Initialize rosdep
-        run: rosdep init
+      - name: Setup ROS
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: jazzy
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

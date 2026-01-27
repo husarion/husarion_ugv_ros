@@ -15,7 +15,7 @@ on:
 jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     strategy:
       matrix:
         build_type: [simulation, hardware]
@@ -31,10 +31,6 @@ jobs:
         uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: jazzy
-
-      - name: Manually source ROS
-        run: |
-          bash -c "source /opt/ros/jazzy/setup.sh"
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

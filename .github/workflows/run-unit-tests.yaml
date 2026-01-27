@@ -15,13 +15,14 @@ on:
 jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
-    runs-on: ubuntu-24.04-x64-32GB-RAM-300GB-SSD
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         build_type: [simulation, hardware]
 
     env:
       HUSARION_ROS_BUILD_TYPE: ${{ matrix.build_type }}
+      AMENT_PREFIX_PATH: /opt/ros/jazzy
 
     steps:
       - name: Checkout repository

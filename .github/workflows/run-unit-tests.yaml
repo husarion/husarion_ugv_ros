@@ -27,26 +27,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set AMENT_PREFIX_PATH
-        shell: bash
-        run: export AMENT_PREFIX_PATH=/opt/ros/jazzy:$AMENT_PREFIX_PATH
-
-      - name: Print AMENT_PREFIX_PATH
-        shell: bash
-        run: echo "AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH"
-
       - name: Setup ROS
         uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: jazzy
 
-      - name: Print AMENT_PREFIX_PATH 2
+      - name: Print AMENT_PREFIX_PATH
         shell: bash
-        run: echo "AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH"
-
-      - name: Print AMENT_PREFIX_PATH 3
-        shell: bash
-        run: source /opt/ros/jazzy/setup.sh && echo "AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH" && echo "AMENT_CURRENT_PREFIX=$AMENT_CURRENT_PREFIX"
+        run: apt list | grep colcon
 
       # - name: Build and test
       #   uses: ros-tooling/action-ros-ci@v0.3

@@ -15,7 +15,9 @@ on:
 jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
     strategy:
       matrix:
         build_type: [simulation, hardware]
@@ -33,26 +35,6 @@ jobs:
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3
         id: build_test_1
-        with:
-          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-          target-ros2-distro: jazzy
-          colcon-defaults: |
-            {
-              "build": {
-                "packages-up-to": ["husarion_ugv"],
-                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-              },
-              "test": {
-                "packages-up-to": ["husarion_ugv"],
-                "packages-select-regex": ["husarion_ugv*"]
-              }
-            }
-
-        continue-on-error: true
-
-      - name: Retry Build and test (if failed)
-        if: steps.build_test_1.outcome == 'failure'
-        uses: ros-tooling/action-ros-ci@v0.3
         with:
           vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
           target-ros2-distro: jazzy

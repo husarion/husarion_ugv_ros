@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
+      options: --cap-add=NET_ADMIN
     strategy:
       matrix:
         build_type: [simulation, hardware]

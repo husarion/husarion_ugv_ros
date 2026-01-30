@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install linux  ip tools
+        run: sudo apt-get install -y iproute2
+
       - name: Setup ROS
         uses: ros-tooling/setup-ros@v0.7
 

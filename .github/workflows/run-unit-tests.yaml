@@ -17,7 +17,7 @@ jobs:
     name: Run unit tests ${{ matrix.build_type }} build type
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:24.04
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
       options: --cap-add=NET_ADMIN
     strategy:
       matrix:
@@ -29,14 +29,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install linux  ip tools
-        run: |
-          apt-get update
-          apt-get install -y iproute2 sudo
-
-      - name: Setup ROS
-        uses: ros-tooling/setup-ros@v0.7
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

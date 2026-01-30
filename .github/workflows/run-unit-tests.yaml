@@ -32,7 +32,7 @@ jobs:
       - name: Install linux  ip tools
         run: |
           apt-get update
-          apt-get install -y iproute2
+          apt-get install -y iproute2 sudo
 
       - name: Check interface
         run: |

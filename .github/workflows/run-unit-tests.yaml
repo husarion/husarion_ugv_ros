@@ -34,6 +34,10 @@ jobs:
           apt-get update
           apt-get install -y iproute2
 
+      - name: Check interface
+        run: |
+          sudo ip link add dummy0 type dummy
+
       - name: Setup ROS
         uses: ros-tooling/setup-ros@v0.7
 

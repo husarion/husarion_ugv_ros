@@ -37,23 +37,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y iproute2 netcat-traditional
 
-      - name: Build
+      - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3
         with:
           vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-          target-ros2-distro: jazzy
-          skip-tests: true
-          colcon-defaults: |
-            {
-              "build": {
-                "packages-up-to": ["husarion_ugv"],
-                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-              }
-            }
-
-      - name: Test
-        uses: ros-tooling/action-ros-ci@v0.3
-        with:
           target-ros2-distro: jazzy
           colcon-defaults: |
             {

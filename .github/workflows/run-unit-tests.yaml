@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-noble-latest
-      options: --cap-add=NET_ADMIN --user 1000:1000
+      options: --cap-add=NET_ADMIN
       env:
         USER: husarion
     strategy:

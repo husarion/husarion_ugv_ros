@@ -48,7 +48,7 @@ jobs:
               "build": {
                 "packages-up-to": ["husarion_ugv"],
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-              },
+              }
             }
 
       - name: Test

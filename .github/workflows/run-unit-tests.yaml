@@ -15,10 +15,15 @@ on:
 jobs:
   build-and-test:
     name: Run unit tests ${{ matrix.build_type }} build type
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+      options: --cap-add=NET_ADMIN
+      env:
+        USER: husarion
     strategy:
       matrix:
-        build_type: [simulation, hardware]
+        build_type: [hardware]
 
     env:
       HUSARION_ROS_BUILD_TYPE: ${{ matrix.build_type }}
@@ -27,49 +32,40 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup ROS
-        uses: ros-tooling/setup-ros@v0.7
+      - name: Build and test
+        uses: ros-tooling/action-ros-ci@v0.3
+        id: build_test_1
         with:
-          required-ros-distributions: jazzy
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: jazzy
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"],
+                "packages-select-regex": ["husarion_ugv*"]
+              }
+            }
 
-      - name: Print AMENT_PREFIX_PATH
-        shell: bash
-        run: apt list | grep colcon
+        continue-on-error: true
 
-      # - name: Build and test
-      #   uses: ros-tooling/action-ros-ci@v0.3
-      #   id: build_test_1
-      #   with:
-      #     vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-      #     target-ros2-distro: jazzy
-      #     colcon-defaults: |
-      #       {
-      #         "build": {
-      #           "packages-up-to": ["husarion_ugv"],
-      #           "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-      #         },
-      #         "test": {
-      #           "packages-up-to": ["husarion_ugv"],
-      #           "packages-select-regex": ["husarion_ugv*"]
-      #         }
-      #       }
-
-      #   continue-on-error: true
-
-      # - name: Retry Build and test (if failed)
-      #   if: steps.build_test_1.outcome == 'failure'
-      #   uses: ros-tooling/action-ros-ci@v0.3
-      #   with:
-      #     vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
-      #     target-ros2-distro: jazzy
-      #     colcon-defaults: |
-      #       {
-      #         "build": {
-      #           "packages-up-to": ["husarion_ugv"],
-      #           "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
-      #         },
-      #         "test": {
-      #           "packages-up-to": ["husarion_ugv"],
-      #           "packages-select-regex": ["husarion_ugv*"]
-      #         }
-      #       }
+      - name: Retry Build and test (if failed)
+        if: steps.build_test_1.outcome == 'failure'
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          vcs-repo-file-url: ${{ github.workspace }}/husarion_ugv/${{ env.HUSARION_ROS_BUILD_TYPE }}_deps.repos
+          target-ros2-distro: jazzy
+          colcon-defaults: |
+            {
+              "build": {
+                "packages-up-to": ["husarion_ugv"],
+                "cmake-args": ["-DCMAKE_BUILD_TYPE=Release"]
+              },
+              "test": {
+                "packages-up-to": ["husarion_ugv"],
+                "packages-select-regex": ["husarion_ugv*"]
+              }
+            }

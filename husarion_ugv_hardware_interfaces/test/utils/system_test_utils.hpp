@@ -97,6 +97,11 @@ public:
     QueryControlInterfaceIOStates, (), (const, override));
 
   using NiceMock = testing::NiceMock<MockGPIOController>;
+
+  std::shared_ptr<MockGPIODriver> GetGPIODriver() const
+  {
+    return std::static_pointer_cast<MockGPIODriver>(gpio_driver_);
+  }
 };
 
 class MockEStop : public husarion_ugv_hardware_interfaces::EStopInterface

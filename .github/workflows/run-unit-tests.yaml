@@ -23,7 +23,7 @@ jobs:
         USER: husarion
     strategy:
       matrix:
-        build_type: [hardware]
+        build_type: [simulation, hardware]
 
     env:
       HUSARION_ROS_BUILD_TYPE: ${{ matrix.build_type }}
@@ -31,6 +31,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install netcat-traditional
+        run: |
+          apt-get update
+          apt-get install -y netcat-traditional
 
       - name: Build and test
         uses: ros-tooling/action-ros-ci@v0.3

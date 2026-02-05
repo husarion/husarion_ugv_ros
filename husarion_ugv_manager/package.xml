@@ -37,7 +37,6 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <test_depend>iproute2</test_depend>
-  <test_depend>netcat-traditional</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

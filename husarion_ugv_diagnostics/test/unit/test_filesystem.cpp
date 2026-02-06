@@ -76,6 +76,11 @@ TEST_F(TestFilesystem, ReadFileNonExistent)
 
 TEST_F(TestFilesystem, ReadFileLocked)
 {
+  if (geteuid() == 0) {
+    GTEST_SKIP() << "Skipping ReadFileLocked test when running as root (sudo), as root can always "
+                    "read the file.";
+  }
+
   const auto test_file_path = CreateTestFile(kDummyString);
 
   // Change file permissions to make it unreadable

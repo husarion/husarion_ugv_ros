@@ -58,6 +58,14 @@ def generate_launch_description():
         choices=["lynx", "panther"],
     )
 
+    publish_orientation = LaunchConfiguration("publish_orientation")
+    declare_publish_orientation_arg = DeclareLaunchArgument(
+        "publish_orientation",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -146,10 +154,35 @@ def generate_launch_description():
         ]
     )
 
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            publish_orientation,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",
+        ]
+    )
+
+    # orientation_covariance = PythonExpression([
+    #     "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
+    #     publish_orientation,
+    #     "\" in ['True', 'true'] else ",
+    #     "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
+    # ])
+
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[ns_controller_config_path],
+        parameters=[
+            ns_controller_config_path,
+            {
+                "imu_broadcaster": {
+                    "ros__parameters": {
+                        "static_covariance_orientation": orientation_covariance,
+                    }
+                }
+            },
+        ],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -213,6 +246,7 @@ def generate_launch_description():
     actions = [
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
+        declare_publish_orientation_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

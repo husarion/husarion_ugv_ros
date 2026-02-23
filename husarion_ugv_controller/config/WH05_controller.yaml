@@ -18,7 +18,7 @@
       sensor_name: <namespace>/imu
       frame_id: <namespace>/imu_link
       # orientation_stddev: 4.3e-2 rad determined experimentally
-      static_covariance_orientation: [1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
+      static_covariance_orientation: [-10, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
       # angular_velocity_stdev: 0.59 deg/s (0.01 rad/s) gyroscope white noise sigma, according to the manual
       static_covariance_angular_velocity: [1.0e-4, 0.0, 0.0, 0.0, 1.0e-4, 0.0, 0.0, 0.0, 1.0e-4]
       # linear_acceleration_stdev: 2.8 mg (0.0275 m/s^2) accelerometer white noise sigma, according to the manual

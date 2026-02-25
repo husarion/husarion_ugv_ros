@@ -133,7 +133,6 @@ def generate_launch_description():
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
 
     joint_state_broadcaster_log_unit = PythonExpression(
         [
@@ -154,33 +153,36 @@ def generate_launch_description():
         ]
     )
 
-    # orientation_covariance = PythonExpression(
-    #     [
-    #         "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
-    #         publish_orientation,
-    #         "' in ['True', 'true'] else ",
-    #         "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",
-    #     ]
-    # )
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            publish_orientation,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",
+        ]
+    )
 
     # orientation_covariance = PythonExpression(
     #     [
-    #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
+    #         "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
     #         publish_orientation,
     #         "\" in ['True', 'true'] else ",
     #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
     #     ]
     # )
 
-    orientation_covariance = [-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
+    ns_controller_config_path = ReplaceString(
+        controller_config_path,
+        {
+            "<namespace>/": ns,
+            "<static_covariance_orientation>": orientation_covariance,
+        },
+    )
 
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[
-            ns_controller_config_path,
-            {"imu_broadcaster.static_covariance_orientation": orientation_covariance},
-        ],
+        parameters=[ns_controller_config_path],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),

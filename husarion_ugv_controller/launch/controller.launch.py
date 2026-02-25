@@ -163,27 +163,23 @@ def generate_launch_description():
     #     ]
     # )
 
-    orientation_covariance = PythonExpression(
-        [
-            "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
-            publish_orientation,
-            "\" in ['True', 'true'] else ",
-            "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
-        ]
-    )
+    # orientation_covariance = PythonExpression(
+    #     [
+    #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
+    #         publish_orientation,
+    #         "\" in ['True', 'true'] else ",
+    #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
+    #     ]
+    # )
+
+    orientation_covariance = [-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]
 
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
             ns_controller_config_path,
-            {
-                "imu_broadcaster": {
-                    "ros__parameters": {
-                        "static_covariance_orientation": orientation_covariance,
-                    }
-                }
-            },
+            {"imu_broadcaster.static_covariance_orientation": orientation_covariance},
         ],
         namespace=namespace,
         remappings=[

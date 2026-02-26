@@ -74,6 +74,14 @@ def generate_launch_description():
         ),
     )
 
+    publish_orientation = LaunchConfiguration("publish_orientation")
+    declare_publish_orientation_arg = DeclareLaunchArgument(
+        "publish_orientation",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -145,7 +153,32 @@ def generate_launch_description():
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
+
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            publish_orientation,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",
+        ]
+    )
+
+    # orientation_covariance = PythonExpression(
+    #     [
+    #         "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
+    #         publish_orientation,
+    #         "\" in ['True', 'true'] else ",
+    #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
+    #     ]
+    # )
+
+    ns_controller_config_path = ReplaceString(
+        controller_config_path,
+        {
+            "<namespace>/": ns,
+            "<static_covariance_orientation>": orientation_covariance,
+        },
+    )
 
     # Get URDF via xacro
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
@@ -198,6 +231,7 @@ def generate_launch_description():
         declare_battery_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
+        declare_publish_orientation_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

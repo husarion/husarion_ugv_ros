@@ -176,6 +176,8 @@ protected:
 
   bool algorithm_initialized_ = false;
   rclcpp::Time last_spatial_data_timestamp_;
+
+  bool publish_orientation_;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

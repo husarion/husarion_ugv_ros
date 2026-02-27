@@ -84,6 +84,9 @@ CallbackReturn PhidgetImuSensor::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_DEBUG_STREAM(
     logger_, "\tcallback_delta_epsilon_ms " << params_.callback_delta_epsilon_ms << "ms");
 
+  RCLCPP_DEBUG_STREAM(logger_, "Additional parameters: ");
+  RCLCPP_DEBUG_STREAM(logger_, "\tpublish_orientation: " << publish_orientation_);
+
   try {
     ReadMadgwickFilterParams();
     ConfigureMadgwickFilter();
@@ -102,7 +105,6 @@ CallbackReturn PhidgetImuSensor::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_DEBUG_STREAM(logger_, "\tmag_bias_z " << params_.mag_bias_z);
   RCLCPP_DEBUG_STREAM(logger_, "\tstateless " << params_.stateless);
   RCLCPP_DEBUG_STREAM(logger_, "\tremove_gravity_vector " << params_.remove_gravity_vector);
-  RCLCPP_DEBUG_STREAM(logger_, "\tpublish_orientation: " << params_.publish_orientation);
 
   return CallbackReturn::SUCCESS;
 }
@@ -229,6 +231,9 @@ void PhidgetImuSensor::ReadObligatoryParams()
     throw std::runtime_error(
       "Invalid configuration: Callback epsilon is larger than the data interval.");
   }
+
+  publish_orientation_ =
+    hardware_interface::parse_bool(info_.hardware_parameters.at("publish_orientation"));
 }
 
 void PhidgetImuSensor::ReadCompassParams()
@@ -259,8 +264,6 @@ void PhidgetImuSensor::ReadMadgwickFilterParams()
   params_.stateless = hardware_interface::parse_bool(info_.hardware_parameters.at("stateless"));
   params_.remove_gravity_vector =
     hardware_interface::parse_bool(info_.hardware_parameters.at("remove_gravity_vector"));
-  params_.publish_orientation =
-    hardware_interface::parse_bool(info_.hardware_parameters.at("publish_orientation"));
 
   CheckMadgwickFilterWorldFrameParam();
 }
@@ -489,7 +492,7 @@ void PhidgetImuSensor::SpatialDataCallback(
       UpdateMadgwickAlgorithmIMU(ang_vel, lin_acc, dt);
     }
 
-    if (!params_.publish_orientation) {
+    if (!publish_orientation_) {
       const auto nan = std::numeric_limits<double>::quiet_NaN();
       filter_->setOrientation(nan, nan, nan, nan);
     }

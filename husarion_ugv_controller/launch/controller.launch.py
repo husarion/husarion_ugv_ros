@@ -129,6 +129,7 @@ def generate_launch_description():
             "namespace": namespace,
             "robot_model": robot_model,
             "log_level": log_level,
+            "publish_orientation": publish_orientation,
         }.items(),
     )
 

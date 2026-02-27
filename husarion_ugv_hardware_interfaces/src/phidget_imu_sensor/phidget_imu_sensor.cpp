@@ -102,6 +102,7 @@ CallbackReturn PhidgetImuSensor::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_DEBUG_STREAM(logger_, "\tmag_bias_z " << params_.mag_bias_z);
   RCLCPP_DEBUG_STREAM(logger_, "\tstateless " << params_.stateless);
   RCLCPP_DEBUG_STREAM(logger_, "\tremove_gravity_vector " << params_.remove_gravity_vector);
+  RCLCPP_DEBUG_STREAM(logger_, "\tpublish_orientation: " << params_.publish_orientation);
 
   return CallbackReturn::SUCCESS;
 }
@@ -258,6 +259,8 @@ void PhidgetImuSensor::ReadMadgwickFilterParams()
   params_.stateless = hardware_interface::parse_bool(info_.hardware_parameters.at("stateless"));
   params_.remove_gravity_vector =
     hardware_interface::parse_bool(info_.hardware_parameters.at("remove_gravity_vector"));
+  params_.publish_orientation =
+    hardware_interface::parse_bool(info_.hardware_parameters.at("publish_orientation"));
 
   CheckMadgwickFilterWorldFrameParam();
 }
@@ -484,6 +487,11 @@ void PhidgetImuSensor::SpatialDataCallback(
       UpdateMadgwickAlgorithm(ang_vel, lin_acc, mag_compensated, dt);
     } else {
       UpdateMadgwickAlgorithmIMU(ang_vel, lin_acc, dt);
+    }
+
+    if (!params_.publish_orientation) {
+      const auto nan = std::numeric_limits<double>::quiet_NaN();
+      filter_->setOrientation(nan, nan, nan, nan);
     }
   }
 

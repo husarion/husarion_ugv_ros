@@ -9,7 +9,8 @@
             use_sim:=false
             imu_xyz:='0.169 0.025 0.092'
             imu_rpy:='0.0 0.0 -1.57'
-            namespace:=''">
+            namespace:=''
+            publish_orientation:=false">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="-0.195 0.010 0.085" />
@@ -164,6 +165,7 @@
           <param name="stateless">false</param>
           <param name="remove_gravity_vector">false</param>
           <param name="world_frame">enu</param>
+          <param name="publish_orientation">${publish_orientation}</param>
         </hardware>
 
         <sensor name="${ns}imu">

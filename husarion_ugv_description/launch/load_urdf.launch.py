@@ -202,6 +202,8 @@ def generate_launch_description():
             namespace,
             " components_config_path:=",
             components_config_path,
+            " publish_orientation:=",
+            publish_orientation,
         ]
     )
 

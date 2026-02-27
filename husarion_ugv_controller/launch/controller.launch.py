@@ -162,15 +162,6 @@ def generate_launch_description():
         ]
     )
 
-    # orientation_covariance = PythonExpression(
-    #     [
-    #         "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if \"",
-    #         publish_orientation,
-    #         "\" in ['True', 'true'] else ",
-    #         "'[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]'",
-    #     ]
-    # )
-
     ns_controller_config_path = ReplaceString(
         controller_config_path,
         {

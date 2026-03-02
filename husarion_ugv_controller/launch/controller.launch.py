@@ -76,15 +76,18 @@ def generate_launch_description():
         ),
     )
 
-    actions = [
-        declare_common_dir_path_arg,
-        declare_robot_model_arg,  # robot_model is used by wheel_type
-        declare_wheel_type_arg,  # wheel_type is used by controller_config_path
-        declare_controller_config_path_arg,
-        declare_namespace_arg,
-        declare_publish_robot_state_arg,
-        declare_use_sim_arg,
-        declare_log_level_arg,
+    publish_robot_state = LaunchConfiguration("publish_robot_state")
+    declare_publish_robot_state_arg = DeclareLaunchArgument(
+        "publish_robot_state",
+        default_value="True",
+        description=(
+            "Whether to publish the robot state using a robot_state_publisher node."
+            " This should generally be set to 'True' when using real hardware, and"
+            " 'False' when running in simulation, since Gazebo will publish the robot"
+            " state in that case."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
 
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(

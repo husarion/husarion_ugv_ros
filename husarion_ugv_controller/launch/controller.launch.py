@@ -18,7 +18,7 @@
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
-from launch.conditions import UnlessCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
@@ -76,6 +76,19 @@ def generate_launch_description():
         ),
     )
 
+    publish_robot_state = LaunchConfiguration("publish_robot_state")
+    declare_publish_robot_state_arg = DeclareLaunchArgument(
+        "publish_robot_state",
+        default_value="True",
+        description=(
+            "Whether to publish the robot state using a robot_state_publisher node."
+            " This should generally be set to 'True' when using real hardware, and"
+            " 'False' when running in simulation, since Gazebo will publish the robot"
+            " state in that case."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -122,6 +135,7 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
         }.items(),
+        condition=IfCondition(publish_robot_state),
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])

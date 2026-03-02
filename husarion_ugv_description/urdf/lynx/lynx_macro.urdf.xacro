@@ -10,7 +10,7 @@
             imu_xyz:='0.052 0.073 -0.006'
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''
-            publish_orientation:=false">
+            use_madgwick_filter:=false">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="0.052 0.073 -0.006" />
@@ -153,7 +153,7 @@
           <param name="hub_port">0</param>
           <param name="data_interval_ms">8</param>
           <param name="callback_delta_epsilon_ms">1</param>
-          <param name="publish_orientation">${publish_orientation}</param>
+          <param name="use_madgwick_filter">${use_madgwick_filter}</param>
 
           <!-- Madgwick Filter Params -->
           <param name="gain">0.00304</param>

@@ -58,9 +58,9 @@ def generate_launch_description():
         choices=["lynx", "panther"],
     )
 
-    publish_orientation = LaunchConfiguration("publish_orientation")
-    declare_publish_orientation_arg = DeclareLaunchArgument(
-        "publish_orientation",
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
         default_value="False",
         description="Determine orientation from IMU",
         choices=["True", "true", "False", "false"],
@@ -129,7 +129,7 @@ def generate_launch_description():
             "namespace": namespace,
             "robot_model": robot_model,
             "log_level": log_level,
-            "publish_orientation": publish_orientation,
+            "use_madgwick_filter": use_madgwick_filter,
         }.items(),
     )
 
@@ -157,9 +157,9 @@ def generate_launch_description():
     orientation_covariance = PythonExpression(
         [
             "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
-            publish_orientation,
+            use_madgwick_filter,
             "' in ['True', 'true'] else ",
-            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",  # the first element of the orientation covariance is set to -1 according to the documentation: https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html
         ]
     )
 
@@ -238,7 +238,7 @@ def generate_launch_description():
     actions = [
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
-        declare_publish_orientation_arg,
+        declare_use_madgwick_filter_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

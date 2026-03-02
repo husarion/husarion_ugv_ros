@@ -85,7 +85,7 @@ CallbackReturn PhidgetImuSensor::on_configure(const rclcpp_lifecycle::State &)
     logger_, "\tcallback_delta_epsilon_ms " << params_.callback_delta_epsilon_ms << "ms");
 
   RCLCPP_DEBUG_STREAM(logger_, "Additional parameters: ");
-  RCLCPP_DEBUG_STREAM(logger_, "\tpublish_orientation: " << publish_orientation_);
+  RCLCPP_DEBUG_STREAM(logger_, "\tuse_madgwick_filter: " << params_.use_madgwick_filter);
 
   try {
     ReadMadgwickFilterParams();
@@ -232,8 +232,8 @@ void PhidgetImuSensor::ReadObligatoryParams()
       "Invalid configuration: Callback epsilon is larger than the data interval.");
   }
 
-  publish_orientation_ =
-    hardware_interface::parse_bool(info_.hardware_parameters.at("publish_orientation"));
+  params_.use_madgwick_filter =
+    hardware_interface::parse_bool(info_.hardware_parameters.at("use_madgwick_filter"));
 }
 
 void PhidgetImuSensor::ReadCompassParams()
@@ -457,12 +457,23 @@ void PhidgetImuSensor::SpatialDataCallback(
     calibration_cv_.notify_one();
   }
 
+  // Skip the data callback when the Madgwick filter is not used
+  if (!params_.use_madgwick_filter) {
+    UpdateAccelerationAndGyrationStateValues(ang_vel, lin_acc);
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    imu_sensor_state_[orientation_w] = nan;
+    imu_sensor_state_[orientation_x] = nan;
+    imu_sensor_state_[orientation_y] = nan;
+    imu_sensor_state_[orientation_z] = nan;
+    return;
+  }
+
   rclcpp::Time spatial_data_timestamp =
     rclcpp::Time(timestamp * 1e6);  // timestamp comes in milliseconds
   auto dt = (spatial_data_timestamp - last_spatial_data_timestamp_).seconds();
   last_spatial_data_timestamp_ = spatial_data_timestamp;
 
-  // Wait for the a magnitude and an acceleration to initialize the algorithm
+  // Wait for a magnitude and an acceleration to initialize the algorithm
   if (
     !algorithm_initialized_ &&
     !IsMagnitudeSynchronizedWithAccelerationAndGyration(mag_compensated)) {
@@ -491,13 +502,7 @@ void PhidgetImuSensor::SpatialDataCallback(
     } else {
       UpdateMadgwickAlgorithmIMU(ang_vel, lin_acc, dt);
     }
-
-    if (!publish_orientation_) {
-      const auto nan = std::numeric_limits<double>::quiet_NaN();
-      filter_->setOrientation(nan, nan, nan, nan);
-    }
   }
-
   UpdateAllStatesValues(ang_vel, lin_acc);
 }
 
@@ -545,12 +550,12 @@ void PhidgetImuSensor::UpdateAccelerationAndGyrationStateValues(
   imu_sensor_state_[angular_velocity_y] = ang_vel.y;
   imu_sensor_state_[angular_velocity_z] = ang_vel.z;
 
-  if (params_.remove_gravity_vector) {
+  if (params_.remove_gravity_vector) {  // cannot calculate gravity if orientation is not known: TBD
     float gx, gy, gz;
     filter_->getGravity(gx, gy, gz);
     imu_sensor_state_[linear_acceleration_x] = lin_acc.x - gx;
     imu_sensor_state_[linear_acceleration_y] = lin_acc.y - gy;
-    imu_sensor_state_[linear_acceleration_z] = lin_acc.y - gz;
+    imu_sensor_state_[linear_acceleration_z] = lin_acc.z - gz;
   } else {
     imu_sensor_state_[linear_acceleration_x] = lin_acc.x;
     imu_sensor_state_[linear_acceleration_y] = lin_acc.y;

@@ -18,6 +18,7 @@
 
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>husarion_mecanum_drive_controller</exec_depend>
   <exec_depend>husarion_ugv_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_hardware_interfaces</exec_depend>
   <exec_depend>husarion_ugv_utils</exec_depend>
@@ -25,7 +26,6 @@
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>mecanum_drive_controller</exec_depend>
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>twist_mux_controller</exec_depend>

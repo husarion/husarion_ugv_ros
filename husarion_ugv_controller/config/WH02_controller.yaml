@@ -6,7 +6,7 @@
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
       drive_controller:
-        type: mecanum_drive_controller/MecanumDriveController
+        type: husarion_mecanum_drive_controller/MecanumDriveController
       imu_broadcaster:
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
       twist_mux_controller:

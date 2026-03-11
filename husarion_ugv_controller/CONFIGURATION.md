@@ -2,7 +2,7 @@
 
 ## Changing Velocity Smoothing Parameters
 
-The default drive controller is based on [diff_drive_controller](https://control.ros.org/master/doc/ros2_controllers/diff_drive_controller/doc/userdoc.html) from [ros2 control](https://control.ros.org/master/index.html) or [mecanum_drive_controller](https://github.com/husarion/husarion_controllers/tree/main/mecanum_drive_controller). This controller can be customized, among others: by modifying the robot's dynamic parameters (e.g. smooth the speed or limit the robot's speed and acceleration). Its parameters can be found in the [husarion_ugv_controller](https://github.com/husarion/husarion_ugv_ros/tree/ros2-devel/husarion_ugv_controller/config). By default, these values correspond to the upper limits of the robot's velocities and accelerations.
+The default drive controller is based on [diff_drive_controller](https://control.ros.org/master/doc/ros2_controllers/diff_drive_controller/doc/userdoc.html) from [ros2 control](https://control.ros.org/master/index.html) or [husarion_mecanum_drive_controller](https://github.com/husarion/husarion_controllers/tree/jazzy/husarion_mecanum_drive_controller). This controller can be customized, among others: by modifying the robot's dynamic parameters (e.g. smooth the speed or limit the robot's speed and acceleration). Its parameters can be found in the [husarion_ugv_controller](https://github.com/husarion/husarion_ugv_ros/tree/ros2-devel/husarion_ugv_controller/config). By default, these values correspond to the upper limits of the robot's velocities and accelerations.
 
 ## Changing Wheel Type
 

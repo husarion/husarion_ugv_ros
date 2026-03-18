@@ -139,7 +139,7 @@ phidgets_spatial:
   }
   remove_gravity_vector: {
     type: bool,
-    default_value: false,
+    default_value: true,
     description: "The gravity vector is kept in the IMU message."
   }
   use_madgwick_filter: {

@@ -550,7 +550,9 @@ void PhidgetImuSensor::UpdateAccelerationAndGyrationStateValues(
   imu_sensor_state_[angular_velocity_y] = ang_vel.y;
   imu_sensor_state_[angular_velocity_z] = ang_vel.z;
 
-  if (params_.remove_gravity_vector) {  // cannot calculate gravity if orientation is not known: TBD
+  // Gravity vector is calculated based on the orientation, so gravity vector can be subtracted only
+  // if orientation is calculated and available (when parameter use_madgwick_filter is true)
+  if (params_.remove_gravity_vector && params_.use_madgwick_filter) {
     float gx, gy, gz;
     filter_->getGravity(gx, gy, gz);
     imu_sensor_state_[linear_acceleration_x] = lin_acc.x - gx;

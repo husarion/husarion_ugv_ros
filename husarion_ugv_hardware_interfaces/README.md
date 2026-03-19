@@ -96,6 +96,10 @@ Physical properties
 - `cc_t4` [*double*, default: **0.0**]: T offset value 4; see device's user guide for information on how to calibrate.
 - `cc_t5` [*double*, default: **0.0**]: T offset value 5; see device's user guide for information on how to calibrate.
 
+Additional parameters
+
+- `use_madgwick_filter` [*bool*, default: **false**]: Whether to calculate orientation using the Madgwick filter. When *true*, orientation is computed and published. When *false* (the default), the orientation in the IMU topic will contain NaNs and the first element of the orientation covariance matrix will be set to -1, according to the [documentation](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html).
+
 Madgwick filter settings
 
 - `use_mag` [*bool*, default: **false**]: Use magnitude to calculate orientation.

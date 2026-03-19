@@ -58,6 +58,14 @@ def generate_launch_description():
         choices=["lynx", "panther"],
     )
 
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -121,11 +129,11 @@ def generate_launch_description():
             "namespace": namespace,
             "robot_model": robot_model,
             "log_level": log_level,
+            "use_madgwick_filter": use_madgwick_filter,
         }.items(),
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
 
     joint_state_broadcaster_log_unit = PythonExpression(
         [
@@ -144,6 +152,23 @@ def generate_launch_description():
             namespace,
             "' else 'controller_manager'",
         ]
+    )
+
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            use_madgwick_filter,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",  # the first element of the orientation covariance is set to -1 according to the documentation: https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html
+        ]
+    )
+
+    ns_controller_config_path = ReplaceString(
+        controller_config_path,
+        {
+            "<namespace>/": ns,
+            "<static_covariance_orientation>": orientation_covariance,
+        },
     )
 
     control_node = Node(
@@ -213,6 +238,7 @@ def generate_launch_description():
     actions = [
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
+        declare_use_madgwick_filter_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

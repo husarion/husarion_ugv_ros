@@ -98,7 +98,7 @@ Physical properties
 
 Additional parameters
 
-- `use_madgwick_filter` [*bool*, default: **false**]: Disable calculating orientation using the Madgwick filter. If set to *false*, the orientation in the IMU topic will contain NaNs and the first element of the orientation covariance matrix will be set to -1, according to the [documentation](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html).
+- `use_madgwick_filter` [*bool*, default: **false**]: Whether to calculate orientation using the Madgwick filter. When *true*, orientation is computed and published. When *false* (the default), the orientation in the IMU topic will contain NaNs and the first element of the orientation covariance matrix will be set to -1, according to the [documentation](https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html).
 
 Madgwick filter settings
 

@@ -89,20 +89,6 @@ def generate_launch_description():
     }
     welcome_info = welcome_msg(robot_model, "----", "simulation", log_stats)
 
-    load_urdf = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_description"), "launch", "load_urdf.launch.py"]
-            )
-        ),
-        launch_arguments={
-            "namespace": namespace,
-            "robot_model": robot_model,
-            "log_level": log_level,
-            "use_sim": "True",
-        }.items(),
-    )
-
     spawn_robot = Node(
         package="ros_gz_sim",
         executable="create",
@@ -144,7 +130,6 @@ def generate_launch_description():
         declare_yaw_arg,
         SetUseSimTime(True),
         welcome_info,
-        load_urdf,
         spawn_robot,
     ]
 

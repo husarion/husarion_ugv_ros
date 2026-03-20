@@ -11,6 +11,8 @@
         type: imu_sensor_broadcaster/IMUSensorBroadcaster
       twist_mux_controller:
         type: twist_mux_controller/TwistMuxController
+      collision_monitor_controller:
+        type: collision_monitor_controller/CollisionMonitor
 
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
@@ -64,9 +66,9 @@
           max_velocity: 2.0 # m/s
           min_velocity: -2.0 # m/s
           max_acceleration: 2.7 # m/s^2
-          max_deceleration: -2.7 # m/s^2
+          max_deceleration: -10.0 # m/s^2
           max_acceleration_reverse: -2.7 # m/s^2
-          max_deceleration_reverse: 2.7 # m/s^2
+          max_deceleration_reverse: 10.0 # m/s^2
           max_jerk: .NAN # m/s^3
           min_jerk: .NAN # m/s^3
 
@@ -97,5 +99,124 @@
           topic: cmd_vel
           timeout: 0.2
           priority: 1
-      command_interface_linear_x: drive_controller/linear/velocity
-      command_interface_angular_z: drive_controller/angular/velocity
+      command_interface_linear_x: collision_monitor_controller/linear/x/velocity
+      command_interface_angular_z: collision_monitor_controller/angular/z/velocity
+
+  collision_monitor_controller:
+    ros__parameters:
+      enabled: True
+      base_frame_id: <namespace>/base_link
+      odom_frame_id: <namespace>/odom
+      cmd_vel_in_topic: manual/cmd_vel
+      cmd_vel_out_topic: cmd_vel_out
+      state_topic: collision_monitor_state
+      transform_tolerance: 0.5
+      source_timeout: 5.0
+      base_shift_correction: True
+      stop_pub_timeout: 2.0
+      enable_stamped_cmd_vel: True
+      use_realtime_priority: false
+      polygons: [VelocityPolygonStop, VelocityPolygonSlow]
+      VelocityPolygonStop:
+        type: velocity_polygon
+        action_type: stop
+        min_points: 6
+        visualize: True
+        enabled: True
+        polygon_pub_topic: velocity_polygon_stop
+        velocity_polygons: [rotation, translation_forward_slow, translation_forward, translation_backward_slow, translation_backward, stopped]
+        holonomic: false
+        rotation:
+          points: "[[0.46, 0.48], [0.46, -0.48], [-0.46, -0.48], [-0.46, 0.48]]" # Adds 5cm to robot dimensions
+          linear_min: -0.05
+          linear_max: 0.05
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_forward_slow:
+          points: "[[0.56, 0.48], [0.56, -0.48], [-0.22, -0.48], [-0.22, 0.48]]" # Adds 15cm to robot dimensions in direction of moving and 5cm on sides
+          linear_min: 0.0
+          linear_max: 0.5
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_forward:
+          points: "[[0.71, 0.48], [0.71, -0.48], [-0.22, -0.48], [-0.22, 0.48]]" # Adds 30cm to robot dimensions in direction of moving and 5cm on sides
+          linear_min: 0.5
+          linear_max: 2.0
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_backward_slow:
+          points: "[[0.22, 0.48], [0.22, -0.48], [-0.56, -0.48], [-0.56, 0.48]]" # Adds 15cm to robot dimensions in direction of moving and 5cm on sides
+          linear_min: -0.5
+          linear_max: 0.0
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_backward:
+          points: "[[0.22, 0.48], [0.22, -0.48], [-0.71, -0.48], [-0.71, 0.48]]" # Adds 30cm to robot dimensions in direction of moving and 5cm on sides
+          linear_min: -2.0
+          linear_max: -0.5
+          theta_min: -5.74
+          theta_max: 5.74
+        # # This is the last polygon to be checked, it should cover the entire range of robot's velocities
+        # # It is used as the stopped polygon when the robot is not moving and as a fallback if the velocity
+        # # is not covered by any of the other sub-polygons
+        stopped:
+          points: "[[0.46, 0.48], [0.46, -0.48], [-0.46, -0.48], [-0.46, 0.48]]" # Adds 5cm to robot dimensions
+          linear_min: -2.0
+          linear_max: 2.0
+          theta_min: -5.74
+          theta_max: 5.74
+      VelocityPolygonSlow:
+        type: velocity_polygon
+        action_type: slowdown
+        min_points: 6
+        slowdown_ratio: 0.3
+        visualize: True
+        enabled: True
+        polygon_pub_topic: velocity_polygon_slow
+        velocity_polygons: [rotation, translation_forward_slow, translation_forward, translation_backward_slow, translation_backward, stopped]
+        holonomic: false
+        rotation:
+          points: "[[0.56, 0.58], [0.56, -0.58], [-0.56, -0.58], [-0.56, 0.58]]" # Adds 15cm to robot dimensions
+          linear_min: -0.05
+          linear_max: 0.05
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_forward_slow:
+          points: "[[0.76, 0.58], [0.76, -0.58], [-0.46, -0.58], [-0.46, 0.58]]" # Adds 30cm to robot dimensions in direction of moving and 15cm on sides
+          linear_min: 0.0
+          linear_max: 0.5
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_forward:
+          points: "[[0.91, 0.58], [0.91, -0.58], [-0.46, -0.58], [-0.46, 0.58]]" # Adds 50cm to robot dimensions in direction of moving and 15cm on sides
+          linear_min: 0.5
+          linear_max: 2.0
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_backward_slow:
+          points: "[[0.46, 0.58], [0.46, -0.58], [-0.76, -0.58], [-0.76, 0.58]]" # Adds 30cm to robot dimensions in direction of moving and 15cm on sides
+          linear_min: -0.5
+          linear_max: 0.0
+          theta_min: -5.74
+          theta_max: 5.74
+        translation_backward:
+          points: "[[0.46, 0.58], [0.46, -0.58], [-0.91, -0.58], [-0.91, 0.58]]" # Adds 50cm to robot dimensions in direction of moving and 15cm on sides
+          linear_min: -2.0
+          linear_max: -0.5
+          theta_min: -5.74
+          theta_max: 5.74
+        # # This is the last polygon to be checked, it should cover the entire range of robot's velocities
+        # # It is used as the stopped polygon when the robot is not moving and as a fallback if the velocity
+        # # is not covered by any of the other sub-polygons
+        stopped:
+          points: "[[0.56, 0.58], [0.56, -0.58], [-0.56, -0.58], [-0.56, 0.58]]" # Adds 15cm to robot dimensions
+          linear_min: -2.0
+          linear_max: 2.0
+          theta_min: -5.74
+          theta_max: 5.74
+      observation_sources: [scan]
+      scan:
+        source_timeout: 0.2
+        type: scan
+        topic: scan
+        enabled: True

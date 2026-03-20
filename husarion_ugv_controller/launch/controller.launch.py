@@ -229,6 +229,7 @@ def generate_launch_description():
             "drive_controller",
             "imu_broadcaster",
             "twist_mux_controller",
+            "collision_monitor_controller",
             "--activate-as-group",
             *spawner_common_args,
         ],

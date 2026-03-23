@@ -86,7 +86,7 @@ def generate_launch_description():
     gz_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        name="gz_bridge",
+        name="gz_sim_bridge",
         parameters=[{"config_file": gz_bridge_config}],
     )
 

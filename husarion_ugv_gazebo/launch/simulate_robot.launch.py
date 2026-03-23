@@ -212,7 +212,7 @@ def generate_launch_description():
     gz_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        name="gz_bridge",
+        name="robot_gz_bridge",
         parameters=[{"config_file": namespaced_gz_bridge_config_path}],
         namespace=namespace,
         arguments=[

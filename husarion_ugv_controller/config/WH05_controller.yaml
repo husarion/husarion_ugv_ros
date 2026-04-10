@@ -220,5 +220,5 @@
       scan:
         source_timeout: 0.2
         type: scan
-        topic: scan
-        enabled: True
+        topic: ~/scan
+        enabled: False

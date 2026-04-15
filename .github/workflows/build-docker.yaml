@@ -107,7 +107,7 @@ jobs:
           repo_name: husarion-ugv-gazebo
           build_type: ${{ inputs.build_type }}
           ros_distro: ${{ inputs.target_distro }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           # variables important only for stable release
           target_distro: ${{ inputs.target_distro }}
           target_release: ${{ inputs.target_release }}

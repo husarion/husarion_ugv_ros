@@ -20,7 +20,7 @@ x-gpu-config: &gpu-config
 services:
   husarion_ugv_gazebo:
     # image: husarion/husarion-ugv-gazebo:jazzy-2.3.1-20250701
-    build: 
+    build:
       context: ../..
       dockerfile: docker/Dockerfile.simulation
     container_name: husarion_ugv_gazebo

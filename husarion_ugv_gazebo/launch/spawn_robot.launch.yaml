@@ -1,0 +1,85 @@
+---
+launch:
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model.
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: x
+      default: '0.0'
+      description: Initial robot position in the global 'x' axis.
+
+  - arg:
+      name: y
+      default: '0.0'
+      description: Initial robot position in the global 'y' axis.
+
+  - arg:
+      name: z
+      default: '0.2'
+      description: Initial robot position in the global 'z' axis.
+
+  - arg:
+      name: roll
+      default: '0.0'
+      description: Initial robot 'roll' orientation.
+
+  - arg:
+      name: pitch
+      default: '0.0'
+      description: Initial robot 'pitch' orientation.
+
+  - arg:
+      name: yaw
+      default: '0.0'
+      description: Initial robot 'yaw' orientation.
+
+  - let:
+      name: rcl_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - set_use_sim_time:
+      value: true
+
+  - executable:
+      cmd: ros2 run husarion_ugv_utils welcome_msg $(var robot_model) ---- simulation Robot_namespace=$(var
+        namespace) Initial_pose=($(var x),$(var y),$(var z),$(var roll),$(var pitch),$(var
+        yaw))
+
+  - node:
+      pkg: ros_gz_sim
+      exec: create
+      namespace: $(var namespace)
+      args: >
+        -name $(var namespace)
+        -topic robot_description
+        -x $(var x)
+        -y $(var y)
+        -z $(var z)
+        -R $(var roll)
+        -P $(var pitch)
+        -Y $(var yaw)
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var rcl_log_level)

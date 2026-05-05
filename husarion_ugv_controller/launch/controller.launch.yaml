@@ -1,0 +1,180 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: use_madgwick_filter
+      default: 'False'
+      description: Determine orientation from IMU
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: wheel_type
+      default: "$(eval \"{'lynx': 'WH05', 'panther': 'WH01'}['$(var robot_model)']\")"
+      description: Specify the wheel type. Adjusts wheel_config_path and controller_config_path
+        defaults.
+      choice:
+        - value: WH01
+        - value: WH02
+        - value: WH04
+        - value: WH05
+        - value: custom
+
+  - let:
+      name: husarion_ugv_controller_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_controller' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_controller)'")
+
+  - arg:
+      name: controller_config_path
+      default: $(var husarion_ugv_controller_common_dir)/config/$(var wheel_type)_controller.yaml
+      description: Path to controller configuration file.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - set_parameter:
+      name: use_sim_time
+      value: $(var use_sim)
+
+  - let:
+      name: ns_slash
+      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
+
+  - let:
+      name: orientation_covariance
+      value: $(eval "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if '$(var
+        use_madgwick_filter)' in ('True', 'true') else '[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0,
+        0.0, 0.0, 1.8e-3]'")
+
+  - let:
+      name: rendered_controller_config
+      value: /tmp/husarion_ugv_controller_$(var namespace).yaml
+
+  # ReplaceString equivalent: render <namespace>/ and <static_covariance_orientation>
+  # placeholders into a tmp controller config.
+  - let:
+      name: render_controller_config_cmd
+      value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
+        -i -e "s|<namespace>/|$(var ns_slash)|g" -e "s|<static_covariance_orientation>|$(var
+        orientation_covariance)|g" "$(var rendered_controller_config)"
+
+  - executable:
+      cmd: bash -c $(var render_controller_config_cmd)
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_description)/launch/load_urdf.launch.yaml
+      arg:
+        - name: namespace
+          value: $(var namespace)
+        - name: robot_model
+          value: $(var robot_model)
+        - name: log_level
+          value: $(var log_level)
+        - name: use_madgwick_filter
+          value: $(var use_madgwick_filter)
+
+  - let:
+      name: rcl_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - let:
+      name: pluginlib_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - let:
+      name: jsb_log_unit
+      value: $(eval "'$(var namespace).joint_state_broadcaster' if '$(var namespace)' else
+        'joint_state_broadcaster'")
+
+  - let:
+      name: cm_log_unit
+      value: $(eval "'$(var namespace).controller_manager' if '$(var namespace)' else 'controller_manager'")
+
+  # Wait briefly for the rendered config file to land before starting controllers.
+  - timer:
+      period: 1.0
+      children:
+        - node:
+            unless: $(var use_sim)
+            pkg: controller_manager
+            exec: ros2_control_node
+            namespace: $(var namespace)
+            on_exit: shutdown
+            param:
+              - from: $(var rendered_controller_config)
+            remap:
+              - from: /diagnostics
+                to: diagnostics
+              - from: drive_controller/cmd_vel
+                to: cmd_vel
+              - from: drive_controller/odom
+                to: odometry/wheels
+              - from: drive_controller/transition_event
+                to: drive_controller/_transition_event
+              - from: imu_broadcaster/imu
+                to: imu/data
+              - from: imu_broadcaster/transition_event
+                to: imu_broadcaster/_transition_event
+              - from: joint_state_broadcaster/transition_event
+                to: joint_state_broadcaster/_transition_event
+              - from: twist_mux_controller/transition_event
+                to: twist_mux_controller/_transition_event
+            args: >
+              --ros-args
+              --log-level $(var log_level)
+              --log-level rcl:=$(var rcl_log_level)
+              --log-level pluginlib.ClassLoader:=$(var pluginlib_log_level)
+              --log-level $(var jsb_log_unit):=$(var rcl_log_level)
+              --log-level $(var cm_log_unit):=$(var rcl_log_level)
+
+        - node:
+            pkg: controller_manager
+            exec: spawner
+            namespace: $(var namespace)
+            args: >
+              joint_state_broadcaster
+              drive_controller
+              imu_broadcaster
+              twist_mux_controller
+              --activate-as-group
+              --controller-manager controller_manager
+              --controller-manager-timeout 10
+              --ros-args
+              --log-level $(var log_level)
+              --log-level rcl:=$(var rcl_log_level)

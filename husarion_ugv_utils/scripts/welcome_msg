@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+# Copyright 2026 Husarion sp. z o.o.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Print Husarion UGV welcome banner. Used by launch.yaml entry-points."""
+
+import subprocess
+import sys
+import textwrap
+
+import click
+
+LYNX_ASCII = r"""
+     _
+    | |   _   _ _ __ __  __
+    | |  | | | | '_ \\ \/ /
+    | |__| |_| | | | |>  <
+    |_____\__, |_| |_/_/\_\
+          |___/
+"""
+
+PANTHER_ASCII = r"""
+     ____             _   _
+    |  _ \ __ _ _ __ | |_| |__   ___ _ __
+    | |_) / _` | '_ \| __| '_ \ / _ \ '__|
+    |  __/ (_| | | | | |_| | | |  __/ |
+    |_|   \__,_|_| |_|\__|_| |_|\___|_|
+"""
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if len(args) < 3:
+        sys.stderr.write("usage: welcome_msg <robot_model> <serial> <hw_version> [key=value]...\n")
+        return 2
+
+    robot_model, serial, hw_version, *extras = args
+    art = LYNX_ASCII if robot_model.lower() == "lynx" else PANTHER_ASCII
+    print(click.style(textwrap.dedent(art), bold=True))
+
+    try:
+        ros_ver = subprocess.check_output(
+            ["ros2", "pkg", "xml", "-t", "version", "husarion_ugv"],
+            text=True,
+        ).strip()
+    except Exception:
+        ros_ver = "unknown"
+
+    stats = [
+        ("Serial Number", serial),
+        ("Robot Version", hw_version),
+        ("ROS Driver Version", ros_ver),
+    ]
+    for kv in extras:
+        if "=" in kv:
+            k, v = kv.split("=", 1)
+            stats.append((k, v))
+    stats += [
+        ("Website", "https://husarion.com"),
+        ("Support", "https://community.husarion.com/"),
+        ("Bug Tracker", "https://github.com/husarion/husarion_ugv_ros/issues"),
+    ]
+
+    for k, v in stats:
+        print(f"{click.style(k, bold=True)}: {v}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

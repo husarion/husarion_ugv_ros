@@ -1,0 +1,151 @@
+---
+launch:
+
+  - set_env:
+      name: RCUTILS_COLORIZED_OUTPUT
+      value: '1'
+
+  - arg:
+      name: exit_on_wrong_hw
+      default: 'False'
+      description: Exit if hardware configuration is incorrect.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - arg:
+      name: disable_manager
+      default: 'False'
+      description: Enable or disable manager_bt_node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - let:
+      name: hw_config_correct
+      value: $(env ROBOT_HW_CONFIG_CORRECT false)
+
+  - let:
+      name: system_build_version
+      value: $(env SYSTEM_BUILD_VERSION v0.0.0)
+
+  # Welcome banner via husarion_ugv_utils CLI tool.
+  - executable:
+      cmd: ros2 run husarion_ugv_utils welcome_msg $(env ROBOT_MODEL_NAME panther) $(env
+        ROBOT_SERIAL_NO ----) $(env ROBOT_VERSION 1.0)
+
+  # OS version check (min v2.2.0). Inline tuple comparison via eval substitution.
+  - let:
+      name: os_version_compatible
+      value: $(eval "tuple(int(x) for x in '$(var system_build_version)'.lstrip('v').split('.')[:3])
+        >= (2, 2, 0)")
+
+  - executable:
+      cmd: ros2 run husarion_ugv_utils warning_msg WARNING:_Unsupported_OS_version_detected._Current:_$(var
+        system_build_version)_required:_v2.2.0
+      unless: $(var os_version_compatible)
+
+  # If hardware config is wrong: print error and (unless exit_on_wrong_hw) hang via sleep
+  # infinity to keep the launch alive without bringing up nodes.
+  - group:
+      unless: $(var hw_config_correct)
+      children:
+        - executable:
+            cmd: ros2 run husarion_ugv_utils error_msg ERROR:_Incorrect_hardware_configuration_detected._ROS_nodes_are_prevented_from_starting._Refer_to_instructions_in_manual_or_those_shown_on_terminal_login.
+        - executable:
+            cmd: sleep infinity
+            unless: $(var exit_on_wrong_hw)
+
+  # If hardware config is correct: bring up the driver stack.
+  - group:
+      if: $(var hw_config_correct)
+      children:
+        - include:
+            file: $(find-pkg-share husarion_ugv_controller)/launch/controller.launch.yaml
+            arg:
+              - name: log_level
+                value: $(var log_level)
+              - name: namespace
+                value: $(var namespace)
+              - name: common_dir_path
+                value: $(var common_dir_path)
+
+        - include:
+            file: $(find-pkg-share husarion_ugv_diagnostics)/launch/system_monitor.launch.yaml
+            arg:
+              - name: common_dir_path
+                value: $(var common_dir_path)
+              - name: log_level
+                value: $(var log_level)
+              - name: namespace
+                value: $(var namespace)
+
+        - timer:
+            period: 10.0
+            children:
+              - include:
+                  file: $(find-pkg-share husarion_ugv_battery)/launch/battery.launch.yaml
+                  arg:
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
+                    - name: namespace
+                      value: $(var namespace)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_lights)/launch/lights.launch.yaml
+                  arg:
+                    - name: log_level
+                      value: $(var log_level)
+                    - name: namespace
+                      value: $(var namespace)
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_manager)/launch/manager.launch.yaml
+                  unless: $(var disable_manager)
+                  arg:
+                    - name: log_level
+                      value: $(var log_level)
+                    - name: namespace
+                      value: $(var namespace)
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_localization)/launch/localization.launch.yaml
+                  arg:
+                    - name: log_level
+                      value: $(var log_level)
+                    - name: namespace
+                      value: $(var namespace)
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
+      arg:
+        - name: common_dir_path
+          value: $(var common_dir_path)
+        - name: launch_gamepad
+          value: 'True'

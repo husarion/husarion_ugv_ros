@@ -1,0 +1,49 @@
+---
+launch:
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: rviz_config
+      default: $(find-pkg-share husarion_ugv_description)/rviz/husarion_ugv.rviz
+      description: RViz configuration file.
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - set_parameter:
+      name: use_sim_time
+      value: $(var use_sim)
+
+  # ReplaceString equivalent: render <namespace> placeholders into a tmp rviz config via sed.
+  # Uses comma as sed separator since values cannot contain commas (paths/namespaces).
+  - let:
+      name: ns_slash
+      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
+
+  - let:
+      name: rendered_rviz_config
+      value: /tmp/husarion_ugv_rviz_$(var namespace).rviz
+
+  - executable:
+      cmd: 'bash -c "cp \"$(var rviz_config)\" \"$(var rendered_rviz_config)\" && sed -i
+        -e \"s,<namespace>/,$(var ns_slash),g\" -e \"s,<namespace>,$(var namespace),g\"
+        \"$(var rendered_rviz_config)\""'
+
+  # Small delay so the sed-rendered file is on disk before rviz reads it.
+  - timer:
+      period: 1.0
+      children:
+        - node:
+            pkg: rviz2
+            exec: rviz2
+            namespace: $(var namespace)
+            args: -d $(var rendered_rviz_config)

@@ -1,0 +1,100 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model.
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - let:
+      name: husarion_ugv_lights_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_lights' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_lights)'")
+
+  - arg:
+      name: animations_config_path
+      default: $(var husarion_ugv_lights_common_dir)/config/$(var robot_model)_animations.yaml
+      description: Path to a YAML file with a description of led configuration.
+
+  - arg:
+      name: user_led_animations_path
+      default: $(var husarion_ugv_lights_common_dir)/config/user_animations.yaml
+      description: Path to a YAML file with a description of the user defined animations.
+
+  - let:
+      name: rcl_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - let:
+      name: pluginlib_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - node_container:
+      pkg: rclcpp_components
+      exec: component_container
+      name: lights_container
+      namespace: $(var namespace)
+      on_exit: shutdown
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var rcl_log_level)
+        --log-level pluginlib.ClassLoader:=$(var pluginlib_log_level)
+      composable_node:
+        - pkg: husarion_ugv_lights
+          plugin: husarion_ugv_lights::LightsDriverNode
+          name: lights_driver
+          namespace: $(var namespace)
+          unless: $(var use_sim)
+          remap:
+            - from: /diagnostics
+              to: diagnostics
+          param:
+            - from: $(find-pkg-share husarion_ugv_lights)/config/$(var robot_model)_driver.yaml
+          extra_arg:
+            - name: use_intra_process_comms
+              value: 'True'
+        - pkg: husarion_ugv_lights
+          plugin: husarion_ugv_lights::LightsControllerNode
+          name: lights_controller
+          namespace: $(var namespace)
+          param:
+            - name: animations_config_path
+              value: $(var animations_config_path)
+            - name: user_led_animations_path
+              value: $(var user_led_animations_path)
+          extra_arg:
+            - name: use_intra_process_comms
+              value: 'True'

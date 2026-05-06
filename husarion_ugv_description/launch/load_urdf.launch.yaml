@@ -106,7 +106,7 @@ launch:
 
   - let:
       name: rendered_controller_config
-      value: /tmp/husarion_ugv_controller_$(env ROBOT_NAMESPACE '').yaml
+      value: /tmp/husarion_ugv_controller_$(var namespace).yaml
 
   - executable:
       cmd: |

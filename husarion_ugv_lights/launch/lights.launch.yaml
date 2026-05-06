@@ -51,11 +51,7 @@ launch:
       description: Path to a YAML file with a description of the user defined animations.
 
   - let:
-      name: rcl_log_level
-      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
-
-  - let:
-      name: pluginlib_log_level
+      name: external_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
 
   - node_container:
@@ -67,8 +63,8 @@ launch:
       args: >
         --ros-args
         --log-level $(var log_level)
-        --log-level rcl:=$(var rcl_log_level)
-        --log-level pluginlib.ClassLoader:=$(var pluginlib_log_level)
+        --log-level rcl:=$(var external_log_level)
+        --log-level pluginlib.ClassLoader:=$(var external_log_level)
       composable_node:
         - pkg: husarion_ugv_lights
           plugin: husarion_ugv_lights::LightsDriverNode

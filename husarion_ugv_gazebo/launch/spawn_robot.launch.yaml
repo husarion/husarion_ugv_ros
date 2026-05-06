@@ -38,7 +38,7 @@ launch:
         - value: 'False'
 
   - arg:
-      name: gz_bridge_config_path
+      name: robot_bridge_config_path
       default: $(var husarion_ugv_gazebo_common_dir)/config/robot_bridge.yaml
       description: Path to the per-robot ros_gz_bridge configuration file.
 
@@ -125,26 +125,30 @@ launch:
 
   - let:
       name: model_name
-      value: $(eval "'$(var namespace)' if '$(var namespace)' else 'panther'")
+      value: $(eval "'$(var namespace)' if '$(var namespace)' else '$(var robot_model)'")
 
   - let:
-      name: ns_slash
-      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
+      name: ns
+      value: $(eval "'$(var namespace)/' if '$(var namespace)' else ''")
 
   - let:
-      name: rendered_gz_bridge_config
-      value: /tmp/husarion_ugv_gz_bridge_$(var namespace).yaml
+      name: rendered_robot_bridge_config
+      value: /tmp/husarion_ugv_robot_bridge_$(var namespace).yaml
 
-  # The gz_bridge config keeps full paths because gz<->ros bridging is name-based and
+  # The robot_bridge config keeps full paths because gz<->ros bridging is name-based and
   # push_ros_namespace doesn't affect gz topic names.
-  - let:
-      name: render_gz_bridge_cmd
-      value: cp "$(var gz_bridge_config_path)" "$(var rendered_gz_bridge_config)" && sed
-        -i -e "s|<model_name>|$(var model_name)|g" -e "s|<namespace>/|$(var ns_slash)|g"
-        "$(var rendered_gz_bridge_config)"
-
   - executable:
-      cmd: bash -c $(var render_gz_bridge_cmd)
+      cmd: |
+        bash -c "
+          sed \
+            -e 's|<model_name>|"$(var model_name)"|g' \
+            -e 's|<namespace>/|"$(var ns)"|g' \
+            "$(var robot_bridge_config_path)\" \
+            > "$(var rendered_robot_bridge_config)"
+        "
+
+  - log:
+      message: "Spawning robot $(var robot_bridge_config_path) with model_name='$(var rendered_robot_bridge_config)'"
 
   - executable:
       cmd: ros2 run husarion_ugv_utils welcome_msg $(var robot_model) ---- simulation Robot_namespace=$(var
@@ -186,7 +190,7 @@ launch:
           name: gz_bridge
           param:
             - name: config_file
-              value: $(var rendered_gz_bridge_config)
+              value: $(var rendered_robot_bridge_config)
           args: >
             --ros-args
             --log-level $(var log_level)

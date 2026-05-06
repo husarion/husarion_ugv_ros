@@ -34,10 +34,10 @@
   <xacro:macro name="controller" params="config_file namespace:=''">
     <gazebo>
       <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <controller_manager_name>controller_manager</controller_manager_name>
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
-          <remapping>/diagnostics:=diagnostics</remapping>
           <remapping>drive_controller/cmd_vel:=cmd_vel</remapping>
           <remapping>drive_controller/odom:=odometry/wheels</remapping>
           <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
@@ -45,6 +45,9 @@
           <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
           <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
           <remapping>twist_mux_controller/transition_event:=twist_mux_controller/_transition_event</remapping>
+          <remapping>/diagnostics:=diagnostics</remapping>
+          <remapping>/tf:=tf</remapping>
+          <remapping>/tf_static:=tf_static</remapping>
         </ros>
       </plugin>
     </gazebo>

@@ -32,7 +32,7 @@
   gz_type_name: gz.msgs.Image
   direction: ROS_TO_GZ
 
-- topic_name: /tf_gt
+- topic_name: /<namespace>/tf_gt
   ros_type_name: tf2_msgs/msg/TFMessage
   gz_type_name: gz.msgs.Pose_V
   direction: GZ_TO_ROS

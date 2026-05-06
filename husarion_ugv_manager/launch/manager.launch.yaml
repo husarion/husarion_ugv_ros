@@ -7,13 +7,9 @@ launch:
       description: Path to the common configuration directory.
 
   - let:
-      name: husarion_ugv_manager_pkg
-      value: $(find-pkg-share husarion_ugv_manager)
-
-  - let:
       name: husarion_ugv_manager_common_dir
       value: $(eval "'$(var common_dir_path)/husarion_ugv_manager' if '$(var common_dir_path)'
-        else '$(var husarion_ugv_manager_pkg)'")
+        else '$(find-pkg-share husarion_ugv_manager)'")
 
   - arg:
       name: lights_bt_project_path
@@ -33,7 +29,7 @@ launch:
 
   - arg:
       name: safety_bt_project_path
-      default: $(var husarion_ugv_manager_pkg)/behavior_trees/SafetyBT.btproj
+      default: $(var husarion_ugv_manager_common_dir)/behavior_trees/SafetyBT.btproj
       description: Path to BehaviorTree project file, responsible for safety and shutdown
         management.
 
@@ -56,7 +52,7 @@ launch:
       exec: lights_manager_node
       name: lights_manager
       param:
-        - from: $(var husarion_ugv_manager_pkg)/config/lights_manager.yaml
+        - from: $(var husarion_ugv_manager_common_dir)/config/lights_manager.yaml
         - name: bt_project_path
           value: $(var lights_bt_project_path)
       args: >
@@ -70,7 +66,7 @@ launch:
       name: safety_manager
       unless: $(var use_sim)
       param:
-        - from: $(var husarion_ugv_manager_pkg)/config/safety_manager.yaml
+        - from: $(var husarion_ugv_manager_common_dir)/config/safety_manager.yaml
         - name: bt_project_path
           value: $(var safety_bt_project_path)
         - name: shutdown_hosts_path

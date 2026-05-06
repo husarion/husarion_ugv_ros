@@ -66,13 +66,14 @@ launch:
       name: rendered_gz_gui
       value: /tmp/husarion_ugv_gz_gui_$(var namespace).config
 
-  - let:
-      name: render_gz_gui_cmd
-      value: cp "$(var gz_gui)" "$(var rendered_gz_gui)" && sed -i -e "s|{namespace}|$(var
-        namespace)|g" "$(var rendered_gz_gui)"
-
   - executable:
-      cmd: bash -c $(var render_gz_gui_cmd)
+      cmd: |
+        bash -c "
+          sed \
+            -e 's|{namespace}|"$(var namespace)"|g' \
+            "$(var gz_gui)" \
+            > "$(var rendered_gz_gui)"
+        "
 
   - include:
       file: $(find-pkg-share husarion_gz_worlds)/launch/gz_sim.launch.py

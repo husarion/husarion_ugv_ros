@@ -6,7 +6,7 @@ A package containing nodes responsible for high-level control of Husarion UGV.
 
 This package contains:
 
-- `manager.launch.py`: Responsible for launching behavior trees responsible for safety and LED animations scheduling.
+- `manager.launch.yaml`: Responsible for launching behavior trees responsible for safety and LED animations scheduling.
 
 ## Configuration Files
 

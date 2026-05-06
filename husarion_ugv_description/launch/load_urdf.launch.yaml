@@ -4,14 +4,7 @@ launch:
   - arg:
       name: common_dir_path
       default: ''
-      description: Path to the common configuration directory. If set, configs are loaded
-        from <common_dir_path>/<package_name>/ instead of the package share dir.
-
-  - arg:
-      name: battery_config_path
-      default: ''
-      description: Path to the Ignition LinearBatteryPlugin configuration file. This configuration
-        is intended for use in simulations only.
+      description: Path to the common configuration directory.
 
   - let:
       name: husarion_ugv_description_common_dir
@@ -24,23 +17,27 @@ launch:
         else '$(find-pkg-share husarion_ugv_controller)'")
 
   - arg:
+      name: battery_config_path
+      default: ''
+      description: Path to the Ignition LinearBatteryPlugin configuration file. This configuration
+        is intended for use in simulations only.
+
+  - arg:
       name: components_config_path
       default: $(var husarion_ugv_description_common_dir)/config/components.yaml
       description: Specify file which contains components. These components will be included
         in URDF.
 
   - arg:
-      name: use_madgwick_filter
-      default: 'False'
-      description: Determine orientation from IMU
+      name: log_level
+      default: INFO
+      description: Logging level
       choice:
-        - value: 'True'
-        - value: 'False'
-
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
 
   - arg:
       name: robot_model
@@ -49,6 +46,14 @@ launch:
       choice:
         - value: lynx
         - value: panther
+
+  - arg:
+      name: use_madgwick_filter
+      default: 'False'
+      description: Determine orientation from IMU
+      choice:
+        - value: 'True'
+        - value: 'False'
 
   - arg:
       name: use_sim
@@ -80,24 +85,9 @@ launch:
       default: $(var husarion_ugv_description_common_dir)/config/$(var wheel_type).yaml
       description: Path to wheel configuration file.
 
-  - arg:
-      name: log_level
-      default: INFO
-      description: Logging level
-      choice:
-        - value: DEBUG
-        - value: INFO
-        - value: WARNING
-        - value: ERROR
-        - value: FATAL
-
   - set_parameter:
       name: use_sim_time
       value: $(var use_sim)
-
-  - let:
-      name: namespace_ext
-      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
 
   - let:
       name: orientation_covariance
@@ -107,12 +97,12 @@ launch:
 
   - let:
       name: rendered_controller_config
-      value: /tmp/husarion_ugv_controller_$(var namespace).yaml
+      value: /tmp/husarion_ugv_controller_$(env ROBOT_NAMESPACE '').yaml
 
   - let:
       name: render_controller_config_cmd
       value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
-        -i -e "s|<namespace>/|$(var namespace_ext)|g" -e "s|<static_covariance_orientation>|$(var
+        -i -e "s|<namespace>/|$(env ROBOT_NAMESPACE '')/|g" -e "s|<static_covariance_orientation>|$(var
         orientation_covariance)|g" "$(var rendered_controller_config)"
 
   - executable:
@@ -132,21 +122,20 @@ launch:
       name: urdf_xacro
       value: $(var husarion_ugv_description_common_dir)/urdf/$(var robot_model).urdf.xacro
 
-  # Wait briefly for the rendered controller config to land, then start robot_state_publisher
-  # with xacro-rendered URDF as the robot_description parameter value.
+  # Wait briefly for the rendered controller config to land, then start
+  # robot_state_publisher with xacro-rendered URDF as the robot_description value. No
+  # frame_prefix: TF frame names stay literal (push_ros_namespace + remap /tf -> tf
+  # already namespaces the topic itself).
   - timer:
       period: 1.0
       children:
         - node:
             pkg: robot_state_publisher
             exec: robot_state_publisher
-            namespace: $(var namespace)
             param:
               - name: robot_description
                 value: $(command "xacro $(var urdf_xacro) use_sim:=$(var use_sim) wheel_config_file:=$(var
                   wheel_config_path) controller_config_file:=$(var rendered_controller_config)
                   battery_config_file:=$(var battery_config_path) imu_xyz:='$(var imu_xyz)'
-                  imu_rpy:='$(var imu_rpy)' namespace:=$(var namespace) components_config_path:=$(var
+                  imu_rpy:='$(var imu_rpy)' namespace:=$(env ROBOT_NAMESPACE '') components_config_path:=$(var
                   components_config_path) use_madgwick_filter:=$(var use_madgwick_filter)")
-              - name: frame_prefix
-                value: $(var namespace_ext)

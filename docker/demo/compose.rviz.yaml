@@ -26,4 +26,4 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >
-      ros2 launch husarion_ugv_description rviz.launch.py
+      ros2 launch husarion_ugv_description rviz.launch.yaml

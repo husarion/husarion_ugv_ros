@@ -17,14 +17,14 @@ launch:
         else '$(find-pkg-share husarion_ugv_gazebo)'")
 
   - arg:
+      name: gz_bridge_config_path
+      default: $(var husarion_ugv_gazebo_common_dir)/config/gz_bridge.yaml
+      description: Path to the world-level parameter_bridge configuration file.
+
+  - arg:
       name: gz_gui
       default: $(var husarion_ugv_gazebo_common_dir)/config/teleop_with_estop.config
       description: Run simulation with specific GUI layout.
-
-  - arg:
-      name: gz_bridge_config_path
-      default: $(var husarion_ugv_gazebo_common_dir)/config/gz_bridge.yaml
-      description: Path to the parameter_bridge configuration file (world bridge).
 
   - arg:
       name: log_level
@@ -40,7 +40,15 @@ launch:
   - arg:
       name: namespace
       default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+      description: Robot namespace forwarded to spawn_robot.
+
+  - arg:
+      name: tf_namespace_bridge
+      default: 'True'
+      description: Bridge robot's namespaced TF to the global /tf and /tf_static.
+      choice:
+        - value: 'True'
+        - value: 'False'
 
   - arg:
       name: use_rviz
@@ -53,6 +61,7 @@ launch:
   - set_use_sim_time:
       value: true
 
+  # Render gz GUI config (replace {namespace} placeholder).
   - let:
       name: rendered_gz_gui
       value: /tmp/husarion_ugv_gz_gui_$(var namespace).config
@@ -73,6 +82,7 @@ launch:
         - name: gz_log_level
           value: '1'
 
+  # World-level gz<->ros bridge (no namespace; world topics like /clock).
   - node:
       pkg: ros_gz_bridge
       exec: parameter_bridge
@@ -82,22 +92,13 @@ launch:
           value: $(var gz_bridge_config_path)
 
   - include:
-      file: $(find-pkg-share husarion_ugv_gazebo)/launch/simulate_robot.launch.yaml
+      file: $(find-pkg-share husarion_ugv_gazebo)/launch/spawn_robot.launch.yaml
       arg:
         - name: common_dir_path
           value: $(var common_dir_path)
+        - name: namespace
+          value: $(var namespace)
         - name: log_level
           value: $(var log_level)
-
-  - include:
-      file: $(find-pkg-share husarion_ugv_description)/launch/rviz.launch.yaml
-      if: $(var use_rviz)
-      arg:
-        - name: common_dir_path
-          value: $(var common_dir_path)
-
-  - include:
-      file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
-      arg:
-        - name: common_dir_path
-          value: $(var common_dir_path)
+        - name: tf_namespace_bridge
+          value: $(var tf_namespace_bridge)

@@ -28,12 +28,6 @@ launch:
         - value: ERROR
         - value: FATAL
 
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
-
-  # Mirrors limit_log_level_to_info: clamp DEBUG -> INFO for the rcl logger
   - let:
       name: rcl_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
@@ -42,7 +36,6 @@ launch:
       pkg: husarion_ugv_battery
       exec: battery_driver_node
       name: battery_driver
-      namespace: $(var namespace)
       param:
         - from: $(var battery_config_path)
       remap:

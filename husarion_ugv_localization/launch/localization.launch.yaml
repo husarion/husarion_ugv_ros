@@ -6,6 +6,11 @@ launch:
       default: ''
       description: Path to the common configuration directory.
 
+  - let:
+      name: husarion_ugv_localization_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_localization' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_localization)'")
+
   - arg:
       name: fuse_gps
       default: 'False'
@@ -45,11 +50,6 @@ launch:
         - value: FATAL
 
   - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
-
-  - arg:
       name: use_ekf
       default: 'True'
       description: Enable or disable EKF.
@@ -73,11 +73,6 @@ launch:
       name: localization_config_filename
       value: $(var localization_mode)_localization$(var gps_postfix).yaml
 
-  - let:
-      name: husarion_ugv_localization_common_dir
-      value: $(eval "'$(var common_dir_path)/husarion_ugv_localization' if '$(var common_dir_path)'
-        else '$(find-pkg-share husarion_ugv_localization)'")
-
   - arg:
       name: localization_config_path
       default: $(var husarion_ugv_localization_common_dir)/config/$(var localization_config_filename)
@@ -95,12 +90,9 @@ launch:
       pkg: robot_localization
       exec: ekf_node
       name: ekf_filter
-      namespace: $(var namespace)
       if: $(var use_ekf)
       param:
         - from: $(var localization_config_path)
-        - name: tf_prefix
-          value: $(var namespace)
       remap:
         - from: /diagnostics
           to: diagnostics
@@ -124,18 +116,15 @@ launch:
         - name: log_level
           value: $(var log_level)
         - name: namespace
-          value: $(var namespace)
+          value: ''  # already pushed by the outer bringup/spawn_robot group
 
   - node:
       pkg: robot_localization
       exec: navsat_transform_node
       name: navsat_transform
-      namespace: $(var namespace)
       if: $(var fuse_gps)
       param:
         - from: $(var localization_config_path)
-        - name: tf_prefix
-          value: $(var namespace)
       remap:
         - from: imu
           to: imu/data

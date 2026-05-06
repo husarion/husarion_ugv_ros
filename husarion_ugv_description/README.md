@@ -4,9 +4,9 @@ The package contains URDF files responsible for creating a representation of the
 
 ## Launch Files
 
-- `load_urdf.launch.py` - loads the robot's URDF and creates simple bindings to display moving joints.
-- `overwrite_robot_description.launch.py` - launch is able to change `robot_description` topic in runtime.
-- `rviz.launch.py` - launch RViz2 with basic configuration.
+- `load_urdf.launch.yaml` - loads the robot's URDF and creates simple bindings to display moving joints.
+- `overwrite_robot_description.launch.yaml` - launch is able to change `robot_description` topic in runtime.
+- `rviz.launch.yaml` - launch RViz2 with basic configuration.
 
 ## Configuration Files
 

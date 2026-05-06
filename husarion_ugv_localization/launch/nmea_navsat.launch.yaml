@@ -24,41 +24,50 @@ launch:
         - value: FATAL
 
   - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Namespace pushed by this launch (for standalone GPS-debug use). When
+        included from a context that already pushes a namespace, pass `namespace:''` to
+        avoid compounding.
+
+  - arg:
       name: nmea_params_path
       default: $(var husarion_ugv_localization_common_dir)/config/nmea_navsat.yaml
       description: Path to the parameter file for the nmea_socket_driver node.
-
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Namespace to all launched nodes and use namespace as tf_prefix. This aids
-        in differentiating between multiple robots with the same devices.
 
   - let:
       name: rcl_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
 
-  - node:
-      pkg: nmea_navsat_driver
-      exec: nmea_socket_driver
-      name: nmea_navsat_driver
-      namespace: $(var namespace)
-      param:
-        - name: frame_id
-          value: gps
-        - name: tf_prefix
-          value: $(var namespace)
-        - from: $(var nmea_params_path)
-      remap:
-        - from: fix
-          to: gps/fix
-        - from: time_reference
-          to: gps/time_reference
-        - from: vel
-          to: gps/vel
-        - from: heading
-          to: _gps/heading
-      args: >
-        --ros-args
-        --log-level $(var log_level)
-        --log-level rcl:=$(var rcl_log_level)
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
+
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
+
+      - node:
+          pkg: nmea_navsat_driver
+          exec: nmea_socket_driver
+          name: nmea_navsat_driver
+          param:
+            - name: frame_id
+              value: gps
+            - from: $(var nmea_params_path)
+          remap:
+            - from: fix
+              to: gps/fix
+            - from: time_reference
+              to: gps/time_reference
+            - from: vel
+              to: gps/vel
+            - from: heading
+              to: _gps/heading
+          args: >
+            --ros-args
+            --log-level $(var log_level)
+            --log-level rcl:=$(var rcl_log_level)

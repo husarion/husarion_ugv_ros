@@ -46,7 +46,7 @@
                         timeout="{FAN_TURN_OFF_TIMEOUT}">
         <Sequence>
           <Sequence name="HighSysTempSequence"
-                    _skipIf="cpu_temp &lt;= CPU_FAN_ON_TEMP \
+                    _skipIf="cpu_temp &lt;= CPU_FAN_ON_TEMP
 &amp;&amp; driver_temp &lt;= DRIVER_FAN_ON_TEMP">
             <CallSetBoolService name="EnableFan"
                                 data="true"
@@ -56,9 +56,9 @@
           <CallSetBoolService name="DisableFan"
                               data="false"
                               service_name="hardware/fan_enable"
-                              _skipIf="cpu_temp &gt; CPU_FAN_OFF_TEMP \
-|| driver_temp &gt; DRIVER_FAN_OFF_TEMP \
-|| battery_health == POWER_SUPPLY_HEALTH_OVERHEAT \
+                              _skipIf="cpu_temp &gt; CPU_FAN_OFF_TEMP
+|| driver_temp &gt; DRIVER_FAN_OFF_TEMP
+|| battery_health == POWER_SUPPLY_HEALTH_OVERHEAT
 || (!fan_state)"/>
         </Sequence>
       </TickAfterTimeout>

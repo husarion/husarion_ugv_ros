@@ -220,7 +220,7 @@ TEST(TestConvertFromStringVectorOfDouble, GoodInput)
 TEST(TestConvertFromStringVectorOfFloat, WrongInput)
 {
   auto str = "1;2;3;0.1;a;0.2";
-  EXPECT_THROW(BT::convertFromString<std::vector<float>>(str), std::invalid_argument);
+  EXPECT_THROW(BT::convertFromString<std::vector<float>>(str), BT::RuntimeError);
 }
 
 int main(int argc, char ** argv)

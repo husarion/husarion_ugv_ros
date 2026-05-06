@@ -2,13 +2,26 @@
 launch:
 
   - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_description/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_description_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_description' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_description)'")
+
+  - arg:
       name: namespace
       default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+      description: Namespace pushed by this launch (for standalone use). When included
+        from a context that already pushes a namespace, pass `namespace:''` to avoid
+        compounding.
 
   - arg:
       name: rviz_config
-      default: $(find-pkg-share husarion_ugv_description)/rviz/husarion_ugv.rviz
+      default: $(var husarion_ugv_description_common_dir)/rviz/husarion_ugv.rviz
       description: RViz configuration file.
 
   - arg:
@@ -23,27 +36,18 @@ launch:
       name: use_sim_time
       value: $(var use_sim)
 
-  # ReplaceString equivalent: render <namespace> placeholders into a tmp rviz config via sed.
-  # Uses comma as sed separator since values cannot contain commas (paths/namespaces).
-  - let:
-      name: ns_slash
-      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
 
-  - let:
-      name: rendered_rviz_config
-      value: /tmp/husarion_ugv_rviz_$(var namespace).rviz
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
 
-  - executable:
-      cmd: 'bash -c "cp \"$(var rviz_config)\" \"$(var rendered_rviz_config)\" && sed -i
-        -e \"s,<namespace>/,$(var ns_slash),g\" -e \"s,<namespace>,$(var namespace),g\"
-        \"$(var rendered_rviz_config)\""'
-
-  # Small delay so the sed-rendered file is on disk before rviz reads it.
-  - timer:
-      period: 1.0
-      children:
-        - node:
-            pkg: rviz2
-            exec: rviz2
-            namespace: $(var namespace)
-            args: -d $(var rendered_rviz_config)
+      - node:
+          pkg: rviz2
+          exec: rviz2
+          args: -d $(var rviz_config)

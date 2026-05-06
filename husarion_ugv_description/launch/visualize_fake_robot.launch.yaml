@@ -4,8 +4,7 @@ launch:
   - arg:
       name: common_dir_path
       default: ''
-      description: Path to the common configuration directory. If set, configs are loaded
-        from <common_dir_path>/<package_name>/ instead of the package share dir.
+      description: Path to the common configuration directory.
 
   - let:
       name: husarion_ugv_description_common_dir
@@ -15,13 +14,12 @@ launch:
   - arg:
       name: components_config_path
       default: $(var husarion_ugv_description_common_dir)/config/components.yaml
-      description: Additional components configuration file. Components described in this
-        file are dynamically included in robot's URDF.
+      description: Additional components configuration file.
 
   - arg:
       name: namespace
       default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+      description: Namespace pushed by this launch (standalone visualisation tool).
 
   - arg:
       name: robot_model
@@ -63,38 +61,45 @@ launch:
         - value: WH05
         - value: custom
 
-  - include:
-      file: $(find-pkg-share husarion_ugv_description)/launch/load_urdf.launch.yaml
-      arg:
-        - name: common_dir_path
-          value: $(var common_dir_path)
-        - name: components_config_path
-          value: $(var components_config_path)
-        - name: namespace
-          value: $(var namespace)
-        - name: robot_model
-          value: $(var robot_model)
-        - name: wheel_type
-          value: $(var wheel_type)
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
 
-  - include:
-      file: $(find-pkg-share husarion_ugv_description)/launch/rviz.launch.yaml
-      arg:
-        - name: common_dir_path
-          value: $(var common_dir_path)
-        - name: namespace
-          value: $(var namespace)
-        - name: rviz_config
-          value: $(var rviz_config)
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
 
-  - node:
-      pkg: joint_state_publisher
-      exec: joint_state_publisher
-      namespace: $(var namespace)
-      if: $(var use_joint_state_publisher)
+      - include:
+          file: $(find-pkg-share husarion_ugv_description)/launch/load_urdf.launch.yaml
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: components_config_path
+              value: $(var components_config_path)
+            - name: robot_model
+              value: $(var robot_model)
+            - name: wheel_type
+              value: $(var wheel_type)
 
-  - node:
-      pkg: joint_state_publisher_gui
-      exec: joint_state_publisher_gui
-      namespace: $(var namespace)
-      if: $(var use_joint_state_publisher_gui)
+      - include:
+          file: $(find-pkg-share husarion_ugv_description)/launch/rviz.launch.yaml
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: rviz_config
+              value: $(var rviz_config)
+            - name: namespace
+              value: ''  # already pushed by this group; avoid compounding
+
+      - node:
+          pkg: joint_state_publisher
+          exec: joint_state_publisher
+          if: $(var use_joint_state_publisher)
+
+      - node:
+          pkg: joint_state_publisher_gui
+          exec: joint_state_publisher_gui
+          if: $(var use_joint_state_publisher_gui)

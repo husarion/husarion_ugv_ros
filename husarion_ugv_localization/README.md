@@ -6,8 +6,8 @@ The package is responsible for activating mods responsible for fusion of data re
 
 This package contains:
 
-- `localization.launch.py`: Responsible for activating EKF filtration along with the necessary dependencies needed to operate GPS.
-- `nmea_navsat.launch.py`: Responsible for launching the NMEA NavSat driver node.
+- `localization.launch.yaml`: Responsible for activating EKF filtration along with the necessary dependencies needed to operate GPS.
+- `nmea_navsat.launch.yaml`: Responsible for launching the NMEA NavSat driver node.
 
 ## Configuration Files
 

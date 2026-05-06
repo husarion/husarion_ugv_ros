@@ -4,7 +4,7 @@ Package containing nodes monitoring and publishing the Built-in Computer status 
 
 ## Launch Files
 
-- `system_monitor.launch.py`: Launch a node that analyzes the state of the most important components in the robot
+- `system_monitor.launch.yaml`: Launch a node that analyzes the state of the most important components in the robot
 
 ## Configuration Files
 

@@ -6,22 +6,27 @@ launch:
       value: '1'
 
   - arg:
-      name: exit_on_wrong_hw
-      default: 'False'
-      description: Exit if hardware configuration is incorrect.
-      choice:
-        - value: 'True'
-        - value: 'False'
-
-  - arg:
       name: common_dir_path
       default: ''
       description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_bringup_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_bringup' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_bringup)'")
 
   - arg:
       name: disable_manager
       default: 'False'
       description: Enable or disable manager_bt_node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: exit_on_wrong_hw
+      default: 'False'
+      description: Exit if hardware configuration is incorrect.
       choice:
         - value: 'True'
         - value: 'False'
@@ -40,7 +45,20 @@ launch:
   - arg:
       name: namespace
       default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+      description: Robot namespace; pushed inside the driver group.
+
+  - arg:
+      name: tf_namespace_bridge
+      default: 'True'
+      description: Bridge robot's namespaced TF to the global /tf and /tf_static.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: tf_namespace_bridge_config
+      default: $(var husarion_ugv_bringup_common_dir)/config/tf_namespace_bridge.yaml
+      description: Path to tf_namespace_bridge configuration file.
 
   - let:
       name: hw_config_correct
@@ -77,19 +95,42 @@ launch:
             cmd: sleep infinity
             unless: $(var exit_on_wrong_hw)
 
-  # If hardware config is correct: bring up the driver stack.
+  # If hardware config is correct: bring up the driver stack inside a per-robot
+  # namespaced group. push_ros_namespace + tf remaps mean every sub-include lives under
+  # /<namespace>/... and publishes TF to /<namespace>/tf.
   - group:
       if: $(var hw_config_correct)
       children:
+        - push_ros_namespace:
+            namespace: $(var namespace)
+
+        # tf_namespace_bridge MUST be defined before set_remap so it subscribes to the
+        # global /tf (not the locally remapped tf). Bridges /<ns>/tf -> /tf with prefix.
+        - node:
+            pkg: tf_namespace_bridge
+            exec: tf_namespace_bridge
+            if: $(eval '"$(var tf_namespace_bridge)" == "True" and "$(var namespace)" !=
+              ""')
+            param:
+              - from: $(var tf_namespace_bridge_config)
+
+        - set_remap:
+            from: /diagnostics
+            to: diagnostics
+        - set_remap:
+            from: /tf
+            to: tf
+        - set_remap:
+            from: /tf_static
+            to: tf_static
+
         - include:
             file: $(find-pkg-share husarion_ugv_controller)/launch/controller.launch.yaml
             arg:
-              - name: log_level
-                value: $(var log_level)
-              - name: namespace
-                value: $(var namespace)
               - name: common_dir_path
                 value: $(var common_dir_path)
+              - name: log_level
+                value: $(var log_level)
 
         - include:
             file: $(find-pkg-share husarion_ugv_diagnostics)/launch/system_monitor.launch.yaml
@@ -98,8 +139,14 @@ launch:
                 value: $(var common_dir_path)
               - name: log_level
                 value: $(var log_level)
-              - name: namespace
-                value: $(var namespace)
+
+        - include:
+            file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
+            arg:
+              - name: common_dir_path
+                value: $(var common_dir_path)
+              - name: launch_gamepad
+                value: 'True'
 
         - timer:
             period: 10.0
@@ -111,41 +158,25 @@ launch:
                       value: $(var common_dir_path)
                     - name: log_level
                       value: $(var log_level)
-                    - name: namespace
-                      value: $(var namespace)
               - include:
                   file: $(find-pkg-share husarion_ugv_lights)/launch/lights.launch.yaml
                   arg:
-                    - name: log_level
-                      value: $(var log_level)
-                    - name: namespace
-                      value: $(var namespace)
                     - name: common_dir_path
                       value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
               - include:
                   file: $(find-pkg-share husarion_ugv_manager)/launch/manager.launch.yaml
                   unless: $(var disable_manager)
                   arg:
-                    - name: log_level
-                      value: $(var log_level)
-                    - name: namespace
-                      value: $(var namespace)
                     - name: common_dir_path
                       value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
               - include:
                   file: $(find-pkg-share husarion_ugv_localization)/launch/localization.launch.yaml
                   arg:
-                    - name: log_level
-                      value: $(var log_level)
-                    - name: namespace
-                      value: $(var namespace)
                     - name: common_dir_path
                       value: $(var common_dir_path)
-
-  - include:
-      file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
-      arg:
-        - name: common_dir_path
-          value: $(var common_dir_path)
-        - name: launch_gamepad
-          value: 'True'
+                    - name: log_level
+                      value: $(var log_level)

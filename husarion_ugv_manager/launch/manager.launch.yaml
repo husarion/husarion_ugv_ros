@@ -6,27 +6,6 @@ launch:
       default: ''
       description: Path to the common configuration directory.
 
-  - arg:
-      name: log_level
-      default: INFO
-      description: Logging level
-      choice:
-        - value: DEBUG
-        - value: INFO
-        - value: WARNING
-        - value: ERROR
-        - value: FATAL
-
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
-
-  - arg:
-      name: use_sim
-      default: 'False'
-      description: Whether simulation is used
-
   - let:
       name: husarion_ugv_manager_pkg
       value: $(find-pkg-share husarion_ugv_manager)
@@ -42,6 +21,17 @@ launch:
       description: Path to BehaviorTree project file, responsible for lights management.
 
   - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
       name: safety_bt_project_path
       default: $(var husarion_ugv_manager_pkg)/behavior_trees/SafetyBT.btproj
       description: Path to BehaviorTree project file, responsible for safety and shutdown
@@ -52,6 +42,11 @@ launch:
       default: $(var husarion_ugv_manager_common_dir)/config/shutdown_hosts.yaml
       description: Path to file with list of hosts to request shutdown.
 
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used
+
   - let:
       name: rcl_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
@@ -60,7 +55,6 @@ launch:
       pkg: husarion_ugv_manager
       exec: lights_manager_node
       name: lights_manager
-      namespace: $(var namespace)
       param:
         - from: $(var husarion_ugv_manager_pkg)/config/lights_manager.yaml
         - name: bt_project_path
@@ -74,7 +68,6 @@ launch:
       pkg: husarion_ugv_manager
       exec: safety_manager_node
       name: safety_manager
-      namespace: $(var namespace)
       unless: $(var use_sim)
       param:
         - from: $(var husarion_ugv_manager_pkg)/config/safety_manager.yaml

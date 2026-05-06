@@ -4,8 +4,7 @@ launch:
   - arg:
       name: common_dir_path
       default: ''
-      description: Path to the common configuration directory. If set, configs are loaded
-        from <common_dir_path>/<package_name>/ instead of the package share dir.
+      description: Path to the common configuration directory.
 
   - let:
       name: husarion_ugv_description_common_dir
@@ -32,7 +31,7 @@ launch:
   - arg:
       name: namespace
       default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
+      description: Robot namespace; used to address the target robot_state_publisher node.
 
   - arg:
       name: robot_model
@@ -77,10 +76,6 @@ launch:
       value: $(var use_sim)
 
   - let:
-      name: namespace_ext
-      value: $(eval "'$(var namespace)' + '/' if '$(var namespace)' else ''")
-
-  - let:
       name: imu_xyz
       value: $(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env
         ROBOT_IMU_LOCALIZATION_Z 0.083)
@@ -98,21 +93,24 @@ launch:
       name: rendered_robot_description
       value: /tmp/husarion_ugv_robot_description_$(var namespace).urdf
 
-  # Build the full xacro shell command as a single string. Substitutions are resolved at
-  # let-eval time, so the result is a single argv when later passed to `bash -c`.
+  # Fully-qualified node name for `ros2 param set` (must include namespace prefix when set).
+  - let:
+      name: rsp_node
+      value: $(eval "'/$(var namespace)/robot_state_publisher' if '$(var namespace)' else
+        'robot_state_publisher'")
+
   - let:
       name: xacro_shell_cmd
-      value: 'xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
+      value: xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
         wheel_config_path)" controller_config_file:="$(var controller_config_path)" battery_config_file:="$(var
         battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=$(var
-        namespace) components_config_path:="$(var components_config_path)" > "$(var rendered_robot_description)"'
+        namespace) components_config_path:="$(var components_config_path)" > "$(var rendered_robot_description)"
 
   - let:
       name: set_param_shell_cmd
-      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set "$(var namespace_ext)robot_state_publisher"
+      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set $(var rsp_node)
         robot_description "$rd"
 
-  # Render xacro to a temp file synchronously.
   - executable:
       cmd: bash -c $(var xacro_shell_cmd)
 

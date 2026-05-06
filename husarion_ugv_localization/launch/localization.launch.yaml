@@ -79,7 +79,7 @@ launch:
       description: Specify the path to the localization configuration file.
 
   - let:
-      name: rcl_log_level
+      name: external_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
 
   - set_parameter:
@@ -105,7 +105,7 @@ launch:
       args: >
         --ros-args
         --log-level $(var log_level)
-        --log-level rcl:=$(var rcl_log_level)
+        --log-level rcl:=$(var external_log_level)
 
   - include:
       file: $(find-pkg-share husarion_ugv_localization)/launch/nmea_navsat.launch.yaml
@@ -135,4 +135,4 @@ launch:
       args: >
         --ros-args
         --log-level $(var log_level)
-        --log-level rcl:=$(var rcl_log_level)
+        --log-level rcl:=$(var external_log_level)

@@ -147,16 +147,50 @@ launch:
             > "$(var rendered_robot_bridge_config)"
         "
 
-  - log:
-      message: "Spawning robot $(var robot_bridge_config_path) with model_name='$(var rendered_robot_bridge_config)'"
+  # Robot-model ASCII art selected via mutually-exclusive let:; the welcome banner below
+  # interpolates $(var ascii_art) so the whole greeting goes through a single log action.
+  # Block scalar uses |2 (explicit indent indicator) because the default auto-detect would
+  # terminate the block on art lines starting at column 0. Backslashes are doubled because
+  # launch text-substitution treats `\` as an escape char.
+  - let:
+      if: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
 
-  - executable:
-      cmd: ros2 run husarion_ugv_utils welcome_msg $(var robot_model) ---- simulation Robot_namespace=$(var
-        namespace) Initial_pose=($(var x),$(var y),$(var z),$(var roll),$(var pitch),$(var
-        yaw))
+         ____             _   _
+        |  _ \\ __ _ _ __ | |_| |__   ___ _ __
+        | |_) / _` | '_ \\| __| '_ \\ / _ \\ '__|
+        |  __/ (_| | | | | |_| | | |  __/ |
+        |_|   \\__,_|_| |_|\\__|_| |_|\\___|_|
 
   - let:
-      name: rcl_log_level
+      unless: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
+
+         _
+        | |   _   _ _ __ __  __
+        | |  | | | | '_ \\\\ \\/ /
+        | |__| |_| | | | |>  <
+        |_____\\__, |_| |_/_/\\_\\
+              |___/
+
+  - log:
+      message: |
+        $(var ascii_art)
+        ============================================
+        Husarion UGV
+        Model:        $(var robot_model)
+        Namespace:    '$(var namespace)'
+        Initial pose: ($(var x), $(var y), $(var z), $(var roll), $(var pitch), $(var yaw))
+
+        Website:    https://husarion.com
+        Support:    https://community.husarion.com/
+        Bugs:       https://github.com/husarion/husarion_ugv_ros/issues
+        ============================================
+
+  - let:
+      name: external_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
 
   # Per-robot group: push_ros_namespace + tf remaps so all nodes inside live under
@@ -194,7 +228,7 @@ launch:
           args: >
             --ros-args
             --log-level $(var log_level)
-            --log-level rcl:=$(var rcl_log_level)
+            --log-level rcl:=$(var external_log_level)
 
       - node:
           pkg: ros_gz_sim
@@ -211,7 +245,7 @@ launch:
             -Y $(var yaw)
             --ros-args
             --log-level $(var log_level)
-            --log-level rcl:=$(var rcl_log_level)
+            --log-level rcl:=$(var external_log_level)
 
       - include:
           file: $(find-pkg-share husarion_ugv_controller)/launch/controller.launch.yaml

@@ -77,13 +77,11 @@ launch:
 
   - let:
       name: imu_xyz
-      value: $(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env
-        ROBOT_IMU_LOCALIZATION_Z 0.083)
+      value: "$(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env ROBOT_IMU_LOCALIZATION_Z 0.083)"
 
   - let:
       name: imu_rpy
-      value: $(env ROBOT_IMU_ORIENTATION_R 3.14) $(env ROBOT_IMU_ORIENTATION_P -1.57) $(env
-        ROBOT_IMU_ORIENTATION_Y 0.0)
+      value: "$(env ROBOT_IMU_ORIENTATION_R 3.14) $(env ROBOT_IMU_ORIENTATION_P -1.57) $(env ROBOT_IMU_ORIENTATION_Y 0.0)"
 
   - let:
       name: urdf_xacro
@@ -99,6 +97,9 @@ launch:
       value: $(eval "'/$(var namespace)/robot_state_publisher' if '$(var namespace)' else
         'robot_state_publisher'")
 
+  # Render xacro to a tmp file, then push the file content as the robot_description
+  # parameter on the live RSP node. Uses the let-cmd pattern (backticks for `cat` would
+  # otherwise tangle with shlex per-segment splitting in launch's _parse_cmdline).
   - let:
       name: xacro_shell_cmd
       value: xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var

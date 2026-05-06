@@ -40,6 +40,11 @@ launch:
         - value: FATAL
 
   - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
       name: robot_model
       default: $(env ROBOT_MODEL_NAME panther)
       description: Specify robot model
@@ -90,6 +95,10 @@ launch:
       value: $(var use_sim)
 
   - let:
+      name: ns
+      value: $(eval "('$(var namespace)/' if '$(var namespace)' else '')")
+
+  - let:
       name: orientation_covariance
       value: $(eval "'[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]' if '$(var
         use_madgwick_filter)' in ('True', 'true') else '[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0,
@@ -99,28 +108,32 @@ launch:
       name: rendered_controller_config
       value: /tmp/husarion_ugv_controller_$(env ROBOT_NAMESPACE '').yaml
 
-  - let:
-      name: render_controller_config_cmd
-      value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
-        -i -e "s|<namespace>/|$(env ROBOT_NAMESPACE '')/|g" -e "s|<static_covariance_orientation>|$(var
-        orientation_covariance)|g" "$(var rendered_controller_config)"
-
   - executable:
-      cmd: bash -c $(var render_controller_config_cmd)
+      cmd: |
+        bash -c "
+          sed \
+            -e 's|<namespace>/|"$(var ns)"|g' \
+            -e 's|<static_covariance_orientation>|"$(var orientation_covariance)"|g' \
+            "$(var controller_config_path)\" \
+            > "$(var rendered_controller_config)"
+        "
 
   - let:
       name: imu_xyz
-      value: $(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env
-        ROBOT_IMU_LOCALIZATION_Z 0.083)
+      value: "$(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env ROBOT_IMU_LOCALIZATION_Z 0.083)"
 
   - let:
       name: imu_rpy
-      value: $(env ROBOT_IMU_ORIENTATION_R 3.14) $(env ROBOT_IMU_ORIENTATION_P -1.57) $(env
-        ROBOT_IMU_ORIENTATION_Y 0.0)
+      value: "$(env ROBOT_IMU_ORIENTATION_R 3.14) $(env ROBOT_IMU_ORIENTATION_P -1.57) $(env ROBOT_IMU_ORIENTATION_Y 0.0)"
 
   - let:
       name: urdf_xacro
       value: $(var husarion_ugv_description_common_dir)/urdf/$(var robot_model).urdf.xacro
+
+  - let:
+      name: urdf_file
+      value: /tmp/$(var robot_model)_description_$(var namespace).urdf
+
 
   # Wait briefly for the rendered controller config to land, then start
   # robot_state_publisher with xacro-rendered URDF as the robot_description value. No
@@ -134,8 +147,17 @@ launch:
             exec: robot_state_publisher
             param:
               - name: robot_description
-                value: $(command "xacro $(var urdf_xacro) use_sim:=$(var use_sim) wheel_config_file:=$(var
-                  wheel_config_path) controller_config_file:=$(var rendered_controller_config)
-                  battery_config_file:=$(var battery_config_path) imu_xyz:='$(var imu_xyz)'
-                  imu_rpy:='$(var imu_rpy)' namespace:=$(env ROBOT_NAMESPACE '') components_config_path:=$(var
-                  components_config_path) use_madgwick_filter:=$(var use_madgwick_filter)")
+                value: |
+                  $(command "bash -c '
+                    xacro $(var urdf_xacro) \
+                      use_sim:=$(var use_sim) \
+                      wheel_config_file:=$(var wheel_config_path) \
+                      controller_config_file:=$(var rendered_controller_config) \
+                      battery_config_file:=$(var battery_config_path) \
+                      imu_xyz:=\"$(var imu_xyz)\" \
+                      imu_rpy:=\"$(var imu_rpy)\" \
+                      namespace:=$(var namespace) \
+                      components_config_path:=$(var components_config_path) \
+                      use_madgwick_filter:=$(var use_madgwick_filter) \
+                    | tee $(var urdf_file)
+                  '")

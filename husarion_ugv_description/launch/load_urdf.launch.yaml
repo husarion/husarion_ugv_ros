@@ -69,6 +69,15 @@ launch:
         - value: 'False'
 
   - arg:
+      name: components_use_tf_prefix
+      default: 'False'
+      description: Prefix component frame_ids with the robot namespace. Default 'False'
+        matches the push_ros_namespace + /tf remap model (frame names stay literal).
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
       name: wheel_type
       default: "$(eval \"{'lynx': 'WH05', 'panther': 'WH01'}['$(var robot_model)']\")"
       description: Specify the wheel type. Adjusts wheel_config_path and controller_config_path
@@ -159,5 +168,6 @@ launch:
                       namespace:=$(var namespace) \
                       components_config_path:=$(var components_config_path) \
                       use_madgwick_filter:=$(var use_madgwick_filter) \
+                      components_use_tf_prefix:=$(var components_use_tf_prefix) \
                     | tee $(var urdf_file)
                   '")

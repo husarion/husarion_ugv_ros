@@ -11,6 +11,7 @@
   <xacro:arg name="battery_config_file"
     default="" />
   <xacro:arg name="namespace" default="" />
+  <xacro:arg name="components_use_tf_prefix" default="False" />
 
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/panther_macro.urdf.xacro" ns="husarion" />
@@ -34,6 +35,7 @@
       components_config_path="${components_config_path_property}"
       namespace="$(arg namespace)"
       use_sim="$(arg use_sim)"
+      use_tf_prefix="$(arg components_use_tf_prefix)"
     />
   </xacro:unless>
 </robot>

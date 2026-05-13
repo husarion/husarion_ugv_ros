@@ -68,7 +68,7 @@ ros2 launch husarion_ugv_gazebo simulation.launch.yaml
 ```
 
 > [!IMPORTANT]
-> You can change spawning robot in simulation, by adding `robot_model:={robot_model}` argument.
+> You can change which robot is spawned in simulation by passing the `robot_model:={robot_model}` argument.
 
 > [!NOTE]
 > The previous Python entry-points (`bringup.launch.py`, `simulation.launch.py`) still
@@ -95,6 +95,25 @@ nodes in a `push_ros_namespace` group plus `set_remap` for `/tf` and `/tf_static
 `namespace` is non-empty, the optional `tf_namespace_bridge` node (enabled by default)
 republishes `/<namespace>/tf` to the global `/tf` with a frame prefix — required for
 RViz/visualizers running outside the namespace. Disable with `tf_namespace_bridge:=False`.
+
+**Frame names vs topic namespacing.** By default, frame names stay literal (e.g.
+`base_link`, `camera_link`) — the namespace lives only on the *topic* (e.g.
+`/<namespace>/tf`). This is observable in simulation by echoing any sensor topic:
+
+```bash
+ros2 topic echo /<namespace>/camera/image_raw --field header.frame_id
+# default (components_use_tf_prefix:=False):
+camera_link
+# with components_use_tf_prefix:=True:
+<namespace>/camera_link
+```
+
+The same applies to `/<namespace>/scan`, `/<namespace>/imu/data`, etc. Toggle via the
+top-level `components_use_tf_prefix` arg (forwarded automatically through the include
+chain to xacro). On hardware the default workflow runs without a namespace, so the
+prefix is empty either way — practically a sim-only knob. Keep `False` whenever the
+`push_ros_namespace` + `/tf` remap model is in use: mixing literal robot-body frames
+with prefixed component frames disconnects the TF tree.
 
 | 🤖   | 🖥️   | Argument                     | Description <br/> ***Type:*** `Default`                                                                                                                                                                                                                                                                            |
 | --- | --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -134,6 +153,7 @@ RViz/visualizers running outside the namespace. Disable with `tf_namespace_bridg
 | ✅   | ✅   | `use_madgwick_filter`        | Determine orientation from IMU using the Madgwick filter (bubbled from `controller.launch.yaml` / `load_urdf.launch.yaml`). When `True`, IMU orientation is fused; when `False`, only raw gyro/accel is exposed. <br/> ***bool:*** `False`                                                                          |
 | ❌   | ✅   | `use_rviz`                   | Run RViz simultaneously. <br/> ***bool:*** `True`                                                                                                                                                                                                                                                                                   |
 | ✅   | ✅   | `use_sim`                    | Whether simulation is used. <br/> ***bool:*** `False`                                                                                                                                                                                                                                                              |
+| ❌   | ✅   | `components_use_tf_prefix`   | Prefix every component's `frame_id` with the robot namespace inside the URDF. Observable in simulation as `header.frame_id` on any sensor topic: `False` → `camera_link`; `True` → `<namespace>/camera_link`. On hardware the default workflow runs without a namespace, so the prefix is empty either way — kept for parity with simulation. Setting `True` while keeping the default `push_ros_namespace` + `/tf` remap model mixes literal robot-body frames with prefixed component frames and disconnects the TF tree. <br/> ***bool:*** `False`                                                                                                          |
 | ✅   | ✅   | `user_led_animations_path`   | Path to a YAML file with a description of the user-defined animations. <br/> ***string:*** `''`                                                                                                                                                                                                                    |
 | ✅   | ✅   | `wheel_config_path`          | Path to wheel configuration file. <br/> ***string:*** [`{wheel_type}.yaml`](./husarion_ugv_description/config)                                                                                                                                                                                                          |
 | ✅   | ✅   | `wheel_type`                 | Specify the wheel type. If the selected wheel type is not 'custom', the wheel_config_path and controller_config_path arguments will be automatically adjusted and can be omitted. <br/> ***string:*** `WH01` (for Panther), `WH05` (for Lynx) (choices: `WH01`, `WH02`, `WH04`, `WH05`, `custom`)                  |

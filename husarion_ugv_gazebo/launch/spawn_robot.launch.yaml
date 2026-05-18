@@ -221,7 +221,7 @@ launch:
       - node:
           pkg: ros_gz_bridge
           exec: parameter_bridge
-          name: gz_bridge
+          name: gz_robot_bridge
           param:
             - name: config_file
               value: $(var rendered_robot_bridge_config)

@@ -16,7 +16,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EnvironmentVariable,
@@ -62,24 +62,11 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    gz_headless_rendering = LaunchConfiguration("gz_headless_rendering")
-    declare_gz_headless_rendering_arg = DeclareLaunchArgument(
-        "gz_headless_rendering",
-        default_value=EnvironmentVariable("GZ_HEADLESS_RENDERING", default_value="False"),
-        description=(
-            "Run Gazebo server-only with headless rendering and OGRE v1. "
-            "Workaround for aarch64/Parallels VirGL where ogre2 GLSL shaders "
-            "fail to compile. Leave False on amd64 + GPU."
-        ),
-        choices=["True", "true", "False", "false"],
-    )
-
     namespaced_gz_gui = ReplaceString(
         source_file=gz_gui,
         replacements={"{namespace}": namespace},
     )
 
-    # Default path: full husarion_gz_worlds wrapper (GUI + ogre2).
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -87,23 +74,6 @@ def generate_launch_description():
             )
         ),
         launch_arguments={"gz_gui": namespaced_gz_gui, "gz_log_level": "1"}.items(),
-        condition=UnlessCondition(gz_headless_rendering),
-    )
-
-    # Headless-rendering path: call ros_gz_sim directly, bypassing the wrapper
-    # that hardcodes ogre2. OGRE v1 is used because ogre2 shaders fail under VirGL.
-    gz_world = PathJoinSubstitution(
-        [FindPackageShare("husarion_gz_worlds"), "worlds", "husarion_world.sdf"]
-    )
-    gz_sim_headless = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])
-        ),
-        launch_arguments={
-            "gz_args": ["--headless-rendering -s --render-engine-server ogre -r -v 1 ", gz_world],
-            "on_exit_shutdown": "true",
-        }.items(),
-        condition=IfCondition(gz_headless_rendering),
     )
 
     gz_bridge_config = PathJoinSubstitution(
@@ -147,10 +117,8 @@ def generate_launch_description():
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,
-        declare_gz_headless_rendering_arg,
         SetUseSimTime(True),
         gz_sim,
-        gz_sim_headless,
         gz_bridge,
         simulate_robots,
         rviz_launch,

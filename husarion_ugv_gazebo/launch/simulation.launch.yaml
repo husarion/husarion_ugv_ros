@@ -87,7 +87,7 @@ launch:
   - node:
       pkg: ros_gz_bridge
       exec: parameter_bridge
-      name: gz_bridge
+      name: gz_sim_bridge
       param:
         - name: config_file
           value: $(var gz_bridge_config_path)

@@ -10,29 +10,20 @@ x-common-config: &common-config
 x-cpu-config: &cpu-config
   env_file: .env.cpu
 
-x-cpu-config-mac: &cpu-config-mac
-  env_file: .env.cpu_mac_vm
-
 x-gpu-config: &gpu-config
   runtime: nvidia
   env_file: .env.gpu
 
 services:
   husarion_ugv_gazebo:
-    # image: husarion/husarion-ugv-gazebo:jazzy-2.3.1-20250701
-    build: 
-      context: ../..
-      dockerfile: docker/Dockerfile.simulation
+    image: husarion/husarion-ugv-gazebo:jazzy-2.3.1-20250701
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config
-      - *cpu-config-mac
-      # - *cpu-config
+      - *gpu-config
     devices:
       - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    # GZ_HEADLESS_RENDERING=True on aarch64/Parallels (set in .env.cpu_mac_vm):
-    # runs Gazebo server-only with OGRE v1; visualize via RViz.
     command: >
       ros2 launch husarion_ugv_gazebo simulation.launch.py

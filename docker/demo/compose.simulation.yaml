@@ -16,7 +16,7 @@ x-gpu-config: &gpu-config
 
 services:
   husarion_ugv_gazebo:
-    image: husarion/husarion-ugv-gazebo:jazzy-2.3.1-20250701
+    image: husarion/husarion-ugv-gazebo:jazzy-colission-monitor-controller
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config
@@ -25,5 +25,6 @@ services:
       - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ../../husarion_ugv_controller/config:/ros2_ws/src/husarion_ugv_ros/husarion_ugv_controller/config
     command: >
       ros2 launch husarion_ugv_gazebo simulation.launch.py

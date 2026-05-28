@@ -462,7 +462,7 @@ void UGVSystem::ConfigureEStop()
 
 void UGVSystem::TriggerEStopServiceCall()
 {
-  RCLCPP_WARN_STREAM(logger_, "Triggering E-Stop due to service call.");
+  RCLCPP_INFO_STREAM(logger_, "Triggering E-Stop due to service call.");
   e_stop_->TriggerEStop();
 }
 

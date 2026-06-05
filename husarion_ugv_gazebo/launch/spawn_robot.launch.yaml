@@ -143,7 +143,7 @@ launch:
           sed \
             -e 's|<model_name>|"$(var model_name)"|g' \
             -e 's|<namespace>/|"$(var ns)"|g' \
-            "$(var robot_bridge_config_path)\" \
+            "$(var robot_bridge_config_path)" \
             > "$(var rendered_robot_bridge_config)"
         "
 

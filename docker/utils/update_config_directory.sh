@@ -29,6 +29,11 @@ copy_package_file() {
 # source robot environment
 source /run/husarion/robot_config.env
 
+if [ -z "$ROBOT_MODEL_NAME" ]; then
+  echo "ERROR: ROBOT_MODEL_NAME not set in /run/husarion/robot_config.env"
+  exit 1
+fi
+
 copy_package_file husarion_ugv_controller config
 copy_package_file husarion_ugv_description config
 copy_package_file husarion_ugv_description urdf

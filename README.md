@@ -91,7 +91,7 @@ then resolved as `<common_dir_path>/<package_name>/config/<file>.yaml` (e.g.
 `<common_dir_path>/husarion_ugv_battery/config/battery.yaml`).
 
 **Namespacing.** `bringup.launch.yaml` and `simulation.launch.yaml` wrap the robot's
-nodes in a `push_ros_namespace` group plus `set_remap` for `/tf` and `/tf_static`. When
+nodes in a `push_ros_namespace` group and use `set_remap` entries for `/tf`, `/tf_static`, and `/diagnostics`. When
 `namespace` is non-empty, the optional `tf_namespace_bridge` node (enabled by default)
 republishes `/<namespace>/tf` to the global `/tf` with a frame prefix — required for
 RViz/visualizers running outside the namespace. Disable with `tf_namespace_bridge:=False`.

@@ -94,7 +94,7 @@ launch:
           sed \
             -e 's|<namespace>/|"$(var ns)"|g' \
             -e 's|<static_covariance_orientation>|"$(var orientation_covariance)"|g' \
-            "$(var controller_config_path)\" \
+            "$(var controller_config_path)" \
             > "$(var rendered_controller_config)"
         "
 

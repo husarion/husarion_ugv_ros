@@ -6,7 +6,7 @@ The package containing nodes monitoring and publishing the internal battery stat
 
 This package contains:
 
-- `battery.launch.yaml`: Responsible for activating battery node, which dealing with reading and publishing battery data.
+- `battery.launch.yaml`: Responsible for activating the battery node, which reads and publishes battery data.
 
 ## Configuration Files
 

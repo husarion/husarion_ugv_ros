@@ -74,7 +74,7 @@ launch:
             - from: /diagnostics
               to: diagnostics
           param:
-            - from: $(find-pkg-share husarion_ugv_lights)/config/$(var robot_model)_driver.yaml
+            - from: $(var husarion_ugv_lights_common_dir)/config/$(var robot_model)_driver.yaml
           extra_arg:
             - name: use_intra_process_comms
               value: 'True'

@@ -122,12 +122,12 @@ launch:
       value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set $(var rsp_node)
         robot_description "$rd"
 
-  - executable:
-      cmd: bash -c $(var xacro_shell_cmd)
+  # Render xacro first, then push the param — chained so the file is fully written
+  # before `cat` reads it (a timer-based split would race for slow xacro renders).
+  - let:
+      name: overwrite_shell_cmd
+      value: $(var xacro_shell_cmd) && $(var set_param_shell_cmd)
 
-  - timer:
-      period: 1.0
-      children:
-        - executable:
-            output: screen
-            cmd: bash -c $(var set_param_shell_cmd)
+  - executable:
+      output: screen
+      cmd: bash -c $(var overwrite_shell_cmd)

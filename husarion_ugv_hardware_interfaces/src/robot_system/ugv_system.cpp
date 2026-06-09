@@ -164,7 +164,7 @@ CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
 CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
 {
   try {
-    RCLCPP_INFO_STREAM(logger_, "Triggering E-Stop due to deactivation.");
+    RCLCPP_INFO(logger_, "Triggering E-Stop due to deactivation.");
     e_stop_->TriggerEStop();
   } catch (const std::runtime_error & e) {
     RCLCPP_ERROR_STREAM(logger_, "Deactivation failed: " << e.what());
@@ -177,7 +177,7 @@ CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
 CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
 {
   try {
-    RCLCPP_INFO_STREAM(logger_, "Triggering E-Stop due to shutdown.");
+    RCLCPP_INFO(logger_, "Triggering E-Stop due to shutdown.");
     e_stop_->TriggerEStop();
   } catch (const std::runtime_error & e) {
     RCLCPP_ERROR_STREAM(logger_, "Shutdown failed: " << e.what());
@@ -462,7 +462,7 @@ void UGVSystem::ConfigureEStop()
 
 void UGVSystem::TriggerEStopServiceCall()
 {
-  RCLCPP_INFO_STREAM(logger_, "Triggering E-Stop due to service call.");
+  RCLCPP_INFO(logger_, "Triggering E-Stop due to service call.");
   e_stop_->TriggerEStop();
 }
 
@@ -475,7 +475,7 @@ void UGVSystem::ResetEStop()
       "Can't reset E-Stop when the hardware interface is not in ACTIVE state.");
   }
 
-  RCLCPP_INFO_STREAM(logger_, "Resetting E-Stop.");
+  RCLCPP_INFO(logger_, "Resetting E-Stop.");
 
   e_stop_->ResetEStop();
 }
@@ -513,7 +513,8 @@ void UGVSystem::UpdateDriverState()
 void UGVSystem::UpdateEStopState()
 {
   if (robot_driver_->CommunicationError()) {
-    RCLCPP_WARN_STREAM(logger_, "Triggering E-Stop due to robot driver communication error.");
+    RCLCPP_ERROR_THROTTLE(
+      logger_, steady_clock_, 5000, "Triggering E-Stop due to robot driver communication error.");
     e_stop_->TriggerEStop();
   }
 

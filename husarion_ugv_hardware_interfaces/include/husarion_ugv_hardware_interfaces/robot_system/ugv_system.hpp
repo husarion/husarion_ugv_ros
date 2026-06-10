@@ -94,6 +94,7 @@ protected:
   void ConfigureRobotDriver();
   virtual void DefineRobotDriver() = 0;
   virtual void ConfigureEStop();  // virtual for mocking
+  void TriggerEStopServiceCall();
   void ResetEStop();
 
   void UpdateMotorsState();

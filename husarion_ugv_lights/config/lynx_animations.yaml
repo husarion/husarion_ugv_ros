@@ -315,10 +315,15 @@ led_animations:
     priority: 1
     animations:
       - type: husarion_ugv_lights::ImageAnimation
-        segments: all
+        segments: front
         animation:
-          image: $(find husarion_ugv_lights)/animations/lynx/goal_failed.png
-          duration: 5
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_failed_front.png
+          duration: 4
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_failed_rear.png
+          duration: 4
 
   - id: 17
     name: FLOOD_LIGHT

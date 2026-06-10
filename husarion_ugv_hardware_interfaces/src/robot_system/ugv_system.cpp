@@ -198,7 +198,7 @@ CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
 CallbackReturn UGVSystem::on_error(const rclcpp_lifecycle::State &)
 {
   try {
-    RCLCPP_WARN_STREAM(logger_, "Triggering E-Stop due to error.");
+    RCLCPP_WARN(logger_, "Triggering E-Stop due to error.");
     e_stop_->TriggerEStop();
   } catch (const std::runtime_error & e) {
     RCLCPP_ERROR_STREAM(logger_, "Handling error failed: " << e.what());

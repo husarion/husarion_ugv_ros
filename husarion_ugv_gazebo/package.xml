@@ -43,6 +43,7 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">robot_state_publisher</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_gz_bridge</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">tf2_ros</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">tf_namespace_bridge</exec_depend>
 
   <!-- Gazebo dependency is specified in the ros_gz_sim package,
     version can chosen using GZ_VERSION (or IGNITION_VERSION) env variable,

@@ -1,0 +1,53 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_description/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_description_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_description' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_description)'")
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Namespace pushed by this launch (for standalone use). When included
+        from a context that already pushes a namespace, pass `namespace:''` to avoid
+        compounding.
+
+  - arg:
+      name: rviz_config
+      default: $(var husarion_ugv_description_common_dir)/rviz/husarion_ugv.rviz
+      description: RViz configuration file.
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - set_parameter:
+      name: use_sim_time
+      value: $(var use_sim)
+
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
+
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
+
+      - node:
+          pkg: rviz2
+          exec: rviz2
+          args: -d $(var rviz_config)

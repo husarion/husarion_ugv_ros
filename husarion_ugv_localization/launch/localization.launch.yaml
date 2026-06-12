@@ -1,0 +1,138 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_localization_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_localization' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_localization)'")
+
+  - arg:
+      name: fuse_gps
+      default: 'False'
+      description: Include GPS for data fusion
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: launch_nmea_gps
+      default: 'False'
+      description: Launch NMEA navsat gps driver
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: localization_mode
+      default: relative
+      description: |
+        Specifies the localization mode:
+        - 'relative' odometry/filtered data is relative to the initial position and orientation.
+        - 'enu' odometry/filtered data is relative to initial position and ENU (East North Up).
+      choice:
+        - value: relative
+        - value: enu
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: use_ekf
+      default: 'True'
+      description: Enable or disable EKF.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - let:
+      name: gps_postfix
+      value: $(eval "'_with_gps' if '$(var fuse_gps)' in ('True', 'true') else ''")
+
+  - let:
+      name: localization_config_filename
+      value: $(var localization_mode)_localization$(var gps_postfix).yaml
+
+  - arg:
+      name: localization_config_path
+      default: $(var husarion_ugv_localization_common_dir)/config/$(var localization_config_filename)
+      description: Specify the path to the localization configuration file.
+
+  - let:
+      name: external_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - set_parameter:
+      name: use_sim_time
+      value: $(var use_sim)
+
+  - node:
+      pkg: robot_localization
+      exec: ekf_node
+      name: ekf_filter
+      if: $(var use_ekf)
+      param:
+        - from: $(var localization_config_path)
+      remap:
+        - from: /diagnostics
+          to: diagnostics
+        - from: enable
+          to: localization/enable
+        - from: set_pose
+          to: localization/set_pose
+        - from: toggle
+          to: localization/toggle
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var external_log_level)
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_localization)/launch/nmea_navsat.launch.yaml
+      if: $(var launch_nmea_gps)
+      arg:
+        - name: common_dir_path
+          value: $(var common_dir_path)
+        - name: log_level
+          value: $(var log_level)
+        - name: namespace
+          value: ''  # already pushed by the outer bringup/spawn_robot group
+
+  - node:
+      pkg: robot_localization
+      exec: navsat_transform_node
+      name: navsat_transform
+      if: $(var fuse_gps)
+      param:
+        - from: $(var localization_config_path)
+      remap:
+        - from: imu
+          to: imu/data
+        - from: gps/fix
+          to: gps/fix
+        - from: odometry/gps
+          to: _odometry/gps
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var external_log_level)

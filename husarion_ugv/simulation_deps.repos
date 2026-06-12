@@ -23,3 +23,7 @@ repositories:
     type: git
     url: https://github.com/husarion/joy2twist.git
     version: 05a699aea7fa67c82db9c5c9c218b55b61626da2
+  tf_namespace_bridge:
+    type: git
+    url: https://github.com/husarion/tf_namespace_bridge
+    version: c185c1a3f48d49b04a342ccb49f94acf3bfca7f3

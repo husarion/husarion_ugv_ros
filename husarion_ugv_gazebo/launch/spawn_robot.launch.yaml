@@ -1,0 +1,335 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_gazebo_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_gazebo' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_gazebo)'")
+
+  - let:
+      name: husarion_ugv_description_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_description' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_description)'")
+
+  - arg:
+      name: add_world_transform
+      default: 'False'
+      description: Adds a world->robot static transform (useful for multi-robot scenes).
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: components_config_path
+      default: $(var husarion_ugv_description_common_dir)/config/components.yaml
+      description: Additional components configuration file.
+
+  - arg:
+      name: disable_manager
+      default: 'False'
+      description: Enable or disable manager_bt_node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: robot_bridge_config_path
+      default: $(var husarion_ugv_gazebo_common_dir)/config/robot_bridge.yaml
+      description: Path to the per-robot ros_gz_bridge configuration file.
+
+  - arg:
+      name: launch_gamepad
+      default: 'False'
+      description: Launch gamepad teleop.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace; pushed inside the per-robot group.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model.
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: tf_namespace_bridge
+      default: 'True'
+      description: Bridge robot's namespaced TF to the global /tf and /tf_static.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: tf_namespace_bridge_config
+      default: $(var husarion_ugv_gazebo_common_dir)/config/tf_namespace_bridge.yaml
+      description: Path to tf_namespace_bridge configuration file.
+
+  - arg:
+      name: use_rviz
+      default: 'True'
+      description: Run RViz simultaneously.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: x
+      default: '0.0'
+      description: Initial robot x position.
+  - arg:
+      name: y
+      default: '0.0'
+      description: Initial robot y position.
+  - arg:
+      name: z
+      default: '0.2'
+      description: Initial robot z position.
+  - arg:
+      name: roll
+      default: '0.0'
+      description: Initial robot roll orientation.
+  - arg:
+      name: pitch
+      default: '0.0'
+      description: Initial robot pitch orientation.
+  - arg:
+      name: yaw
+      default: '0.0'
+      description: Initial robot yaw orientation.
+
+  - set_use_sim_time:
+      value: true
+
+  - let:
+      name: model_name
+      value: $(eval "'$(var namespace)' if '$(var namespace)' else '$(var robot_model)'")
+
+  - let:
+      name: ns
+      value: $(eval "'$(var namespace)/' if '$(var namespace)' else ''")
+
+  - let:
+      name: rendered_robot_bridge_config
+      value: /tmp/husarion_ugv_robot_bridge_$(var namespace).yaml
+
+  # The robot_bridge config keeps full paths because gz<->ros bridging is name-based and
+  # push_ros_namespace doesn't affect gz topic names.
+  - executable:
+      cmd: |
+        bash -c "
+          sed \
+            -e 's|<model_name>|"$(var model_name)"|g' \
+            -e 's|<namespace>/|"$(var ns)"|g' \
+            "$(var robot_bridge_config_path)" \
+            > "$(var rendered_robot_bridge_config)"
+        "
+
+  # Robot-model ASCII art selected via mutually-exclusive let:; the welcome banner below
+  # interpolates $(var ascii_art) so the whole greeting goes through a single log action.
+  # Block scalar uses |2 (explicit indent indicator) because the default auto-detect would
+  # terminate the block on art lines starting at column 0. Backslashes are doubled because
+  # launch text-substitution treats `\` as an escape char.
+  - let:
+      if: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
+
+         ____             _   _
+        |  _ \\ __ _ _ __ | |_| |__   ___ _ __
+        | |_) / _` | '_ \\| __| '_ \\ / _ \\ '__|
+        |  __/ (_| | | | | |_| | | |  __/ |
+        |_|   \\__,_|_| |_|\\__|_| |_|\\___|_|
+
+  - let:
+      unless: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
+
+         _
+        | |   _   _ _ __ __  __
+        | |  | | | | '_ \\\\ \\/ /
+        | |__| |_| | | | |>  <
+        |_____\\__, |_| |_/_/\\_\\
+              |___/
+
+  - log:
+      message: |
+        $(var ascii_art)
+        ============================================
+        Husarion UGV
+        Model:        $(var robot_model)
+        Namespace:    '$(var namespace)'
+        Initial pose: ($(var x), $(var y), $(var z), $(var roll), $(var pitch), $(var yaw))
+
+        Website:    https://husarion.com
+        Support:    https://community.husarion.com/
+        Bugs:       https://github.com/husarion/husarion_ugv_ros/issues
+        ============================================
+
+  - let:
+      name: external_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  # Per-robot group: push_ros_namespace + tf remaps so all nodes inside live under
+  # /<namespace>/... and publish TF to /<namespace>/tf.
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
+
+      # tf_namespace_bridge MUST be defined before set_remap so it subscribes to the
+      # global /tf (not the locally remapped tf). Bridges /<ns>/tf -> /tf with prefix.
+      - node:
+          pkg: tf_namespace_bridge
+          exec: tf_namespace_bridge
+          if: $(eval '"$(var tf_namespace_bridge)" == "True" and "$(var namespace)" != ""')
+          param:
+            - from: $(var tf_namespace_bridge_config)
+
+      - set_remap:
+          from: /diagnostics
+          to: diagnostics
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
+
+      - node:
+          pkg: ros_gz_bridge
+          exec: parameter_bridge
+          name: gz_robot_bridge
+          param:
+            - name: config_file
+              value: $(var rendered_robot_bridge_config)
+          args: >
+            --ros-args
+            --log-level $(var log_level)
+            --log-level rcl:=$(var external_log_level)
+
+      - node:
+          pkg: ros_gz_sim
+          exec: create
+          args: >
+            -name $(var model_name)
+            -allow_renaming True
+            -topic robot_description
+            -x $(var x)
+            -y $(var y)
+            -z $(var z)
+            -R $(var roll)
+            -P $(var pitch)
+            -Y $(var yaw)
+            --ros-args
+            --log-level $(var log_level)
+            --log-level rcl:=$(var external_log_level)
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_controller)/launch/controller.launch.yaml
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: log_level
+              value: $(var log_level)
+            - name: use_sim
+              value: 'True'
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_lights)/launch/lights.launch.yaml
+          unless: $(eval "'$(var robot_model)' == 'lynx'")
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: log_level
+              value: $(var log_level)
+            - name: use_sim
+              value: 'True'
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_manager)/launch/manager.launch.yaml
+          unless: $(eval "'$(var robot_model)' == 'lynx' or '$(var disable_manager)' in ('True','true')")
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: log_level
+              value: $(var log_level)
+            - name: use_sim
+              value: 'True'
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_localization)/launch/localization.launch.yaml
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: log_level
+              value: $(var log_level)
+            - name: use_sim
+              value: 'True'
+
+      - include:
+          file: $(find-pkg-share husarion_components_description)/launch/gz_components.launch.py
+          arg:
+            - name: components_config_path
+              value: $(var components_config_path)
+            - name: use_sim
+              value: 'True'
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_description)/launch/rviz.launch.yaml
+          if: $(var use_rviz)
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: namespace
+              value: ''  # already pushed by this group; avoid compounding
+
+      - include:
+          file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
+          arg:
+            - name: common_dir_path
+              value: $(var common_dir_path)
+            - name: launch_gamepad
+              value: $(var launch_gamepad)
+
+  # Optional world->robot static transform (outside the namespaced group).
+  - let:
+      name: child_tf
+      value: $(eval "'$(var namespace)/odom' if '$(var namespace)' else 'odom'")
+
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: static_tf_publisher
+      if: $(var add_world_transform)
+      args: >
+        --x $(var x)
+        --y $(var y)
+        --z $(var z)
+        --roll $(var roll)
+        --pitch $(var pitch)
+        --yaw $(var yaw)
+        --frame-id world
+        --child-frame-id $(var child_tf)

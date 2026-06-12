@@ -4,7 +4,7 @@ The package contains the default configuration and launch files necessary to sta
 
 ## Launch Files
 
-- `controller.launch.py`: Establishes communication with the hardware by loading the robot's URDF with plugins and configures the controllers to exchange information between the engine driver and the IMU.
+- `controller.launch.yaml`: Establishes communication with the hardware by loading the robot's URDF with plugins and configures the controllers to exchange information between the engine driver and the IMU.
 
 ## Configuration Files
 

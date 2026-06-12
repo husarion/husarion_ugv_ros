@@ -1,0 +1,48 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_teleop/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_teleop_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_teleop' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_teleop)'")
+
+  - arg:
+      name: launch_gamepad
+      default: 'False'
+      description: Launch gamepad node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - let:
+      name: joy2twist_params_file
+      value: $(var husarion_ugv_teleop_common_dir)/config/joy2twist_$(env ROBOT_MODEL_NAME
+        panther).yaml
+
+  - include:
+      file: $(find-pkg-share joy2twist)/launch/gamepad_controller.launch.py
+      if: $(var launch_gamepad)
+      arg:
+        - name: log_level
+          value: $(var log_level)
+        - name: joy2twist_params_file
+          value: $(var joy2twist_params_file)
+        - name: namespace
+          value: ''

@@ -59,7 +59,7 @@
       mount_point_y="${wheel_mount_point_y}"
       prefix="rr" />
 
-    <ros2_control name="${ns}lynx_system" type="system">
+    <ros2_control name="lynx_system" type="system">
       <hardware>
         <xacro:if value="${use_sim}">
           <plugin>husarion_ugv_gazebo/EStopSystem</plugin>
@@ -146,7 +146,7 @@
     </ros2_control>
 
     <xacro:unless value="${use_sim}">
-      <ros2_control name="${ns}imu" type="sensor">
+      <ros2_control name="imu" type="sensor">
         <hardware>
           <plugin>husarion_ugv_hardware_interfaces/PhidgetImuSensor</plugin>
           <param name="serial">-1</param>

@@ -1,0 +1,133 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_description_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_description' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_description)'")
+
+  - let:
+      name: husarion_ugv_controller_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_controller' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_controller)'")
+
+  - arg:
+      name: battery_config_path
+      default: ''
+      description: Path to the Ignition LinearBatteryPlugin configuration file. This configuration
+        is intended for use in simulations only.
+
+  - arg:
+      name: components_config_path
+      default: $(var husarion_ugv_description_common_dir)/config/components.yaml
+      description: Specify file which contains components. These components will be included
+        in URDF. Available options can be found in manuals https://husarion.com/manuals
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace; used to address the target robot_state_publisher node.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: components_use_tf_prefix
+      default: 'False'
+      description: Prefix component frame_ids with the robot namespace. Default 'False'
+        matches the push_ros_namespace + /tf remap model (frame names stay literal).
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: wheel_type
+      default: "$(eval \"{'lynx': 'WH05', 'panther': 'WH01'}['$(var robot_model)']\")"
+      description: Specify the wheel type. Adjusts wheel_config_path and controller_config_path
+        defaults.
+      choice:
+        - value: WH01
+        - value: WH02
+        - value: WH04
+        - value: WH05
+        - value: custom
+
+  - arg:
+      name: controller_config_path
+      default: $(var husarion_ugv_controller_common_dir)/config/$(var wheel_type)_controller.yaml
+      description: Path to controller configuration file.
+
+  - arg:
+      name: wheel_config_path
+      default: $(var husarion_ugv_description_common_dir)/config/$(var wheel_type).yaml
+      description: Path to wheel configuration file.
+
+  - set_parameter:
+      name: use_sim_time
+      value: $(var use_sim)
+
+  - let:
+      name: imu_xyz
+      value: "$(env ROBOT_IMU_LOCALIZATION_X 0.168) $(env ROBOT_IMU_LOCALIZATION_Y 0.028) $(env ROBOT_IMU_LOCALIZATION_Z 0.083)"
+
+  - let:
+      name: imu_rpy
+      value: "$(env ROBOT_IMU_ORIENTATION_R 3.14) $(env ROBOT_IMU_ORIENTATION_P -1.57) $(env ROBOT_IMU_ORIENTATION_Y 0.0)"
+
+  - let:
+      name: urdf_xacro
+      value: $(var husarion_ugv_description_common_dir)/urdf/$(var robot_model).urdf.xacro
+
+  - let:
+      name: rendered_robot_description
+      value: /tmp/husarion_ugv_robot_description_$(var namespace).urdf
+
+  # Fully-qualified node name for `ros2 param set` (must include namespace prefix when set).
+  - let:
+      name: rsp_node
+      value: $(eval "'/$(var namespace)/robot_state_publisher' if '$(var namespace)' else
+        'robot_state_publisher'")
+
+  # Render xacro to a tmp file, then push the file content as the robot_description
+  # parameter on the live RSP node. Uses the let-cmd pattern (backticks for `cat` would
+  # otherwise tangle with shlex per-segment splitting in launch's _parse_cmdline).
+  - let:
+      name: xacro_shell_cmd
+      value: xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
+        wheel_config_path)" controller_config_file:="$(var controller_config_path)" battery_config_file:="$(var
+        battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=$(var
+        namespace) components_config_path:="$(var components_config_path)" components_use_tf_prefix:=$(var
+        components_use_tf_prefix) > "$(var rendered_robot_description)"
+
+  - let:
+      name: set_param_shell_cmd
+      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set $(var rsp_node)
+        robot_description "$rd"
+
+  # Render xacro first, then push the param — chained so the file is fully written
+  # before `cat` reads it (a timer-based split would race for slow xacro renders).
+  - let:
+      name: overwrite_shell_cmd
+      value: $(var xacro_shell_cmd) && $(var set_param_shell_cmd)
+
+  - executable:
+      output: screen
+      cmd: bash -c $(var overwrite_shell_cmd)

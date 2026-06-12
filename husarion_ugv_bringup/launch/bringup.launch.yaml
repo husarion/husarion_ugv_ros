@@ -1,0 +1,226 @@
+---
+launch:
+
+  - set_env:
+      name: RCUTILS_COLORIZED_OUTPUT
+      value: '1'
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_bringup_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_bringup' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_bringup)'")
+
+  - arg:
+      name: disable_manager
+      default: 'False'
+      description: Enable or disable manager_bt_node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: exit_on_wrong_hw
+      default: 'False'
+      description: Exit if hardware configuration is incorrect.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace; pushed inside the driver group.
+
+  - arg:
+      name: tf_namespace_bridge
+      default: 'True'
+      description: Bridge robot's namespaced TF to the global /tf and /tf_static.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: tf_namespace_bridge_config
+      default: $(var husarion_ugv_bringup_common_dir)/config/tf_namespace_bridge.yaml
+      description: Path to tf_namespace_bridge configuration file.
+
+  - let:
+      name: hw_config_correct
+      value: $(env ROBOT_HW_CONFIG_CORRECT false)
+
+  - let:
+      name: system_build_version
+      value: $(env SYSTEM_BUILD_VERSION v0.0.0)
+
+  - let:
+      name: robot_model
+      value: $(env ROBOT_MODEL_NAME panther)
+
+  # Robot-model ASCII art selected via mutually-exclusive let:; the welcome banner below
+  # interpolates $(var ascii_art) so the whole greeting goes through a single log action.
+  # Block scalar uses |2 (explicit indent indicator) because the default auto-detect would
+  # terminate the block on art lines starting at column 0. Backslashes are doubled because
+  # launch text-substitution treats `\` as an escape char.
+  - let:
+      if: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
+
+         ____             _   _
+        |  _ \\ __ _ _ __ | |_| |__   ___ _ __
+        | |_) / _` | '_ \\| __| '_ \\ / _ \\ '__|
+        |  __/ (_| | | | | |_| | | |  __/ |
+        |_|   \\__,_|_| |_|\\__|_| |_|\\___|_|
+
+  - let:
+      unless: $(eval "'$(var robot_model)' == 'panther'")
+      name: ascii_art
+      value: |2
+
+         _
+        | |   _   _ _ __ __  __
+        | |  | | | | '_ \\\\ \\/ /
+        | |__| |_| | | | |>  <
+        |_____\\__, |_| |_/_/\\_\\
+              |___/
+
+  # Welcome banner via launch frontend log action.
+  - log:
+      message: |
+        $(var ascii_art)
+        ============================================
+        Husarion UGV
+        Model:      $(var robot_model)
+        Serial:     $(env ROBOT_SERIAL_NO ----)
+        HW version: $(env ROBOT_VERSION 1.0)
+
+        Website:    https://husarion.com
+        Support:    https://community.husarion.com/
+        Bugs:       https://github.com/husarion/husarion_ugv_ros/issues
+        ============================================
+
+  # OS version check (min v2.2.0). Inline tuple comparison via eval substitution.
+  - let:
+      name: os_version_compatible
+      value: $(eval "tuple(int(x) for x in '$(var system_build_version)'.lstrip('v').split('.')[:3])
+        >= (2, 2, 0)")
+
+  - log:
+      message: "WARNING: Unsupported OS version detected. Current: $(var system_build_version),
+        required: v2.2.0"
+      unless: $(var os_version_compatible)
+
+  # If hardware config is wrong: print error and (unless exit_on_wrong_hw) hang via sleep
+  # infinity to keep the launch alive without bringing up nodes.
+  - group:
+      unless: $(var hw_config_correct)
+      children:
+        - log:
+            message: |
+              ERROR: Incorrect hardware configuration detected. ROS nodes are prevented from starting.
+              Refer to instructions in the manual or those shown on terminal login.
+        - executable:
+            cmd: sleep infinity
+            unless: $(var exit_on_wrong_hw)
+
+  # If hardware config is correct: bring up the driver stack inside a per-robot
+  # namespaced group. push_ros_namespace + tf remaps mean every sub-include lives under
+  # /<namespace>/... and publishes TF to /<namespace>/tf.
+  - group:
+      if: $(var hw_config_correct)
+      children:
+        - push_ros_namespace:
+            namespace: $(var namespace)
+
+        # tf_namespace_bridge MUST be defined before set_remap so it subscribes to the
+        # global /tf (not the locally remapped tf). Bridges /<ns>/tf -> /tf with prefix.
+        - node:
+            pkg: tf_namespace_bridge
+            exec: tf_namespace_bridge
+            if: $(eval '"$(var tf_namespace_bridge)" == "True" and "$(var namespace)" !=
+              ""')
+            param:
+              - from: $(var tf_namespace_bridge_config)
+
+        - set_remap:
+            from: /diagnostics
+            to: diagnostics
+        - set_remap:
+            from: /tf
+            to: tf
+        - set_remap:
+            from: /tf_static
+            to: tf_static
+
+        - include:
+            file: $(find-pkg-share husarion_ugv_controller)/launch/controller.launch.yaml
+            arg:
+              - name: common_dir_path
+                value: $(var common_dir_path)
+              - name: log_level
+                value: $(var log_level)
+
+        - include:
+            file: $(find-pkg-share husarion_ugv_diagnostics)/launch/system_monitor.launch.yaml
+            arg:
+              - name: common_dir_path
+                value: $(var common_dir_path)
+              - name: log_level
+                value: $(var log_level)
+
+        - include:
+            file: $(find-pkg-share husarion_ugv_teleop)/launch/teleop.launch.yaml
+            arg:
+              - name: common_dir_path
+                value: $(var common_dir_path)
+              - name: launch_gamepad
+                value: 'True'
+
+        - timer:
+            period: 10.0
+            children:
+              - include:
+                  file: $(find-pkg-share husarion_ugv_battery)/launch/battery.launch.yaml
+                  arg:
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_lights)/launch/lights.launch.yaml
+                  arg:
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_manager)/launch/manager.launch.yaml
+                  unless: $(var disable_manager)
+                  arg:
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)
+              - include:
+                  file: $(find-pkg-share husarion_ugv_localization)/launch/localization.launch.yaml
+                  arg:
+                    - name: common_dir_path
+                      value: $(var common_dir_path)
+                    - name: log_level
+                      value: $(var log_level)

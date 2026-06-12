@@ -1,0 +1,47 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_battery/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_battery_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_battery' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_battery)'")
+
+  - arg:
+      name: battery_config_path
+      default: $(var husarion_ugv_battery_common_dir)/config/battery.yaml
+      description: Specify the path to the battery driver configuration file.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - let:
+      name: external_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - node:
+      pkg: husarion_ugv_battery
+      exec: battery_driver_node
+      name: battery_driver
+      param:
+        - from: $(var battery_config_path)
+      remap:
+        - from: /diagnostics
+          to: diagnostics
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var external_log_level)

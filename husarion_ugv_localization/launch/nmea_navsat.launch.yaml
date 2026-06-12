@@ -1,0 +1,73 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_localization/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_localization_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_localization' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_localization)'")
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Namespace pushed by this launch (for standalone GPS-debug use). When
+        included from a context that already pushes a namespace, pass `namespace:''` to
+        avoid compounding.
+
+  - arg:
+      name: nmea_params_path
+      default: $(var husarion_ugv_localization_common_dir)/config/nmea_navsat.yaml
+      description: Path to the parameter file for the nmea_socket_driver node.
+
+  - let:
+      name: external_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - group:
+      - push_ros_namespace:
+          namespace: $(var namespace)
+
+      - set_remap:
+          from: /tf
+          to: tf
+      - set_remap:
+          from: /tf_static
+          to: tf_static
+
+      - node:
+          pkg: nmea_navsat_driver
+          exec: nmea_socket_driver
+          name: nmea_navsat_driver
+          param:
+            - name: frame_id
+              value: gps
+            - from: $(var nmea_params_path)
+          remap:
+            - from: fix
+              to: gps/fix
+            - from: time_reference
+              to: gps/time_reference
+            - from: vel
+              to: gps/vel
+            - from: heading
+              to: _gps/heading
+          args: >
+            --ros-args
+            --log-level $(var log_level)
+            --log-level rcl:=$(var external_log_level)

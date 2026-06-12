@@ -16,7 +16,7 @@
   imu_broadcaster:
     ros__parameters:
       sensor_name: <namespace>/imu
-      frame_id: <namespace>/imu_link
+      frame_id: imu_link
       # orientation_stddev: 4.3e-2 rad determined experimentally
       static_covariance_orientation: <static_covariance_orientation>
       # angular_velocity_stdev: 0.59 deg/s (0.01 rad/s) gyroscope white noise sigma, according to the manual
@@ -56,6 +56,7 @@
       velocity_rolling_window_size: 1
 
       enable_odom_tf: false
+      tf_frame_prefix_enable: false
 
       cmd_vel_timeout: 0.2
       publish_limited_velocity: false

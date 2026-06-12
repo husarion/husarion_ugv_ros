@@ -39,6 +39,6 @@ services:
         soft: -1
         hard: -1
     command: >
-      ros2 launch husarion_ugv_bringup bringup.launch.py
+      ros2 launch husarion_ugv_bringup bringup.launch.yaml
         common_dir_path:=/config
         launch_gamepad:=true

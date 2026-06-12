@@ -1,0 +1,105 @@
+---
+launch:
+
+  - set_env:
+      name: RCUTILS_COLORIZED_OUTPUT
+      value: '1'
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/<package_name>/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_gazebo_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_gazebo' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_gazebo)'")
+
+  - arg:
+      name: gz_bridge_config_path
+      default: $(var husarion_ugv_gazebo_common_dir)/config/gz_bridge.yaml
+      description: Path to the world-level parameter_bridge configuration file.
+
+  - arg:
+      name: gz_gui
+      default: $(var husarion_ugv_gazebo_common_dir)/config/teleop_with_estop.config
+      description: Run simulation with specific GUI layout.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace forwarded to spawn_robot.
+
+  - arg:
+      name: tf_namespace_bridge
+      default: 'True'
+      description: Bridge robot's namespaced TF to the global /tf and /tf_static.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: use_rviz
+      default: 'True'
+      description: Run RViz simultaneously.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - set_use_sim_time:
+      value: true
+
+  # Render gz GUI config (replace {namespace} placeholder).
+  - let:
+      name: rendered_gz_gui
+      value: /tmp/husarion_ugv_gz_gui_$(var namespace).config
+
+  - executable:
+      cmd: |
+        bash -c "
+          sed \
+            -e 's|{namespace}|"$(var namespace)"|g' \
+            "$(var gz_gui)" \
+            > "$(var rendered_gz_gui)"
+        "
+
+  - include:
+      file: $(find-pkg-share husarion_gz_worlds)/launch/gz_sim.launch.py
+      arg:
+        - name: gz_gui
+          value: $(var rendered_gz_gui)
+        - name: gz_log_level
+          value: '1'
+
+  # World-level gz<->ros bridge (no namespace; world topics like /clock).
+  - node:
+      pkg: ros_gz_bridge
+      exec: parameter_bridge
+      name: gz_sim_bridge
+      param:
+        - name: config_file
+          value: $(var gz_bridge_config_path)
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_gazebo)/launch/spawn_robot.launch.yaml
+      arg:
+        - name: common_dir_path
+          value: $(var common_dir_path)
+        - name: namespace
+          value: $(var namespace)
+        - name: log_level
+          value: $(var log_level)
+        - name: tf_namespace_bridge
+          value: $(var tf_namespace_bridge)

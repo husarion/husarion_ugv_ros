@@ -6,4 +6,4 @@ The package contains the default configuration and launch files necessary to sta
 
 This package contains:
 
-- `bringup.launch.py`: Responsible for activating whole robot system.
+- `bringup.launch.yaml`: Responsible for activating whole robot system.

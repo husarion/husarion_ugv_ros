@@ -1,0 +1,77 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - let:
+      name: husarion_ugv_manager_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_manager' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_manager)'")
+
+  - arg:
+      name: lights_bt_project_path
+      default: $(var husarion_ugv_manager_common_dir)/behavior_trees/LightsBT.btproj
+      description: Path to BehaviorTree project file, responsible for lights management.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: safety_bt_project_path
+      default: $(var husarion_ugv_manager_common_dir)/behavior_trees/SafetyBT.btproj
+      description: Path to BehaviorTree project file, responsible for safety and shutdown
+        management.
+
+  - arg:
+      name: shutdown_hosts_config_path
+      default: $(var husarion_ugv_manager_common_dir)/config/shutdown_hosts.yaml
+      description: Path to file with list of hosts to request shutdown.
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used
+
+  - let:
+      name: external_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - node:
+      pkg: husarion_ugv_manager
+      exec: lights_manager_node
+      name: lights_manager
+      param:
+        - from: $(var husarion_ugv_manager_common_dir)/config/lights_manager.yaml
+        - name: bt_project_path
+          value: $(var lights_bt_project_path)
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var external_log_level)
+
+  - node:
+      pkg: husarion_ugv_manager
+      exec: safety_manager_node
+      name: safety_manager
+      unless: $(var use_sim)
+      param:
+        - from: $(var husarion_ugv_manager_common_dir)/config/safety_manager.yaml
+        - name: bt_project_path
+          value: $(var safety_bt_project_path)
+        - name: shutdown_hosts_path
+          value: $(var shutdown_hosts_config_path)
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var external_log_level)

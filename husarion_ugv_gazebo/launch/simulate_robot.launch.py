@@ -132,7 +132,6 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
-        condition=UnlessCondition(PythonExpression(["'", robot_model, "' == 'lynx'"])),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -146,9 +145,7 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
-        condition=UnlessCondition(
-            PythonExpression(["'", robot_model, "' == 'lynx' or ", disable_manager])
-        ),
+        condition=UnlessCondition(disable_manager),
     )
 
     controller_launch = IncludeLaunchDescription(
@@ -202,7 +199,11 @@ def generate_launch_description():
         }.items(),
     )
 
-    model_name = PythonExpression(["'", namespace, "' if '", namespace, "' else 'panther'"])
+    # With an empty namespace the spawned entity is named after the URDF robot name, which equals
+    # the robot model.
+    model_name = PythonExpression(
+        ["'", namespace, "' if '", namespace, "' else '", robot_model, "'"]
+    )
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
     namespaced_gz_bridge_config_path = ReplaceString(
         source_file=gz_bridge_config_path,

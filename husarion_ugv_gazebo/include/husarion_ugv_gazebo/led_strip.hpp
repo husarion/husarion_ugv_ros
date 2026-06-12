@@ -17,11 +17,13 @@
 
 #include <chrono>
 #include <string>
+#include <vector>
 
 #include <realtime_tools/realtime_thread_safe_box.hpp>
 
 #include <gz/math/Color.hh>
 #include <gz/math/Pose3.hh>
+#include <gz/math/Vector3.hh>
 #include <gz/sim/EntityComponentManager.hh>
 #include <gz/sim/EventManager.hh>
 #include <gz/sim/System.hh>
@@ -117,6 +119,34 @@ private:
   void VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose);
 
   /**
+   * @brief Interpolate a point at the given arc-length distance along the points polyline.
+   */
+  gz::math::Vector3d PolylinePointAt(double distance) const;
+
+  /**
+   * @brief Compute the centerline vertices of a single LED on the points polyline: its start and
+   * end points plus any polyline vertices falling between them, so the LED ribbon follows the
+   * polyline exactly (no gaps at corners).
+   *
+   * @param led_idx Index of the LED along the polyline (0 = polyline start)
+   * @param led_count Total number of LEDs on the polyline
+   */
+  std::vector<gz::math::Vector3d> PolylineLedVertices(size_t led_idx, size_t led_count) const;
+
+  /**
+   * @brief Create a single LED of the strip as a double-sided triangle ribbon following the given
+   * centerline vertices (expressed in the light frame), expanded vertically by the strip height.
+   *
+   * @param id The unique ID of the marker (if not unique, the marker will replace the existing one)
+   * @param strip_pose The pose of the strip (light) the ribbon vertices are relative to
+   * @param color The color of the LED
+   * @param centerline The centerline vertices of the LED
+   */
+  void CreateRibbonMarker(
+    const uint id, const gz::math::Pose3d & strip_pose, const gz::math::Color & color,
+    const std::vector<gz::math::Vector3d> & centerline);
+
+  /**
    * @brief Create a marker element (single LED from LED Strip)
    *
    * @param id The unique ID of the marker (if not unique, the marker will replace the existing one)
@@ -131,11 +161,28 @@ private:
   std::string light_name_;
   std::string image_topic_;
   std::string ns_ = "";
+  std::string model_name_ = "";
   double frequency_ = 10.0;
   double marker_width_ = 1.0;
   double marker_height_ = 1.0;
 
+  // Optional subrange of the channel frame displayed by this instance ("first-last", a reversed
+  // range flips the LED order). Defaults to the whole frame.
+  int led_first_ = -1;
+  int led_last_ = -1;
+
+  // Optional polyline (in the light frame) the LEDs are distributed along. When empty, the strip
+  // is a straight line along the Y axis of the light frame (legacy behavior).
+  std::vector<gz::math::Vector3d> points_;
+  std::vector<double> polyline_seg_lengths_;
+  double polyline_length_ = 0.0;
+
   bool new_image_available_ = false;
+  // Per-LED colors sent in the previous frame. Markers are re-published only for LEDs whose color
+  // changed, so a static animation generates no /marker traffic while the markers stay attached to
+  // the (possibly moving) robot via their parent.
+  std::vector<gz::math::Color> last_marker_colors_;
+  std::string last_rendered_data_;
   gz::msgs::Light light_cmd_;
   realtime_tools::RealtimeThreadSafeBox<gz::msgs::Image> last_image_;
   gz::sim::Entity light_entity_{gz::sim::kNullEntity};

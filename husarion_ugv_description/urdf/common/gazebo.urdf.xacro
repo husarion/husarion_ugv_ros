@@ -50,6 +50,18 @@
     </gazebo>
   </xacro:macro>
 
+  <!-- E-stop -->
+  <!-- Must be declared after the controller macro: gz-sim executes systems in declaration order
+       and the E-stop zeros have to overwrite the commands written by gz_ros2_control. -->
+  <xacro:macro name="estop" params="namespace:='' initial_state:=true">
+    <gazebo>
+      <plugin filename="EStopSystem" name="husarion_ugv_gazebo::EStopSystem">
+        <namespace>${namespace}</namespace>
+        <initial_state>${initial_state}</initial_state>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
   <!-- Gauss noise macro -->
   <xacro:macro name="gauss_noise"
     params="mean:=0.0 stddev:=0.0 bias_mean:=0.0 bias_stddev:=0.0 precision:=0.0">
@@ -109,30 +121,41 @@
   </xacro:macro>
 
   <!-- Lights -->
-  <xacro:macro name="light" params="reference_frame name topic namespace:=''">
+  <!-- led_range selects a "first-last" subrange of the channel frame (reversed range flips the
+       LED order); points defines a polyline ("x y z; x y z; ...", in the light frame) the LEDs
+       are placed along. With no points the strip is a straight line of the given width. -->
+  <xacro:macro name="light" params="reference_frame name topic namespace:='' led_range:='' points:='' width:=0.5 height:=0.015 light_type:=spot light_direction:='1 0 0' spot_inner_angle:=1.0 spot_outer_angle:=2.0">
     <gazebo>
       <plugin filename="LEDStrip" name="husarion_ugv_gazebo::LEDStrip">
         <light_name>${name}</light_name>
         <topic>${topic}</topic>
         <namespace>${namespace}</namespace>
         <frequency>10</frequency>
-        <width>0.5</width>
-        <height>0.015</height>
+        <width>${width}</width>
+        <height>${height}</height>
+        <xacro:if value="${led_range != ''}">
+          <led_range>${led_range}</led_range>
+        </xacro:if>
+        <xacro:if value="${points != ''}">
+          <points>${points}</points>
+        </xacro:if>
       </plugin>
     </gazebo>
     <gazebo reference="${reference_frame}">
-      <light name="${name}" type="spot">
+      <light name="${name}" type="${light_type}">
         <cast_shadows>true</cast_shadows>
         <visualize>0</visualize>
         <diffuse>1.0 1.0 1.0</diffuse>
         <specular>1.0 1.0 1.0</specular>
-        <direction>1 0 0</direction>
         <intensity>0.5</intensity>
-        <spot>
-          <inner_angle>1.0</inner_angle>
-          <outer_angle>2.0</outer_angle>
-          <falloff>0.4</falloff>
-        </spot>
+        <xacro:if value="${light_type == 'spot'}">
+          <direction>${light_direction}</direction>
+          <spot>
+            <inner_angle>${spot_inner_angle}</inner_angle>
+            <outer_angle>${spot_outer_angle}</outer_angle>
+            <falloff>0.4</falloff>
+          </spot>
+        </xacro:if>
         <attenuation>
           <range>20.0</range>
           <constant>1.0</constant>

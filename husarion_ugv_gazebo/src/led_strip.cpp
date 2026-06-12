@@ -14,8 +14,11 @@
 
 #include "husarion_ugv_gazebo/led_strip.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <limits>
+#include <sstream>
 
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Model.hh>
@@ -39,6 +42,8 @@ void LEDStrip::Configure(
       ") is not a model. Please make sure that LEDStrip is attached to a valid model.");
   }
 
+  model_name_ = model.Name(ecm);
+
   ParseParameters(sdf);
   light_cmd_ = SetupLightCmd(ecm);
 
@@ -56,13 +61,17 @@ void LEDStrip::PreUpdate(const gz::sim::UpdateInfo & info, gz::sim::EntityCompon
       last_image_.get(image);
       new_image_available_ = false;
     }
+    last_update_time_ = current_time;
+
+    if (image.data() == last_rendered_data_) {
+      return;
+    }
+    last_rendered_data_ = image.data();
 
     VisualizeLights(ecm, image);
 
     auto light_pose = ecm.Component<gz::sim::components::Pose>(light_entity_)->Data();
     VisualizeMarkers(image, light_pose);
-
-    last_update_time_ = current_time;
   }
 }
 
@@ -82,6 +91,39 @@ void LEDStrip::ParseParameters(const std::shared_ptr<const sdf::Element> & sdf)
   frequency_ = sdf->HasElement("frequency") ? sdf->Get<double>("frequency") : frequency_;
   marker_width_ = sdf->HasElement("width") ? sdf->Get<double>("width") : marker_width_;
   marker_height_ = sdf->HasElement("height") ? sdf->Get<double>("height") : marker_height_;
+
+  if (sdf->HasElement("led_range")) {
+    const auto range = sdf->Get<std::string>("led_range");
+    const auto dash = range.find('-');
+    if (dash == std::string::npos) {
+      throw std::runtime_error("Error: led_range must have the <first>-<last> format.");
+    }
+    led_first_ = std::stoi(range.substr(0, dash));
+    led_last_ = std::stoi(range.substr(dash + 1));
+  }
+
+  if (sdf->HasElement("points")) {
+    std::istringstream points_stream(sdf->Get<std::string>("points"));
+    std::string point_token;
+    while (std::getline(points_stream, point_token, ';')) {
+      std::istringstream point(point_token);
+      double x, y, z;
+      if (point >> x >> y >> z) {
+        points_.emplace_back(x, y, z);
+      }
+    }
+    if (points_.size() < 2) {
+      throw std::runtime_error("Error: The points parameter requires at least 2 'x y z' points.");
+    }
+    for (size_t i = 0; i + 1 < points_.size(); ++i) {
+      const double length = (points_[i + 1] - points_[i]).Length();
+      polyline_seg_lengths_.push_back(length);
+      polyline_length_ += length;
+    }
+    if (polyline_length_ <= 0.0) {
+      throw std::runtime_error("Error: The points parameter defines a zero-length polyline.");
+    }
+  }
 }
 
 gz::msgs::Light LEDStrip::SetupLightCmd(gz::sim::EntityComponentManager & ecm)
@@ -153,6 +195,12 @@ void LEDStrip::ImageCallback(const gz::msgs::Image & msg)
     return;
   }
 
+  const size_t step = msg.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8 ? 4 : 3;
+  if (msg.data().size() < msg.width() * msg.height() * step) {
+    ignerr << "Error: Image data smaller than the declared dimensions." << std::endl;
+    return;
+  }
+
   last_image_.set(msg);
   new_image_available_ = true;
 }
@@ -219,36 +267,91 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
 {
   const std::string & data = image.data();
 
-  double step_width = marker_width_ / image.width();
-  double step_height = marker_height_ / image.height();
-
   const float max_value = std::numeric_limits<uint8_t>::max();
   bool is_rgba = (image.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8);
   int step = is_rgba ? 4 : 3;
 
-  const auto pixel_size = gz::math::Vector3d(0.001, step_width, step_height);
+  const size_t pixel_count = image.width() * image.height();
+  const int first = led_first_ >= 0 ? led_first_ : 0;
+  const int last = led_last_ >= 0 ? led_last_ : static_cast<int>(pixel_count) - 1;
+  const int dir = last >= first ? 1 : -1;
+  const size_t led_count = static_cast<size_t>(std::abs(last - first)) + 1;
 
-  for (size_t y = 0; y < image.height(); ++y) {
-    for (size_t x = 0; x < image.width(); ++x) {
-      size_t idx = (y * image.width() + x) * step;
+  if (last_marker_colors_.size() != led_count) {
+    last_marker_colors_.assign(led_count, gz::math::Color(-1.0f, -1.0f, -1.0f, -1.0f));
+  }
 
-      float r = static_cast<uint8_t>(data[idx]) / max_value;
-      float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
-      float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
-      float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
-      auto pixel_color = gz::math::Color(r, g, b, a);
+  const double step_width = marker_width_ / led_count;
 
-      double x_pos = light_pose.Pos().X();
-      double y_pos = light_pose.Pos().Y() + x * step_width - marker_width_ / 2.0 + step_width / 2.0;
-      double z_pos = light_pose.Pos().Z() + y * step_height;
-      double roll = light_pose.Rot().Roll();
-      double pitch = light_pose.Rot().Pitch();
-      double yaw = light_pose.Rot().Yaw();
-      auto pose = gz::math::Pose3d(x_pos, y_pos, z_pos, roll, pitch, yaw);
+  for (size_t i = 0; i < led_count; ++i) {
+    const size_t pixel_idx = static_cast<size_t>(first + dir * static_cast<int>(i));
+    if (pixel_idx >= pixel_count) {
+      ignerr << "Error: led_range exceeds the received frame size." << std::endl;
+      return;
+    }
+    const size_t idx = pixel_idx * step;
 
-      CreateMarker(idx, pose, pixel_color, pixel_size);
+    float r = static_cast<uint8_t>(data[idx]) / max_value;
+    float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
+    float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
+    float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
+    auto pixel_color = gz::math::Color(r, g, b, a);
+
+    if (pixel_color == last_marker_colors_[i]) {
+      continue;
+    }
+    last_marker_colors_[i] = pixel_color;
+
+    if (!points_.empty()) {
+      CreateRibbonMarker(i, light_pose, pixel_color, PolylineLedVertices(i, led_count));
+    } else {
+      // Legacy strip: a straight line along the Y axis at the light position.
+      const auto pose = gz::math::Pose3d(
+        light_pose.Pos().X(),
+        light_pose.Pos().Y() + i * step_width - marker_width_ / 2.0 + step_width / 2.0,
+        light_pose.Pos().Z(), light_pose.Rot().Roll(), light_pose.Rot().Pitch(),
+        light_pose.Rot().Yaw());
+      const auto size = gz::math::Vector3d(0.001, step_width, marker_height_);
+      CreateMarker(i, pose, pixel_color, size);
     }
   }
+}
+
+gz::math::Vector3d LEDStrip::PolylinePointAt(double distance) const
+{
+  size_t segment = 0;
+  double segment_start = 0.0;
+  while (segment + 1 < polyline_seg_lengths_.size() &&
+         segment_start + polyline_seg_lengths_[segment] < distance) {
+    segment_start += polyline_seg_lengths_[segment];
+    ++segment;
+  }
+
+  const double t = std::clamp(
+    (distance - segment_start) / polyline_seg_lengths_[segment], 0.0, 1.0);
+  return points_[segment] + t * (points_[segment + 1] - points_[segment]);
+}
+
+std::vector<gz::math::Vector3d> LEDStrip::PolylineLedVertices(
+  size_t led_idx, size_t led_count) const
+{
+  const double led_step = polyline_length_ / led_count;
+  const double led_start = led_idx * led_step;
+  const double led_end = (led_idx + 1) * led_step;
+
+  std::vector<gz::math::Vector3d> vertices;
+  vertices.push_back(PolylinePointAt(led_start));
+
+  double vertex_distance = 0.0;
+  for (size_t i = 0; i < polyline_seg_lengths_.size(); ++i) {
+    vertex_distance += polyline_seg_lengths_[i];
+    if (vertex_distance > led_start && vertex_distance < led_end) {
+      vertices.push_back(points_[i + 1]);
+    }
+  }
+
+  vertices.push_back(PolylinePointAt(led_end));
+  return vertices;
 }
 
 void LEDStrip::CreateMarker(
@@ -259,15 +362,52 @@ void LEDStrip::CreateMarker(
   marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
   marker_msg.set_ns(ns_ + light_name_);
   marker_msg.set_id(id + 1);  // Markers with IDs 0 cannot be overwritten
-  if (ns_.empty()) {
-    marker_msg.set_parent("panther");
-  } else {
-    marker_msg.set_parent(ns_);
-  }
+  marker_msg.set_parent(ns_.empty() ? model_name_ : ns_);
   marker_msg.set_type(gz::msgs::Marker::BOX);
 
   gz::msgs::Set(marker_msg.mutable_pose(), pose);
   gz::msgs::Set(marker_msg.mutable_scale(), size);
+
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_ambient(), color);
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(), color);
+
+  // Using Request to ensure markers are visible
+  node_.Request("/marker", marker_msg);
+}
+
+void LEDStrip::CreateRibbonMarker(
+  const uint id, const gz::math::Pose3d & strip_pose, const gz::math::Color & color,
+  const std::vector<gz::math::Vector3d> & centerline)
+{
+  gz::msgs::Marker marker_msg;
+  marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_ns(ns_ + light_name_);
+  marker_msg.set_id(id + 1);  // Markers with IDs 0 cannot be overwritten
+  marker_msg.set_parent(ns_.empty() ? model_name_ : ns_);
+  marker_msg.set_type(gz::msgs::Marker::TRIANGLE_LIST);
+
+  gz::msgs::Set(marker_msg.mutable_pose(), strip_pose);
+
+  const auto up = gz::math::Vector3d(0.0, 0.0, marker_height_ / 2.0);
+  auto add_triangle =
+    [&](const gz::math::Vector3d & a, const gz::math::Vector3d & b, const gz::math::Vector3d & c) {
+      gz::msgs::Set(marker_msg.add_point(), a);
+      gz::msgs::Set(marker_msg.add_point(), b);
+      gz::msgs::Set(marker_msg.add_point(), c);
+    };
+
+  // Two triangles per centerline section, both windings so the ribbon is visible from both sides.
+  for (size_t i = 0; i + 1 < centerline.size(); ++i) {
+    const auto a_bottom = centerline[i] - up;
+    const auto a_top = centerline[i] + up;
+    const auto b_bottom = centerline[i + 1] - up;
+    const auto b_top = centerline[i + 1] + up;
+
+    add_triangle(a_bottom, b_bottom, a_top);
+    add_triangle(a_top, b_bottom, b_top);
+    add_triangle(a_bottom, a_top, b_bottom);
+    add_triangle(b_bottom, a_top, b_top);
+  }
 
   gz::msgs::Set(marker_msg.mutable_material()->mutable_ambient(), color);
   gz::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(), color);

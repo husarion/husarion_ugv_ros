@@ -44,3 +44,5 @@ launch:
           value: $(var log_level)
         - name: joy2twist_params_file
           value: $(var joy2twist_params_file)
+        - name: namespace
+          value: ''

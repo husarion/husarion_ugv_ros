@@ -119,6 +119,18 @@ private:
   void VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose);
 
   /**
+   * @brief Extract the per-LED colors of this instance's subrange from the image, applying the
+   * led_range order. Returns colors ordered from the first to the last LED of the strip.
+   */
+  std::vector<gz::math::Color> ExtractLedColors(const gz::msgs::Image & image) const;
+
+  /**
+   * @brief Smooth the LED colors with a 1D Gaussian kernel (in-place), approximating the diffuser
+   * that blurs the light between neighboring LEDs on the real robot. No-op when blur_sigma_ <= 0.
+   */
+  void ApplyGaussianBlur(std::vector<gz::math::Color> & colors) const;
+
+  /**
    * @brief Interpolate a point at the given arc-length distance along the points polyline.
    */
   gz::math::Vector3d PolylinePointAt(double distance) const;
@@ -170,6 +182,9 @@ private:
   // range flips the LED order). Defaults to the whole frame.
   int led_first_ = -1;
   int led_last_ = -1;
+
+  // Standard deviation (in LEDs) of the diffuser blur applied along the strip. 0 disables it.
+  double blur_sigma_ = 0.0;
 
   // Optional polyline (in the light frame) the LEDs are distributed along. When empty, the strip
   // is a straight line along the Y axis of the light frame (legacy behavior).

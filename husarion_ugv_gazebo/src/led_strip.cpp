@@ -15,11 +15,14 @@
 #include "husarion_ugv_gazebo/led_strip.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <sstream>
+#include <utility>
 
+#include <gz/common/Console.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/components/LightCmd.hh>
@@ -92,6 +95,8 @@ void LEDStrip::ParseParameters(const std::shared_ptr<const sdf::Element> & sdf)
   marker_width_ = sdf->HasElement("width") ? sdf->Get<double>("width") : marker_width_;
   marker_height_ = sdf->HasElement("height") ? sdf->Get<double>("height") : marker_height_;
 
+  blur_sigma_ = sdf->HasElement("blur_sigma") ? sdf->Get<double>("blur_sigma") : blur_sigma_;
+
   if (sdf->HasElement("led_range")) {
     const auto range = sdf->Get<std::string>("led_range");
     const auto dash = range.find('-');
@@ -138,7 +143,7 @@ gz::msgs::Light LEDStrip::SetupLightCmd(gz::sim::EntityComponentManager & ecm)
         return true;  // Continue searching
       }
       light_entity_ = entity;
-      igndbg << "Light entity found: " << light_entity_ << std::endl;
+      gzdbg << "Light entity found: " << light_entity_ << std::endl;
       light_cmd = CreateLightMsgFromSdf(light_component->Data());
       return false;  // Stop searching
     });
@@ -191,13 +196,13 @@ gz::msgs::Light LEDStrip::CreateLightMsgFromSdf(const sdf::Light & light_sdf)
 void LEDStrip::ImageCallback(const gz::msgs::Image & msg)
 {
   if (!IsEncodingValid(msg)) {
-    ignerr << "Error: Incorrect image encoding." << std::endl;
+    gzerr << "Error: Incorrect image encoding." << std::endl;
     return;
   }
 
   const size_t step = msg.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8 ? 4 : 3;
   if (msg.data().size() < msg.width() * msg.height() * step) {
-    ignerr << "Error: Image data smaller than the declared dimensions." << std::endl;
+    gzerr << "Error: Image data smaller than the declared dimensions." << std::endl;
     return;
   }
 
@@ -263,13 +268,12 @@ void LEDStrip::VisualizeLights(gz::sim::EntityComponentManager & ecm, const gz::
     light_entity_, gz::sim::components::LightCmd::typeId, gz::sim::ComponentState::PeriodicChange);
 }
 
-void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose)
+std::vector<gz::math::Color> LEDStrip::ExtractLedColors(const gz::msgs::Image & image) const
 {
   const std::string & data = image.data();
-
   const float max_value = std::numeric_limits<uint8_t>::max();
-  bool is_rgba = (image.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8);
-  int step = is_rgba ? 4 : 3;
+  const bool is_rgba = (image.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8);
+  const int step = is_rgba ? 4 : 3;
 
   const size_t pixel_count = image.width() * image.height();
   const int first = led_first_ >= 0 ? led_first_ : 0;
@@ -277,6 +281,64 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
   const int dir = last >= first ? 1 : -1;
   const size_t led_count = static_cast<size_t>(std::abs(last - first)) + 1;
 
+  std::vector<gz::math::Color> colors;
+  colors.reserve(led_count);
+  for (size_t i = 0; i < led_count; ++i) {
+    const size_t pixel_idx = static_cast<size_t>(first + dir * static_cast<int>(i));
+    if (pixel_idx >= pixel_count) {
+      gzerr << "Error: led_range exceeds the received frame size." << std::endl;
+      return {};
+    }
+    const size_t idx = pixel_idx * step;
+    const float r = static_cast<uint8_t>(data[idx]) / max_value;
+    const float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
+    const float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
+    const float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
+    colors.emplace_back(r, g, b, a);
+  }
+  return colors;
+}
+
+void LEDStrip::ApplyGaussianBlur(std::vector<gz::math::Color> & colors) const
+{
+  if (blur_sigma_ <= 0.0 || colors.size() < 2) {
+    return;
+  }
+
+  const int radius = static_cast<int>(std::ceil(3.0 * blur_sigma_));
+  std::vector<double> kernel(radius + 1);
+  double norm = 0.0;
+  for (int k = 0; k <= radius; ++k) {
+    kernel[k] = std::exp(-(k * k) / (2.0 * blur_sigma_ * blur_sigma_));
+    norm += (k == 0 ? kernel[k] : 2.0 * kernel[k]);
+  }
+
+  const int n = static_cast<int>(colors.size());
+  std::vector<gz::math::Color> blurred(colors.size());
+  for (int i = 0; i < n; ++i) {
+    double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
+    for (int k = -radius; k <= radius; ++k) {
+      const int j = std::clamp(i + k, 0, n - 1);  // extend edges
+      const double w = kernel[std::abs(k)] / norm;
+      r += w * colors[j].R();
+      g += w * colors[j].G();
+      b += w * colors[j].B();
+      a += w * colors[j].A();
+    }
+    blurred[i].Set(r, g, b, a);
+  }
+  colors = std::move(blurred);
+}
+
+void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose)
+{
+  auto colors = ExtractLedColors(image);
+  if (colors.empty()) {
+    return;
+  }
+  ApplyGaussianBlur(colors);
+
+  const size_t led_count = colors.size();
   if (last_marker_colors_.size() != led_count) {
     last_marker_colors_.assign(led_count, gz::math::Color(-1.0f, -1.0f, -1.0f, -1.0f));
   }
@@ -284,26 +346,13 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
   const double step_width = marker_width_ / led_count;
 
   for (size_t i = 0; i < led_count; ++i) {
-    const size_t pixel_idx = static_cast<size_t>(first + dir * static_cast<int>(i));
-    if (pixel_idx >= pixel_count) {
-      ignerr << "Error: led_range exceeds the received frame size." << std::endl;
-      return;
-    }
-    const size_t idx = pixel_idx * step;
-
-    float r = static_cast<uint8_t>(data[idx]) / max_value;
-    float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
-    float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
-    float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
-    auto pixel_color = gz::math::Color(r, g, b, a);
-
-    if (pixel_color == last_marker_colors_[i]) {
+    if (colors[i] == last_marker_colors_[i]) {
       continue;
     }
-    last_marker_colors_[i] = pixel_color;
+    last_marker_colors_[i] = colors[i];
 
     if (!points_.empty()) {
-      CreateRibbonMarker(i, light_pose, pixel_color, PolylineLedVertices(i, led_count));
+      CreateRibbonMarker(i, light_pose, colors[i], PolylineLedVertices(i, led_count));
     } else {
       // Legacy strip: a straight line along the Y axis at the light position.
       const auto pose = gz::math::Pose3d(
@@ -312,7 +361,7 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
         light_pose.Pos().Z(), light_pose.Rot().Roll(), light_pose.Rot().Pitch(),
         light_pose.Rot().Yaw());
       const auto size = gz::math::Vector3d(0.001, step_width, marker_height_);
-      CreateMarker(i, pose, pixel_color, size);
+      CreateMarker(i, pose, colors[i], size);
     }
   }
 }

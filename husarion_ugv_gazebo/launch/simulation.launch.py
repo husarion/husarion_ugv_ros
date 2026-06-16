@@ -66,6 +66,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    lights = LaunchConfiguration("lights")
+    declare_lights_arg = DeclareLaunchArgument(
+        "lights",
+        default_value="True",
+        description="Run the lights controller that drives the simulated LED strips.",
+        choices=["True", "true", "False", "false"],
+    )
+
     namespaced_gz_gui = ReplaceString(
         source_file=gz_gui,
         replacements={"{namespace}": namespace},
@@ -100,7 +108,7 @@ def generate_launch_description():
                 ]
             )
         ),
-        launch_arguments={"log_level": log_level}.items(),
+        launch_arguments={"log_level": log_level, "lights": lights}.items(),
     )
 
     rviz_launch = IncludeLaunchDescription(
@@ -127,6 +135,7 @@ def generate_launch_description():
     actions = [
         SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_gz_gui,
+        declare_lights_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_rviz_arg,

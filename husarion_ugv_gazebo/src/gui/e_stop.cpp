@@ -56,8 +56,8 @@ void EStop::ButtonPressed(bool e_stop)
   auto client = e_stop ? e_stop_reset_client_ : e_stop_trigger_client_;
 
   if (!client->service_is_ready()) {
-    ignwarn << "Unavailable service: " << (e_stop ? reset_srv_name_ : trigger_srv_name_)
-            << std::endl;
+    gzwarn << "Unavailable service: " << (e_stop ? reset_srv_name_ : trigger_srv_name_)
+           << std::endl;
     return;
   }
   auto result_future = client->async_send_request(request);
@@ -65,10 +65,10 @@ void EStop::ButtonPressed(bool e_stop)
   try {
     const auto result = result_future.get();
     if (!result->success) {
-      ignwarn << "Service call did not succeed: " << result->message << std::endl;
+      gzwarn << "Service call did not succeed: " << result->message << std::endl;
     }
   } catch (const std::exception & e) {
-    ignerr << "Exception while waiting for service response: " << e.what() << std::endl;
+    gzerr << "Exception while waiting for service response: " << e.what() << std::endl;
   }
 }
 
@@ -86,7 +86,7 @@ void EStop::SetNamespace(const QString & ns)
   e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(trigger_srv_name_);
 
   emit OnNamespaceChange();
-  ignmsg << "Namespace changed to: " << namespace_ << std::endl;
+  gzmsg << "Namespace changed to: " << namespace_ << std::endl;
 }
 
 void EStop::SetEStop(bool value)

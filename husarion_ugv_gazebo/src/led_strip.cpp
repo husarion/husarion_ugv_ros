@@ -254,6 +254,10 @@ void LEDStrip::VisualizeLights(gz::sim::EntityComponentManager & ecm, const gz::
   gz::msgs::Set(light_cmd_.mutable_diffuse(), mean_color);
   gz::msgs::Set(light_cmd_.mutable_specular(), mean_color);
 
+  // Rebuild the header each frame; add_data() appends, so reusing the member would grow the
+  // message unboundedly and slow the sim down over time.
+  light_cmd_.clear_header();
+
   auto light_on = light_cmd_.mutable_header()->add_data();
   light_on->set_key("isLightOn");
   light_on->add_value()->assign("1");

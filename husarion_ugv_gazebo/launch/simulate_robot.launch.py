@@ -76,14 +76,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    lights = LaunchConfiguration("lights")
-    declare_lights_arg = DeclareLaunchArgument(
-        "lights",
-        default_value="True",
-        description="Run the lights controller that drives the simulated LED strips.",
-        choices=["True", "true", "False", "false"],
-    )
-
     gz_bridge_config_path = LaunchConfiguration("gz_bridge_config_path")
     declare_gz_bridge_config_path_arg = DeclareLaunchArgument(
         "gz_bridge_config_path",
@@ -140,7 +132,6 @@ def generate_launch_description():
             "namespace": namespace,
             "use_sim": "True",
         }.items(),
-        condition=IfCondition(lights),
     )
 
     manager_launch = IncludeLaunchDescription(
@@ -269,7 +260,6 @@ def generate_launch_description():
         declare_components_config_path_arg,
         declare_disable_manager_arg,
         declare_gz_bridge_config_path_arg,
-        declare_lights_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         SetUseSimTime(True),

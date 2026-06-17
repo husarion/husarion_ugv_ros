@@ -34,6 +34,7 @@
 
 #include <gz/msgs/image.pb.h>
 #include <gz/msgs/light.pb.h>
+#include <gz/msgs/marker.pb.h>
 
 namespace husarion_ugv_gazebo
 {
@@ -125,10 +126,19 @@ private:
   std::vector<gz::math::Color> ExtractLedColors(const gz::msgs::Image & image) const;
 
   /**
-   * @brief Smooth the LED colors with a 1D Gaussian kernel (in-place), approximating the diffuser
-   * that blurs the light between neighboring LEDs on the real robot. No-op when blur_sigma_ <= 0.
+   * @brief Reconstruct the strip at sub-LED resolution: subdivide each LED into
+   * render_markers_per_led_ cells and linearly interpolate between neighboring LED-center colors,
+   * approximating the diffuser without bleeding across gaps the way a wide kernel would. Each cell
+   * color is composited over strip_base_color_ so transparent animations reveal the diffuser
+   * instead of going black. Returns led_count * render_markers_per_led_ opaque colors.
    */
-  void ApplyGaussianBlur(std::vector<gz::math::Color> & colors) const;
+  std::vector<gz::math::Color> ResampleLedColors(
+    const std::vector<gz::math::Color> & led_colors) const;
+
+  /**
+   * @brief Alpha-composite a color over strip_base_color_, returning an opaque color.
+   */
+  gz::math::Color CompositeOverBase(const gz::math::Color & color) const;
 
   /**
    * @brief Interpolate a point at the given arc-length distance along the points polyline.
@@ -136,39 +146,42 @@ private:
   gz::math::Vector3d PolylinePointAt(double distance) const;
 
   /**
-   * @brief Compute the centerline vertices of a single LED on the points polyline: its start and
-   * end points plus any polyline vertices falling between them, so the LED ribbon follows the
+   * @brief Compute the centerline vertices of an arc-length segment of the points polyline: its
+   * start and end points plus any polyline vertices falling between them, so the ribbon follows the
    * polyline exactly (no gaps at corners).
    *
-   * @param led_idx Index of the LED along the polyline (0 = polyline start)
-   * @param led_count Total number of LEDs on the polyline
+   * @param start_distance Arc-length distance of the segment start from the polyline start
+   * @param end_distance Arc-length distance of the segment end from the polyline start
    */
-  std::vector<gz::math::Vector3d> PolylineLedVertices(size_t led_idx, size_t led_count) const;
+  std::vector<gz::math::Vector3d> PolylineSegmentVertices(
+    double start_distance, double end_distance) const;
 
   /**
    * @brief Create a single LED of the strip as a double-sided triangle ribbon following the given
    * centerline vertices (expressed in the light frame), expanded vertically by the strip height.
    *
+   * @param marker_msg The marker message to populate (one entry of the batched marker array)
    * @param id The unique ID of the marker (if not unique, the marker will replace the existing one)
    * @param strip_pose The pose of the strip (light) the ribbon vertices are relative to
    * @param color The color of the LED
    * @param centerline The centerline vertices of the LED
    */
   void CreateRibbonMarker(
-    const uint id, const gz::math::Pose3d & strip_pose, const gz::math::Color & color,
-    const std::vector<gz::math::Vector3d> & centerline);
+    gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d & strip_pose,
+    const gz::math::Color & color, const std::vector<gz::math::Vector3d> & centerline);
 
   /**
    * @brief Create a marker element (single LED from LED Strip)
    *
+   * @param marker_msg The marker message to populate (one entry of the batched marker array)
    * @param id The unique ID of the marker (if not unique, the marker will replace the existing one)
    * @param pose The pose of the marker
    * @param color The color of the marker
    * @param size The size of the marker
    */
   void CreateMarker(
-    const uint id, const gz::math::Pose3d pose, const gz::math::Color & color,
-    const gz::math::Vector3d size);
+    gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d pose,
+    const gz::math::Color & color, const gz::math::Vector3d size);
 
   std::string light_name_;
   std::string image_topic_;
@@ -183,8 +196,13 @@ private:
   int led_first_ = -1;
   int led_last_ = -1;
 
-  // Standard deviation (in LEDs) of the diffuser blur applied along the strip. 0 disables it.
-  double blur_sigma_ = 0.0;
+  // Number of rendered marker cells per LED used to interpolate the diffuser gradient. 1 disables
+  // it (sharp per-LED markers).
+  int render_markers_per_led_ = 1;
+
+  // Diffuser base color the strip is composited over, so animation transparency reveals it instead
+  // of the black scene. Defaults to white.
+  gz::math::Color strip_base_color_ = gz::math::Color::White;
 
   // Optional polyline (in the light frame) the LEDs are distributed along. When empty, the strip
   // is a straight line along the Y axis of the light frame (legacy behavior).
@@ -192,11 +210,24 @@ private:
   std::vector<double> polyline_seg_lengths_;
   double polyline_length_ = 0.0;
 
+  // A maximal span of consecutive render cells [start, end] sharing one color, rendered as a single
+  // marker.
+  struct ColorRun
+  {
+    size_t start;
+    size_t end;
+    gz::math::Color color;
+    bool operator==(const ColorRun & other) const
+    {
+      return start == other.start && end == other.end && color == other.color;
+    }
+  };
+
   bool new_image_available_ = false;
-  // Per-LED colors sent in the previous frame. Markers are re-published only for LEDs whose color
-  // changed, so a static animation generates no /marker traffic while the markers stay attached to
-  // the (possibly moving) robot via their parent.
-  std::vector<gz::math::Color> last_marker_colors_;
+  // Color runs sent in the previous frame. A run is re-published only when it changed, and surplus
+  // markers are deleted, so a static animation generates no /marker traffic while the markers stay
+  // attached to the (possibly moving) robot via their parent.
+  std::vector<ColorRun> last_runs_;
   std::string last_rendered_data_;
   gz::msgs::Light light_cmd_;
   realtime_tools::RealtimeThreadSafeBox<gz::msgs::Image> last_image_;

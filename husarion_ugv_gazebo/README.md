@@ -92,5 +92,5 @@ The following parameters are required when including this interface in the URDF 
 - `height` [*double*, default: **1.0**]: Specifies the height (z-axis) of the visualization array.
 - `led_range` [*string*, default: **whole frame**]: `<first>-<last>` subrange of the channel frame displayed by this instance. A reversed range (e.g. `23-12`) flips the LED order.
 - `points` [*string*, default: **""**]: Polyline (`x y z; x y z; ...`, in the light frame) the LEDs are distributed along. When empty, the strip is a straight line along the Y axis of the given width.
-- `render_markers_per_led` [*int*, default: **1**]: Number of rendered marker cells per LED used to interpolate the diffuser gradient. `1` keeps sharp per-LED markers; higher values smooth the transition between neighboring LEDs at the cost of proportionally more markers.
-- `strip_base_color` [*string*, default: **"1 1 1"**]: RGB color the strip is composited over, so animation transparency reveals it (a white diffuser) instead of blending into the black scene.
+- `render_markers_per_led` [*int*, default: **2**]: Number of rendered marker cells per LED used to interpolate the diffuser gradient. `2` keeps sharp per-LED markers; higher values smooth the transition between neighboring LEDs at the cost of proportionally more markers.
+- `strip_base_color` [*string*, default: **"1 1 1"**]: RGB diffuser color that unlit LEDs are blended toward by brightness, so the strip looks like a lit white diffuser instead of going black where the animation is dark.

@@ -321,25 +321,30 @@ std::vector<gz::math::Color> LEDStrip::ExtractLedColors(const gz::msgs::Image & 
 
 namespace
 {
-gz::math::Color Lerp(const gz::math::Color & a, const gz::math::Color & b, double t)
+// Non-blocking /marker_array response handler: the result is irrelevant (markers are dropped when
+// no MarkerManager is running, e.g. headless), but a callback keeps the request asynchronous.
+void OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
+}  // namespace
+
+gz::math::Color LEDStrip::Lerp(const gz::math::Color & a, const gz::math::Color & b, double t)
 {
   return gz::math::Color(
     a.R() + (b.R() - a.R()) * t, a.G() + (b.G() - a.G()) * t, a.B() + (b.B() - a.B()) * t,
     a.A() + (b.A() - a.A()) * t);
 }
 
-// Non-blocking /marker_array response handler: the result is irrelevant (markers are dropped when
-// no MarkerManager is running, e.g. headless), but a callback keeps the request asynchronous.
-void OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
-}  // namespace
-
 gz::math::Color LEDStrip::CompositeOverBase(const gz::math::Color & color) const
 {
-  const float a = color.A();
+  // The controller resolves animation transparency before publishing, so the received frame is
+  // opaque and its alpha carries no diffuser information. Blend the LED color over the diffuser
+  // base by its brightness instead: an unlit LED shows the base (the lit white diffuser), a fully
+  // lit one shows its color, a dim one a pale mix. This mimics the physical strip instead of going
+  // black.
+  const float brightness = std::max({color.R(), color.G(), color.B()});
   return gz::math::Color(
-    color.R() * a + strip_base_color_.R() * (1.0f - a),
-    color.G() * a + strip_base_color_.G() * (1.0f - a),
-    color.B() * a + strip_base_color_.B() * (1.0f - a), 1.0f);
+    color.R() * brightness + strip_base_color_.R() * (1.0f - brightness),
+    color.G() * brightness + strip_base_color_.G() * (1.0f - brightness),
+    color.B() * brightness + strip_base_color_.B() * (1.0f - brightness), 1.0f);
 }
 
 std::vector<gz::math::Color> LEDStrip::ResampleLedColors(

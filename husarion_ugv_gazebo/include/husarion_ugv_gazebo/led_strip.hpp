@@ -39,6 +39,19 @@
 namespace husarion_ugv_gazebo
 {
 
+// A maximal span of consecutive render cells [start, end] sharing one color, rendered as a single
+// marker.
+struct ColorRun
+{
+  size_t start;
+  size_t end;
+  gz::math::Color color;
+  bool operator==(const ColorRun & other) const
+  {
+    return start == other.start && end == other.end && color == other.color;
+  }
+};
+
 /**
  * @brief Class to manage an LED strip in a Gazebo simulation based on received image.
  */
@@ -129,14 +142,20 @@ private:
    * @brief Reconstruct the strip at sub-LED resolution: subdivide each LED into
    * render_markers_per_led_ cells and linearly interpolate between neighboring LED-center colors,
    * approximating the diffuser without bleeding across gaps the way a wide kernel would. Each cell
-   * color is composited over strip_base_color_ so transparent animations reveal the diffuser
+   * color is blended over strip_base_color_ by its brightness so dim LEDs reveal the diffuser
    * instead of going black. Returns led_count * render_markers_per_led_ opaque colors.
    */
   std::vector<gz::math::Color> ResampleLedColors(
     const std::vector<gz::math::Color> & led_colors) const;
 
   /**
-   * @brief Alpha-composite a color over strip_base_color_, returning an opaque color.
+   * @brief Linearly interpolate between two colors, per RGBA channel.
+   */
+  static gz::math::Color Lerp(const gz::math::Color & a, const gz::math::Color & b, double t);
+
+  /**
+   * @brief Blend a color over strip_base_color_ by its brightness (an unlit LED shows the base
+   * diffuser color, a fully lit one shows its color), returning an opaque color.
    */
   gz::math::Color CompositeOverBase(const gz::math::Color & color) const;
 
@@ -198,10 +217,10 @@ private:
 
   // Number of rendered marker cells per LED used to interpolate the diffuser gradient. 1 disables
   // it (sharp per-LED markers).
-  int render_markers_per_led_ = 1;
+  int render_markers_per_led_ = 2;
 
-  // Diffuser base color the strip is composited over, so animation transparency reveals it instead
-  // of the black scene. Defaults to white.
+  // Diffuser base color an unlit LED is blended toward (by brightness), so the strip looks like a
+  // lit white diffuser instead of going black. Defaults to white.
   gz::math::Color strip_base_color_ = gz::math::Color::White;
 
   // Optional polyline (in the light frame) the LEDs are distributed along. When empty, the strip
@@ -209,19 +228,6 @@ private:
   std::vector<gz::math::Vector3d> points_;
   std::vector<double> polyline_seg_lengths_;
   double polyline_length_ = 0.0;
-
-  // A maximal span of consecutive render cells [start, end] sharing one color, rendered as a single
-  // marker.
-  struct ColorRun
-  {
-    size_t start;
-    size_t end;
-    gz::math::Color color;
-    bool operator==(const ColorRun & other) const
-    {
-      return start == other.start && end == other.end && color == other.color;
-    }
-  };
 
   bool new_image_available_ = false;
   // Color runs sent in the previous frame. A run is re-published only when it changed, and surplus

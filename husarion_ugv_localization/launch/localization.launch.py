@@ -133,6 +133,7 @@ def generate_launch_description():
             ("enable", "localization/enable"),
             ("set_pose", "localization/set_pose"),
             ("toggle", "localization/toggle"),
+            ("reset", "localization/reset"),
         ],
         arguments=[
             "--ros-args",

@@ -52,6 +52,24 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    common_dir_path = LaunchConfiguration("common_dir_path")
+    declare_common_dir_path_arg = DeclareLaunchArgument(
+        "common_dir_path",
+        default_value="",
+        description="Path to the common configuration directory.",
+    )
+    husarion_ugv_teleop_common_dir = PythonExpression(
+        [
+            "'",
+            common_dir_path,
+            "/husarion_ugv_teleop' if '",
+            common_dir_path,
+            "' else '",
+            FindPackageShare("husarion_ugv_teleop"),
+            "'",
+        ]
+    )
+
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
 
     gamepad_launch = IncludeLaunchDescription(
@@ -65,7 +83,7 @@ def generate_launch_description():
             "namespace": namespace,
             "joy2twist_params_file": PathJoinSubstitution(
                 [
-                    FindPackageShare("husarion_ugv_teleop"),
+                    husarion_ugv_teleop_common_dir,
                     "config",
                     PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
                 ]
@@ -78,6 +96,7 @@ def generate_launch_description():
         declare_log_level_arg,
         declare_namespace_arg,
         declare_launch_gamepad_arg,
+        declare_common_dir_path_arg,
         gamepad_launch,
     ]
 

@@ -35,6 +35,12 @@ class CheckBoolMsg : public BT::RosTopicSubNode<std_msgs::msg::Bool>
   using BoolMsg = std_msgs::msg::Bool;
 
 public:
+  CheckBoolMsg(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosTopicSubNode<BoolMsg>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CheckBoolMsg(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosTopicSubNode<BoolMsg>(name, conf, params)

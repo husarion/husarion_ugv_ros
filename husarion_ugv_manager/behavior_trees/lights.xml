@@ -5,7 +5,7 @@
       <Parallel name="ChargingSequence"
                 failure_count="1"
                 success_count="-1"
-                _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING \&#10;&amp;&amp; battery_status != POWER_SUPPLY_STATUS_FULL">
+                _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING &#10;&amp;&amp; battery_status != POWER_SUPPLY_STATUS_FULL">
         <Delay delay_msec="300"
                _skipIf="current_battery_anim_id == CHARGING_BATTERY_ANIM_ID ||&#10;current_battery_anim_id == BATTERY_CHARGED_ANIM_ID">
           <CallSetLedAnimationService name="SetChargerInsertedAnimation"
@@ -15,29 +15,29 @@
                                       service_name="lights/set_animation"/>
         </Delay>
         <Delay delay_msec="2500"
-               _skipIf="(battery_percent_round == charging_anim_percent  \&#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID\&#10;|| battery_percent_round == 1.0)">
+               _skipIf="(battery_percent_round == charging_anim_percent  &#10;&amp;&amp; current_battery_anim_id == CHARGING_BATTERY_ANIM_ID&#10;|| battery_percent_round == 1.0)">
           <CallSetLedAnimationService name="SetChargingAnimation"
                                       id="{CHARGING_BATTERY_ANIM_ID}"
                                       param="{battery_percent_round}"
                                       repeating="true"
                                       service_name="lights/set_animation"
-                                      _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = CHARGING_BATTERY_ANIM_ID"/>
+                                      _onSuccess="charging_anim_percent = battery_percent_round; &#10;current_battery_anim_id = CHARGING_BATTERY_ANIM_ID"/>
         </Delay>
         <Delay delay_msec="2500"
-               _skipIf="battery_percent_round != 1.0 \&#10;|| current_battery_anim_id == BATTERY_CHARGED_ANIM_ID">
+               _skipIf="battery_percent_round != 1.0 &#10;|| current_battery_anim_id == BATTERY_CHARGED_ANIM_ID">
           <CallSetLedAnimationService name="SetChargedAnimation"
                                       id="{BATTERY_CHARGED_ANIM_ID}"
                                       param="{battery_percent_round}"
                                       repeating="true"
                                       service_name="lights/set_animation"
-                                      _onSuccess="charging_anim_percent = battery_percent_round; \&#10;current_battery_anim_id = BATTERY_CHARGED_ANIM_ID"/>
+                                      _onSuccess="charging_anim_percent = battery_percent_round; &#10;current_battery_anim_id = BATTERY_CHARGED_ANIM_ID"/>
         </Delay>
       </Parallel>
       <Sequence name="DischargingSequence"
-                _skipIf="battery_status != POWER_SUPPLY_STATUS_DISCHARGING \&#10;&amp;&amp; battery_status != POWER_SUPPLY_STATUS_NOT_CHARGING">
+                _skipIf="battery_status != POWER_SUPPLY_STATUS_DISCHARGING &#10;&amp;&amp; battery_status != POWER_SUPPLY_STATUS_NOT_CHARGING">
         <Sequence name="BatteryStatusSequence">
           <TickAfterTimeout timeout="{LOW_BATTERY_ANIM_PERIOD}"
-                            _skipIf="battery_percent &lt; CRITICAL_BATTERY_THRESHOLD_PERCENT \&#10;|| battery_percent &gt;= LOW_BATTERY_THRESHOLD_PERCENT">
+                            _skipIf="battery_percent &lt; CRITICAL_BATTERY_THRESHOLD_PERCENT &#10;|| battery_percent &gt;= LOW_BATTERY_THRESHOLD_PERCENT">
             <CallSetLedAnimationService name="SetLowBatteryAnimation"
                                         id="{LOW_BATTERY_ANIM_ID}"
                                         param="{battery_percent_round}"
@@ -49,14 +49,14 @@
                                       param="{battery_percent_round}"
                                       repeating="true"
                                       service_name="lights/set_animation"
-                                      _skipIf="battery_percent &gt;= CRITICAL_BATTERY_THRESHOLD_PERCENT \&#10;|| current_battery_anim_id == CRITICAL_BATTERY_ANIM_ID"
+                                      _skipIf="battery_percent &gt;= CRITICAL_BATTERY_THRESHOLD_PERCENT &#10;|| current_battery_anim_id == CRITICAL_BATTERY_ANIM_ID"
                                       _onSuccess="current_battery_anim_id = CRITICAL_BATTERY_ANIM_ID"/>
           <CallSetLedAnimationService name="SetNominalBatteryAnimation"
                                       id="{BATTERY_NOMINAL_ANIM_ID}"
                                       param=""
                                       repeating="false"
                                       service_name="lights/set_animation"
-                                      _skipIf="battery_percent &lt; LOW_BATTERY_THRESHOLD_PERCENT  \&#10;|| current_battery_anim_id == BATTERY_NOMINAL_ANIM_ID"
+                                      _skipIf="battery_percent &lt; LOW_BATTERY_THRESHOLD_PERCENT  &#10;|| current_battery_anim_id == BATTERY_NOMINAL_ANIM_ID"
                                       _onSuccess="current_battery_anim_id = BATTERY_NOMINAL_ANIM_ID"/>
         </Sequence>
       </Sequence>
@@ -71,7 +71,7 @@
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
-                                    _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING \&#10;|| battery_health != POWER_SUPPLY_HEALTH_OVERHEAT"
+                                    _skipIf="battery_status != POWER_SUPPLY_STATUS_CHARGING &#10;|| battery_health != POWER_SUPPLY_HEALTH_OVERHEAT"
                                     _onSuccess="current_error_anim_id = ERROR_ANIM_ID"/>
         <CallSetLedAnimationService name="SetErrorAnimation"
                                     id="{ERROR_ANIM_ID}"
@@ -87,7 +87,7 @@
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
-                                    _skipIf="battery_status == POWER_SUPPLY_STATUS_UNKNOWN \&#10;|| (battery_status == POWER_SUPPLY_STATUS_CHARGING \&#10;&amp;&amp; battery_health == POWER_SUPPLY_HEALTH_OVERHEAT)"
+                                    _skipIf="battery_status == POWER_SUPPLY_STATUS_UNKNOWN &#10;|| (battery_status == POWER_SUPPLY_STATUS_CHARGING &#10;&amp;&amp; battery_health == POWER_SUPPLY_HEALTH_OVERHEAT)"
                                     _onSuccess="current_error_anim_id = NO_ERROR_ANIM_ID"/>
       </Sequence>
     </Sequence>
@@ -107,22 +107,35 @@
 
   <BehaviorTree ID="StateAnimationSubtree">
     <Sequence>
-      <Sequence _skipIf="e_stop_state">
-        <CallSetLedAnimationService name="SetReadyAnimation"
-                                    id="{READY_ANIM_ID}"
-                                    param=""
-                                    repeating="true"
-                                    service_name="lights/set_animation"
-                                    _skipIf="drive_state || current_anim_id == READY_ANIM_ID"
-                                    _onSuccess="current_anim_id = READY_ANIM_ID"/>
+      <IfThenElse _skipIf="e_stop_state">
+        <CheckStringMsg topic_name="twist_mux_controller/source"
+                        data="manual"/>
         <CallSetLedAnimationService name="SetManualActionAnimation"
                                     id="{MANUAL_ACTION_ANIM_ID}"
                                     param=""
                                     repeating="true"
                                     service_name="lights/set_animation"
-                                    _skipIf="(!drive_state) || current_anim_id == MANUAL_ACTION_ANIM_ID"
+                                    _skipIf="current_anim_id == MANUAL_ACTION_ANIM_ID"
                                     _onSuccess="current_anim_id = MANUAL_ACTION_ANIM_ID"/>
-      </Sequence>
+        <IfThenElse>
+          <CheckStringMsg topic_name="twist_mux_controller/source"
+                          data="autonomous"/>
+          <CallSetLedAnimationService name="SetManualActionAnimation"
+                                      id="{AUTONOMOUS_ACTION_ANIM_ID}"
+                                      param=""
+                                      repeating="true"
+                                      service_name="lights/set_animation"
+                                      _skipIf="current_anim_id == AUTONOMOUS_ACTION_ANIM_ID"
+                                      _onSuccess="current_anim_id = AUTONOMOUS_ACTION_ANIM_ID"/>
+          <CallSetLedAnimationService name="SetReadyAnimation"
+                                      id="{READY_ANIM_ID}"
+                                      param=""
+                                      repeating="true"
+                                      service_name="lights/set_animation"
+                                      _skipIf="current_anim_id == READY_ANIM_ID"
+                                      _onSuccess="current_anim_id = READY_ANIM_ID"/>
+        </IfThenElse>
+      </IfThenElse>
       <CallSetLedAnimationService name="SetEStopAnimation"
                                   id="{E_STOP_ANIM_ID}"
                                   param=""
@@ -143,6 +156,11 @@
                   default="false">indicates if animation should repeat</input_port>
       <input_port name="service_name">ROS service name</input_port>
     </Action>
+    <Condition ID="CheckStringMsg"
+               editable="true">
+      <input_port name="topic_name">Topic name</input_port>
+      <input_port name="data">Specifies the expected state of the data field</input_port>
+    </Condition>
     <Decorator ID="TickAfterTimeout"
                editable="true">
       <input_port name="timeout">time in s to wait before ticking child again</input_port>

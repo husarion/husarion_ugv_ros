@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
-#define HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
 
 #include <stdexcept>
 
@@ -46,4 +46,4 @@ inline void ConfigureRT(const unsigned priority)
 
 }  // namespace husarion_ugv_utils
 
-#endif  // HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_

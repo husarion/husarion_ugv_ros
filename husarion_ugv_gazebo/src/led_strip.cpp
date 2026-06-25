@@ -137,6 +137,7 @@ gz::msgs::Light LEDStrip::CreateLightMsgFromSdf(const sdf::Light & light_sdf)
     case sdf::LightType::DIRECTIONAL:
       light_cmd.set_type(gz::msgs::Light::DIRECTIONAL);
       break;
+    case sdf::LightType::INVALID:
     default:
       light_cmd.set_type(gz::msgs::Light::POINT);
       break;

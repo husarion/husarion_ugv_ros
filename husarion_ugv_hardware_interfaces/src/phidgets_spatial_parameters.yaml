@@ -142,3 +142,8 @@ phidgets_spatial:
     default_value: false,
     description: "The gravity vector is kept in the IMU message."
   }
+  use_madgwick_filter: {
+    type: bool,
+    default_value: false,
+    description: "Whether to calculate Madgwick filter or not"
+  }

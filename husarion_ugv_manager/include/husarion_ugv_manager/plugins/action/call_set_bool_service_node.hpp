@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
-#define HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
 
 #include <string>
 
@@ -22,12 +22,20 @@
 
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_manager/behavior_tree_utils.hpp"
+
 namespace husarion_ugv_manager
 {
 
 class CallSetBoolService : public BT::RosServiceNode<std_srvs::srv::SetBool>
 {
 public:
+  CallSetBoolService(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosServiceNode<std_srvs::srv::SetBool>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CallSetBoolService(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosServiceNode<std_srvs::srv::SetBool>(name, conf, params)
@@ -46,4 +54,4 @@ public:
 
 }  // namespace husarion_ugv_manager
 
-#endif  // HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_ACTION_CALL_SET_BOOL_SERVICE_NODE_HPP_

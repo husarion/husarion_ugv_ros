@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
-#define HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
+#ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
+#define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
 #include <functional>
 #include <memory>
@@ -94,6 +94,7 @@ protected:
   void ConfigureRobotDriver();
   virtual void DefineRobotDriver() = 0;
   virtual void ConfigureEStop();  // virtual for mocking
+  void TriggerEStopServiceCall();
   void ResetEStop();
 
   void UpdateMotorsState();
@@ -166,4 +167,4 @@ protected:
 
 }  // namespace husarion_ugv_hardware_interfaces
 
-#endif  // HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
+#endif  // HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_

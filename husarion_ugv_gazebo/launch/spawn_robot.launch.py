@@ -18,15 +18,9 @@
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from husarion_ugv_utils.messages import welcome_msg
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import (
-    EnvironmentVariable,
-    LaunchConfiguration,
-    PathJoinSubstitution,
-)
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node, SetUseSimTime
-from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -60,7 +54,7 @@ def generate_launch_description():
 
     y = LaunchConfiguration("y")
     declare_y_arg = DeclareLaunchArgument(
-        "y", default_value="-2.0", description="Initial robot position in the global 'y' axis."
+        "y", default_value="0.0", description="Initial robot position in the global 'y' axis."
     )
 
     z = LaunchConfiguration("z")
@@ -89,20 +83,6 @@ def generate_launch_description():
     }
     welcome_info = welcome_msg(robot_model, "----", "simulation", log_stats)
 
-    load_urdf = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_description"), "launch", "load_urdf.launch.py"]
-            )
-        ),
-        launch_arguments={
-            "namespace": namespace,
-            "robot_model": robot_model,
-            "log_level": log_level,
-            "use_sim": "True",
-        }.items(),
-    )
-
     spawn_robot = Node(
         package="ros_gz_sim",
         executable="create",
@@ -130,7 +110,6 @@ def generate_launch_description():
             limit_log_level_to_info("rcl", log_level),
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [
@@ -145,7 +124,6 @@ def generate_launch_description():
         declare_yaw_arg,
         SetUseSimTime(True),
         welcome_info,
-        load_urdf,
         spawn_robot,
     ]
 

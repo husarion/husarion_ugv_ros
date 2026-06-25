@@ -1,4 +1,8 @@
 repositories:
+  behaviortree_cpp:
+    type: git
+    url: https://github.com/BehaviorTree/BehaviorTree.CPP
+    version: 4.9.0
   behaviortree_ros2:
     type: git
     url: https://github.com/BehaviorTree/BehaviorTree.ROS2
@@ -6,12 +10,12 @@ repositories:
   husarion_controllers:
     type: git
     url: https://github.com/husarion/husarion_controllers
-    version: 632a4d248227288afd99cf11179b019d968bda7b
+    version: 2b2b37a1579ae3968693a368ca7a7aaa351a41f4
   husarion_components_description:
     type: git
     url: https://github.com/husarion/husarion_components_description.git
-    version: a46871980289a845c0b6defaba5161e3b505daa8
+    version: ed1d8664354ed1dcaa94cc973dd8bed7bef62690
   joy2twist:
     type: git
     url: https://github.com/husarion/joy2twist.git
-    version: 9c978ed5d08e177ea9bc53cb1fc963de02952790
+    version: 64c271cd2ecc77ef4ad09f959d057aa4eedc3c5f

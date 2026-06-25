@@ -84,6 +84,9 @@ CallbackReturn PhidgetImuSensor::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_DEBUG_STREAM(
     logger_, "\tcallback_delta_epsilon_ms " << params_.callback_delta_epsilon_ms << "ms");
 
+  RCLCPP_DEBUG_STREAM(logger_, "Additional parameters: ");
+  RCLCPP_DEBUG_STREAM(logger_, "\tuse_madgwick_filter: " << params_.use_madgwick_filter);
+
   try {
     ReadMadgwickFilterParams();
     ConfigureMadgwickFilter();
@@ -228,6 +231,9 @@ void PhidgetImuSensor::ReadObligatoryParams()
     throw std::runtime_error(
       "Invalid configuration: Callback epsilon is larger than the data interval.");
   }
+
+  params_.use_madgwick_filter =
+    hardware_interface::parse_bool(info_.hardware_parameters.at("use_madgwick_filter"));
 }
 
 void PhidgetImuSensor::ReadCompassParams()
@@ -451,12 +457,23 @@ void PhidgetImuSensor::SpatialDataCallback(
     calibration_cv_.notify_one();
   }
 
+  // Skip the data callback when the Madgwick filter is not used
+  if (!params_.use_madgwick_filter) {
+    UpdateAccelerationAndGyrationStateValues(ang_vel, lin_acc);
+    const auto nan = std::numeric_limits<double>::quiet_NaN();
+    imu_sensor_state_[orientation_w] = nan;
+    imu_sensor_state_[orientation_x] = nan;
+    imu_sensor_state_[orientation_y] = nan;
+    imu_sensor_state_[orientation_z] = nan;
+    return;
+  }
+
   rclcpp::Time spatial_data_timestamp =
     rclcpp::Time(timestamp * 1e6);  // timestamp comes in milliseconds
   auto dt = (spatial_data_timestamp - last_spatial_data_timestamp_).seconds();
   last_spatial_data_timestamp_ = spatial_data_timestamp;
 
-  // Wait for the a magnitude and an acceleration to initialize the algorithm
+  // Wait for a magnitude and an acceleration to initialize the algorithm
   if (
     !algorithm_initialized_ &&
     !IsMagnitudeSynchronizedWithAccelerationAndGyration(mag_compensated)) {
@@ -486,7 +503,6 @@ void PhidgetImuSensor::SpatialDataCallback(
       UpdateMadgwickAlgorithmIMU(ang_vel, lin_acc, dt);
     }
   }
-
   UpdateAllStatesValues(ang_vel, lin_acc);
 }
 
@@ -534,12 +550,14 @@ void PhidgetImuSensor::UpdateAccelerationAndGyrationStateValues(
   imu_sensor_state_[angular_velocity_y] = ang_vel.y;
   imu_sensor_state_[angular_velocity_z] = ang_vel.z;
 
-  if (params_.remove_gravity_vector) {
+  // Gravity vector is calculated based on the orientation, so gravity vector can be subtracted only
+  // if orientation is calculated and available (when parameter use_madgwick_filter is true)
+  if (params_.remove_gravity_vector && params_.use_madgwick_filter) {
     float gx, gy, gz;
     filter_->getGravity(gx, gy, gz);
     imu_sensor_state_[linear_acceleration_x] = lin_acc.x - gx;
     imu_sensor_state_[linear_acceleration_y] = lin_acc.y - gy;
-    imu_sensor_state_[linear_acceleration_z] = lin_acc.y - gz;
+    imu_sensor_state_[linear_acceleration_z] = lin_acc.z - gz;
   } else {
     imu_sensor_state_[linear_acceleration_x] = lin_acc.x;
     imu_sensor_state_[linear_acceleration_y] = lin_acc.y;

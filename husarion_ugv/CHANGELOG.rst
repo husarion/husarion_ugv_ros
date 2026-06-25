@@ -2,6 +2,24 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-06-25)
+------------------
+* bump dependencies (`#656 <https://github.com/husarion/husarion_ugv_ros/issues/656>`_)
+* update topics and fix teleop config (`#655 <https://github.com/husarion/husarion_ugv_ros/issues/655>`_)
+* Bump behaviortree_cpp to 4.9.0 to fix Missing parent blackboard (`#645 <https://github.com/husarion/husarion_ugv_ros/issues/645>`_)
+* Rename mecanum pkg dependency (`#641 <https://github.com/husarion/husarion_ugv_ros/issues/641>`_)
+* Update husarion components description version (`#635 <https://github.com/husarion/husarion_ugv_ros/issues/635>`_)
+* Fix tests (`#637 <https://github.com/husarion/husarion_ugv_ros/issues/637>`_)
+* Updated componenets|node name `/` -> `_` fix (`#625 <https://github.com/husarion/husarion_ugv_ros/issues/625>`_)
+* husarion_components_description refactor compatibility (2) (`#617 <https://github.com/husarion/husarion_ugv_ros/issues/617>`_)
+* Remove launch pkg from vcs (`#614 <https://github.com/husarion/husarion_ugv_ros/issues/614>`_)
+* Add joy2twist to simulation (`#618 <https://github.com/husarion/husarion_ugv_ros/issues/618>`_)
+* Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)
+* updated joy2twist to use diagnostics (`#597 <https://github.com/husarion/husarion_ugv_ros/issues/597>`_)
+* Jazzy fix launch regression (`#599 <https://github.com/husarion/husarion_ugv_ros/issues/599>`_)
+* more worlds in gazebo (`#595 <https://github.com/husarion/husarion_ugv_ros/issues/595>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, Rafal Gorecki, Stefan, husarafal, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * 2.3.1 release candidate fixes (`#588 <https://github.com/husarion/husarion_ugv_ros/issues/588>`_)

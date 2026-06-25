@@ -62,7 +62,6 @@ Rectangle {
     anchors.topMargin: 10
     anchors.horizontalCenter: widgetRectangle.horizontalCenter
     checkable: true
-    checked: EStop.checked
     width: 100
     height: 100
     contentItem: Rectangle {

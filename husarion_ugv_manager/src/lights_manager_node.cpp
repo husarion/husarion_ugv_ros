@@ -24,7 +24,6 @@
 
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/joy.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
@@ -72,8 +71,6 @@ void LightsManagerNode::Initialize()
   e_stop_sub_ = this->create_subscription<BoolMsg>(
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&LightsManagerNode::EStopCB, this, _1));
-  joy_sub_ = this->create_subscription<JoyMsg>(
-    "joy", 10, std::bind(&LightsManagerNode::JoyCB, this, _1));
 
   const double timer_freq = this->params_.timer_frequency;
   const auto timer_period = std::chrono::duration<double>(1.0 / timer_freq);
@@ -126,7 +123,6 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"current_anim_id", undefined_anim_id},
     {"current_battery_anim_id", undefined_anim_id},
     {"current_error_anim_id", undefined_anim_id},
-    {"drive_state", false},
     {"CRITICAL_BATTERY_THRESHOLD_PERCENT", critical_battery_threshold_percent},
     {"LOW_BATTERY_ANIM_PERIOD", low_battery_anim_period},
     {"LOW_BATTERY_THRESHOLD_PERCENT", low_battery_threshold_percent},
@@ -147,6 +143,8 @@ std::map<std::string, std::any> LightsManagerNode::CreateLightsInitialBlackboard
     {"GOAL_ACHIEVED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_ACHIEVED)},
     {"BLINKER_LEFT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_LEFT)},
     {"BLINKER_RIGHT_ANIM_ID", unsigned(LEDAnimationMsg::BLINKER_RIGHT)},
+    {"GOAL_FAILED_ANIM_ID", unsigned(LEDAnimationMsg::GOAL_FAILED)},
+    {"FLOOD_LIGHT_ANIM_ID", unsigned(LEDAnimationMsg::FLOOD_LIGHT)},
     // battery status constants
     {"POWER_SUPPLY_STATUS_UNKNOWN", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_UNKNOWN)},
     {"POWER_SUPPLY_STATUS_CHARGING", unsigned(BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING)},
@@ -188,12 +186,6 @@ void LightsManagerNode::BatteryCB(const BatteryStateMsg::SharedPtr battery_state
 void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
 {
   lights_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
-}
-
-void LightsManagerNode::JoyCB(const JoyMsg::SharedPtr joy)
-{
-  lights_tree_manager_->GetBlackboard()->set<bool>(
-    "drive_state", joy->buttons[kDeadManButtonIndex]);
 }
 
 void LightsManagerNode::LightsTreeTimerCB()

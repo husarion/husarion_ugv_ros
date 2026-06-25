@@ -43,13 +43,25 @@ void TestCallSetBoolService::ServiceCallback(
     rclcpp::get_logger("test_set_bool_plugin"), response->message << " data: " << request->data);
 }
 
-TEST_F(TestCallSetBoolService, GoodLoadingCallSetBoolServicePlugin)
+TEST_F(TestCallSetBoolService, GoodLoadingCallSetBoolServiceRosPlugin)
 {
   std::map<std::string, std::string> service = {{"service_name", "set_bool"}, {"data", "true"}};
 
   RegisterNodeWithParams<husarion_ugv_manager::CallSetBoolService>("CallSetBoolService");
 
   ASSERT_NO_THROW({ CreateTree("CallSetBoolService", service); });
+}
+
+TEST_F(TestCallSetBoolService, GoodLoadingCallSetBoolServicePlugin)
+{
+  std::map<std::string, std::string> service = {{"service_name", "set_bool"}, {"data", "true"}};
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CallSetBoolService>("CallSetBoolService");
+
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  ASSERT_NO_THROW({ CreateTree("CallSetBoolService", service, blackboard); });
 }
 
 TEST_F(TestCallSetBoolService, WrongPluginNameLoadingCallSetBoolServicePlugin)

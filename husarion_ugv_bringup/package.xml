@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>husarion_ugv_bringup</name>
-  <version>2.3.1</version>
+  <version>2.3.2</version>
   <description>Default launch files and configuration used to start Husarion UGV</description>
   <maintainer email="support@husarion.com">Husarion</maintainer>
   <license>Apache License 2.0</license>
@@ -21,8 +21,8 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_lights</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_localization</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_manager</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_teleop</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">husarion_ugv_utils</exec_depend>
-  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">joy2twist</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch_ros</exec_depend>
 

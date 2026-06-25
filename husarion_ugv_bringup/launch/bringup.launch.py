@@ -30,6 +30,7 @@ from launch.actions import (
     ExecuteProcess,
     GroupAction,
     IncludeLaunchDescription,
+    SetEnvironmentVariable,
     TimerAction,
 )
 from launch.conditions import IfCondition, UnlessCondition
@@ -82,14 +83,6 @@ def generate_launch_description():
         "namespace",
         default_value=EnvironmentVariable("ROBOT_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
-    )
-
-    launch_gamepad = LaunchConfiguration("launch_gamepad")
-    declare_launch_gamepad_arg = DeclareLaunchArgument(
-        "launch_gamepad",
-        default_value="false",
-        description="Launch gamepad node.",
-        choices=["True", "true", "False", "false"],
     )
 
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
@@ -172,36 +165,13 @@ def generate_launch_description():
         }.items(),
     )
 
-    husarion_ugv_bringup_common_dir = PythonExpression(
-        [
-            "'",
-            common_dir_path,
-            "/husarion_ugv_bringup' if '",
-            common_dir_path,
-            "' else '",
-            FindPackageShare("husarion_ugv_bringup"),
-            "'",
-        ]
-    )
-
-    gamepad_launch = IncludeLaunchDescription(
+    teleop_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("joy2twist"), "launch", "gamepad_controller.launch.py"]
+                [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
         ),
-        launch_arguments={
-            "log_level": log_level,
-            "namespace": namespace,
-            "joy2twist_params_file": PathJoinSubstitution(
-                [
-                    husarion_ugv_bringup_common_dir,
-                    "config",
-                    PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
-                ]
-            ),
-        }.items(),
-        condition=IfCondition(launch_gamepad),
+        launch_arguments={"launch_gamepad": "True"}.items(),
     )
 
     hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")
@@ -242,7 +212,6 @@ def generate_launch_description():
             lights_launch,
             manager_launch,
             ekf_launch,
-            gamepad_launch,
         ],
     )
 
@@ -256,16 +225,17 @@ def generate_launch_description():
     )
 
     actions = [
+        SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_log_level_arg,
         declare_namespace_arg,
-        declare_launch_gamepad_arg,
         welcome_info,
         incorrect_hw_config_action,
         incorrect_os_version_action,
         driver_actions,
+        teleop_launch,
     ]
 
     return LaunchDescription(actions)

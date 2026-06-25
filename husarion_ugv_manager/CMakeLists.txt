@@ -58,6 +58,10 @@ add_library(check_joy_msg_bt_node SHARED
             src/plugins/condition/check_joy_msg.cpp)
 list(APPEND plugin_libs check_joy_msg_bt_node)
 
+add_library(check_string_msg_bt_node SHARED
+            src/plugins/condition/check_string_msg.cpp)
+list(APPEND plugin_libs check_string_msg_bt_node)
+
 add_library(tick_after_timeout_bt_node SHARED
             src/plugins/decorator/tick_after_timeout_node.cpp)
 list(APPEND plugin_libs tick_after_timeout_bt_node)
@@ -162,6 +166,12 @@ if(BUILD_TESTING)
     test/plugins/condition/test_check_joy_msg.cpp
     src/plugins/condition/check_joy_msg.cpp)
   list(APPEND plugin_tests ${PROJECT_NAME}_test_check_joy_msg)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_check_string_msg
+    test/plugins/condition/test_check_string_msg.cpp
+    src/plugins/condition/check_string_msg.cpp)
+  list(APPEND plugin_tests ${PROJECT_NAME}_test_check_string_msg)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_tick_after_timeout_node
@@ -305,6 +315,7 @@ if(BUILD_TESTING)
                         safety_manager_parameters OpenSSL::SSL)
 endif()
 
+ament_export_libraries(${plugin_libs})
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 ament_export_include_directories(include/${PROJECT_NAME})
 

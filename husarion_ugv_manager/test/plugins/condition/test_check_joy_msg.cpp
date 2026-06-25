@@ -46,7 +46,9 @@ constexpr auto PLUGIN = "CheckJoyMsg";
 class TestCheckJoyMsg : public husarion_ugv_manager::plugin_test_utils::PluginTestUtils
 {
 public:
-  TestCheckJoyMsg();
+  TestCheckJoyMsg() {}
+
+  void Initialize();
   void PublishMsg(JoyMsg msg) { joy_publisher_->publish(msg); };
   JoyMsg CreateMsg(
     const std::vector<float> & axes = {}, const std::vector<int> & buttons = {},
@@ -57,7 +59,7 @@ protected:
   rclcpp::Publisher<JoyMsg>::SharedPtr joy_publisher_;
 };
 
-TestCheckJoyMsg::TestCheckJoyMsg()
+void TestCheckJoyMsg::Initialize()
 {
   RegisterNodeWithParams<husarion_ugv_manager::CheckJoyMsg>(PLUGIN);
   joy_publisher_ = bt_node_->create_publisher<JoyMsg>(TOPIC, 10);
@@ -75,8 +77,27 @@ JoyMsg TestCheckJoyMsg::CreateMsg(
 
 void TestCheckJoyMsg::SetCurrentMsgTime(JoyMsg & msg) { msg.header.stamp = bt_node_->now(); }
 
+TEST_F(TestCheckJoyMsg, GoodLoadingCheckJoyMsgRosPlugin)
+{
+  this->Initialize();
+  bt_ports input = {{"topic_name", TOPIC}};
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
+}
+
+TEST_F(TestCheckJoyMsg, GoodLoadingCheckJoyMsgPlugin)
+{
+  bt_ports input = {{"topic_name", TOPIC}};
+  auto blackboard = BT::Blackboard::create();
+  blackboard->set<rclcpp::Node::SharedPtr>("node", this->bt_node_);
+
+  RegisterNodeWithoutParams<husarion_ugv_manager::CheckJoyMsg>(PLUGIN);
+
+  ASSERT_NO_THROW({ CreateTree(PLUGIN, input, blackboard); });
+}
+
 TEST_F(TestCheckJoyMsg, NoMessageArrived)
 {
+  this->Initialize();
   bt_ports input = {{"topic_name", TOPIC}, {"axes", "0;0"}, {"buttons", "0;0"}, {"timeout", "1.0"}};
   ASSERT_NO_THROW({ CreateTree(PLUGIN, input); });
 
@@ -87,6 +108,7 @@ TEST_F(TestCheckJoyMsg, NoMessageArrived)
 
 TEST_F(TestCheckJoyMsg, TimeoutTests)
 {
+  this->Initialize();
   std::vector<TestCase> test_cases = {
     {BT::NodeStatus::SUCCESS,
      {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "0.5"}},
@@ -117,6 +139,7 @@ TEST_F(TestCheckJoyMsg, TimeoutTests)
 
 TEST_F(TestCheckJoyMsg, OnTickBehavior)
 {
+  this->Initialize();
   std::vector<TestCase> test_cases = {
     {BT::NodeStatus::SUCCESS,
      {{"topic_name", TOPIC}, {"axes", ""}, {"buttons", ""}, {"timeout", "1.0"}},

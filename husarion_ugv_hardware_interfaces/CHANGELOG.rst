@@ -2,6 +2,14 @@
 Changelog for package husarion_ugv_hardware_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-06-25)
+------------------
+* Better estop logging (`#649 <https://github.com/husarion/husarion_ugv_ros/issues/649>`_)
+* Add parameter to disable orientation (`#639 <https://github.com/husarion/husarion_ugv_ros/issues/639>`_)
+* fix soft e-stop logic (`#606 <https://github.com/husarion/husarion_ugv_ros/issues/606>`_)
+* Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, Stefan, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * Move hw activate (`#585 <https://github.com/husarion/husarion_ugv_ros/issues/585>`_)

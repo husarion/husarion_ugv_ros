@@ -58,6 +58,14 @@ def generate_launch_description():
         choices=["lynx", "panther"],
     )
 
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -121,11 +129,11 @@ def generate_launch_description():
             "namespace": namespace,
             "robot_model": robot_model,
             "log_level": log_level,
+            "use_madgwick_filter": use_madgwick_filter,
         }.items(),
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
 
     joint_state_broadcaster_log_unit = PythonExpression(
         [
@@ -146,6 +154,23 @@ def generate_launch_description():
         ]
     )
 
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            use_madgwick_filter,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",  # the first element of the orientation covariance is set to -1 according to the documentation: https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html
+        ]
+    )
+
+    ns_controller_config_path = ReplaceString(
+        controller_config_path,
+        {
+            "<namespace>/": ns,
+            "<static_covariance_orientation>": orientation_covariance,
+        },
+    )
+
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -155,12 +180,16 @@ def generate_launch_description():
             ("/diagnostics", "diagnostics"),
             ("drive_controller/cmd_vel", "cmd_vel"),
             ("drive_controller/odom", "odometry/wheels"),
-            ("drive_controller/transition_event", "_drive_controller/transition_event"),
+            ("drive_controller/transition_event", "drive_controller/_transition_event"),
             ("imu_broadcaster/imu", "imu/data"),
-            ("imu_broadcaster/transition_event", "_imu_broadcaster/transition_event"),
+            ("imu_broadcaster/transition_event", "imu_broadcaster/_transition_event"),
             (
                 "joint_state_broadcaster/transition_event",
-                "_joint_state_broadcaster/transition_event",
+                "joint_state_broadcaster/_transition_event",
+            ),
+            (
+                "twist_mux_controller/transition_event",
+                "twist_mux_controller/_transition_event",
             ),
         ],
         arguments=[
@@ -177,7 +206,6 @@ def generate_launch_description():
             limit_log_level_to_info(controller_manager_log_unit, log_level),
         ],
         condition=UnlessCondition(use_sim),
-        emulate_tty=True,
         on_exit=Shutdown(),
     )
 
@@ -200,16 +228,17 @@ def generate_launch_description():
             "joint_state_broadcaster",
             "drive_controller",
             "imu_broadcaster",
+            "twist_mux_controller",
             "--activate-as-group",
             *spawner_common_args,
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
+        declare_use_madgwick_filter_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

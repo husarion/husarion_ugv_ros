@@ -37,12 +37,14 @@
         <parameters>${config_file}</parameters>
         <ros>
           <namespace>${namespace}</namespace>
+          <remapping>/diagnostics:=diagnostics</remapping>
           <remapping>drive_controller/cmd_vel:=cmd_vel</remapping>
           <remapping>drive_controller/odom:=odometry/wheels</remapping>
           <remapping>drive_controller/transition_event:=drive_controller/_transition_event</remapping>
           <remapping>imu_broadcaster/imu:=imu/data</remapping>
           <remapping>imu_broadcaster/transition_event:=imu_broadcaster/_transition_event</remapping>
           <remapping>joint_state_broadcaster/transition_event:=joint_state_broadcaster/_transition_event</remapping>
+          <remapping>twist_mux_controller/transition_event:=twist_mux_controller/_transition_event</remapping>
         </ros>
       </plugin>
     </gazebo>
@@ -138,6 +140,24 @@
           <quadratic>1.0</quadratic>
         </attenuation>
       </light>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="odometry_publisher" params="namespace:=''">
+
+    <xacro:property name="ns" value='${namespace + "/" if namespace else ""}' />
+
+    <gazebo>
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <odom_frame>world</odom_frame>
+        <robot_base_frame>${ns}base_link</robot_base_frame>
+        <odom_topic>${ns}odometry/ground_truth</odom_topic>
+        <odom_covariance_topic>${ns}odometry/ground_truth_covariance</odom_covariance_topic>
+        <tf_topic>tf_gt</tf_topic>
+        <odom_publish_frequency>50.0</odom_publish_frequency>
+      </plugin>
     </gazebo>
   </xacro:macro>
 

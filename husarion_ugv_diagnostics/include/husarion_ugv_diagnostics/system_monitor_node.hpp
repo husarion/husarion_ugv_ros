@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_
-#define HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_
+#ifndef HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_
+#define HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_
 
 #include <string>
 
@@ -77,8 +77,7 @@ private:
   system_monitor::Params params_;
   std::shared_ptr<system_monitor::ParamListener> param_listener_;
 
-  static constexpr char kTemperatureInfoFilename[] = "/sys/class/thermal/thermal_zone0/temp";
   static constexpr char kRootDirectory[] = "/";
 };
 }  // namespace husarion_ugv_diagnostics
-#endif  // HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_
+#endif  // HUSARION_UGV_DIAGNOSTICS_HUSARION_UGV_DIAGNOSTICS_SYSTEM_MONITOR_NODE_HPP_

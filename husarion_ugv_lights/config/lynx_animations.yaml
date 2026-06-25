@@ -309,3 +309,28 @@ led_animations:
           splash_duration: 2.0
           image_mirrored: true
           position_mirrored: true
+
+  - id: 16
+    name: GOAL_FAILED
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: front
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_failed_front.png
+          duration: 4
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: rear
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/goal_failed_rear.png
+          duration: 4
+
+  - id: 17
+    name: FLOOD_LIGHT
+    priority: 3
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/flood_light.png
+          duration: 3

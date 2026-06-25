@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
-#define HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
+#ifndef HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
+#define HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
 
 #include <chrono>
 #include <string>
 
-#include <realtime_tools/realtime_box.hpp>
+#include <realtime_tools/realtime_thread_safe_box.hpp>
 
 #include <gz/math/Color.hh>
 #include <gz/math/Pose3.hh>
@@ -137,7 +137,7 @@ private:
 
   bool new_image_available_ = false;
   gz::msgs::Light light_cmd_;
-  realtime_tools::RealtimeBox<gz::msgs::Image> last_image_;
+  realtime_tools::RealtimeThreadSafeBox<gz::msgs::Image> last_image_;
   gz::sim::Entity light_entity_{gz::sim::kNullEntity};
   gz::transport::Node node_;
   std::chrono::steady_clock::duration last_update_time_{std::chrono::seconds(
@@ -146,4 +146,4 @@ private:
 
 }  // namespace husarion_ugv_gazebo
 
-#endif  // HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
+#endif  // HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_LED_STRIP_HPP_

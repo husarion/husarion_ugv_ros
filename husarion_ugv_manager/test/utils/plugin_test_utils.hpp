@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
-#define HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
+#ifndef HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_
+#define HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_
 
 #include <functional>
 #include <limits>
@@ -181,10 +181,11 @@ public:
   }
 
   void CreateTree(
-    const std::string & plugin_name, const std::map<std::string, std::string> & bb_ports)
+    const std::string & plugin_name, const std::map<std::string, std::string> & bb_ports,
+    BT::Blackboard::Ptr blackboard = BT::Blackboard::create())
   {
     auto xml_text = BuildBehaviorTree(plugin_name, bb_ports);
-    tree_ = factory_.createTreeFromText(xml_text);
+    tree_ = factory_.createTreeFromText(xml_text, blackboard);
   }
 
   inline BT::Tree & GetTree() { return tree_; }
@@ -273,4 +274,4 @@ protected:
   )";
 };
 }  // namespace husarion_ugv_manager::plugin_test_utils
-#endif  // HUSARION_UGV_MANAGER_PLUGIN_TEST_UTILS_HPP_
+#endif  // HUSARION_UGV_MANAGER_TEST_UTILS_PLUGIN_TEST_UTILS_HPP_

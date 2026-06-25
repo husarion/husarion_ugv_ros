@@ -16,14 +16,15 @@ x-gpu-config: &gpu-config
 
 services:
   husarion_ugv_gazebo:
-    image: husarion/husarion-ugv-gazebo:jazzy-2.3.1-20250701
+    image: husarion/husarion-ugv-gazebo:jazzy-2.3.2-20260622
     container_name: husarion_ugv_gazebo
     <<:
       - *common-config
       - *gpu-config
     devices:
+      - /dev/input/
       - /dev/dri:/dev/dri
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >
-      ros2 launch husarion_ugv_gazebo simulation.launch.py
+      ros2 launch husarion_ugv_gazebo simulation.launch.py launch_gamepad:=true

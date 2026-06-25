@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
-#define HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
 
 #include <any>
 #include <chrono>
@@ -75,6 +75,37 @@ inline void RegisterBehaviorTree(
   }
 
   RegisterBehaviorTree(factory, bt_project_path, plugin_libs);
+}
+
+/**
+ * @brief Creates RosNodeParams from the blackboard contained in the NodeConfig.
+ *
+ * @param conf The NodeConfig containing the blackboard.
+ * @return BT::RosNodeParams The created RosNodeParams.
+ *
+ * @throw std::runtime_error Throws when the blackboard is nullptr or the node
+ * (rclcpp::Node::SharedPtr) is not found or is nullptr.
+ */
+inline BT::RosNodeParams CreateRosNodeParamsFromBlackboard(const BT::NodeConfig & conf)
+{
+  auto blackboard = conf.blackboard;
+  if (!blackboard) {
+    throw std::runtime_error("Blackboard is nullptr");
+  }
+
+  rclcpp::Node::SharedPtr node;
+
+  try {
+    node = blackboard->get<rclcpp::Node::SharedPtr>("node");
+  } catch (const std::exception & e) {
+    throw BT::RuntimeError("Failed to get rclcpp::Node from blackboard: ", e.what());
+  }
+
+  if (!node) {
+    throw BT::RuntimeError("rclcpp::Node is nullptr");
+  }
+
+  return BT::RosNodeParams(node);
 }
 
 }  // namespace husarion_ugv_manager::behavior_tree_utils
@@ -175,4 +206,4 @@ inline geometry_msgs::msg::PoseStamped convertFromString<geometry_msgs::msg::Pos
 
 }  // namespace BT
 
-#endif  // HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_
+#endif  // HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_BEHAVIOR_TREE_UTILS_HPP_

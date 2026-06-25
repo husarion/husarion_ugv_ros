@@ -34,6 +34,12 @@ class CheckJoyMsg : public BT::RosTopicSubNode<sensor_msgs::msg::Joy>
   using JoyMsg = sensor_msgs::msg::Joy;
 
 public:
+  CheckJoyMsg(const std::string & name, const BT::NodeConfig & conf)
+  : BT::RosTopicSubNode<JoyMsg>(
+      name, conf, behavior_tree_utils::CreateRosNodeParamsFromBlackboard(conf))
+  {
+  }
+
   CheckJoyMsg(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::RosTopicSubNode<JoyMsg>(name, conf, params)

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_
-#define HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_
+#ifndef HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_
+#define HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_
 
 #include <string>
 
@@ -72,4 +72,4 @@ private:
 
 }  // namespace husarion_ugv_gazebo
 
-#endif  // HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_
+#endif  // HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_GUI_E_STOP_HPP_

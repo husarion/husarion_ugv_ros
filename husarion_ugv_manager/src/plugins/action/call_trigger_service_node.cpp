@@ -41,3 +41,9 @@ BT::NodeStatus CallTriggerService::onResponseReceived(const typename Response::S
 
 #include "behaviortree_ros2/plugins.hpp"
 CreateRosNodePlugin(husarion_ugv_manager::CallTriggerService, "CallTriggerService");
+
+#include "behaviortree_cpp/bt_factory.h"
+BT_REGISTER_NODES(factory)
+{
+  factory.registerNodeType<husarion_ugv_manager::CallTriggerService>("CallTriggerService");
+}

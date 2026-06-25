@@ -74,6 +74,14 @@ def generate_launch_description():
         ),
     )
 
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -145,7 +153,23 @@ def generate_launch_description():
     )
 
     ns = PythonExpression(["'", namespace, "' + '/' if '", namespace, "' else ''"])
-    ns_controller_config_path = ReplaceString(controller_config_path, {"<namespace>/": ns})
+
+    orientation_covariance = PythonExpression(
+        [
+            "[1.8e-3, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3] if '",
+            use_madgwick_filter,
+            "' in ['True', 'true'] else ",
+            "[-1.0, 0.0, 0.0, 0.0, 1.8e-3, 0.0, 0.0, 0.0, 1.8e-3]",  # the first element of the orientation covariance is set to -1 according to the documentation: https://docs.ros.org/en/jazzy/p/sensor_msgs/msg/Imu.html
+        ]
+    )
+
+    ns_controller_config_path = ReplaceString(
+        controller_config_path,
+        {
+            "<namespace>/": ns,
+            "<static_covariance_orientation>": orientation_covariance,
+        },
+    )
 
     # Get URDF via xacro
     imu_pos_x = os.environ.get("ROBOT_IMU_LOCALIZATION_X", "0.168")
@@ -178,6 +202,8 @@ def generate_launch_description():
             namespace,
             " components_config_path:=",
             components_config_path,
+            " use_madgwick_filter:=",
+            use_madgwick_filter,
         ]
     )
 
@@ -191,7 +217,6 @@ def generate_launch_description():
             {"frame_prefix": namespace_ext},
         ],
         namespace=namespace,
-        emulate_tty=True,
     )
 
     actions = [
@@ -199,6 +224,7 @@ def generate_launch_description():
         declare_battery_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
+        declare_use_madgwick_filter_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_
-#define HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_
 
 #include <deque>
 #include <numeric>
@@ -64,4 +64,4 @@ private:
 
 }  // namespace husarion_ugv_utils
 
-#endif  // HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_MOVING_AVERAGE_HPP_

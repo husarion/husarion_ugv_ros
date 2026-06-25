@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HUSARION_UGV_UTILS_TEST_UTILS_HPP_
-#define HUSARION_UGV_UTILS_TEST_UTILS_HPP_
+#ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_ROS_TEST_UTILS_HPP_
+#define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_ROS_TEST_UTILS_HPP_
 
 #include <chrono>
 #include <limits>
@@ -102,4 +102,4 @@ void PublishAndSpin(
 
 }  // namespace husarion_ugv_utils::test_utils
 
-#endif  // HUSARION_UGV_UTILS_TEST_UTILS_HPP_
+#endif  // HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_TEST_ROS_TEST_UTILS_HPP_

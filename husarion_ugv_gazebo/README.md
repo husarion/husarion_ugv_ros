@@ -9,6 +9,25 @@ The package contains a launch file and source files used to run the robot simula
 - `simulate_multiple_robots.launch.py`: Similar to the above with logic allowing you to quickly add a swarm of robots.
 - **`simulation.launch.py`**: A target file that runs the gazebo simulator that adds and simulates the robot's behavior in accordance with the given arguments.
 
+### Worlds
+
+To run the simulation with a different world, use:
+
+```bash
+ros2 launch husarion_ugv_gazebo simulation.launch.py gz_world:=<world>
+```
+
+Where `<world>` is either a path to an SDF file or the name of a built-in world in `husarion_gz_worlds`. The default world is `husarion_world`.
+
+Available worlds:
+
+- `cave`
+- `empty_with_plugins`
+- `husarion_office`
+- `husarion_world`
+- `rubicon`
+- `sonoma_raceway`
+
 ## Configuration Files
 
 - [`battery_plugin.yaml`](./config/battery_plugin.yaml): Simulated LinearBatteryPlugin configuration.

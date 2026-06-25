@@ -15,7 +15,11 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -112,7 +116,16 @@ def generate_launch_description():
         condition=IfCondition(use_rviz),
     )
 
+    teleop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
+            )
+        )
+    )
+
     actions = [
+        SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_gz_gui,
         declare_log_level_arg,
         declare_namespace_arg,
@@ -122,6 +135,7 @@ def generate_launch_description():
         gz_bridge,
         simulate_robots,
         rviz_launch,
+        teleop_launch,
     ]
 
     return LaunchDescription(actions)

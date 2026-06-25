@@ -2,6 +2,22 @@
 Changelog for package husarion_ugv_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Removed load_urdf from spawn robot (`#642 <https://github.com/husarion/husarion_ugv_ros/issues/642>`_)
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* Fixed segfault when shuttingdown (`#629 <https://github.com/husarion/husarion_ugv_ros/issues/629>`_)
+* husarion_components_description refactor compatibility (2) (`#617 <https://github.com/husarion/husarion_ugv_ros/issues/617>`_)
+* Add joy2twist to simulation (`#618 <https://github.com/husarion/husarion_ugv_ros/issues/618>`_)
+* Revert "husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)" (`#616 <https://github.com/husarion/husarion_ugv_ros/issues/616>`_)
+* husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)
+* add ground truth odometry and tf (`#612 <https://github.com/husarion/husarion_ugv_ros/issues/612>`_)
+* Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)
+* Fix gazebosim mecanum wheels (`#608 <https://github.com/husarion/husarion_ugv_ros/issues/608>`_)
+* Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
+* more worlds in gazebo (`#595 <https://github.com/husarion/husarion_ugv_ros/issues/595>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, husarafal, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_)

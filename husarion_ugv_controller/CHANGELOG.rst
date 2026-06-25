@@ -2,6 +2,14 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add parameter to disable orientation (`#639 <https://github.com/husarion/husarion_ugv_ros/issues/639>`_)
+* Rename mecanum pkg dependency (`#641 <https://github.com/husarion/husarion_ugv_ros/issues/641>`_)
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, Rafal Gorecki, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * Move hw activate (`#585 <https://github.com/husarion/husarion_ugv_ros/issues/585>`_)

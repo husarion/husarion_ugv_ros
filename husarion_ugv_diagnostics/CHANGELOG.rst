@@ -2,6 +2,14 @@
 Changelog for package husarion_ugv_diagnostics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix tests (`#637 <https://github.com/husarion/husarion_ugv_ros/issues/637>`_)
+* Parametrize cpu temperature filepath with default value set to RPi path (`#632 <https://github.com/husarion/husarion_ugv_ros/issues/632>`_)
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

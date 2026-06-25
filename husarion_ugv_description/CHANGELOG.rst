@@ -2,6 +2,20 @@
 Changelog for package husarion_ugv_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add parameter to disable orientation (`#639 <https://github.com/husarion/husarion_ugv_ros/issues/639>`_)
+* Remapped CM diagnostics to the namespace (`#633 <https://github.com/husarion/husarion_ugv_ros/issues/633>`_)
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* husarion_components_description refactor compatibility (2) (`#617 <https://github.com/husarion/husarion_ugv_ros/issues/617>`_)
+* Add ground truth for lynx (`#619 <https://github.com/husarion/husarion_ugv_ros/issues/619>`_)
+* Revert "husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)" (`#616 <https://github.com/husarion/husarion_ugv_ros/issues/616>`_)
+* husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)
+* add ground truth odometry and tf (`#612 <https://github.com/husarion/husarion_ugv_ros/issues/612>`_)
+* Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)
+* Fix gazebosim mecanum wheels (`#608 <https://github.com/husarion/husarion_ugv_ros/issues/608>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, husarafal, zuz-mej
+
 2.3.1 (2025-07-09)
 ------------------
 * use husarion_components_description (`#577 <https://github.com/husarion/husarion_ugv_ros/issues/577>`_)

@@ -2,6 +2,15 @@
 Changelog for package husarion_ugv_localization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* update topics and fix teleop config (`#655 <https://github.com/husarion/husarion_ugv_ros/issues/655>`_)
+* husarion_components_description refactor compatibility (2) (`#617 <https://github.com/husarion/husarion_ugv_ros/issues/617>`_)
+* Revert "husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)" (`#616 <https://github.com/husarion/husarion_ugv_ros/issues/616>`_)
+* husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)
+* Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)
+* Contributors: Dawid Kmak, husarafal
+
 2.3.1 (2025-07-09)
 ------------------
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

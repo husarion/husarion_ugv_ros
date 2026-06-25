@@ -2,6 +2,13 @@
 Changelog for package husarion_ugv_battery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
+* battery dead condition update (`#596 <https://github.com/husarion/husarion_ugv_ros/issues/596>`_)
+* Contributors: Dawid Kmak, Jakub Delicat
+
 2.3.1 (2025-07-09)
 ------------------
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

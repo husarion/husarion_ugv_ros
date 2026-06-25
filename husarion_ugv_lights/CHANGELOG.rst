@@ -2,6 +2,15 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* change goal failed animation (`#650 <https://github.com/husarion/husarion_ugv_ros/issues/650>`_)
+* Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
+* Add extra animations (`#622 <https://github.com/husarion/husarion_ugv_ros/issues/622>`_)
+* Lights auto mode (`#610 <https://github.com/husarion/husarion_ugv_ros/issues/610>`_)
+* Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
+* Contributors: Dawid Kmak, Jakub Delicat, Stefan
+
 2.3.1 (2025-07-09)
 ------------------
 * Add closing bracket

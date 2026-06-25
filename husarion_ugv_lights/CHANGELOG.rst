@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_lights
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * change goal failed animation (`#650 <https://github.com/husarion/husarion_ugv_ros/issues/650>`_)
 * Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
 * Add extra animations (`#622 <https://github.com/husarion/husarion_ugv_ros/issues/622>`_)

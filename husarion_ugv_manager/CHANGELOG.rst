@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * Bump behaviortree_cpp to 4.9.0 to fix Missing parent blackboard (`#645 <https://github.com/husarion/husarion_ugv_ros/issues/645>`_)
 * Fix tests (`#637 <https://github.com/husarion/husarion_ugv_ros/issues/637>`_)
 * Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)

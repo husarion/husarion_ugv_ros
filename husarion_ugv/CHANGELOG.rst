@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * bump dependencies (`#656 <https://github.com/husarion/husarion_ugv_ros/issues/656>`_)
 * update topics and fix teleop config (`#655 <https://github.com/husarion/husarion_ugv_ros/issues/655>`_)
 * Bump behaviortree_cpp to 4.9.0 to fix Missing parent blackboard (`#645 <https://github.com/husarion/husarion_ugv_ros/issues/645>`_)

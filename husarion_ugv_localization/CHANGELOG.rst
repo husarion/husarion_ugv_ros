@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_localization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * update topics and fix teleop config (`#655 <https://github.com/husarion/husarion_ugv_ros/issues/655>`_)
 * husarion_components_description refactor compatibility (2) (`#617 <https://github.com/husarion/husarion_ugv_ros/issues/617>`_)
 * Revert "husarion_components_description refactor compatibility (`#611 <https://github.com/husarion/husarion_ugv_ros/issues/611>`_)" (`#616 <https://github.com/husarion/husarion_ugv_ros/issues/616>`_)

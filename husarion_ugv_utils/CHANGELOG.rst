@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
 * Contributors: Jakub Delicat
 

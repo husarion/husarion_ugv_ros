@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_gazebo
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * Removed load_urdf from spawn robot (`#642 <https://github.com/husarion/husarion_ugv_ros/issues/642>`_)
 * Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
 * Fixed segfault when shuttingdown (`#629 <https://github.com/husarion/husarion_ugv_ros/issues/629>`_)

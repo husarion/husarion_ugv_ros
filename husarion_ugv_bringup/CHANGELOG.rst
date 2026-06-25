@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_bringup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
 * Add joy2twist to simulation (`#618 <https://github.com/husarion/husarion_ugv_ros/issues/618>`_)
 * Add twist mux controller (`#609 <https://github.com/husarion/husarion_ugv_ros/issues/609>`_)

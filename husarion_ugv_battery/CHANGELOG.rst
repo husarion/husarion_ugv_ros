@@ -2,8 +2,8 @@
 Changelog for package husarion_ugv_battery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.2 (2026-06-25)
+------------------
 * Removed emulate_tty | added COLORIZED_OUTPUT for main bringups (`#631 <https://github.com/husarion/husarion_ugv_ros/issues/631>`_)
 * Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)
 * battery dead condition update (`#596 <https://github.com/husarion/husarion_ugv_ros/issues/596>`_)

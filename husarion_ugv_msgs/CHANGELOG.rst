@@ -2,6 +2,11 @@
 Changelog for package panther_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.2 (2026-06-25)
+------------------
+* Add extra animations (`#622 <https://github.com/husarion/husarion_ugv_ros/issues/622>`_)
+* Contributors: Stefan
+
 2.3.1 (2025-07-09)
 ------------------
 * Merge branch 'ros2' of https://github.com/husarion/husarion_ugv_ros into ros2-devel

@@ -138,11 +138,13 @@ void LEDStrip::ParseParameters(const std::shared_ptr<const sdf::Element> & sdf)
     }
     for (size_t i = 0; i + 1 < points_.size(); ++i) {
       const double length = (points_[i + 1] - points_[i]).Length();
+      // A zero-length segment (duplicated consecutive points) would divide by zero in
+      // PolylinePointAt and yield NaN vertices.
+      if (length <= 0.0) {
+        throw std::runtime_error("Error: The points parameter has a zero-length segment.");
+      }
       polyline_seg_lengths_.push_back(length);
       polyline_length_ += length;
-    }
-    if (polyline_length_ <= 0.0) {
-      throw std::runtime_error("Error: The points parameter defines a zero-length polyline.");
     }
   }
 }
@@ -321,10 +323,11 @@ std::vector<gz::math::Color> LEDStrip::ExtractLedColors(const gz::msgs::Image & 
 
 namespace
 {
-// Non-blocking /marker_array response handler: the result is irrelevant (markers are dropped when
-// no MarkerManager is running, e.g. headless), but a callback keeps the request asynchronous.
-void OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
+// Thickness (X) of the flat legacy-strip marker box; the strip is rendered nearly 2D.
+constexpr double kLegacyStripThickness = 0.001;
 }  // namespace
+
+void LEDStrip::OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
 
 gz::math::Color LEDStrip::Lerp(const gz::math::Color & a, const gz::math::Color & b, double t)
 {
@@ -417,7 +420,7 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
         light_pose.Pos().Y() + (run.start + run.end + 1) / 2.0 * step_width - marker_width_ / 2.0,
         light_pose.Pos().Z(), light_pose.Rot().Roll(), light_pose.Rot().Pitch(),
         light_pose.Rot().Yaw());
-      const auto size = gz::math::Vector3d(0.001, run_width, marker_height_);
+      const auto size = gz::math::Vector3d(kLegacyStripThickness, run_width, marker_height_);
       CreateMarker(*marker_array.add_marker(), r, pose, run.color, size);
     }
   }
@@ -431,7 +434,7 @@ void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::P
   }
 
   if (marker_array.marker_size() > 0) {
-    node_.Request("/marker_array", marker_array, &OnMarkerArrayResponse);
+    node_.Request("/marker_array", marker_array, &LEDStrip::OnMarkerArrayResponse, this);
   }
   last_runs_ = std::move(runs);
 }
@@ -470,8 +473,8 @@ std::vector<gz::math::Vector3d> LEDStrip::PolylineSegmentVertices(
 }
 
 void LEDStrip::CreateMarker(
-  gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d pose,
-  const gz::math::Color & color, const gz::math::Vector3d size)
+  gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d & pose,
+  const gz::math::Color & color, const gz::math::Vector3d & size)
 {
   marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
   marker_msg.set_ns(ns_ + light_name_);

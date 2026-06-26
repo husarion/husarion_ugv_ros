@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
 #define HUSARION_UGV_GAZEBO_HUSARION_UGV_GAZEBO_LED_STRIP_HPP_
 
+#include <atomic>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -32,6 +33,7 @@
 #include <gz/transport/Node.hh>
 #include <sdf/Element.hh>
 
+#include <gz/msgs/boolean.pb.h>
 #include <gz/msgs/image.pb.h>
 #include <gz/msgs/light.pb.h>
 #include <gz/msgs/marker.pb.h>
@@ -199,8 +201,15 @@ private:
    * @param size The size of the marker
    */
   void CreateMarker(
-    gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d pose,
-    const gz::math::Color & color, const gz::math::Vector3d size);
+    gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d & pose,
+    const gz::math::Color & color, const gz::math::Vector3d & size);
+
+  /**
+   * @brief Callback for the asynchronous /marker_array request. The reply is ignored - markers are
+   * simply dropped when no MarkerManager is running (e.g. headless) - but the async Request
+   * overload needs a callback.
+   */
+  void OnMarkerArrayResponse(const gz::msgs::Boolean & reply, const bool result);
 
   std::string light_name_;
   std::string image_topic_;
@@ -229,7 +238,8 @@ private:
   std::vector<double> polyline_seg_lengths_;
   double polyline_length_ = 0.0;
 
-  bool new_image_available_ = false;
+  // Written on the gz-transport callback thread, read on the sim thread; atomic to avoid a race.
+  std::atomic<bool> new_image_available_ = false;
   // Color runs sent in the previous frame. A run is re-published only when it changed, and surplus
   // markers are deleted, so a static animation generates no /marker traffic while the markers stay
   // attached to the (possibly moving) robot via their parent.

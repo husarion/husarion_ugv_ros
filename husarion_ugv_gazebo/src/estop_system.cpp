@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_gazebo/estop_system.hpp"
 
+#include <gz/common/Console.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/components/JointType.hh>
@@ -30,11 +31,14 @@ EStopSystem::~EStopSystem()
   if (spin_thread_.joinable()) {
     spin_thread_.join();
   }
+  if (owns_rclcpp_context_ && rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
 }
 
 void EStopSystem::Configure(
   const gz::sim::Entity & entity, const std::shared_ptr<const sdf::Element> & sdf,
-  gz::sim::EntityComponentManager & ecm, gz::sim::EventManager & /*eventMgr*/)
+  gz::sim::EntityComponentManager & ecm, gz::sim::EventManager & /*event_mgr*/)
 {
   const auto model = gz::sim::Model(entity);
   if (!model.Valid(ecm)) {
@@ -56,8 +60,12 @@ void EStopSystem::Configure(
     }
   }
 
+  if (joint_entities_.empty()) {
+    gzwarn << "EStopSystem found no continuous/revolute joints on model [" << model.Name(ecm)
+           << "]; the E-stop will not halt any joint." << std::endl;
+  }
+
   SetupROSInterface();
-  PublishEStopStatus();
 }
 
 void EStopSystem::PreUpdate(const gz::sim::UpdateInfo & info, gz::sim::EntityComponentManager & ecm)
@@ -75,12 +83,17 @@ void EStopSystem::SetupROSInterface()
 {
   if (!rclcpp::ok()) {
     rclcpp::init(0, nullptr);
+    owns_rclcpp_context_ = true;
   }
 
   node_ = std::make_shared<rclcpp::Node>("gz_estop", ns_);
 
   e_stop_publisher_ = node_->create_publisher<BoolMsg>(
     "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+
+  // Latch the initial state before the services go live, so a trigger/reset arriving the moment the
+  // spin thread starts cannot race the first published value.
+  PublishEStopStatus();
 
   e_stop_reset_service_ = node_->create_service<TriggerSrv>(
     "hardware/e_stop_reset",
@@ -105,7 +118,7 @@ void EStopSystem::PublishEStopStatus()
 }
 
 void EStopSystem::EStopResetCallback(
-  const TriggerSrv::Request::SharedPtr & /*request*/, TriggerSrv::Response::SharedPtr response)
+  const TriggerSrv::Request::SharedPtr /*request*/, TriggerSrv::Response::SharedPtr response)
 {
   e_stop_active_ = false;
   response->success = true;
@@ -114,7 +127,7 @@ void EStopSystem::EStopResetCallback(
 }
 
 void EStopSystem::EStopTriggerCallback(
-  const TriggerSrv::Request::SharedPtr & /*request*/, TriggerSrv::Response::SharedPtr response)
+  const TriggerSrv::Request::SharedPtr /*request*/, TriggerSrv::Response::SharedPtr response)
 {
   e_stop_active_ = true;
   response->success = true;

@@ -23,7 +23,10 @@ namespace husarion_ugv_gazebo
 
 EStop::EStop() : gz::gui::Plugin()
 {
-  rclcpp::init(0, nullptr);
+  if (!rclcpp::ok()) {
+    rclcpp::init(0, nullptr);
+    owns_rclcpp_context_ = true;
+  }
   node_ = std::make_shared<rclcpp::Node>("gz_estop_gui");
 
   e_stop_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
@@ -34,7 +37,12 @@ EStop::EStop() : gz::gui::Plugin()
   std::thread([this]() { rclcpp::spin(node_); }).detach();
 }
 
-EStop::~EStop() { rclcpp::shutdown(); }
+EStop::~EStop()
+{
+  if (owns_rclcpp_context_ && rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+}
 
 void EStop::LoadConfig(const tinyxml2::XMLElement * plugin_elem)
 {

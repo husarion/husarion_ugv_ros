@@ -62,7 +62,7 @@ public:
    */
   void Configure(
     const gz::sim::Entity & entity, const std::shared_ptr<const sdf::Element> & sdf,
-    gz::sim::EntityComponentManager & ecm, gz::sim::EventManager & eventMgr) override;
+    gz::sim::EntityComponentManager & ecm, gz::sim::EventManager & event_mgr) override;
 
   void PreUpdate(const gz::sim::UpdateInfo & info, gz::sim::EntityComponentManager & ecm) override;
 
@@ -72,15 +72,19 @@ private:
   void PublishEStopStatus();
 
   void EStopResetCallback(
-    const TriggerSrv::Request::SharedPtr & request, TriggerSrv::Response::SharedPtr response);
+    const TriggerSrv::Request::SharedPtr request, TriggerSrv::Response::SharedPtr response);
 
   void EStopTriggerCallback(
-    const TriggerSrv::Request::SharedPtr & request, TriggerSrv::Response::SharedPtr response);
+    const TriggerSrv::Request::SharedPtr request, TriggerSrv::Response::SharedPtr response);
 
   std::atomic_bool e_stop_active_{true};
-  std::string ns_ = "";
+  std::string ns_;
   std::vector<gz::sim::Entity> joint_entities_;
 
+  // True only if this plugin initialized the global rclcpp context, so only it shuts it down. The
+  // GUI e-stop plugin shares the context when both run in one process; asymmetric shutdown would
+  // tear down the other plugin's ROS interface.
+  bool owns_rclcpp_context_ = false;
   rclcpp::Node::SharedPtr node_;
   rclcpp::Publisher<BoolMsg>::SharedPtr e_stop_publisher_;
   rclcpp::Service<TriggerSrv>::SharedPtr e_stop_reset_service_;

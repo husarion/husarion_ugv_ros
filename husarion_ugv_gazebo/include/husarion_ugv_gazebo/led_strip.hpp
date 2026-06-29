@@ -211,6 +211,9 @@ private:
    */
   void OnMarkerArrayResponse(const gz::msgs::Boolean & reply, const bool result);
 
+  // Thickness (X) of the flat legacy-strip marker box; the strip is rendered nearly 2D.
+  static constexpr double kLegacyStripThickness = 0.001;
+
   std::string light_name_;
   std::string image_topic_;
   std::string ns_ = "";

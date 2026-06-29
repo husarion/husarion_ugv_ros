@@ -321,12 +321,6 @@ std::vector<gz::math::Color> LEDStrip::ExtractLedColors(const gz::msgs::Image & 
   return colors;
 }
 
-namespace
-{
-// Thickness (X) of the flat legacy-strip marker box; the strip is rendered nearly 2D.
-constexpr double kLegacyStripThickness = 0.001;
-}  // namespace
-
 void LEDStrip::OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
 
 gz::math::Color LEDStrip::Lerp(const gz::math::Color & a, const gz::math::Color & b, double t)

@@ -108,9 +108,16 @@ void LEDStrip::ParseParameters(const std::shared_ptr<const sdf::Element> & sdf)
     std::istringstream color_stream(sdf->Get<std::string>("strip_base_color"));
     float r, g, b;
     if (!(color_stream >> r >> g >> b)) {
-      throw std::runtime_error("Error: strip_base_color must have the 'r g b' format.");
+      throw std::runtime_error("Error: strip_base_color must have the 'r g b [a]' format.");
     }
-    strip_base_color_.Set(r, g, b, 1.0f);
+    // Optional 4th value: ambient wash strength. Read into a temporary so a missing value keeps the
+    // default rather than the 0 that a failed extraction would assign.
+    float a = strip_base_color_.A();
+    float parsed_a;
+    if (color_stream >> parsed_a) {
+      a = parsed_a;
+    }
+    strip_base_color_.Set(r, g, b, a);
   }
 
   if (sdf->HasElement("led_range")) {
@@ -333,15 +340,17 @@ gz::math::Color LEDStrip::Lerp(const gz::math::Color & a, const gz::math::Color 
 gz::math::Color LEDStrip::CompositeOverBase(const gz::math::Color & color) const
 {
   // The controller resolves animation transparency before publishing, so the received frame is
-  // opaque and its alpha carries no diffuser information. Blend the LED color over the diffuser
-  // base by its brightness instead: an unlit LED shows the base (the lit white diffuser), a fully
-  // lit one shows its color, a dim one a pale mix. This mimics the physical strip instead of going
-  // black.
+  // opaque and its alpha carries no diffuser information. Model the diffuser as a small ambient
+  // wash off its surface added on top of the LED color, fading out as the LED brightens. Adding
+  // (rather than blending toward) the base keeps a dim saturated color's hue instead of washing it
+  // out; a fully lit LED shows its pure color, an unlit one reveals the base instead of going
+  // black. strip_base_color_ alpha sets the wash strength.
   const float brightness = std::max({color.R(), color.G(), color.B()});
+  const float ambient = strip_base_color_.A() * (1.0f - brightness);
   return gz::math::Color(
-    color.R() * brightness + strip_base_color_.R() * (1.0f - brightness),
-    color.G() * brightness + strip_base_color_.G() * (1.0f - brightness),
-    color.B() * brightness + strip_base_color_.B() * (1.0f - brightness), 1.0f);
+    std::min(1.0f, color.R() + strip_base_color_.R() * ambient),
+    std::min(1.0f, color.G() + strip_base_color_.G() * ambient),
+    std::min(1.0f, color.B() + strip_base_color_.B() * ambient), 1.0f);
 }
 
 std::vector<gz::math::Color> LEDStrip::ResampleLedColors(

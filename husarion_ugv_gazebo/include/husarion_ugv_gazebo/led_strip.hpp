@@ -144,8 +144,8 @@ private:
    * @brief Reconstruct the strip at sub-LED resolution: subdivide each LED into
    * render_markers_per_led_ cells and linearly interpolate between neighboring LED-center colors,
    * approximating the diffuser without bleeding across gaps the way a wide kernel would. Each cell
-   * color is blended over strip_base_color_ by its brightness so dim LEDs reveal the diffuser
-   * instead of going black. Returns led_count * render_markers_per_led_ opaque colors.
+   * color is then washed with strip_base_color_ (see CompositeOverBase) so dim/unlit LEDs reveal
+   * the diffuser instead of going black. Returns led_count * render_markers_per_led_ opaque colors.
    */
   std::vector<gz::math::Color> ResampleLedColors(
     const std::vector<gz::math::Color> & led_colors) const;
@@ -156,8 +156,8 @@ private:
   static gz::math::Color Lerp(const gz::math::Color & a, const gz::math::Color & b, double t);
 
   /**
-   * @brief Blend a color over strip_base_color_ by its brightness (an unlit LED shows the base
-   * diffuser color, a fully lit one shows its color), returning an opaque color.
+   * @brief Add the strip_base_color_ ambient wash on top of a color, fading with brightness (an
+   * unlit LED reveals the base, a fully lit one shows its own color), returning an opaque color.
    */
   gz::math::Color CompositeOverBase(const gz::math::Color & color) const;
 
@@ -231,9 +231,10 @@ private:
   // it (sharp per-LED markers).
   int render_markers_per_led_ = 2;
 
-  // Diffuser base color an unlit LED is blended toward (by brightness), so the strip looks like a
-  // lit white diffuser instead of going black. Defaults to white.
-  gz::math::Color strip_base_color_ = gz::math::Color::White;
+  // Diffuser washed over the LEDs (see CompositeOverBase): RGB is the tint, alpha the strength.
+  // Defaults to a white diffuser at 0.3 strength, so dim/unlit LEDs reveal the base without going
+  // black, yet stay weak enough that dim saturated colors keep their hue.
+  gz::math::Color strip_base_color_ = gz::math::Color(1.0f, 1.0f, 1.0f, 0.3f);
 
   // Optional polyline (in the light frame) the LEDs are distributed along. When empty, the strip
   // is a straight line along the Y axis of the light frame (legacy behavior).

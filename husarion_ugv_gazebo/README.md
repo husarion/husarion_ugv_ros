@@ -47,25 +47,23 @@ Available worlds:
 
 ### EStopSystem
 
-Plugin based on `ign_system` is responsible for handling sensor interfaces (only IMU for now) and sending requests for joints compatible with `ros2_control`. Plugin also adds E-Stop support.
+`EStopSystem` is a standalone Gazebo System plugin that reproduces the robot E-stop interface in simulation. While the E-stop is active, it overrides the joint velocity commands written by `gz_ros2_control` with zeros so the robot stops. It must be declared in the URDF after the `gz_ros2_control` plugin (systems execute in declaration order).
 
 #### Publishers
 
-- `gz_ros2_control/e_stop` [*std_msgs/Bool*]: Current E-stop state.
+- `hardware/e_stop` [*std_msgs/Bool*]: Current E-stop state (latched).
 
 #### Service Servers
 
-- `gz_ros2_control/e_stop_reset` [*std_srvs/Trigger*]: Resets E-stop.
-- `gz_ros2_control/e_stop_trigger` [*std_srvs/Trigger*]: Triggers E-stop.
-
-> [!NOTE]
-> Above topics and services should be remapped to match real robot
+- `hardware/e_stop_reset` [*std_srvs/Trigger*]: Resets E-stop.
+- `hardware/e_stop_trigger` [*std_srvs/Trigger*]: Triggers E-stop.
 
 #### Parameters
 
-Required parameters are defined when including the interface in the URDF (you can check out [panther_macro.urdf.xacro](../husarion_ugv_description/urdf/panther_macro.urdf.xacro)).
+Parameters are defined when including the plugin in the URDF (see the `estop` macro in [gazebo.urdf.xacro](../husarion_ugv_description/urdf/common/gazebo.urdf.xacro)).
 
-- `e_stop_initial_state` [*bool*, default: **true**]: Initial state of E-stop.
+- `namespace` [*string*, default: **""**]: Namespace of the ROS node, topic and services.
+- `initial_state` [*bool*, default: **true**]: Initial state of E-stop.
 
 ### LEDStrip
 
@@ -80,15 +78,19 @@ Required parameters are defined when including the interface in the URDF (you ca
 
 #### Service Servers
 
-- `/marker` [*gz::msgs::Marker*]: Service to request markers for visualizing the received image.
+- `/marker_array` [*gz::msgs::Marker_V*]: Service to request the markers visualizing the received image (all of a frame's changed markers are sent in a single batched request).
 
 #### Parameters
 
-The following parameters are required when including this interface in the URDF (you can refer to the [gazebo.urdf.xacro](../husarion_ugv_description/urdf/panther/common/gazebo.urdf.xacro) file for details).
+The following parameters are required when including this interface in the URDF (you can refer to the [gazebo.urdf.xacro](../husarion_ugv_description/urdf/common/gazebo.urdf.xacro) file for details).
 
 - `light_name` [*string*, default: **""**]: The name of the light entity. The visualization will be attached to this entity.
 - `topic` [*string*, default: **""**]: The name of the topic from which the Image message is received.
 - `namespace` [*string*, default: **""**]: Specifies the namespace to differentiate topics and models in scenarios with multiple robots.
 - `frequency` [*double*, default: **10.0**]: Defines the frequency at which the animation is updated.
-- `width` [*double*, default: **1.0**]: Specifies the width (y-axis) of the visualization array.
+- `width` [*double*, default: **1.0**]: Specifies the width (y-axis) of the visualization array (used when `points` is not set).
 - `height` [*double*, default: **1.0**]: Specifies the height (z-axis) of the visualization array.
+- `led_range` [*string*, default: **whole frame**]: `<first>-<last>` subrange of the channel frame displayed by this instance. A reversed range (e.g. `23-12`) flips the LED order.
+- `points` [*string*, default: **""**]: Polyline (`x y z; x y z; ...`, in the light frame) the LEDs are distributed along. When empty, the strip is a straight line along the Y axis of the given width.
+- `render_markers_per_led` [*int*, default: **2**]: Number of rendered marker cells per LED used to interpolate the diffuser gradient. `2` keeps sharp per-LED markers; higher values smooth the transition between neighboring LEDs at the cost of proportionally more markers.
+- `strip_base_color` [*string*, default: **"1 1 1 0.3"**]: Diffuser wash added on top of the LED colors. `r g b` is the diffuser tint; an optional 4th value is the wash strength (defaults to `0.3`). The wash fades as an LED brightens, so unlit/dim LEDs reveal the diffuser instead of going black while dim saturated colors keep their hue. Set the strength (or the color) to `0` to disable it and render raw LED colors.

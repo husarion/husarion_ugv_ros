@@ -15,9 +15,11 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_ROBOT_DRIVER_ROBOTEQ_DRIVER_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_ROBOT_DRIVER_ROBOTEQ_DRIVER_HPP_
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <ctime>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -32,6 +34,24 @@ namespace husarion_ugv_hardware_interfaces
 
 // Forward declaration
 class RoboteqMotorDriver;
+
+// Motor and driver state timestamps are shared between the CANopen callback thread and
+// the control loop. Keeping them as a single 64-bit integer of nanoseconds makes the read
+// and the write atomic on arm64, so the control loop can read them without taking a mutex
+// (see the atomic members in RoboteqDriver).
+inline std::int64_t TimespecToNanoseconds(const timespec & ts)
+{
+  return static_cast<std::int64_t>(ts.tv_sec) * 1000000000LL +
+         static_cast<std::int64_t>(ts.tv_nsec);
+}
+
+inline timespec NanosecondsToTimespec(const std::int64_t ns)
+{
+  timespec ts;
+  ts.tv_sec = static_cast<std::time_t>(ns / 1000000000LL);
+  ts.tv_nsec = static_cast<long>(ns % 1000000000LL);
+  return ts;
+}
 
 /**
  * @brief Hardware implementation of Driver with lely LoopDriver for Roboteq drivers
@@ -109,8 +129,8 @@ public:
    */
   timespec GetPositionTimestamp(const std::uint8_t channel)
   {
-    std::lock_guard<std::mutex> lck(position_timestamp_mtx_);
-    return last_position_timestamps_.at(channel);
+    return NanosecondsToTimespec(
+      last_position_timestamps_ns_.at(channel - kChannel1).load(std::memory_order_acquire));
   }
 
   /**
@@ -118,8 +138,8 @@ public:
    */
   timespec GetSpeedCurrentTimestamp(const std::uint8_t channel)
   {
-    std::lock_guard<std::mutex> lck(speed_current_timestamp_mtx_);
-    return last_speed_current_timestamps_.at(channel);
+    return NanosecondsToTimespec(
+      last_speed_current_timestamps_ns_.at(channel - kChannel1).load(std::memory_order_acquire));
   }
 
   static constexpr std::uint8_t kChannel1 = 1;
@@ -142,18 +162,15 @@ private:
   std::atomic_bool can_error_;
   std::atomic_bool heartbeat_timeout_;
 
-  std::mutex position_timestamp_mtx_;
-  std::map<std::uint8_t, timespec> last_position_timestamps_ = {{kChannel1, {}}, {kChannel2, {}}};
-
-  std::mutex speed_current_timestamp_mtx_;
-  std::map<std::uint8_t, timespec> last_speed_current_timestamps_ = {
-    {kChannel1, {}}, {kChannel2, {}}};
-
-  std::mutex flags_current_timestamp_mtx_;
-  timespec flags_current_timestamp_;
-
-  std::mutex voltages_temps_timestamp_mtx_;
-  timespec last_voltages_temps_timestamp_;
+  // Written by the CANopen callback thread (OnRpdoWrite) and read by the control loop.
+  // Stored as atomic nanoseconds, indexed by channel - kChannel1, so the control loop reads
+  // them without taking a mutex. These used to be guarded by a std::mutex, but the control
+  // loop could block on it when the CAN thread was preempted while holding it, which stalled
+  // the loop long enough to time out the PDO and latch the e-stop.
+  std::array<std::atomic<std::int64_t>, 2> last_position_timestamps_ns_{};
+  std::array<std::atomic<std::int64_t>, 2> last_speed_current_timestamps_ns_{};
+  std::atomic<std::int64_t> flags_current_timestamp_ns_{0};
+  std::atomic<std::int64_t> last_voltages_temps_timestamp_ns_{0};
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
 

@@ -134,15 +134,10 @@ DriverState RoboteqDriver::ReadState()
   state.battery_current_2 = rpdo_mapped[RoboteqCANObjects::battery_current_2.id]
                                        [RoboteqCANObjects::battery_current_2.subid];
 
-  {
-    std::lock_guard<std::mutex> lck_fa(flags_current_timestamp_mtx_);
-    state.flags_current_timestamp = flags_current_timestamp_;
-  }
-
-  {
-    std::lock_guard<std::mutex> lck_vt(voltages_temps_timestamp_mtx_);
-    state.voltages_temps_timestamp = last_voltages_temps_timestamp_;
-  }
+  state.flags_current_timestamp =
+    NanosecondsToTimespec(flags_current_timestamp_ns_.load(std::memory_order_acquire));
+  state.voltages_temps_timestamp =
+    NanosecondsToTimespec(last_voltages_temps_timestamp_ns_.load(std::memory_order_acquire));
 
   return state;
 }
@@ -252,26 +247,29 @@ void RoboteqDriver::OnBoot(
 
 void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept
 {
+  timespec current_timestamp;
+  clock_gettime(CLOCK_MONOTONIC, &current_timestamp);
+  const std::int64_t now_ns = TimespecToNanoseconds(current_timestamp);
+
+  // This callback thread is the only writer, so a plain atomic store is enough here and the
+  // control loop can read the timestamps without blocking on a mutex.
   if (idx == RoboteqCANObjects::position_id) {
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
-    std::lock_guard<std::mutex> lck(position_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_position_timestamps_.at(subidx));
+    last_position_timestamps_ns_.at(subidx - kChannel1).store(now_ns, std::memory_order_release);
   } else if (idx == RoboteqCANObjects::velocity_id) {
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
-    std::lock_guard<std::mutex> lck(speed_current_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_speed_current_timestamps_.at(subidx));
+    last_speed_current_timestamps_ns_.at(subidx - kChannel1)
+      .store(now_ns, std::memory_order_release);
   } else if (idx == RoboteqCANObjects::flags.id && subidx == RoboteqCANObjects::flags.subid) {
-    std::lock_guard<std::mutex> lck(flags_current_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &flags_current_timestamp_);
+    flags_current_timestamp_ns_.store(now_ns, std::memory_order_release);
   } else if (
     idx == RoboteqCANObjects::battery_voltage.id &&
     subidx == RoboteqCANObjects::battery_voltage.subid) {
-    std::lock_guard<std::mutex> lck(voltages_temps_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_voltages_temps_timestamp_);
+    last_voltages_temps_timestamp_ns_.store(now_ns, std::memory_order_release);
   }
 }
 

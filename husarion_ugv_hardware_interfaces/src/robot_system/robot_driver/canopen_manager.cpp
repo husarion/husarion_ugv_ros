@@ -43,15 +43,6 @@ void CANopenManager::Initialize()
   canopen_communication_started_.store(false);
 
   try {
-    husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
-  } catch (const std::runtime_error & e) {
-    std::cerr << "An exception occurred while configuring RT: " << e.what() << std::endl
-              << "Continuing with regular thread settings (it may have a negative impact on the "
-                 "performance)."
-              << std::endl;
-  }
-
-  try {
     InitializeCANCommunication();
   } catch (const std::system_error & e) {
     std::cerr << "An exception occurred while initializing CAN: " << e.what() << std::endl;
@@ -69,6 +60,19 @@ void CANopenManager::Activate()
   }
 
   canopen_communication_thread_ = std::thread([this]() {
+    // Set the RT priority here, on the thread that actually runs the CANopen loop. It used
+    // to be done in Initialize(), which only changed the calling thread's priority and left
+    // this one to inherit it, which is easy to get wrong.
+    try {
+      husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the CANopen thread: " << e.what()
+                << std::endl
+                << "Continuing with regular thread settings (it may have a negative impact on "
+                   "performance)."
+                << std::endl;
+    }
+
     NotifyCANCommunicationStarted(true);
 
     try {

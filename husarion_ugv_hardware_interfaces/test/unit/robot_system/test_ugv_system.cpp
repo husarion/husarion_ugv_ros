@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -57,7 +58,7 @@ public:
   MOCK_METHOD(void, DefineRobotDriver, (), (override));
 
   MOCK_METHOD(void, UpdateHwStates, (), (override));
-  MOCK_METHOD(void, UpdateMotorsStateDataTimedOut, (), (override));
+  MOCK_METHOD(bool, UpdateMotorsStateDataTimedOut, (), (override));
   MOCK_METHOD(void, UpdateDriverStateMsg, (), (override));
   MOCK_METHOD(void, UpdateFlagErrors, (), (override));
   MOCK_METHOD(void, UpdateDriverStateDataTimedOut, (), (override));
@@ -93,6 +94,17 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> GetMockEStop()
   {
     return mock_e_stop_;
+  }
+
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
+
+  void SetPDOTimeoutOngoingSince(const std::chrono::steady_clock::time_point time_point)
+  {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = time_point;
   }
 
   using NiceMock = testing::NiceMock<MockUGVSystem>;
@@ -403,6 +415,21 @@ TEST_F(TestUGVSystem, Write)
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
 
   rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdog)
+{
+  // A timeout that clears resets the watchdog - the next one starts counting from zero
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system_->TickCANopenResyncWatchdog(false);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+
+  // A continuous timeout past the threshold exits the process
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->TickCANopenResyncWatchdog(true), ::testing::ExitedWithCode(74),
+    "CANopen resync watchdog");
 }
 
 int main(int argc, char ** argv)

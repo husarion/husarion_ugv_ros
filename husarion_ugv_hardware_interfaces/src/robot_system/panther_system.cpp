@@ -67,16 +67,18 @@ void PantherSystem::UpdateHwStates()
   hw_states_efforts_[3] = rr_motor_state.GetTorque();
 }
 
-void PantherSystem::UpdateMotorsStateDataTimedOut()
+bool PantherSystem::UpdateMotorsStateDataTimedOut()
 {
   if (
     robot_driver_->GetData(DriverNames::FRONT).IsMotorStatesDataTimedOut() ||
     robot_driver_->GetData(DriverNames::REAR).IsMotorStatesDataTimedOut()) {
     RCLCPP_WARN_STREAM_THROTTLE(logger_, steady_clock_, 1000, "PDO motor state data timeout.");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
-  } else {
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+    return true;
   }
+
+  roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+  return false;
 }
 
 void PantherSystem::UpdateDriverStateMsg()

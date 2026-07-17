@@ -16,6 +16,8 @@
 
 #include <array>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -485,7 +487,7 @@ void UGVSystem::UpdateMotorsState()
   try {
     robot_driver_->UpdateMotorsState();
     UpdateHwStates();
-    UpdateMotorsStateDataTimedOut();
+    UpdateCANopenResyncWatchdog(UpdateMotorsStateDataTimedOut());
   } catch (const std::runtime_error & e) {
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
 
@@ -508,6 +510,38 @@ void UGVSystem::UpdateDriverState()
       logger_, steady_clock_, 5000,
       "An exception occurred while updating drivers states: " << e.what());
   }
+}
+
+void UGVSystem::UpdateCANopenResyncWatchdog(const bool data_timed_out)
+{
+  if (!data_timed_out) {
+    pdo_timeout_ongoing_ = false;
+    return;
+  }
+
+  const auto now = std::chrono::steady_clock::now();
+
+  if (!pdo_timeout_ongoing_) {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = now;
+    return;
+  }
+
+  if (now - pdo_timeout_since_ < pdo_timeout_resync_threshold_) {
+    return;
+  }
+
+  // The master can come up (or be recreated into) a state where it no longer receives PDOs
+  // while the bus itself stays healthy. It never recovers on its own and the process never
+  // exits, so the container restart policy can't heal it. Exiting here reuses the restart
+  // machinery for a clean re-initialization - simpler and more reliable than tearing down and
+  // re-creating the master in-process.
+  RCLCPP_FATAL_STREAM(
+    logger_, "CANopen resync watchdog: " << pdo_timeout_resync_threshold_.count()
+                                         << " s of continuous PDO timeout - restarting.");
+  std::fflush(stdout);
+  std::fflush(stderr);
+  std::_Exit(resync_watchdog_exit_code_);
 }
 
 void UGVSystem::UpdateEStopState()

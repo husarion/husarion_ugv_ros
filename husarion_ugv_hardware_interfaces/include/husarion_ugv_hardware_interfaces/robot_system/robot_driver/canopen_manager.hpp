@@ -119,6 +119,12 @@ private:
   // FIFO 60 here, so this is set above it.
   static constexpr unsigned kCANopenThreadSchedPriority = 70;
 
+  // Upper bound on waiting for the CANopen thread's started/failed
+  // notification in Activate(). RT configuration + the notify normally take
+  // microseconds; the bound only matters when the notification is lost or
+  // reports failure, where an unbounded wait would hang activation forever.
+  static constexpr std::chrono::seconds kCanopenCommunicationStartTimeout{10};
+
   bool initialized_ = false;
 
   std::atomic_bool canopen_communication_started_ = false;

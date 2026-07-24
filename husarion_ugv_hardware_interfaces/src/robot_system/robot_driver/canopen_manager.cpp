@@ -84,9 +84,16 @@ void CANopenManager::Activate()
     }
   });
 
-  if (!canopen_communication_started_.load()) {
+  // Predicate + deadline instead of a bare wait(): the spawned thread can set
+  // the flag and notify between the load above and entering wait(), and that
+  // lost wakeup would block Activate() forever (same defect class as the
+  // SyncSDOWrite wedge). The deadline also bounds the failure path, where the
+  // notification carries `false` and the predicate never becomes true.
+  {
     std::unique_lock<std::mutex> lck(canopen_communication_started_mtx_);
-    canopen_communication_started_cond_.wait(lck);
+    canopen_communication_started_cond_.wait_for(
+      lck, kCanopenCommunicationStartTimeout,
+      [this]() { return canopen_communication_started_.load(); });
   }
 
   if (!canopen_communication_started_.load()) {

@@ -174,6 +174,13 @@ private:
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
 
+  // Local backstop added on top of the lely-side SDO timeout when waiting for
+  // the write confirmation. Normally lely answers (success or timeout error)
+  // within sdo_operation_timeout_ms_; the margin only matters when the master
+  // is being torn down/resynced and the confirmation never arrives — the
+  // caller (e.g. the e_stop_reset service callback) must never block forever.
+  static constexpr std::chrono::milliseconds kSdoConfirmationTimeoutMargin{1000};
+
   std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };
 

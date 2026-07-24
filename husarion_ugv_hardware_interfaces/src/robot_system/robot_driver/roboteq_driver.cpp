@@ -196,33 +196,52 @@ template <typename T>
 void RoboteqDriver::SyncSDOWrite(
   const std::uint16_t index, const std::uint8_t subindex, const T data)
 {
-  std::mutex mtx;
-  std::condition_variable cv;
-  std::error_code err_code;
+  // Shared (not stack-referenced) so a confirmation arriving after a local
+  // timeout below writes into live memory, never a dead stack frame.
+  struct WaitState
+  {
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::error_code err_code;
+    bool done = false;
+  };
+  auto state = std::make_shared<WaitState>();
 
   try {
     SubmitWrite(
       index, subindex, data,
-      [&mtx, &cv, &err_code](
-        std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
+      [state](std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
         {
-          std::lock_guard<std::mutex> lck_g(mtx);
+          std::lock_guard<std::mutex> lck_g(state->mtx);
           if (ec) {
-            err_code = ec;
+            state->err_code = ec;
           }
+          state->done = true;
         }
-        cv.notify_one();
+        state->cv.notify_one();
       },
       sdo_operation_timeout_ms_);
   } catch (const lely::canopen::SdoError & e) {
     throw std::runtime_error("SDO write error, message: " + std::string(e.what()));
   }
 
-  std::unique_lock<std::mutex> lck(mtx);
-  cv.wait(lck);
+  // The `done` predicate closes the lost-wakeup race: the CANopen executor
+  // runs at a higher RT priority than any caller, so the confirmation can
+  // complete before this thread reaches the wait — an unconditioned wait()
+  // then blocks forever (bit us live: a wedged e_stop_reset service captured
+  // its callback group until a driver restart). The deadline is a backstop
+  // for the master being torn down/resynced with the request in flight, in
+  // which case lely never delivers the confirmation at all.
+  std::unique_lock<std::mutex> lck(state->mtx);
+  if (!state->cv.wait_for(
+        lck, sdo_operation_timeout_ms_ + kSdoConfirmationTimeoutMargin,
+        [&state]() { return state->done; })) {
+    throw std::runtime_error(
+      "SDO write confirmation not delivered within the deadline (CANopen master unresponsive).");
+  }
 
-  if (err_code) {
-    throw std::runtime_error("Error msg: " + err_code.message());
+  if (state->err_code) {
+    throw std::runtime_error("Error msg: " + state->err_code.message());
   }
 }
 

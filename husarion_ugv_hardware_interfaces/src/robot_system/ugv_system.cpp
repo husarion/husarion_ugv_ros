@@ -147,13 +147,23 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 {
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Teardown order matters: the diagnostic updater inside
+  // system_ros_interface_ keeps ticking on the executor and its tasks call
+  // robot_driver_->GetData() - deinitializing the driver first leaves a
+  // window where DiagnoseErrors() throws out of the timer callback and
+  // std::terminate takes the whole node down (bit us live on a Lynx). The
+  // GPIO event callback has the sibling problem: it publishes through
+  // system_ros_interface_, so the GPIO controller has to go before the
+  // interface it calls into. Stop callers before callees: GPIO watcher
+  // first (e_stop_ holds refs to gpio + driver, drop it alongside), then
+  // the ROS interface (stops the diagnostics executor), then the driver.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -186,13 +196,14 @@ CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Same teardown order as on_cleanup - rationale there.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }

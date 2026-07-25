@@ -102,7 +102,14 @@ void LightsDriverNode::OnShutdown()
   ClearLEDs();
 
   if (led_control_granted_) {
-    ToggleLEDControl(false);
+    // This runs from a rclcpp::on_shutdown hook, after the context is down -
+    // a failure can only be reported, never acted on, and an exception
+    // escaping the hook aborts the whole container.
+    try {
+      ToggleLEDControl(false);
+    } catch (const std::exception & e) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "Releasing LED control failed: " << e.what());
+    }
   }
 }
 
@@ -147,7 +154,15 @@ void LightsDriverNode::ToggleLEDControl(const bool enable)
   auto request = std::make_shared<SetBoolSrv::Request>();
   request->data = enable;
 
-  if (!enable_led_control_client_->wait_for_service(std::chrono::seconds(kWaitForServiceTimeout))) {
+  // Once the context is down (the OnShutdown path), wait_for_service would
+  // create a graph event and start the graph listener, which throws on a
+  // dead context (bit us live: every driver stop aborted the container,
+  // ros2_control's service being long gone by then). A bare readiness probe
+  // is graph-event-free.
+  const bool service_ready = rclcpp::ok() ? enable_led_control_client_->wait_for_service(
+                                              std::chrono::seconds(kWaitForServiceTimeout))
+                                          : enable_led_control_client_->service_is_ready();
+  if (!service_ready) {
     RCLCPP_WARN_STREAM(
       this->get_logger(), "Timeout occurred while waiting for service '"
                             << enable_led_control_client_->get_service_name() << "'!");

@@ -104,10 +104,14 @@ def generate_launch_description():
     driver_config = PythonExpression(["'", robot_model, "_driver.yaml'"])
     driver_config_path = PathJoinSubstitution([husarion_ugv_lights_pkg, "config", driver_config])
     lights_container = ComposableNodeContainer(
-        package="rclcpp_components",
+        # In-repo stand-in for rclcpp_components' component_container: the
+        # stock one aborts when SIGTERM lands mid wait-set rebuild (upstream
+        # executor race), so every driver-compose stop ended with a terminate
+        # in the journal. Same behavior otherwise.
+        package="husarion_ugv_lights",
         name="lights_container",
         namespace=namespace,
-        executable="component_container",
+        executable="resilient_component_container",
         composable_node_descriptions=[
             ComposableNode(
                 package="husarion_ugv_lights",

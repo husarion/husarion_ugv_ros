@@ -74,8 +74,8 @@ target_link_libraries(lights_controller_node_component yaml-cpp
 
 add_executable(resilient_component_container
                src/resilient_component_container.cpp)
-ament_target_dependencies(resilient_component_container rclcpp
-                          rclcpp_components)
+ament_target_dependencies(resilient_component_container husarion_ugv_utils
+                          rclcpp rclcpp_components)
 
 rclcpp_components_register_node(
   lights_driver_node_component PLUGIN "husarion_ugv_lights::LightsDriverNode"
@@ -94,8 +94,7 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-install(TARGETS resilient_component_container
-        DESTINATION lib/${PROJECT_NAME})
+install(TARGETS resilient_component_container DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY animations config launch test
         DESTINATION share/${PROJECT_NAME})

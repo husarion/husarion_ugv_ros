@@ -17,27 +17,35 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_components/component_manager.hpp"
 
-// Drop-in replacement for rclcpp_components' component_container that
-// tolerates losing the shutdown race. On SIGTERM the signal handler
-// invalidates the context while spin() is mid wait-set rebuild -
-// rcl_wait_set_init then fails with "context is not valid", the RCLError
-// escapes spin() and the stock container aborts on every container stop.
-// Upstream rclcpp executor race; a post-shutdown RCLError is benign, so
-// swallow exactly that and exit clean. Anything thrown while the context
-// is still alive is a real error and stays fatal.
+#include "husarion_ugv_utils/shutdown_signal_watcher.hpp"
+
+// Drop-in replacement for rclcpp_components' component_container that survives
+// container stops. The stock container lets rclcpp's signal handler invalidate
+// the context while spin() is mid wait-set rebuild; the resulting RCLError can
+// escape through paths no try/catch around spin() reaches (a second throw
+// during unwinding calls terminate before any handler runs - catching and
+// swallowing proved insufficient on the bench). Instead the shutdown signals
+// never touch the context at all: a watcher thread consumes SIGINT/SIGTERM and
+// only cancels the executor, spin() returns normally with the context still
+// valid, and shutdown happens after - so there is nothing mid-flight to throw.
 int main(int argc, char * argv[])
 {
-  rclcpp::init(argc, argv);
+  husarion_ugv_utils::ShutdownSignalWatcher signal_watcher;
+  rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
   auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   auto node = std::make_shared<rclcpp_components::ComponentManager>(exec);
   exec->add_node(node);
+  signal_watcher.Start([exec]() { exec->cancel(); });
+  exec->spin();
+  // Nodes must outlive shutdown(): rclcpp::on_shutdown hooks registered by
+  // loaded components capture their node and run inside this call.
   try {
-    exec->spin();
-  } catch (const rclcpp::exceptions::RCLError & e) {
-    if (rclcpp::ok()) {
-      throw;
-    }
+    rclcpp::shutdown();
+  } catch (const rclcpp::exceptions::RCLError &) {
+    // A loaded component's on_shutdown hook touched the ROS graph after the
+    // context died (the lights driver's LED-control release used to via
+    // wait_for_service) - too late for anything to act on it; exit clean
+    // instead of aborting.
   }
-  rclcpp::shutdown();
   return 0;
 }

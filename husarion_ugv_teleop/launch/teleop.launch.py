@@ -24,6 +24,7 @@ from launch.substitutions import (
     PathJoinSubstitution,
     PythonExpression,
 )
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -72,11 +73,14 @@ def generate_launch_description():
 
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
 
-    gamepad_launch = IncludeLaunchDescription(
+    # joy2twist's gamepad_controller.launch.py hardcodes the stock
+    # joy_linux_node, which can die on terminate instead of exiting when a
+    # container stop races its spin_some() (see resilient_joy_linux) - so
+    # include joy2twist.launch.py directly and pair it with our joy node,
+    # mirroring what gamepad_controller.launch.py starts.
+    joy2twist_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("joy2twist"), "launch", "gamepad_controller.launch.py"]
-            )
+            PathJoinSubstitution([FindPackageShare("joy2twist"), "launch", "joy2twist.launch.py"])
         ),
         launch_arguments={
             "log_level": log_level,
@@ -92,12 +96,22 @@ def generate_launch_description():
         condition=IfCondition(launch_gamepad),
     )
 
+    joy_node = Node(
+        package="husarion_ugv_teleop",
+        executable="resilient_joy_linux",
+        emulate_tty="true",
+        namespace=namespace,
+        remappings=[("/diagnostics", "diagnostics")],
+        condition=IfCondition(launch_gamepad),
+    )
+
     actions = [
         declare_log_level_arg,
         declare_namespace_arg,
         declare_launch_gamepad_arg,
         declare_common_dir_path_arg,
-        gamepad_launch,
+        joy2twist_launch,
+        joy_node,
     ]
 
     return LaunchDescription(actions)

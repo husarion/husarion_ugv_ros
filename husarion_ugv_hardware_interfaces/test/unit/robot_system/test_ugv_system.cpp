@@ -432,6 +432,29 @@ TEST_F(TestUGVSystem, CANopenResyncWatchdog)
     "CANopen resync watchdog");
 }
 
+TEST_F(TestUGVSystem, CANopenResyncWatchdogFedByThrowingRead)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  // A dead master surfaces as UpdateMotorsState() throwing (heartbeat
+  // timeout) before the success-path watchdog feed is reached - the
+  // exception path must keep the watchdog counting or it can never fire in
+  // exactly the state it exists for.
+  ON_CALL(*ugv_system_->GetMockRobotDriver(), UpdateMotorsState())
+    .WillByDefault(::testing::Throw(std::runtime_error("Motor controller heartbeat timeout.")));
+
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->read(rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0)),
+    ::testing::ExitedWithCode(74), "CANopen resync watchdog");
+
+  rclcpp::shutdown();
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

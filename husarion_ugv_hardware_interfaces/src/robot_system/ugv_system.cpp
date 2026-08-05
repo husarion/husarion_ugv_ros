@@ -505,6 +505,13 @@ void UGVSystem::UpdateMotorsState()
     RCLCPP_ERROR_STREAM_THROTTLE(
       logger_, steady_clock_, 5000,
       "An exception occurred while updating motors states: " << e.what());
+
+    // A read that throws (heartbeat timeout, CAN error) is a timed-out read -
+    // without this feed the watchdog is unreachable in exactly the state it
+    // exists for, because a dead master's own symptom raises before the
+    // success-path feed above (bit us live: a wedged master latched the
+    // e-stop every 5 s for hours while the wire carried healthy heartbeats).
+    UpdateCANopenResyncWatchdog(true);
   }
 }
 

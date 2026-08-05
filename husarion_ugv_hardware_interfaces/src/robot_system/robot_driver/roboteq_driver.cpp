@@ -205,27 +205,43 @@ void RoboteqDriver::SyncSDOWrite(
     std::mutex mtx;
     std::condition_variable cv;
     std::error_code err_code;
+    std::string err_msg;
     bool done = false;
   };
   auto state = std::make_shared<WaitState>();
 
-  try {
-    SubmitWrite(
-      index, subindex, data,
-      [state](std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
-        {
-          std::lock_guard<std::mutex> lck_g(state->mtx);
-          if (ec) {
-            state->err_code = ec;
+  // Submit on the master's executor - lely's channel I/O is only safe from
+  // the thread running the event loop. Submitting from the caller's thread
+  // (a ROS service callback here) races the loop's poll and can freeze the
+  // master's whole RX/TX path: the reset SDO lands and PDO reception dies
+  // within milliseconds while candump shows both nodes streaming normally
+  // (hit live on a Panther; only the timer path survives, which is why
+  // heartbeat timeouts still fire afterwards).
+  master.GetExecutor().post([this, state, index, subindex, data]() {
+    try {
+      SubmitWrite(
+        index, subindex, data,
+        [state](std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
+          {
+            std::lock_guard<std::mutex> lck_g(state->mtx);
+            if (ec) {
+              state->err_code = ec;
+            }
+            state->done = true;
           }
-          state->done = true;
-        }
-        state->cv.notify_one();
-      },
-      sdo_operation_timeout_ms_);
-  } catch (const lely::canopen::SdoError & e) {
-    throw std::runtime_error("SDO write error, message: " + std::string(e.what()));
-  }
+          state->cv.notify_one();
+        },
+        sdo_operation_timeout_ms_);
+    } catch (const lely::canopen::SdoError & e) {
+      {
+        std::lock_guard<std::mutex> lck_g(state->mtx);
+        state->err_code = e.code();
+        state->err_msg = std::string(e.what());
+        state->done = true;
+      }
+      state->cv.notify_one();
+    }
+  });
 
   // The `done` predicate closes the lost-wakeup race: the CANopen executor
   // runs at a higher RT priority than any caller, so the confirmation can
@@ -252,6 +268,9 @@ void RoboteqDriver::SyncSDOWrite(
   consecutive_sdo_deadline_misses_ = 0;
 
   if (state->err_code) {
+    if (!state->err_msg.empty()) {
+      throw std::runtime_error("SDO write error, message: " + state->err_msg);
+    }
     throw std::runtime_error("Error msg: " + state->err_code.message());
   }
 }

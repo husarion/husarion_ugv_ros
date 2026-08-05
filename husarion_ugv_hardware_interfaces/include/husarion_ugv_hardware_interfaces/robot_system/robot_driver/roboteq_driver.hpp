@@ -181,6 +181,19 @@ private:
   // caller (e.g. the e_stop_reset service callback) must never block forever.
   static constexpr std::chrono::milliseconds kSdoConfirmationTimeoutMargin{1000};
 
+  // Consecutive confirmation-deadline misses. A single miss can be a torn-down
+  // master mid-resync, but the master can also wedge with only its SDO client
+  // dead - PDOs and heartbeats keep flowing, so the PDO resync watchdog never
+  // sees it (bit us live: a trigger landing on an in-flight e_stop_reset left
+  // lely accepting writes it never put on the wire; every reset failed until a
+  // container restart). Any delivered confirmation (success or abort) clears
+  // the count; kMaxConsecutiveSdoDeadlineMisses in a row exits with the same
+  // code as UGVSystem::UpdateCANopenResyncWatchdog so the container restart
+  // machinery heals this presentation too.
+  std::atomic<unsigned> consecutive_sdo_deadline_misses_{0};
+  static constexpr unsigned kMaxConsecutiveSdoDeadlineMisses = 3;
+  static constexpr int kSdoWedgeExitCode = 74;  // EX_IOERR, same as the resync watchdog
+
   std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };
 

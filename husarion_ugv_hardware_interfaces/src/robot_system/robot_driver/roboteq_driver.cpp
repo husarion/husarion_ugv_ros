@@ -17,6 +17,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -236,9 +238,18 @@ void RoboteqDriver::SyncSDOWrite(
   if (!state->cv.wait_for(
         lck, sdo_operation_timeout_ms_ + kSdoConfirmationTimeoutMargin,
         [&state]() { return state->done; })) {
+    if (++consecutive_sdo_deadline_misses_ >= kMaxConsecutiveSdoDeadlineMisses) {
+      std::cerr << "SDO wedge watchdog: " << kMaxConsecutiveSdoDeadlineMisses
+                << " consecutive SDO write confirmations never delivered - restarting."
+                << std::endl;
+      std::fflush(stdout);
+      std::fflush(stderr);
+      std::_Exit(kSdoWedgeExitCode);
+    }
     throw std::runtime_error(
       "SDO write confirmation not delivered within the deadline (CANopen master unresponsive).");
   }
+  consecutive_sdo_deadline_misses_ = 0;
 
   if (state->err_code) {
     throw std::runtime_error("Error msg: " + state->err_code.message());

@@ -8,7 +8,44 @@ master:
 slave_1:
   dcf: roboteq_motor_controllers_v80_21a.eds
   node_id: 1
+  # TPDO4 (battery voltage + MCU/heatsink temperatures) ships from the
+  # Roboteq as transmission type 255 with inhibit_time 0 and event_timer 0,
+  # so every LSB of ADC noise emits a frame - measured 355 Hz at standstill
+  # and ~2000 Hz while driving, ~75% of all bus traffic, for data that
+  # changes on the scale of seconds. Cap it: inhibit_time 400 (x100 us =
+  # 40 ms) bounds the rate, event_timer 50 (ms) guarantees a frame under
+  # the 75 ms pdo_driver_state_timeout_ms watchdog even with stable
+  # readings. Verify on the wire after changing: candump histogram of
+  # 0x481/0x482 should sit at 20-25 Hz.
+  #
+  # Regenerating master.dcf: dcfgen canopen_configuration.yaml -r (the
+  # generated slave_N.bin concise DCFs are installed next to master.dcf
+  # and are opened by lely relative to the process working directory -
+  # CANopenManager chdirs to the config directory for that reason).
+  tpdo:
+    4:
+      inhibit_time: 400
+      event_timer: 50
+
 
 slave_2:
   dcf: roboteq_motor_controllers_v80_21a.eds
   node_id: 2
+  # TPDO4 (battery voltage + MCU/heatsink temperatures) ships from the
+  # Roboteq as transmission type 255 with inhibit_time 0 and event_timer 0,
+  # so every LSB of ADC noise emits a frame - measured 355 Hz at standstill
+  # and ~2000 Hz while driving, ~75% of all bus traffic, for data that
+  # changes on the scale of seconds. Cap it: inhibit_time 400 (x100 us =
+  # 40 ms) bounds the rate, event_timer 50 (ms) guarantees a frame under
+  # the 75 ms pdo_driver_state_timeout_ms watchdog even with stable
+  # readings. Verify on the wire after changing: candump histogram of
+  # 0x481/0x482 should sit at 20-25 Hz.
+  #
+  # Regenerating master.dcf: dcfgen canopen_configuration.yaml -r (the
+  # generated slave_N.bin concise DCFs are installed next to master.dcf
+  # and are opened by lely relative to the process working directory -
+  # CANopenManager chdirs to the config directory for that reason).
+  tpdo:
+    4:
+      inhibit_time: 400
+      event_timer: 50

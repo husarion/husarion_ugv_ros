@@ -147,9 +147,19 @@ void CANopenManager::InitializeCANCommunication()
   // Master dcf is generated from roboteq_motor_controllers_v80_21a using following command:
   // dcfgen canopen_configuration.yaml -r
   // dcfgen comes with lely, -r option tells to enable remote PDO mapping
-  std::string master_dcf_path = std::filesystem::path(ament_index_cpp::get_package_share_directory(
-                                  "husarion_ugv_hardware_interfaces")) /
-                                "config" / "master.dcf";
+  const auto config_dir = std::filesystem::path(ament_index_cpp::get_package_share_directory(
+                            "husarion_ugv_hardware_interfaces")) /
+                          "config";
+  std::string master_dcf_path = config_dir / "master.dcf";
+
+  // The slave configuration (1F22 Concise DCF) is referenced from master.dcf
+  // as UploadFile=slave_N.bin. lely opens that path with plain fopen relative
+  // to the process working directory - and not at parse time but on every
+  // slave boot, so a scoped chdir is not enough. Without this the open fails,
+  // the boot aborts on 1F22 and the slave never gets its PDO configuration
+  // (hit on a bench Lynx: the boot looped and TPDO4 kept its unthrottled
+  // defaults).
+  std::filesystem::current_path(config_dir);
 
   master_ = std::make_shared<lely::canopen::AsyncMaster>(
     *timer_, *chan_, master_dcf_path, "", canopen_settings_.master_can_id);

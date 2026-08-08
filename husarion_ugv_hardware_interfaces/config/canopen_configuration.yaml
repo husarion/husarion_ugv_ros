@@ -22,7 +22,26 @@ slave_1:
   # generated slave_N.bin concise DCFs are installed next to master.dcf
   # and are opened by lely relative to the process working directory -
   # CANopenManager chdirs to the config directory for that reason).
+  # TPDO1/2 (motor states - the data behind pdo_motor_states_timeout_ms)
+  # default to event_timer 10 ms with inhibit_time 0. Zero inhibit lets the
+  # same ADC noise mechanism as TPDO4 free-run the on-change path - measured
+  # 300-430 Hz per PDO at standstill on a Lynx once the controller state
+  # dithered around zero, and the rate is state-dependent, not bounded.
+  # event_timer 5 (ms) doubles the guaranteed floor to 200 Hz so the
+  # staleness deadline holds a multi-frame margin, and inhibit_time 40
+  # (x100 us = 4 ms) caps the on-change burst rate at 250 Hz. TPDO3
+  # (fault/runtime flags) gets inhibit_time 90 (9 ms) against the same
+  # dither with its default timer kept. Verify on the wire: candump
+  # histogram of 0x181/0x281 sits at 200-275 Hz, 0x381 under 111 Hz.
   tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
     4:
       inhibit_time: 400
       event_timer: 50
@@ -45,7 +64,26 @@ slave_2:
   # generated slave_N.bin concise DCFs are installed next to master.dcf
   # and are opened by lely relative to the process working directory -
   # CANopenManager chdirs to the config directory for that reason).
+  # TPDO1/2 (motor states - the data behind pdo_motor_states_timeout_ms)
+  # default to event_timer 10 ms with inhibit_time 0. Zero inhibit lets the
+  # same ADC noise mechanism as TPDO4 free-run the on-change path - measured
+  # 300-430 Hz per PDO at standstill on a Lynx once the controller state
+  # dithered around zero, and the rate is state-dependent, not bounded.
+  # event_timer 5 (ms) doubles the guaranteed floor to 200 Hz so the
+  # staleness deadline holds a multi-frame margin, and inhibit_time 40
+  # (x100 us = 4 ms) caps the on-change burst rate at 250 Hz. TPDO3
+  # (fault/runtime flags) gets inhibit_time 90 (9 ms) against the same
+  # dither with its default timer kept. Verify on the wire: candump
+  # histogram of 0x181/0x281 sits at 200-275 Hz, 0x381 under 111 Hz.
   tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
     4:
       inhibit_time: 400
       event_timer: 50

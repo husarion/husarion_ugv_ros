@@ -70,16 +70,27 @@ void PantherSystem::UpdateHwStates()
 
 bool PantherSystem::UpdateMotorsStateDataTimedOut()
 {
+  // Per-driver early return keeps the rear driver unconsulted when the front
+  // already timed out (the unit tests pin that ordering) and lets the warn
+  // name the driver instead of hiding it behind a max().
+  // NB the throttle can fold several consecutive timed-out cycles into one
+  // line - absence of repeats is not proof of a single miss.
   const auto & front_data = robot_driver_->GetData(DriverNames::FRONT);
-  const auto & rear_data = robot_driver_->GetData(DriverNames::REAR);
-  if (front_data.IsMotorStatesDataTimedOut() || rear_data.IsMotorStatesDataTimedOut()) {
-    // NB the throttle can fold several consecutive timed-out cycles into one
-    // line - absence of repeats is not proof of a single miss.
+  if (front_data.IsMotorStatesDataTimedOut()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
-      "PDO motor state data timeout (oldest data "
-        << std::max(front_data.GetMotorStatesAgeMs(), rear_data.GetMotorStatesAgeMs())
-        << " ms old).");
+      "PDO motor state data timeout (front, oldest data " << front_data.GetMotorStatesAgeMs()
+                                                          << " ms old).");
+    roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
+    return true;
+  }
+
+  const auto & rear_data = robot_driver_->GetData(DriverNames::REAR);
+  if (rear_data.IsMotorStatesDataTimedOut()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (rear, oldest data " << rear_data.GetMotorStatesAgeMs()
+                                                         << " ms old).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }

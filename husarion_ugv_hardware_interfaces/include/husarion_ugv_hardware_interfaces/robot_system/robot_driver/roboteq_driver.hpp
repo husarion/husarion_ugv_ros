@@ -142,6 +142,21 @@ public:
       last_speed_current_timestamps_ns_.at(channel - kChannel1).load(std::memory_order_acquire));
   }
 
+  std::int32_t GetPosition(const std::uint8_t channel) const
+  {
+    return last_positions_.at(channel - kChannel1).load(std::memory_order_acquire);
+  }
+
+  std::int16_t GetVelocity(const std::uint8_t channel) const
+  {
+    return last_velocities_.at(channel - kChannel1).load(std::memory_order_acquire);
+  }
+
+  std::int16_t GetCurrent(const std::uint8_t channel) const
+  {
+    return last_currents_.at(channel - kChannel1).load(std::memory_order_acquire);
+  }
+
   static constexpr std::uint8_t kChannel1 = 1;
   static constexpr std::uint8_t kChannel2 = 2;
 
@@ -171,6 +186,22 @@ private:
   std::array<std::atomic<std::int64_t>, 2> last_speed_current_timestamps_ns_{};
   std::atomic<std::int64_t> flags_current_timestamp_ns_{0};
   std::atomic<std::int64_t> last_voltages_temps_timestamp_ns_{0};
+
+  // Mirrors of the mapped RPDO values, written on the CANopen thread in
+  // OnRpdoWrite and read lock-free by the control loop. Reading rpdo_mapped
+  // from the 100 Hz read path takes the lely device mutex once per access -
+  // 13 locked accesses per cycle - and contends with the event loop mid
+  // frame burst; measured as multi-ms read() spikes under camera plus drive
+  // load. Same single-writer pattern as the timestamps above.
+  std::array<std::atomic<std::int32_t>, 2> last_positions_{};
+  std::array<std::atomic<std::int16_t>, 2> last_velocities_{};
+  std::array<std::atomic<std::int16_t>, 2> last_currents_{};
+  std::atomic<std::int32_t> last_flags_{0};
+  std::atomic<std::int16_t> last_mcu_temp_{0};
+  std::atomic<std::int16_t> last_heatsink_temp_{0};
+  std::atomic<std::uint16_t> last_battery_voltage_{0};
+  std::atomic<std::int16_t> last_battery_current_1_{0};
+  std::atomic<std::int16_t> last_battery_current_2_{0};
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
 

@@ -63,9 +63,9 @@ MotorDriverState RoboteqMotorDriver::ReadState()
   MotorDriverState state;
 
   if (auto driver = driver_.lock()) {
-    state.pos = driver->rpdo_mapped[RoboteqCANObjects::position_id][channel_];
-    state.vel = driver->rpdo_mapped[RoboteqCANObjects::velocity_id][channel_];
-    state.current = driver->rpdo_mapped[RoboteqCANObjects::current_id][channel_];
+    state.pos = driver->GetPosition(channel_);
+    state.vel = driver->GetVelocity(channel_);
+    state.current = driver->GetCurrent(channel_);
     state.pos_timestamp = driver->GetPositionTimestamp(channel_);
     state.vel_current_timestamp = driver->GetSpeedCurrentTimestamp(channel_);
   }
@@ -119,22 +119,17 @@ DriverState RoboteqDriver::ReadState()
 {
   DriverState state;
 
-  std::int32_t flags = static_cast<std::int32_t>(
-    rpdo_mapped[RoboteqCANObjects::flags.id][RoboteqCANObjects::flags.subid]);
+  const std::int32_t flags = last_flags_.load(std::memory_order_acquire);
   state.fault_flags = GetByte(flags, 0);
   state.runtime_stat_flag_channel_1 = GetByte(flags, 1);
   state.runtime_stat_flag_channel_2 = GetByte(flags, 2);
   state.script_flags = GetByte(flags, 3);
 
-  state.mcu_temp = rpdo_mapped[RoboteqCANObjects::mcu_temp.id][RoboteqCANObjects::mcu_temp.subid];
-  state.heatsink_temp =
-    rpdo_mapped[RoboteqCANObjects::heatsink_temp.id][RoboteqCANObjects::heatsink_temp.subid];
-  state.battery_voltage =
-    rpdo_mapped[RoboteqCANObjects::battery_voltage.id][RoboteqCANObjects::battery_voltage.subid];
-  state.battery_current_1 = rpdo_mapped[RoboteqCANObjects::battery_current_1.id]
-                                       [RoboteqCANObjects::battery_current_1.subid];
-  state.battery_current_2 = rpdo_mapped[RoboteqCANObjects::battery_current_2.id]
-                                       [RoboteqCANObjects::battery_current_2.subid];
+  state.mcu_temp = last_mcu_temp_.load(std::memory_order_acquire);
+  state.heatsink_temp = last_heatsink_temp_.load(std::memory_order_acquire);
+  state.battery_voltage = last_battery_voltage_.load(std::memory_order_acquire);
+  state.battery_current_1 = last_battery_current_1_.load(std::memory_order_acquire);
+  state.battery_current_2 = last_battery_current_2_.load(std::memory_order_acquire);
 
   state.flags_current_timestamp =
     NanosecondsToTimespec(flags_current_timestamp_ns_.load(std::memory_order_acquire));
@@ -306,18 +301,50 @@ void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subi
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
+    last_positions_.at(subidx - kChannel1)
+      .store(static_cast<std::int32_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
     last_position_timestamps_ns_.at(subidx - kChannel1).store(now_ns, std::memory_order_release);
   } else if (idx == RoboteqCANObjects::velocity_id) {
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
+    last_velocities_.at(subidx - kChannel1)
+      .store(static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
     last_speed_current_timestamps_ns_.at(subidx - kChannel1)
       .store(now_ns, std::memory_order_release);
+  } else if (idx == RoboteqCANObjects::current_id) {
+    if (subidx != kChannel1 && subidx != kChannel2) {
+      return;
+    }
+    last_currents_.at(subidx - kChannel1)
+      .store(static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
   } else if (idx == RoboteqCANObjects::flags.id && subidx == RoboteqCANObjects::flags.subid) {
+    last_flags_.store(
+      static_cast<std::int32_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
     flags_current_timestamp_ns_.store(now_ns, std::memory_order_release);
+  } else if (idx == RoboteqCANObjects::mcu_temp.id && subidx == RoboteqCANObjects::mcu_temp.subid) {
+    last_mcu_temp_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::heatsink_temp.id &&
+    subidx == RoboteqCANObjects::heatsink_temp.subid) {
+    last_heatsink_temp_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::battery_current_1.id &&
+    subidx == RoboteqCANObjects::battery_current_1.subid) {
+    last_battery_current_1_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::battery_current_2.id &&
+    subidx == RoboteqCANObjects::battery_current_2.subid) {
+    last_battery_current_2_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
   } else if (
     idx == RoboteqCANObjects::battery_voltage.id &&
     subidx == RoboteqCANObjects::battery_voltage.subid) {
+    last_battery_voltage_.store(
+      static_cast<std::uint16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
     last_voltages_temps_timestamp_ns_.store(now_ns, std::memory_order_release);
   }
 }

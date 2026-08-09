@@ -193,6 +193,10 @@ public:
     const MotorDriverState & channel_1_state, const MotorDriverState & channel_2_state,
     const bool data_timed_out);
   void SetDriverState(const DriverState & state, const bool data_timed_out);
+  // Age of the oldest motor state PDO at the moment of the staleness check -
+  // the timeout flag alone says nothing about how late the data was, which
+  // made every timeout forensic start from scratch.
+  void SetMotorsStatesAgeMs(const float age_ms) { motor_states_age_ms_ = age_ms; }
   void SetCANError(const bool can_error) { can_error_ = can_error; }
   void SetHeartbeatTimeout(const bool heartbeat_timeout) { heartbeat_timeout_ = heartbeat_timeout; }
 
@@ -220,6 +224,7 @@ public:
   const RoboteqDriverState & GetDriverState() const { return driver_state_; }
 
   bool IsMotorStatesDataTimedOut() const { return motor_states_data_timed_out_; }
+  float GetMotorStatesAgeMs() const { return motor_states_age_ms_; }
   bool IsDriverStateDataTimedOut() const { return driver_state_data_timed_out_; }
   bool IsCANError() const { return can_error_; }
   bool IsHeartbeatTimeout() const { return heartbeat_timeout_; }
@@ -253,6 +258,7 @@ private:
   RuntimeError channel_2_runtime_error_;
 
   bool motor_states_data_timed_out_ = false;
+  float motor_states_age_ms_ = 0.0f;
   bool driver_state_data_timed_out_ = false;
   bool can_error_ = false;
   bool heartbeat_timeout_ = false;

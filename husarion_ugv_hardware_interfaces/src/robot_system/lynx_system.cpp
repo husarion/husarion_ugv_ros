@@ -64,8 +64,13 @@ void LynxSystem::UpdateHwStates()
 
 bool LynxSystem::UpdateMotorsStateDataTimedOut()
 {
-  if (robot_driver_->GetData(DriverNames::DEFAULT).IsMotorStatesDataTimedOut()) {
-    RCLCPP_WARN_STREAM_THROTTLE(logger_, steady_clock_, 1000, "PDO motor state data timeout.");
+  const auto & data = robot_driver_->GetData(DriverNames::DEFAULT);
+  if (data.IsMotorStatesDataTimedOut()) {
+    // NB the throttle can fold several consecutive timed-out cycles into one
+    // line - absence of repeats is not proof of a single miss.
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (oldest data " << data.GetMotorStatesAgeMs() << " ms old).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }

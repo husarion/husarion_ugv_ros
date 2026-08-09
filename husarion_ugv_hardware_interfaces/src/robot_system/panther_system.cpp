@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/panther_system.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -69,10 +70,16 @@ void PantherSystem::UpdateHwStates()
 
 bool PantherSystem::UpdateMotorsStateDataTimedOut()
 {
-  if (
-    robot_driver_->GetData(DriverNames::FRONT).IsMotorStatesDataTimedOut() ||
-    robot_driver_->GetData(DriverNames::REAR).IsMotorStatesDataTimedOut()) {
-    RCLCPP_WARN_STREAM_THROTTLE(logger_, steady_clock_, 1000, "PDO motor state data timeout.");
+  const auto & front_data = robot_driver_->GetData(DriverNames::FRONT);
+  const auto & rear_data = robot_driver_->GetData(DriverNames::REAR);
+  if (front_data.IsMotorStatesDataTimedOut() || rear_data.IsMotorStatesDataTimedOut()) {
+    // NB the throttle can fold several consecutive timed-out cycles into one
+    // line - absence of repeats is not proof of a single miss.
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (oldest data "
+        << std::max(front_data.GetMotorStatesAgeMs(), rear_data.GetMotorStatesAgeMs())
+        << " ms old).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }

@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 
+#include "husarion_ugv_utils/configure_rt.hpp"
+
 #include <chrono>
 #include <functional>
 #include <iostream>
@@ -70,6 +72,19 @@ bool Watchdog::TurnOff()
 
 void Watchdog::WatchdogThread()
 {
+  // The safety board watches this square wave and cuts power when it stops.
+  // std::thread starts the loop SCHED_OTHER, so on a loaded machine it can be
+  // held off the core for tens of milliseconds against a 10 ms period - long
+  // enough for the board to latch the e-stop, and it does so in hardware with
+  // nothing to log. Caught on a Lynx: 24-39 ms scheduling stalls on this
+  // thread and two silent latches in an afternoon.
+  try {
+    husarion_ugv_utils::ConfigureRT(kWatchdogSchedPriority);
+  } catch (const std::runtime_error & e) {
+    std::cerr << "Failed to configure RT priority for the safety watchdog thread: " << e.what()
+              << std::endl;
+  }
+
   while (watchdog_thread_enabled_) {
     const bool value = gpio_driver_->IsPinActive(watchdog_pin_);
 

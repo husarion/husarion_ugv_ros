@@ -76,8 +76,7 @@ MotorDriverState RoboteqMotorDriver::ReadState()
 void RoboteqMotorDriver::SendCmdVel(const std::int32_t cmd)
 {
   if (auto driver = driver_.lock()) {
-    driver->tpdo_mapped[RoboteqCANObjects::cmd_id][channel_] = cmd;
-    driver->tpdo_mapped[RoboteqCANObjects::cmd_id][channel_].WriteEvent();
+    driver->PostCmdVel(channel_, cmd);
   }
 }
 
@@ -287,6 +286,23 @@ void RoboteqDriver::OnBoot(
       std::cerr << "An exception occurred while setting boot promise: " << e.what() << std::endl;
     }
   }
+}
+
+void RoboteqDriver::PostCmdVel(const std::uint8_t channel, const std::int32_t cmd)
+{
+  const std::size_t slot = channel - kChannel1;
+  pending_cmd_.at(slot).store(cmd, std::memory_order_release);
+
+  if (cmd_task_queued_.at(slot).exchange(true, std::memory_order_acq_rel)) {
+    return;
+  }
+
+  master.GetExecutor().post([this, channel, slot]() {
+    cmd_task_queued_.at(slot).store(false, std::memory_order_release);
+    const std::int32_t latest = pending_cmd_.at(slot).load(std::memory_order_acquire);
+    tpdo_mapped[RoboteqCANObjects::cmd_id][channel] = latest;
+    tpdo_mapped[RoboteqCANObjects::cmd_id][channel].WriteEvent();
+  });
 }
 
 void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept

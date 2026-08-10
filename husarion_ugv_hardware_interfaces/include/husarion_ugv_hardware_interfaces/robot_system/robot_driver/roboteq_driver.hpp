@@ -157,6 +157,23 @@ public:
     return last_currents_.at(channel - kChannel1).load(std::memory_order_acquire);
   }
 
+  // Hand a velocity command to the event loop instead of writing the mapped
+  // TPDO object from the caller. lely's channel I/O is only safe on the thread
+  // running the loop, and every tpdo_mapped access takes the device mutex the
+  // loop needs for each received frame - at 100 Hz from the control loop that
+  // stole the mutex out from under RPDO dispatch and left motor state
+  // timestamps ageing past the staleness deadline while the wire stayed clean.
+  void PostCmdVel(const std::uint8_t channel, const std::int32_t cmd);
+
+
+  // One in-flight task per channel carrying whatever the newest command is at
+  // the moment it runs. A plain post per cycle would queue behind a busy loop
+  // and then drive the robot through a burst of commands it has already
+  // superseded - the freshest value is the only correct one for a velocity
+  // setpoint.
+  std::array<std::atomic<std::int32_t>, 2> pending_cmd_{};
+  std::array<std::atomic<bool>, 2> cmd_task_queued_{};
+
   static constexpr std::uint8_t kChannel1 = 1;
   static constexpr std::uint8_t kChannel2 = 2;
 

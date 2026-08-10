@@ -263,6 +263,14 @@ std::vector<CommandInterface> UGVSystem::export_command_interfaces()
 
 return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & /* period */)
 {
+  timespec now_ts;
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  if (last_read_ts_.tv_sec != 0 || last_read_ts_.tv_nsec != 0) {
+    read_cycle_ms_ = static_cast<float>(now_ts.tv_sec - last_read_ts_.tv_sec) * 1000.0F +
+                     static_cast<float>(now_ts.tv_nsec - last_read_ts_.tv_nsec) / 1.0e6F;
+  }
+  last_read_ts_ = now_ts;
+
   UpdateMotorsState();
 
   if (time >= next_driver_state_update_time_) {

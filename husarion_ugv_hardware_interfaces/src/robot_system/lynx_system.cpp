@@ -70,7 +70,9 @@ bool LynxSystem::UpdateMotorsStateDataTimedOut()
     // line - absence of repeats is not proof of a single miss.
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
-      "PDO motor state data timeout (oldest data " << data.GetMotorStatesAgeMs() << " ms old).");
+      "PDO motor state data timeout (oldest data "
+        << data.GetMotorStatesAgeMs() << " ms old, freshest " << data.GetMotorStatesFreshestAgeMs()
+        << " ms, read cycle " << read_cycle_ms_ << " ms).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }

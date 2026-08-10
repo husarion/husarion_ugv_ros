@@ -226,10 +226,14 @@ void RoboteqRobotDriver::SetMotorsStates(
   const float max_age_ms = std::max(
     {age_ms(left_state.pos_timestamp), age_ms(left_state.vel_current_timestamp),
      age_ms(right_state.pos_timestamp), age_ms(right_state.vel_current_timestamp)});
+  const float min_age_ms = std::min(
+    {age_ms(left_state.pos_timestamp), age_ms(left_state.vel_current_timestamp),
+     age_ms(right_state.pos_timestamp), age_ms(right_state.vel_current_timestamp)});
 
   // Channel 1 - right, Channel 2 - left
   data.SetMotorsStates(right_state, left_state, data_timed_out);
   data.SetMotorsStatesAgeMs(max_age_ms);
+  data.SetMotorsStatesFreshestAgeMs(min_age_ms);
 }
 
 void RoboteqRobotDriver::SetDriverState(

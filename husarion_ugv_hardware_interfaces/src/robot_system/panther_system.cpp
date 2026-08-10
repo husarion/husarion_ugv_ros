@@ -79,8 +79,10 @@ bool PantherSystem::UpdateMotorsStateDataTimedOut()
   if (front_data.IsMotorStatesDataTimedOut()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
-      "PDO motor state data timeout (front, oldest data " << front_data.GetMotorStatesAgeMs()
-                                                          << " ms old).");
+      "PDO motor state data timeout (front, oldest data "
+        << front_data.GetMotorStatesAgeMs() << " ms old, freshest "
+        << front_data.GetMotorStatesFreshestAgeMs() << " ms, read cycle " << read_cycle_ms_
+        << " ms).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }
@@ -89,8 +91,10 @@ bool PantherSystem::UpdateMotorsStateDataTimedOut()
   if (rear_data.IsMotorStatesDataTimedOut()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
-      "PDO motor state data timeout (rear, oldest data " << rear_data.GetMotorStatesAgeMs()
-                                                         << " ms old).");
+      "PDO motor state data timeout (rear, oldest data "
+        << rear_data.GetMotorStatesAgeMs() << " ms old, freshest "
+        << rear_data.GetMotorStatesFreshestAgeMs() << " ms, read cycle " << read_cycle_ms_
+        << " ms).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
     return true;
   }

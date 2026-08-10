@@ -165,6 +165,14 @@ protected:
   std::shared_ptr<std::mutex> robot_driver_write_mtx_;
 
   rclcpp::Time next_driver_state_update_time_{0, 0, RCL_STEADY_TIME};
+
+  // Wall time between consecutive read() entries. A staleness warn cannot say
+  // on its own whether the data was late or the reader was: at a 100 Hz
+  // nominal cycle an age of 25 ms with a 10 ms cycle means the PDO stream
+  // stalled, the same age with a 30 ms cycle means this loop missed wakeups
+  // and read data that was fine when it arrived.
+  float read_cycle_ms_ = 0.0F;
+  timespec last_read_ts_{0, 0};
   rclcpp::Duration driver_states_update_period_{0, 0};
 
   // A PDO timeout persisting this long means the master stopped receiving while the bus can

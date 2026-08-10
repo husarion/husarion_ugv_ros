@@ -165,6 +165,16 @@ public:
   // timestamps ageing past the staleness deadline while the wire stayed clean.
   void PostCmdVel(const std::uint8_t channel, const std::int32_t cmd);
 
+  // lely gives a LoopDriver its own thread and creates it with default
+  // attributes, so the callback that timestamps and mirrors every motor state
+  // frame ran SCHED_OTHER while the uart irq (72), slcand (71) and the master
+  // loop (70) around it were all RT. It lost the core to the ROS stack for
+  // tens of milliseconds at a time and the mirrored timestamps aged past the
+  // staleness deadline with the wire clean and the control loop on time. The
+  // thread raises itself on its first callback - from outside the process
+  // every thread here is just "ros2_control_node" and cannot be told apart.
+  static constexpr unsigned kRpdoDispatchSchedPriority = 65;
+  std::atomic<bool> dispatch_priority_set_{false};
 
   // One in-flight task per channel carrying whatever the newest command is at
   // the moment it runs. A plain post per cycle would queue behind a busy loop

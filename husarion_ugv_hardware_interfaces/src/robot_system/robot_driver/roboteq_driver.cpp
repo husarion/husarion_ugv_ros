@@ -29,6 +29,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
+#include "husarion_ugv_utils/configure_rt.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -307,6 +308,15 @@ void RoboteqDriver::PostCmdVel(const std::uint8_t channel, const std::int32_t cm
 
 void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept
 {
+  if (!dispatch_priority_set_.exchange(true, std::memory_order_acq_rel)) {
+    try {
+      husarion_ugv_utils::ConfigureRT(kRpdoDispatchSchedPriority);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the RPDO dispatch thread: " << e.what()
+                << std::endl;
+    }
+  }
+
   timespec current_timestamp;
   clock_gettime(CLOCK_MONOTONIC, &current_timestamp);
   const std::int64_t now_ns = TimespecToNanoseconds(current_timestamp);

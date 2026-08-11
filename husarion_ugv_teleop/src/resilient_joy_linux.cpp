@@ -31,12 +31,14 @@
 // \author: Blaise Gassend
 
 // Vendored from ros-drivers/joystick_drivers joy_linux 3.3.0
-// (src/joy_linux_node.cpp) with one behavioral change: shutdown signals are
+// (src/joy_linux_node.cpp) with two behavioral changes. Shutdown signals are
 // consumed by husarion_ugv_utils::ShutdownSignalWatcher instead of rclcpp's
 // default handler, and every loop exit condition also checks the resulting
 // flag - the stock node lets the handler invalidate the context mid
 // spin_some() and dies on terminate instead of exiting on a routine container
-// stop. Everything else stays verbatim; diff against upstream when bumping.
+// stop. And the reconnect loop asks sysfs whether the joystick exists before
+// opening it - see joystick_present. Everything else stays verbatim; diff
+// against upstream when bumping.
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -113,6 +115,35 @@ private:
     event_count_ = 0;
     pub_count_ = 0;
     lastDiagTime_ = now;
+  }
+
+  /*! \brief Returns true when the kernel actually has this joystick.
+   *
+   *  Opening a /dev/input/jsN node that no driver backs makes the kernel
+   *  request the char-major-13 module, and that request is a synchronous fork
+   *  and exec of modprobe that the kernel waits for. The OS image ships a
+   *  placeholder js0 so the driver container's device mapping resolves with no
+   *  gamepad plugged in, so the reconnect loop below asked for that module
+   *  twice a second for as long as the robot was up. sysfs lists a jsN entry
+   *  only once a real device is registered, so it answers the question without
+   *  touching the device - and it appears on hot-plug, so the loop still picks
+   *  a gamepad up within its usual second.
+   */
+  bool joystick_present(const std::string & dev)
+  {
+    const std::size_t slash = dev.find_last_of('/');
+    const std::string name = (slash == std::string::npos) ? dev : dev.substr(slash + 1);
+
+    if (name.rfind("js", 0) != 0) {
+      return true;
+    }
+
+    struct stat stat_buf;
+    if (stat("/sys/class/input", &stat_buf) != 0) {
+      return true;
+    }
+
+    return stat(("/sys/class/input/" + name).c_str(), &stat_buf) == 0;
   }
 
   /*! \brief Returns the device path of the first joystick that matches joy_name.
@@ -325,6 +356,14 @@ public:
         rclcpp::spin_until_future_complete(node_, dummy_future, timeout);
         if (!rclcpp::ok() || g_shutdown_requested.load()) {
           goto cleanup;
+        }
+        if (!joystick_present(joy_dev_)) {
+          if (first_fault) {
+            RCLCPP_ERROR(
+              node_->get_logger(), "No joystick at %s. Will retry every second.", joy_dev_.c_str());
+            first_fault = false;
+          }
+          continue;
         }
         joy_fd = open(joy_dev_.c_str(), O_RDONLY);
         if (joy_fd != -1) {

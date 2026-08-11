@@ -359,7 +359,7 @@ public:
         }
         if (!joystick_present(joy_dev_)) {
           if (first_fault) {
-            RCLCPP_ERROR(
+            RCLCPP_WARN(
               node_->get_logger(), "No joystick at %s. Will retry every second.", joy_dev_.c_str());
             first_fault = false;
           }

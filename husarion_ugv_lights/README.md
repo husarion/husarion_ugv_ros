@@ -52,6 +52,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 #### Service Servers
 
 - `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
+- `lights/enable` [*std_srvs/SetBool*]: Gates the physical LED output. When disabled the animation topics keep publishing and the frames keep arriving, nothing is written to the strip, and the strip is blanked once so it does not freeze on its last frame.
 
 #### Service Clients
 
@@ -60,6 +61,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 #### Parameters
 
 - `frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
+- `led_output_enabled` [*bool*, default: **true**]: Startup state of the physical LED output, see the `lights/enable` service.
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

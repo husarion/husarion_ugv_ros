@@ -143,8 +143,18 @@ void LightsDriverNode::InitializationTimerCB()
     led_control_pending_ = false;
   }
 
+  // Never throw here: an exception from a timer callback aborts the whole
+  // component container, and the container is a required launch process - a
+  // slow hardware bring-up (cold boot, SDO retries) would take down the
+  // entire driver stack over the LED bar. Keep retrying and report once per
+  // round instead. LED control is granted whenever the hardware service
+  // finally appears.
   if (initialization_attempt_ >= kMaxInitializationAttempts) {
-    throw std::runtime_error("Failed to initialize LED driver.");
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "LED control service still unavailable after %u attempts. Continuing to retry.",
+      kMaxInitializationAttempts);
+    initialization_attempt_ = 0;
   }
 
   ToggleLEDControl(true);

@@ -49,6 +49,10 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `lights/channel_1_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: Frame to be displayed on robot Front Bumper Lights.
 - `lights/channel_2_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: Frame to be displayed on robot Rear Bumper Lights.
 
+#### Publishers
+
+- `lights/output_state` [*husarion_ugv_msgs/LEDOutputState*, latched]: Current state of the physical LED output - the `lights/enable` gate and the global brightness. Published on every change, so a client that connects later still learns the current state.
+
 #### Service Servers
 
 - `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.

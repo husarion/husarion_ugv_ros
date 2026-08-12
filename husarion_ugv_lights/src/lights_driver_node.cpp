@@ -43,6 +43,7 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
+  led_output_enabled_(true),
   initialization_attempt_(0),
   channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
   channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
@@ -60,6 +61,8 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   channel_1_num_led_ = this->params_.channel_1_num_led;
   channel_2_num_led_ = this->params_.channel_2_num_led;
 
+  led_output_enabled_ = this->params_.led_output_enabled;
+
   const float global_brightness = this->params_.global_brightness;
   channel_1_->SetGlobalBrightness(global_brightness);
   channel_2_->SetGlobalBrightness(global_brightness);
@@ -72,6 +75,9 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   set_brightness_server_ = this->create_service<SetLEDBrightnessSrv>(
     "lights/set_brightness", std::bind(&LightsDriverNode::SetBrightnessCB, this, _1, _2));
+
+  enable_led_output_server_ = this->create_service<SetBoolSrv>(
+    "lights/enable", std::bind(&LightsDriverNode::EnableLEDOutputCB, this, _1, _2));
 
   // running at 10 Hz
   initialization_timer_ = this->create_wall_timer(
@@ -216,6 +222,13 @@ void LightsDriverNode::FrameCB(
     return;
   }
 
+  // Output gated off: the frame is still received and the animation keeps being
+  // published, only nothing reaches the strip. Silent on purpose - this is a
+  // deliberate state, not a fault.
+  if (!led_output_enabled_) {
+    return;
+  }
+
   std::string message;
   if (
     (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
@@ -263,6 +276,33 @@ void LightsDriverNode::SetBrightnessCB(
   str_bright = str_bright.substr(0, str_bright.find(".") + 3);
   res->success = true;
   res->message = "Changed brightness to " + str_bright;
+}
+
+void LightsDriverNode::EnableLEDOutputCB(
+  const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+{
+  const bool enable = req->data;
+
+  if (enable == led_output_enabled_) {
+    res->success = true;
+    res->message = std::string("LED output already ") + (enable ? "enabled" : "disabled");
+    return;
+  }
+
+  led_output_enabled_ = enable;
+
+  // An APA102 strip latches the last frame it was given, so dropping the writes
+  // freezes the animation instead of turning it off. Push one black frame on the
+  // way down. Only the driver that holds the LED control line may write, so with
+  // control still pending this is left to the grant path, which clears anyway.
+  if (!enable && led_control_granted_) {
+    ClearLEDs();
+  }
+
+  RCLCPP_INFO(this->get_logger(), "Physical LED output %s.", enable ? "enabled" : "disabled");
+
+  res->success = true;
+  res->message = std::string("LED output ") + (enable ? "enabled" : "disabled");
 }
 
 void LightsDriverNode::PanelThrottleWarnLog(const std::string panel_name, const std::string message)

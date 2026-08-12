@@ -55,6 +55,15 @@ protected:
   void ClearLEDs();
 
   /**
+   * @brief Callback of the service gating the physical LED output.
+   *
+   * @param req Request with the desired state.
+   * @param res Response of the service.
+   */
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res);
+
+  /**
    * @brief Callback to execute when service invoked to toggle LED control returns response.
    *
    * @param future Future object with request and response of the service call.
@@ -89,6 +98,7 @@ protected:
   double frame_timeout_;
   bool led_control_granted_;
   bool led_control_pending_;
+  bool led_output_enabled_;
 
   rclcpp::Time channel_1_ts_;
   rclcpp::Time channel_2_ts_;
@@ -128,6 +138,7 @@ private:
 
   rclcpp::Client<SetBoolSrv>::SharedPtr enable_led_control_client_;
   rclcpp::Service<SetLEDBrightnessSrv>::SharedPtr set_brightness_server_;
+  rclcpp::Service<SetBoolSrv>::SharedPtr enable_led_output_server_;
 
   rclcpp::CallbackGroup::SharedPtr client_callback_group_;
 

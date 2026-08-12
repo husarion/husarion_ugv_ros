@@ -29,6 +29,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -44,6 +45,7 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   led_control_granted_(false),
   led_control_pending_(false),
   led_output_enabled_(true),
+  global_brightness_(1.0f),
   initialization_attempt_(0),
   channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
   channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
@@ -63,9 +65,9 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   led_output_enabled_ = this->params_.led_output_enabled;
 
-  const float global_brightness = this->params_.global_brightness;
-  channel_1_->SetGlobalBrightness(global_brightness);
-  channel_2_->SetGlobalBrightness(global_brightness);
+  global_brightness_ = static_cast<float>(this->params_.global_brightness);
+  channel_1_->SetGlobalBrightness(global_brightness_);
+  channel_2_->SetGlobalBrightness(global_brightness_);
 
   client_callback_group_ =
     this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -78,6 +80,10 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   enable_led_output_server_ = this->create_service<SetBoolSrv>(
     "lights/enable", std::bind(&LightsDriverNode::EnableLEDOutputCB, this, _1, _2));
+
+  output_state_pub_ = this->create_publisher<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local());
+  PublishOutputState();
 
   // running at 10 Hz
   initialization_timer_ = this->create_wall_timer(
@@ -270,12 +276,23 @@ void LightsDriverNode::SetBrightnessCB(
     return;
   }
 
+  global_brightness_ = brightness;
+  PublishOutputState();
+
   auto str_bright = std::to_string(brightness);
 
   // Round string to two decimal points
   str_bright = str_bright.substr(0, str_bright.find(".") + 3);
   res->success = true;
   res->message = "Changed brightness to " + str_bright;
+}
+
+void LightsDriverNode::PublishOutputState()
+{
+  LEDOutputStateMsg msg;
+  msg.enabled = led_output_enabled_;
+  msg.brightness = global_brightness_;
+  output_state_pub_->publish(msg);
 }
 
 void LightsDriverNode::EnableLEDOutputCB(

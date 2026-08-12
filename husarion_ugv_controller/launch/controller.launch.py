@@ -212,8 +212,13 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # A cold boot on a two-node bus can spend 20-40 s in CANopen init
+        # retries before controller_manager's services appear. With the old
+        # 10 s the spawner died and the robot ended up running with zero
+        # controllers (silently undrivable, self-repaired only by the OS
+        # image's driver watcher restart).
         "--controller-manager-timeout",
-        "10",
+        "60",
         "--ros-args",
         "--log-level",
         normalize_log_level(log_level),

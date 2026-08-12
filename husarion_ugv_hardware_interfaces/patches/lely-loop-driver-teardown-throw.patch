@@ -1,0 +1,40 @@
+The LoopDriver event-loop thread must not throw. lely's ev::Loop::run() and
+poll() throwing wrappers read the thread-local error context after the loop
+returns, so an already-handled failure (an SDO abort during a slave boot, a
+failed fopen) left there surfaces as a std::system_error out of the thread
+function when the loop is stopped for teardown, and the process dies in
+std::terminate. Seen on a two-node Panther as "terminate called after
+throwing an instance of 'std::system_error', what(): run: No such file or
+directory" whenever a boot failure or a container stop tore the drivers
+down. Switch Impl_::Start() to the non-throwing overloads.
+
+diff --git a/src/coapp/loop_driver.cpp b/src/coapp/loop_driver.cpp
+index 021ad27..a11600a 100644
+--- a/src/coapp/loop_driver.cpp
++++ b/src/coapp/loop_driver.cpp
+@@ -151,9 +151,14 @@ LoopDriver::Impl_::Start() {
+   auto exec = self->GetExecutor();
+
+   // Start the event loop. Signal the existence of a fake task to prevent the
+-  // loop for stopping early.
++  // loop for stopping early. Use the non-throwing overloads of run() and
++  // poll(): the throwing wrappers report the thread-local error left by the
++  // last failed operation even if that failure was already handled and the
++  // loop stopped normally, and an exception escaping this thread function
++  // terminates the process.
+   exec.on_task_init();
+-  loop.run();
++  ::std::error_code ec;
++  loop.run(ec);
+   exec.on_task_fini();
+
+   // Deregister the driver to prevent the master from queueing new events. This
+@@ -162,7 +167,7 @@ LoopDriver::Impl_::Start() {
+
+   // Finish remaining tasks, but do not block.
+   loop.restart();
+-  loop.poll();
++  loop.poll(ec);
+
+   // Satisfy the promise to signal that the thread is about to terminate and it
+   // a call to the destructor will not block.

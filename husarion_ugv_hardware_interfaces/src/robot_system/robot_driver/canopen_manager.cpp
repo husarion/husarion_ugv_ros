@@ -75,12 +75,17 @@ void CANopenManager::Activate()
 
     NotifyCANCommunicationStarted(true);
 
-    try {
-      loop_->run();
-    } catch (const std::system_error & e) {
-      // If the error happens and loop stops SDO and PDO operations will timeout and in result
-      // system will switch to error state
-      std::cerr << "An exception occurred in loop run: " << e.what() << std::endl;
+    // The non-throwing overload, on purpose. The throwing run() reports the
+    // thread-local error left by the last failed operation even when that
+    // failure was already handled and the loop was stopped normally for
+    // teardown (the same defect kills the per-driver loop threads in
+    // unpatched lely, see patches/lely-loop-driver-teardown-throw.patch).
+    // A genuine loop failure still surfaces: SDO and PDO operations time
+    // out and the system switches to the error state.
+    std::error_code ec;
+    loop_->run(ec);
+    if (ec && !loop_->stopped()) {
+      std::cerr << "CANopen event loop stopped with error: " << ec.message() << std::endl;
     }
   });
 
@@ -91,9 +96,9 @@ void CANopenManager::Activate()
   // notification carries `false` and the predicate never becomes true.
   {
     std::unique_lock<std::mutex> lck(canopen_communication_started_mtx_);
-    canopen_communication_started_cond_.wait_for(
-      lck, kCanopenCommunicationStartTimeout,
-      [this]() { return canopen_communication_started_.load(); });
+    canopen_communication_started_cond_.wait_for(lck, kCanopenCommunicationStartTimeout, [this]() {
+      return canopen_communication_started_.load();
+    });
   }
 
   if (!canopen_communication_started_.load()) {

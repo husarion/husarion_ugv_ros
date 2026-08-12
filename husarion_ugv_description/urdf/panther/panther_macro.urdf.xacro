@@ -93,7 +93,12 @@
             resulting timeout warns escalated to involuntary e-stops under
             camera plus drive load on a Lynx. -->
           <param name="pdo_motor_states_timeout_ms">25</param>
-          <param name="pdo_driver_state_timeout_ms">75</param>
+          <!-- Driver state TPDOs arrive every 25-40 ms per node here, so 75 ms
+            tolerated only one lost frame and the residual slcan frame loss
+            tripped it every few minutes on the two-node bus. 150 ms still
+            bounds fault-flag staleness well under the heartbeat window and
+            needs two consecutive losses of the same TPDO to warn. -->
+          <param name="pdo_driver_state_timeout_ms">150</param>
 
           <!-- It will be rounded to the closest value taking into account current controller frequency -->
           <param name="driver_states_update_frequency">20.0</param>

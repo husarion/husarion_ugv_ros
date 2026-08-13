@@ -58,18 +58,27 @@ private:
   template <typename T>
   T ReadFile(const std::filesystem::path & file_path) const
   {
-    std::ifstream file(file_path, std::ios_base::in);
-    if (!file) {
+    // The i2c bus drops ~0.06% of ADC reads under load (EIO or a timeout,
+    // measured on a busy Panther). One lost sample is irrelevant to the
+    // moving averages downstream, but a single-shot read turned every drop
+    // into a thrown exception and a warn line - about 40 an hour on a
+    // loaded robot. Retry once before giving up.
+    bool open_failed = false;
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      std::ifstream file(file_path, std::ios_base::in);
+      open_failed = !file;
+      if (!open_failed) {
+        T data;
+        file >> data;
+        if (file) {
+          return data;
+        }
+      }
+    }
+    if (open_failed) {
       throw std::runtime_error("Failed to open file: " + std::string(file_path));
     }
-
-    T data;
-    file >> data;
-    if (!file) {
-      throw std::runtime_error("Failed to read from file: " + std::string(file_path));
-    }
-
-    return data;
+    throw std::runtime_error("Failed to read from file: " + std::string(file_path));
   }
 
   const std::filesystem::path device_path_;

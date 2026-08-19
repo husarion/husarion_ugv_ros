@@ -11,7 +11,7 @@
   <xacro:arg name="battery_config_file"
     default="" />
   <xacro:arg name="namespace" default="" />
-
+  <xacro:arg name="use_madgwick_filter" default="false" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/panther_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.panther_robot
@@ -21,7 +21,8 @@
     wheel_config_file="$(arg wheel_config_file)"
     controller_config_file="$(arg controller_config_file)"
     battery_config_file="$(arg battery_config_file)"
-    namespace="$(arg namespace)" />
+    namespace="$(arg namespace)"
+    use_madgwick_filter="$(arg use_madgwick_filter)" />
 
   <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />

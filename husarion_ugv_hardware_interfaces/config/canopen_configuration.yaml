@@ -8,7 +8,82 @@ master:
 slave_1:
   dcf: roboteq_motor_controllers_v80_21a.eds
   node_id: 1
+  # TPDO4 (battery voltage + MCU/heatsink temperatures) ships from the
+  # Roboteq as transmission type 255 with inhibit_time 0 and event_timer 0,
+  # so every LSB of ADC noise emits a frame - measured 355 Hz at standstill
+  # and ~2000 Hz while driving, ~75% of all bus traffic, for data that
+  # changes on the scale of seconds. Cap it: inhibit_time 400 (x100 us =
+  # 40 ms) bounds the rate, event_timer 50 (ms) guarantees a frame under
+  # the 75 ms pdo_driver_state_timeout_ms watchdog even with stable
+  # readings. Verify on the wire after changing: candump histogram of
+  # 0x481/0x482 should sit at 20-25 Hz.
+  #
+  # Regenerating master.dcf: dcfgen canopen_configuration.yaml -r (the
+  # generated slave_N.bin concise DCFs are installed next to master.dcf
+  # and are opened by lely relative to the process working directory -
+  # CANopenManager chdirs to the config directory for that reason).
+  # TPDO1/2 (motor states - the data behind pdo_motor_states_timeout_ms)
+  # default to event_timer 10 ms with inhibit_time 0. Zero inhibit lets the
+  # same ADC noise mechanism as TPDO4 free-run the on-change path - measured
+  # 300-430 Hz per PDO at standstill on a Lynx once the controller state
+  # dithered around zero, and the rate is state-dependent, not bounded.
+  # event_timer 5 (ms) doubles the guaranteed floor to 200 Hz so the
+  # staleness deadline holds a multi-frame margin, and inhibit_time 40
+  # (x100 us = 4 ms) caps the on-change burst rate at 250 Hz. TPDO3
+  # (fault/runtime flags) gets inhibit_time 90 (9 ms) against the same
+  # dither with its default timer kept. Verify on the wire: candump
+  # histogram of 0x181/0x281 sits at 200-275 Hz, 0x381 under 111 Hz.
+  tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
+    4:
+      inhibit_time: 400
+      event_timer: 50
+
 
 slave_2:
   dcf: roboteq_motor_controllers_v80_21a.eds
   node_id: 2
+  # TPDO4 (battery voltage + MCU/heatsink temperatures) ships from the
+  # Roboteq as transmission type 255 with inhibit_time 0 and event_timer 0,
+  # so every LSB of ADC noise emits a frame - measured 355 Hz at standstill
+  # and ~2000 Hz while driving, ~75% of all bus traffic, for data that
+  # changes on the scale of seconds. Cap it: inhibit_time 400 (x100 us =
+  # 40 ms) bounds the rate, event_timer 50 (ms) guarantees a frame under
+  # the 75 ms pdo_driver_state_timeout_ms watchdog even with stable
+  # readings. Verify on the wire after changing: candump histogram of
+  # 0x481/0x482 should sit at 20-25 Hz.
+  #
+  # Regenerating master.dcf: dcfgen canopen_configuration.yaml -r (the
+  # generated slave_N.bin concise DCFs are installed next to master.dcf
+  # and are opened by lely relative to the process working directory -
+  # CANopenManager chdirs to the config directory for that reason).
+  # TPDO1/2 (motor states - the data behind pdo_motor_states_timeout_ms)
+  # default to event_timer 10 ms with inhibit_time 0. Zero inhibit lets the
+  # same ADC noise mechanism as TPDO4 free-run the on-change path - measured
+  # 300-430 Hz per PDO at standstill on a Lynx once the controller state
+  # dithered around zero, and the rate is state-dependent, not bounded.
+  # event_timer 5 (ms) doubles the guaranteed floor to 200 Hz so the
+  # staleness deadline holds a multi-frame margin, and inhibit_time 40
+  # (x100 us = 4 ms) caps the on-change burst rate at 250 Hz. TPDO3
+  # (fault/runtime flags) gets inhibit_time 90 (9 ms) against the same
+  # dither with its default timer kept. Verify on the wire: candump
+  # histogram of 0x181/0x281 sits at 200-275 Hz, 0x381 under 111 Hz.
+  tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
+    4:
+      inhibit_time: 400
+      event_timer: 50

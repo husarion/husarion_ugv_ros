@@ -16,6 +16,8 @@
 
 #include <array>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -145,13 +147,23 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 {
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Teardown order matters: the diagnostic updater inside
+  // system_ros_interface_ keeps ticking on the executor and its tasks call
+  // robot_driver_->GetData() - deinitializing the driver first leaves a
+  // window where DiagnoseErrors() throws out of the timer callback and
+  // std::terminate takes the whole node down (bit us live on a Lynx). The
+  // GPIO event callback has the sibling problem: it publishes through
+  // system_ros_interface_, so the GPIO controller has to go before the
+  // interface it calls into. Stop callers before callees: GPIO watcher
+  // first (e_stop_ holds refs to gpio + driver, drop it alongside), then
+  // the ROS interface (stops the diagnostics executor), then the driver.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -184,13 +196,14 @@ CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Same teardown order as on_cleanup - rationale there.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -250,6 +263,14 @@ std::vector<CommandInterface> UGVSystem::export_command_interfaces()
 
 return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & /* period */)
 {
+  timespec now_ts;
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  if (last_read_ts_.tv_sec != 0 || last_read_ts_.tv_nsec != 0) {
+    read_cycle_ms_ = static_cast<float>(now_ts.tv_sec - last_read_ts_.tv_sec) * 1000.0F +
+                     static_cast<float>(now_ts.tv_nsec - last_read_ts_.tv_nsec) / 1.0e6F;
+  }
+  last_read_ts_ = now_ts;
+
   UpdateMotorsState();
 
   if (time >= next_driver_state_update_time_) {
@@ -485,13 +506,20 @@ void UGVSystem::UpdateMotorsState()
   try {
     robot_driver_->UpdateMotorsState();
     UpdateHwStates();
-    UpdateMotorsStateDataTimedOut();
+    UpdateCANopenResyncWatchdog(UpdateMotorsStateDataTimedOut());
   } catch (const std::runtime_error & e) {
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
 
     RCLCPP_ERROR_STREAM_THROTTLE(
       logger_, steady_clock_, 5000,
       "An exception occurred while updating motors states: " << e.what());
+
+    // A read that throws (heartbeat timeout, CAN error) is a timed-out read -
+    // without this feed the watchdog is unreachable in exactly the state it
+    // exists for, because a dead master's own symptom raises before the
+    // success-path feed above (bit us live: a wedged master latched the
+    // e-stop every 5 s for hours while the wire carried healthy heartbeats).
+    UpdateCANopenResyncWatchdog(true);
   }
 }
 
@@ -508,6 +536,38 @@ void UGVSystem::UpdateDriverState()
       logger_, steady_clock_, 5000,
       "An exception occurred while updating drivers states: " << e.what());
   }
+}
+
+void UGVSystem::UpdateCANopenResyncWatchdog(const bool data_timed_out)
+{
+  if (!data_timed_out) {
+    pdo_timeout_ongoing_ = false;
+    return;
+  }
+
+  const auto now = std::chrono::steady_clock::now();
+
+  if (!pdo_timeout_ongoing_) {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = now;
+    return;
+  }
+
+  if (now - pdo_timeout_since_ < pdo_timeout_resync_threshold_) {
+    return;
+  }
+
+  // The master can come up (or be recreated into) a state where it no longer receives PDOs
+  // while the bus itself stays healthy. It never recovers on its own and the process never
+  // exits, so the container restart policy can't heal it. Exiting here reuses the restart
+  // machinery for a clean re-initialization - simpler and more reliable than tearing down and
+  // re-creating the master in-process.
+  RCLCPP_FATAL_STREAM(
+    logger_, "CANopen resync watchdog: " << pdo_timeout_resync_threshold_.count()
+                                         << " s of continuous PDO timeout - restarting.");
+  std::fflush(stdout);
+  std::fflush(stderr);
+  std::_Exit(resync_watchdog_exit_code_);
 }
 
 void UGVSystem::UpdateEStopState()

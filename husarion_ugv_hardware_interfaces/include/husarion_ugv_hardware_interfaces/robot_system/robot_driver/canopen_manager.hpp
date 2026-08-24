@@ -112,8 +112,18 @@ private:
    */
   void NotifyCANCommunicationStarted(const bool result);
 
-  // Priority set to be higher than the priority of the main ros2 control node (50)
-  static constexpr unsigned kCANopenThreadSchedPriority = 60;
+  // Priority of the CANopen communication thread. It has to be higher than the control
+  // loop so that reading CAN frames (and stamping the timestamps the loop reads) is not
+  // starved when the CPU is busy. If the CAN thread is starved the timestamps go stale and
+  // the driver reports a PDO timeout, which latches the e-stop. The control loop runs at
+  // FIFO 60 here, so this is set above it.
+  static constexpr unsigned kCANopenThreadSchedPriority = 70;
+
+  // Upper bound on waiting for the CANopen thread's started/failed
+  // notification in Activate(). RT configuration + the notify normally take
+  // microseconds; the bound only matters when the notification is lost or
+  // reports failure, where an unbounded wait would hang activation forever.
+  static constexpr std::chrono::seconds kCanopenCommunicationStartTimeout{10};
 
   bool initialized_ = false;
 

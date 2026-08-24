@@ -46,7 +46,7 @@ public:
 
   void ReadCANopenSettingsDriverCANIDs() { LynxSystem::ReadCANopenSettingsDriverCANIDs(); }
   void UpdateHwStates() { LynxSystem::UpdateHwStates(); }
-  void UpdateMotorsStateDataTimedOut() { LynxSystem::UpdateMotorsStateDataTimedOut(); }
+  bool UpdateMotorsStateDataTimedOut() { return LynxSystem::UpdateMotorsStateDataTimedOut(); }
   void UpdateDriverStateDataTimedOut() { LynxSystem::UpdateDriverStateDataTimedOut(); }
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }

@@ -59,63 +59,66 @@ SupportedObjects=3
 3=0x1018
 
 [OptionalObjects]
-SupportedObjects=56
+SupportedObjects=59
 1=0x1003
 2=0x1005
 3=0x1006
 4=0x1007
-5=0x1014
-6=0x1015
-7=0x1016
-8=0x1017
-9=0x1019
-10=0x1028
-11=0x1029
-12=0x102A
-13=0x1400
-14=0x1401
-15=0x1402
-16=0x1403
-17=0x1404
-18=0x1405
-19=0x1406
-20=0x1407
-21=0x1600
-22=0x1601
-23=0x1602
-24=0x1603
-25=0x1604
-26=0x1605
-27=0x1606
-28=0x1607
-29=0x1800
-30=0x1801
-31=0x1802
-32=0x1803
-33=0x1804
-34=0x1805
-35=0x1806
-36=0x1807
-37=0x1A00
-38=0x1A01
-39=0x1A02
-40=0x1A03
-41=0x1A04
-42=0x1A05
-43=0x1A06
-44=0x1A07
-45=0x1F25
-46=0x1F55
-47=0x1F80
-48=0x1F81
-49=0x1F82
-50=0x1F84
-51=0x1F85
-52=0x1F86
-53=0x1F87
-54=0x1F88
-55=0x1F89
-56=0x1F8A
+5=0x1012
+6=0x1013
+7=0x1014
+8=0x1015
+9=0x1016
+10=0x1017
+11=0x1019
+12=0x1028
+13=0x1029
+14=0x102A
+15=0x1400
+16=0x1401
+17=0x1402
+18=0x1403
+19=0x1404
+20=0x1405
+21=0x1406
+22=0x1407
+23=0x1600
+24=0x1601
+25=0x1602
+26=0x1603
+27=0x1604
+28=0x1605
+29=0x1606
+30=0x1607
+31=0x1800
+32=0x1801
+33=0x1802
+34=0x1803
+35=0x1804
+36=0x1805
+37=0x1806
+38=0x1807
+39=0x1A00
+40=0x1A01
+41=0x1A02
+42=0x1A03
+43=0x1A04
+44=0x1A05
+45=0x1A06
+46=0x1A07
+47=0x1F22
+48=0x1F25
+49=0x1F55
+50=0x1F80
+51=0x1F81
+52=0x1F82
+53=0x1F84
+54=0x1F85
+55=0x1F86
+56=0x1F87
+57=0x1F88
+58=0x1F89
+59=0x1F8A
 
 [ManufacturerObjects]
 SupportedObjects=48
@@ -203,6 +206,18 @@ ParameterName=Synchronous window length
 DataType=0x0007
 AccessType=rw
 DefaultValue=0
+
+[1012]
+ParameterName=COB-ID time stamp object
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000100
+
+[1013]
+ParameterName=High resolution time stamp
+DataType=0x0007
+AccessType=rw
+PDOMapping=1
 
 [1014]
 ParameterName=COB-ID EMCY
@@ -1182,6 +1197,654 @@ NrOfEntries=2
 1=0x22070120
 2=0x22070220
 
+[1F22]
+SubNumber=128
+ParameterName=Concise DCF
+ObjectType=0x08
+
+[1F22sub0]
+ParameterName=Highest sub-index supported
+DataType=0x0005
+AccessType=const
+DefaultValue=127
+
+[1F22sub1]
+ParameterName=Node-ID 1
+DataType=0x000F
+AccessType=ro
+UploadFile=slave_1.bin
+
+[1F22sub2]
+ParameterName=Node-ID 2
+DataType=0x000F
+AccessType=ro
+UploadFile=slave_2.bin
+
+[1F22sub3]
+ParameterName=Node-ID 3
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4]
+ParameterName=Node-ID 4
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5]
+ParameterName=Node-ID 5
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6]
+ParameterName=Node-ID 6
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7]
+ParameterName=Node-ID 7
+DataType=0x000F
+AccessType=ro
+
+[1F22sub8]
+ParameterName=Node-ID 8
+DataType=0x000F
+AccessType=ro
+
+[1F22sub9]
+ParameterName=Node-ID 9
+DataType=0x000F
+AccessType=ro
+
+[1F22subA]
+ParameterName=Node-ID 10
+DataType=0x000F
+AccessType=ro
+
+[1F22subB]
+ParameterName=Node-ID 11
+DataType=0x000F
+AccessType=ro
+
+[1F22subC]
+ParameterName=Node-ID 12
+DataType=0x000F
+AccessType=ro
+
+[1F22subD]
+ParameterName=Node-ID 13
+DataType=0x000F
+AccessType=ro
+
+[1F22subE]
+ParameterName=Node-ID 14
+DataType=0x000F
+AccessType=ro
+
+[1F22subF]
+ParameterName=Node-ID 15
+DataType=0x000F
+AccessType=ro
+
+[1F22sub10]
+ParameterName=Node-ID 16
+DataType=0x000F
+AccessType=ro
+
+[1F22sub11]
+ParameterName=Node-ID 17
+DataType=0x000F
+AccessType=ro
+
+[1F22sub12]
+ParameterName=Node-ID 18
+DataType=0x000F
+AccessType=ro
+
+[1F22sub13]
+ParameterName=Node-ID 19
+DataType=0x000F
+AccessType=ro
+
+[1F22sub14]
+ParameterName=Node-ID 20
+DataType=0x000F
+AccessType=ro
+
+[1F22sub15]
+ParameterName=Node-ID 21
+DataType=0x000F
+AccessType=ro
+
+[1F22sub16]
+ParameterName=Node-ID 22
+DataType=0x000F
+AccessType=ro
+
+[1F22sub17]
+ParameterName=Node-ID 23
+DataType=0x000F
+AccessType=ro
+
+[1F22sub18]
+ParameterName=Node-ID 24
+DataType=0x000F
+AccessType=ro
+
+[1F22sub19]
+ParameterName=Node-ID 25
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1A]
+ParameterName=Node-ID 26
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1B]
+ParameterName=Node-ID 27
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1C]
+ParameterName=Node-ID 28
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1D]
+ParameterName=Node-ID 29
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1E]
+ParameterName=Node-ID 30
+DataType=0x000F
+AccessType=ro
+
+[1F22sub1F]
+ParameterName=Node-ID 31
+DataType=0x000F
+AccessType=ro
+
+[1F22sub20]
+ParameterName=Node-ID 32
+DataType=0x000F
+AccessType=ro
+
+[1F22sub21]
+ParameterName=Node-ID 33
+DataType=0x000F
+AccessType=ro
+
+[1F22sub22]
+ParameterName=Node-ID 34
+DataType=0x000F
+AccessType=ro
+
+[1F22sub23]
+ParameterName=Node-ID 35
+DataType=0x000F
+AccessType=ro
+
+[1F22sub24]
+ParameterName=Node-ID 36
+DataType=0x000F
+AccessType=ro
+
+[1F22sub25]
+ParameterName=Node-ID 37
+DataType=0x000F
+AccessType=ro
+
+[1F22sub26]
+ParameterName=Node-ID 38
+DataType=0x000F
+AccessType=ro
+
+[1F22sub27]
+ParameterName=Node-ID 39
+DataType=0x000F
+AccessType=ro
+
+[1F22sub28]
+ParameterName=Node-ID 40
+DataType=0x000F
+AccessType=ro
+
+[1F22sub29]
+ParameterName=Node-ID 41
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2A]
+ParameterName=Node-ID 42
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2B]
+ParameterName=Node-ID 43
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2C]
+ParameterName=Node-ID 44
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2D]
+ParameterName=Node-ID 45
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2E]
+ParameterName=Node-ID 46
+DataType=0x000F
+AccessType=ro
+
+[1F22sub2F]
+ParameterName=Node-ID 47
+DataType=0x000F
+AccessType=ro
+
+[1F22sub30]
+ParameterName=Node-ID 48
+DataType=0x000F
+AccessType=ro
+
+[1F22sub31]
+ParameterName=Node-ID 49
+DataType=0x000F
+AccessType=ro
+
+[1F22sub32]
+ParameterName=Node-ID 50
+DataType=0x000F
+AccessType=ro
+
+[1F22sub33]
+ParameterName=Node-ID 51
+DataType=0x000F
+AccessType=ro
+
+[1F22sub34]
+ParameterName=Node-ID 52
+DataType=0x000F
+AccessType=ro
+
+[1F22sub35]
+ParameterName=Node-ID 53
+DataType=0x000F
+AccessType=ro
+
+[1F22sub36]
+ParameterName=Node-ID 54
+DataType=0x000F
+AccessType=ro
+
+[1F22sub37]
+ParameterName=Node-ID 55
+DataType=0x000F
+AccessType=ro
+
+[1F22sub38]
+ParameterName=Node-ID 56
+DataType=0x000F
+AccessType=ro
+
+[1F22sub39]
+ParameterName=Node-ID 57
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3A]
+ParameterName=Node-ID 58
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3B]
+ParameterName=Node-ID 59
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3C]
+ParameterName=Node-ID 60
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3D]
+ParameterName=Node-ID 61
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3E]
+ParameterName=Node-ID 62
+DataType=0x000F
+AccessType=ro
+
+[1F22sub3F]
+ParameterName=Node-ID 63
+DataType=0x000F
+AccessType=ro
+
+[1F22sub40]
+ParameterName=Node-ID 64
+DataType=0x000F
+AccessType=ro
+
+[1F22sub41]
+ParameterName=Node-ID 65
+DataType=0x000F
+AccessType=ro
+
+[1F22sub42]
+ParameterName=Node-ID 66
+DataType=0x000F
+AccessType=ro
+
+[1F22sub43]
+ParameterName=Node-ID 67
+DataType=0x000F
+AccessType=ro
+
+[1F22sub44]
+ParameterName=Node-ID 68
+DataType=0x000F
+AccessType=ro
+
+[1F22sub45]
+ParameterName=Node-ID 69
+DataType=0x000F
+AccessType=ro
+
+[1F22sub46]
+ParameterName=Node-ID 70
+DataType=0x000F
+AccessType=ro
+
+[1F22sub47]
+ParameterName=Node-ID 71
+DataType=0x000F
+AccessType=ro
+
+[1F22sub48]
+ParameterName=Node-ID 72
+DataType=0x000F
+AccessType=ro
+
+[1F22sub49]
+ParameterName=Node-ID 73
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4A]
+ParameterName=Node-ID 74
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4B]
+ParameterName=Node-ID 75
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4C]
+ParameterName=Node-ID 76
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4D]
+ParameterName=Node-ID 77
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4E]
+ParameterName=Node-ID 78
+DataType=0x000F
+AccessType=ro
+
+[1F22sub4F]
+ParameterName=Node-ID 79
+DataType=0x000F
+AccessType=ro
+
+[1F22sub50]
+ParameterName=Node-ID 80
+DataType=0x000F
+AccessType=ro
+
+[1F22sub51]
+ParameterName=Node-ID 81
+DataType=0x000F
+AccessType=ro
+
+[1F22sub52]
+ParameterName=Node-ID 82
+DataType=0x000F
+AccessType=ro
+
+[1F22sub53]
+ParameterName=Node-ID 83
+DataType=0x000F
+AccessType=ro
+
+[1F22sub54]
+ParameterName=Node-ID 84
+DataType=0x000F
+AccessType=ro
+
+[1F22sub55]
+ParameterName=Node-ID 85
+DataType=0x000F
+AccessType=ro
+
+[1F22sub56]
+ParameterName=Node-ID 86
+DataType=0x000F
+AccessType=ro
+
+[1F22sub57]
+ParameterName=Node-ID 87
+DataType=0x000F
+AccessType=ro
+
+[1F22sub58]
+ParameterName=Node-ID 88
+DataType=0x000F
+AccessType=ro
+
+[1F22sub59]
+ParameterName=Node-ID 89
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5A]
+ParameterName=Node-ID 90
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5B]
+ParameterName=Node-ID 91
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5C]
+ParameterName=Node-ID 92
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5D]
+ParameterName=Node-ID 93
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5E]
+ParameterName=Node-ID 94
+DataType=0x000F
+AccessType=ro
+
+[1F22sub5F]
+ParameterName=Node-ID 95
+DataType=0x000F
+AccessType=ro
+
+[1F22sub60]
+ParameterName=Node-ID 96
+DataType=0x000F
+AccessType=ro
+
+[1F22sub61]
+ParameterName=Node-ID 97
+DataType=0x000F
+AccessType=ro
+
+[1F22sub62]
+ParameterName=Node-ID 98
+DataType=0x000F
+AccessType=ro
+
+[1F22sub63]
+ParameterName=Node-ID 99
+DataType=0x000F
+AccessType=ro
+
+[1F22sub64]
+ParameterName=Node-ID 100
+DataType=0x000F
+AccessType=ro
+
+[1F22sub65]
+ParameterName=Node-ID 101
+DataType=0x000F
+AccessType=ro
+
+[1F22sub66]
+ParameterName=Node-ID 102
+DataType=0x000F
+AccessType=ro
+
+[1F22sub67]
+ParameterName=Node-ID 103
+DataType=0x000F
+AccessType=ro
+
+[1F22sub68]
+ParameterName=Node-ID 104
+DataType=0x000F
+AccessType=ro
+
+[1F22sub69]
+ParameterName=Node-ID 105
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6A]
+ParameterName=Node-ID 106
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6B]
+ParameterName=Node-ID 107
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6C]
+ParameterName=Node-ID 108
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6D]
+ParameterName=Node-ID 109
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6E]
+ParameterName=Node-ID 110
+DataType=0x000F
+AccessType=ro
+
+[1F22sub6F]
+ParameterName=Node-ID 111
+DataType=0x000F
+AccessType=ro
+
+[1F22sub70]
+ParameterName=Node-ID 112
+DataType=0x000F
+AccessType=ro
+
+[1F22sub71]
+ParameterName=Node-ID 113
+DataType=0x000F
+AccessType=ro
+
+[1F22sub72]
+ParameterName=Node-ID 114
+DataType=0x000F
+AccessType=ro
+
+[1F22sub73]
+ParameterName=Node-ID 115
+DataType=0x000F
+AccessType=ro
+
+[1F22sub74]
+ParameterName=Node-ID 116
+DataType=0x000F
+AccessType=ro
+
+[1F22sub75]
+ParameterName=Node-ID 117
+DataType=0x000F
+AccessType=ro
+
+[1F22sub76]
+ParameterName=Node-ID 118
+DataType=0x000F
+AccessType=ro
+
+[1F22sub77]
+ParameterName=Node-ID 119
+DataType=0x000F
+AccessType=ro
+
+[1F22sub78]
+ParameterName=Node-ID 120
+DataType=0x000F
+AccessType=ro
+
+[1F22sub79]
+ParameterName=Node-ID 121
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7A]
+ParameterName=Node-ID 122
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7B]
+ParameterName=Node-ID 123
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7C]
+ParameterName=Node-ID 124
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7D]
+ParameterName=Node-ID 125
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7E]
+ParameterName=Node-ID 126
+DataType=0x000F
+AccessType=ro
+
+[1F22sub7F]
+ParameterName=Node-ID 127
+DataType=0x000F
+AccessType=ro
+
 [1F25]
 ParameterName=Configuration request
 ObjectType=0x08
@@ -1211,8 +1874,8 @@ CompactSubObj=127
 
 [1F81Value]
 NrOfEntries=2
-1=0x00000005
-2=0x00000005
+1=0x00000305
+2=0x00000305
 
 [1F82]
 ParameterName=Request NMT

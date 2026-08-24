@@ -20,6 +20,7 @@ rosidl_generate_interfaces(
   "msg/LEDAnimation.msg"
   "msg/LEDAnimationQueue.msg"
   "msg/LEDImageAnimation.msg"
+  "msg/LEDOutputState.msg"
   "msg/RobotDriverState.msg"
   "msg/RuntimeError.msg"
   "msg/ScriptFlag.msg"

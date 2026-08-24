@@ -16,7 +16,7 @@
 # limitations under the License.
 
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.conditions import UnlessCondition
@@ -104,10 +104,14 @@ def generate_launch_description():
     driver_config = PythonExpression(["'", robot_model, "_driver.yaml'"])
     driver_config_path = PathJoinSubstitution([husarion_ugv_lights_pkg, "config", driver_config])
     lights_container = ComposableNodeContainer(
-        package="rclcpp_components",
+        # In-repo stand-in for rclcpp_components' component_container: the
+        # stock one aborts when SIGTERM lands mid wait-set rebuild (upstream
+        # executor race), so every driver-compose stop ended with a terminate
+        # in the journal. Same behavior otherwise.
+        package="husarion_ugv_lights",
         name="lights_container",
         namespace=namespace,
-        executable="component_container",
+        executable="resilient_component_container",
         composable_node_descriptions=[
             ComposableNode(
                 package="husarion_ugv_lights",
@@ -138,7 +142,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
             "--log-level",

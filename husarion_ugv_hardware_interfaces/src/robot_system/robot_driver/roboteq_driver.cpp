@@ -17,6 +17,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -27,6 +29,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
+#include "husarion_ugv_utils/configure_rt.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -61,9 +64,9 @@ MotorDriverState RoboteqMotorDriver::ReadState()
   MotorDriverState state;
 
   if (auto driver = driver_.lock()) {
-    state.pos = driver->rpdo_mapped[RoboteqCANObjects::position_id][channel_];
-    state.vel = driver->rpdo_mapped[RoboteqCANObjects::velocity_id][channel_];
-    state.current = driver->rpdo_mapped[RoboteqCANObjects::current_id][channel_];
+    state.pos = driver->GetPosition(channel_);
+    state.vel = driver->GetVelocity(channel_);
+    state.current = driver->GetCurrent(channel_);
     state.pos_timestamp = driver->GetPositionTimestamp(channel_);
     state.vel_current_timestamp = driver->GetSpeedCurrentTimestamp(channel_);
   }
@@ -74,8 +77,7 @@ MotorDriverState RoboteqMotorDriver::ReadState()
 void RoboteqMotorDriver::SendCmdVel(const std::int32_t cmd)
 {
   if (auto driver = driver_.lock()) {
-    driver->tpdo_mapped[RoboteqCANObjects::cmd_id][channel_] = cmd;
-    driver->tpdo_mapped[RoboteqCANObjects::cmd_id][channel_].WriteEvent();
+    driver->PostCmdVel(channel_, cmd);
   }
 }
 
@@ -117,32 +119,22 @@ DriverState RoboteqDriver::ReadState()
 {
   DriverState state;
 
-  std::int32_t flags = static_cast<std::int32_t>(
-    rpdo_mapped[RoboteqCANObjects::flags.id][RoboteqCANObjects::flags.subid]);
+  const std::int32_t flags = last_flags_.load(std::memory_order_acquire);
   state.fault_flags = GetByte(flags, 0);
   state.runtime_stat_flag_channel_1 = GetByte(flags, 1);
   state.runtime_stat_flag_channel_2 = GetByte(flags, 2);
   state.script_flags = GetByte(flags, 3);
 
-  state.mcu_temp = rpdo_mapped[RoboteqCANObjects::mcu_temp.id][RoboteqCANObjects::mcu_temp.subid];
-  state.heatsink_temp =
-    rpdo_mapped[RoboteqCANObjects::heatsink_temp.id][RoboteqCANObjects::heatsink_temp.subid];
-  state.battery_voltage =
-    rpdo_mapped[RoboteqCANObjects::battery_voltage.id][RoboteqCANObjects::battery_voltage.subid];
-  state.battery_current_1 = rpdo_mapped[RoboteqCANObjects::battery_current_1.id]
-                                       [RoboteqCANObjects::battery_current_1.subid];
-  state.battery_current_2 = rpdo_mapped[RoboteqCANObjects::battery_current_2.id]
-                                       [RoboteqCANObjects::battery_current_2.subid];
+  state.mcu_temp = last_mcu_temp_.load(std::memory_order_acquire);
+  state.heatsink_temp = last_heatsink_temp_.load(std::memory_order_acquire);
+  state.battery_voltage = last_battery_voltage_.load(std::memory_order_acquire);
+  state.battery_current_1 = last_battery_current_1_.load(std::memory_order_acquire);
+  state.battery_current_2 = last_battery_current_2_.load(std::memory_order_acquire);
 
-  {
-    std::lock_guard<std::mutex> lck_fa(flags_current_timestamp_mtx_);
-    state.flags_current_timestamp = flags_current_timestamp_;
-  }
-
-  {
-    std::lock_guard<std::mutex> lck_vt(voltages_temps_timestamp_mtx_);
-    state.voltages_temps_timestamp = last_voltages_temps_timestamp_;
-  }
+  state.flags_current_timestamp =
+    NanosecondsToTimespec(flags_current_timestamp_ns_.load(std::memory_order_acquire));
+  state.voltages_temps_timestamp =
+    NanosecondsToTimespec(last_voltages_temps_timestamp_ns_.load(std::memory_order_acquire));
 
   return state;
 }
@@ -201,33 +193,80 @@ template <typename T>
 void RoboteqDriver::SyncSDOWrite(
   const std::uint16_t index, const std::uint8_t subindex, const T data)
 {
-  std::mutex mtx;
-  std::condition_variable cv;
-  std::error_code err_code;
+  // Shared (not stack-referenced) so a confirmation arriving after a local
+  // timeout below writes into live memory, never a dead stack frame.
+  struct WaitState
+  {
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::error_code err_code;
+    std::string err_msg;
+    bool done = false;
+  };
+  auto state = std::make_shared<WaitState>();
 
-  try {
-    SubmitWrite(
-      index, subindex, data,
-      [&mtx, &cv, &err_code](
-        std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
-        {
-          std::lock_guard<std::mutex> lck_g(mtx);
-          if (ec) {
-            err_code = ec;
+  // Submit on the master's executor - lely's channel I/O is only safe from
+  // the thread running the event loop. Submitting from the caller's thread
+  // (a ROS service callback here) races the loop's poll and can freeze the
+  // master's whole RX/TX path: the reset SDO lands and PDO reception dies
+  // within milliseconds while candump shows both nodes streaming normally
+  // (hit live on a Panther; only the timer path survives, which is why
+  // heartbeat timeouts still fire afterwards).
+  master.GetExecutor().post([this, state, index, subindex, data]() {
+    try {
+      SubmitWrite(
+        index, subindex, data,
+        [state](std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
+          {
+            std::lock_guard<std::mutex> lck_g(state->mtx);
+            if (ec) {
+              state->err_code = ec;
+            }
+            state->done = true;
           }
-        }
-        cv.notify_one();
-      },
-      sdo_operation_timeout_ms_);
-  } catch (const lely::canopen::SdoError & e) {
-    throw std::runtime_error("SDO write error, message: " + std::string(e.what()));
+          state->cv.notify_one();
+        },
+        sdo_operation_timeout_ms_);
+    } catch (const lely::canopen::SdoError & e) {
+      {
+        std::lock_guard<std::mutex> lck_g(state->mtx);
+        state->err_code = e.code();
+        state->err_msg = std::string(e.what());
+        state->done = true;
+      }
+      state->cv.notify_one();
+    }
+  });
+
+  // The `done` predicate closes the lost-wakeup race: the CANopen executor
+  // runs at a higher RT priority than any caller, so the confirmation can
+  // complete before this thread reaches the wait — an unconditioned wait()
+  // then blocks forever (bit us live: a wedged e_stop_reset service captured
+  // its callback group until a driver restart). The deadline is a backstop
+  // for the master being torn down/resynced with the request in flight, in
+  // which case lely never delivers the confirmation at all.
+  std::unique_lock<std::mutex> lck(state->mtx);
+  if (!state->cv.wait_for(
+        lck, sdo_operation_timeout_ms_ + kSdoConfirmationTimeoutMargin,
+        [&state]() { return state->done; })) {
+    if (++consecutive_sdo_deadline_misses_ >= kMaxConsecutiveSdoDeadlineMisses) {
+      std::cerr << "SDO wedge watchdog: " << kMaxConsecutiveSdoDeadlineMisses
+                << " consecutive SDO write confirmations never delivered - restarting."
+                << std::endl;
+      std::fflush(stdout);
+      std::fflush(stderr);
+      std::_Exit(kSdoWedgeExitCode);
+    }
+    throw std::runtime_error(
+      "SDO write confirmation not delivered within the deadline (CANopen master unresponsive).");
   }
+  consecutive_sdo_deadline_misses_ = 0;
 
-  std::unique_lock<std::mutex> lck(mtx);
-  cv.wait(lck);
-
-  if (err_code) {
-    throw std::runtime_error("Error msg: " + err_code.message());
+  if (state->err_code) {
+    if (!state->err_msg.empty()) {
+      throw std::runtime_error("SDO write error, message: " + state->err_msg);
+    }
+    throw std::runtime_error("Error msg: " + state->err_code.message());
   }
 }
 
@@ -250,28 +289,89 @@ void RoboteqDriver::OnBoot(
   }
 }
 
+void RoboteqDriver::PostCmdVel(const std::uint8_t channel, const std::int32_t cmd)
+{
+  const std::size_t slot = channel - kChannel1;
+  pending_cmd_.at(slot).store(cmd, std::memory_order_release);
+
+  if (cmd_task_queued_.at(slot).exchange(true, std::memory_order_acq_rel)) {
+    return;
+  }
+
+  master.GetExecutor().post([this, channel, slot]() {
+    cmd_task_queued_.at(slot).store(false, std::memory_order_release);
+    const std::int32_t latest = pending_cmd_.at(slot).load(std::memory_order_acquire);
+    tpdo_mapped[RoboteqCANObjects::cmd_id][channel] = latest;
+    tpdo_mapped[RoboteqCANObjects::cmd_id][channel].WriteEvent();
+  });
+}
+
 void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept
 {
+  if (!dispatch_priority_set_.exchange(true, std::memory_order_acq_rel)) {
+    try {
+      husarion_ugv_utils::ConfigureRT(kRpdoDispatchSchedPriority);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the RPDO dispatch thread: " << e.what()
+                << std::endl;
+    }
+  }
+
+  timespec current_timestamp;
+  clock_gettime(CLOCK_MONOTONIC, &current_timestamp);
+  const std::int64_t now_ns = TimespecToNanoseconds(current_timestamp);
+
+  // This callback thread is the only writer, so a plain atomic store is enough here and the
+  // control loop can read the timestamps without blocking on a mutex.
   if (idx == RoboteqCANObjects::position_id) {
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
-    std::lock_guard<std::mutex> lck(position_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_position_timestamps_.at(subidx));
+    last_positions_.at(subidx - kChannel1)
+      .store(static_cast<std::int32_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+    last_position_timestamps_ns_.at(subidx - kChannel1).store(now_ns, std::memory_order_release);
   } else if (idx == RoboteqCANObjects::velocity_id) {
     if (subidx != kChannel1 && subidx != kChannel2) {
       return;
     }
-    std::lock_guard<std::mutex> lck(speed_current_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_speed_current_timestamps_.at(subidx));
+    last_velocities_.at(subidx - kChannel1)
+      .store(static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+    last_speed_current_timestamps_ns_.at(subidx - kChannel1)
+      .store(now_ns, std::memory_order_release);
+  } else if (idx == RoboteqCANObjects::current_id) {
+    if (subidx != kChannel1 && subidx != kChannel2) {
+      return;
+    }
+    last_currents_.at(subidx - kChannel1)
+      .store(static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
   } else if (idx == RoboteqCANObjects::flags.id && subidx == RoboteqCANObjects::flags.subid) {
-    std::lock_guard<std::mutex> lck(flags_current_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &flags_current_timestamp_);
+    last_flags_.store(
+      static_cast<std::int32_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+    flags_current_timestamp_ns_.store(now_ns, std::memory_order_release);
+  } else if (idx == RoboteqCANObjects::mcu_temp.id && subidx == RoboteqCANObjects::mcu_temp.subid) {
+    last_mcu_temp_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::heatsink_temp.id &&
+    subidx == RoboteqCANObjects::heatsink_temp.subid) {
+    last_heatsink_temp_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::battery_current_1.id &&
+    subidx == RoboteqCANObjects::battery_current_1.subid) {
+    last_battery_current_1_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+  } else if (
+    idx == RoboteqCANObjects::battery_current_2.id &&
+    subidx == RoboteqCANObjects::battery_current_2.subid) {
+    last_battery_current_2_.store(
+      static_cast<std::int16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
   } else if (
     idx == RoboteqCANObjects::battery_voltage.id &&
     subidx == RoboteqCANObjects::battery_voltage.subid) {
-    std::lock_guard<std::mutex> lck(voltages_temps_timestamp_mtx_);
-    clock_gettime(CLOCK_MONOTONIC, &last_voltages_temps_timestamp_);
+    last_battery_voltage_.store(
+      static_cast<std::uint16_t>(rpdo_mapped[idx][subidx]), std::memory_order_release);
+    last_voltages_temps_timestamp_ns_.store(now_ns, std::memory_order_release);
   }
 }
 

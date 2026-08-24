@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -57,7 +58,7 @@ public:
   MOCK_METHOD(void, DefineRobotDriver, (), (override));
 
   MOCK_METHOD(void, UpdateHwStates, (), (override));
-  MOCK_METHOD(void, UpdateMotorsStateDataTimedOut, (), (override));
+  MOCK_METHOD(bool, UpdateMotorsStateDataTimedOut, (), (override));
   MOCK_METHOD(void, UpdateDriverStateMsg, (), (override));
   MOCK_METHOD(void, UpdateFlagErrors, (), (override));
   MOCK_METHOD(void, UpdateDriverStateDataTimedOut, (), (override));
@@ -93,6 +94,17 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> GetMockEStop()
   {
     return mock_e_stop_;
+  }
+
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
+
+  void SetPDOTimeoutOngoingSince(const std::chrono::steady_clock::time_point time_point)
+  {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = time_point;
   }
 
   using NiceMock = testing::NiceMock<MockUGVSystem>;
@@ -401,6 +413,44 @@ TEST_F(TestUGVSystem, Write)
   callback_return = ugv_system_->write(rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
 
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdog)
+{
+  // A timeout that clears resets the watchdog - the next one starts counting from zero
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system_->TickCANopenResyncWatchdog(false);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+
+  // A continuous timeout past the threshold exits the process
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->TickCANopenResyncWatchdog(true), ::testing::ExitedWithCode(74),
+    "CANopen resync watchdog");
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogFedByThrowingRead)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  // A dead master surfaces as UpdateMotorsState() throwing (heartbeat
+  // timeout) before the success-path watchdog feed is reached - the
+  // exception path must keep the watchdog counting or it can never fire in
+  // exactly the state it exists for.
+  ON_CALL(*ugv_system_->GetMockRobotDriver(), UpdateMotorsState())
+    .WillByDefault(::testing::Throw(std::runtime_error("Motor controller heartbeat timeout.")));
+
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->read(rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0)),
+    ::testing::ExitedWithCode(74), "CANopen resync watchdog");
 
   rclcpp::shutdown();
 }

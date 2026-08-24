@@ -2,6 +2,12 @@
   controller_manager:
     ros__parameters:
       update_rate: 100
+      # Run the update loop on the RT core at the same FIFO priority as the
+      # driver threads - left alone it floats across all cores at FIFO 50,
+      # where a loaded core can stretch a read cycle past the PDO deadline.
+      cpu_affinity: 3
+      thread_priority: 60
+      lock_memory: true
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster

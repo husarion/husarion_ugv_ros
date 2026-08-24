@@ -43,15 +43,6 @@ void CANopenManager::Initialize()
   canopen_communication_started_.store(false);
 
   try {
-    husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
-  } catch (const std::runtime_error & e) {
-    std::cerr << "An exception occurred while configuring RT: " << e.what() << std::endl
-              << "Continuing with regular thread settings (it may have a negative impact on the "
-                 "performance)."
-              << std::endl;
-  }
-
-  try {
     InitializeCANCommunication();
   } catch (const std::system_error & e) {
     std::cerr << "An exception occurred while initializing CAN: " << e.what() << std::endl;
@@ -69,20 +60,45 @@ void CANopenManager::Activate()
   }
 
   canopen_communication_thread_ = std::thread([this]() {
+    // Set the RT priority here, on the thread that actually runs the CANopen loop. It used
+    // to be done in Initialize(), which only changed the calling thread's priority and left
+    // this one to inherit it, which is easy to get wrong.
+    try {
+      husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the CANopen thread: " << e.what()
+                << std::endl
+                << "Continuing with regular thread settings (it may have a negative impact on "
+                   "performance)."
+                << std::endl;
+    }
+
     NotifyCANCommunicationStarted(true);
 
-    try {
-      loop_->run();
-    } catch (const std::system_error & e) {
-      // If the error happens and loop stops SDO and PDO operations will timeout and in result
-      // system will switch to error state
-      std::cerr << "An exception occurred in loop run: " << e.what() << std::endl;
+    // The non-throwing overload, on purpose. The throwing run() reports the
+    // thread-local error left by the last failed operation even when that
+    // failure was already handled and the loop was stopped normally for
+    // teardown (the same defect kills the per-driver loop threads in
+    // unpatched lely, see patches/lely-loop-driver-teardown-throw.patch).
+    // A genuine loop failure still surfaces: SDO and PDO operations time
+    // out and the system switches to the error state.
+    std::error_code ec;
+    loop_->run(ec);
+    if (ec && !loop_->stopped()) {
+      std::cerr << "CANopen event loop stopped with error: " << ec.message() << std::endl;
     }
   });
 
-  if (!canopen_communication_started_.load()) {
+  // Predicate + deadline instead of a bare wait(): the spawned thread can set
+  // the flag and notify between the load above and entering wait(), and that
+  // lost wakeup would block Activate() forever (same defect class as the
+  // SyncSDOWrite wedge). The deadline also bounds the failure path, where the
+  // notification carries `false` and the predicate never becomes true.
+  {
     std::unique_lock<std::mutex> lck(canopen_communication_started_mtx_);
-    canopen_communication_started_cond_.wait(lck);
+    canopen_communication_started_cond_.wait_for(lck, kCanopenCommunicationStartTimeout, [this]() {
+      return canopen_communication_started_.load();
+    });
   }
 
   if (!canopen_communication_started_.load()) {
@@ -136,9 +152,19 @@ void CANopenManager::InitializeCANCommunication()
   // Master dcf is generated from roboteq_motor_controllers_v80_21a using following command:
   // dcfgen canopen_configuration.yaml -r
   // dcfgen comes with lely, -r option tells to enable remote PDO mapping
-  std::string master_dcf_path = std::filesystem::path(ament_index_cpp::get_package_share_directory(
-                                  "husarion_ugv_hardware_interfaces")) /
-                                "config" / "master.dcf";
+  const auto config_dir = std::filesystem::path(ament_index_cpp::get_package_share_directory(
+                            "husarion_ugv_hardware_interfaces")) /
+                          "config";
+  std::string master_dcf_path = config_dir / "master.dcf";
+
+  // The slave configuration (1F22 Concise DCF) is referenced from master.dcf
+  // as UploadFile=slave_N.bin. lely opens that path with plain fopen relative
+  // to the process working directory - and not at parse time but on every
+  // slave boot, so a scoped chdir is not enough. Without this the open fails,
+  // the boot aborts on 1F22 and the slave never gets its PDO configuration
+  // (hit on a bench Lynx: the boot looped and TPDO4 kept its unthrottled
+  // defaults).
+  std::filesystem::current_path(config_dir);
 
   master_ = std::make_shared<lely::canopen::AsyncMaster>(
     *timer_, *chan_, master_dcf_path, "", canopen_settings_.master_can_id);

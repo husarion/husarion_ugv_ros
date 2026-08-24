@@ -75,6 +75,10 @@ public:
   bool TurnOff();
   bool IsWatchdogEnabled() const;
 
+  // Feeding the safety board is the most timing-critical thing this process
+  // does - above the control loop, below the CAN ingress chain.
+  static constexpr unsigned kWatchdogSchedPriority = 60;
+
 private:
   /**
    * @brief Monitors the Watchdog thread status.

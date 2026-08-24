@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <memory>
@@ -217,8 +218,22 @@ void RoboteqRobotDriver::SetMotorsStates(
     DataTimeout(current_time, right_state.pos_timestamp, pdo_motor_states_timeout_ms_) ||
     DataTimeout(current_time, right_state.vel_current_timestamp, pdo_motor_states_timeout_ms_);
 
+  const auto age_ms = [&current_time](const timespec & ts) {
+    return std::chrono::duration<float, std::milli>(
+             lely::util::from_timespec(current_time) - lely::util::from_timespec(ts))
+      .count();
+  };
+  const float max_age_ms = std::max(
+    {age_ms(left_state.pos_timestamp), age_ms(left_state.vel_current_timestamp),
+     age_ms(right_state.pos_timestamp), age_ms(right_state.vel_current_timestamp)});
+  const float min_age_ms = std::min(
+    {age_ms(left_state.pos_timestamp), age_ms(left_state.vel_current_timestamp),
+     age_ms(right_state.pos_timestamp), age_ms(right_state.vel_current_timestamp)});
+
   // Channel 1 - right, Channel 2 - left
   data.SetMotorsStates(right_state, left_state, data_timed_out);
+  data.SetMotorsStatesAgeMs(max_age_ms);
+  data.SetMotorsStatesFreshestAgeMs(min_age_ms);
 }
 
 void RoboteqRobotDriver::SetDriverState(

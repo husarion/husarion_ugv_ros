@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
 from launch.conditions import UnlessCondition
@@ -195,7 +195,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
             "--log-level",
@@ -212,11 +212,16 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # A cold boot on a two-node bus can spend 20-40 s in CANopen init
+        # retries before controller_manager's services appear. With the old
+        # 10 s the spawner died and the robot ended up running with zero
+        # controllers (silently undrivable, self-repaired only by the OS
+        # image's driver watcher restart).
         "--controller-manager-timeout",
-        "10",
+        "60",
         "--ros-args",
         "--log-level",
-        log_level,
+        normalize_log_level(log_level),
         "--log-level",
         limit_log_level_to_info("rcl", log_level),
     ]

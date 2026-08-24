@@ -1,41 +1,89 @@
 ARG ROS_DISTRO=jazzy
 
-FROM husarnet/ros:${ROS_DISTRO}-ros-core
+# builder stage - everything here is discarded, only install/ is copied out
+FROM ros:${ROS_DISTRO}-ros-base AS builder
 
+ARG ROS_DISTRO
 ARG BUILD_TEST=OFF
-
 ENV HUSARION_ROS_BUILD_TYPE=hardware
-
-STOPSIGNAL SIGINT
+SHELL ["/bin/bash", "-c"]
 
 WORKDIR /ros2_ws
 COPY . src/husarion_ugv_ros
 
-RUN apt-get update  && \
-    apt-get upgrade -y && \
-    apt-get install -y \
-        ros-dev-tools && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ros-dev-tools && \
     # Setup workspace
     vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
-    # Install dependencies
-    rosdep init && \
+    # Install dependencies (build + exec)
+    (rosdep init 2>/dev/null || true) && \
     rosdep update --rosdistro $ROS_DISTRO && \
     rosdep install --from-paths src -y -i && \
-    # Build
+    # --merge-install keeps install/ self-contained (no refs into build/ or src/)
     source /opt/ros/$ROS_DISTRO/setup.bash && \
-    colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
+    colcon build --merge-install --packages-up-to husarion_ugv \
+        --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
     # Get version
-    echo $(cat /ros2_ws/src/husarion_ugv_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
-    # Size optimization
-    export SUDO_FORCE_REMOVE=yes && \
-    apt-get remove -y \
-        ros-dev-tools && \
-    apt-get autoremove -y && \
+    sed -rn 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+)<\/version>.*/\1/p' \
+        src/husarion_ugv_ros/husarion_ugv/package.xml > /version.txt
+
+# runtime stage - ros-core + exec deps + the built install space
+FROM ros:${ROS_DISTRO}-ros-core AS runtime
+
+ARG ROS_DISTRO
+ENV ROS_DISTRO=${ROS_DISTRO}
+ENV HUSARION_ROS_BUILD_TYPE=hardware
+STOPSIGNAL SIGINT
+SHELL ["/bin/bash", "-c"]
+
+WORKDIR /ros2_ws
+
+COPY --from=builder /ros2_ws/install /ros2_ws/install
+COPY --from=builder /version.txt /version.txt
+# manifests are only needed to resolve exec deps
+COPY --from=builder /ros2_ws/src /tmp/src
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3-rosdep && \
+    (rosdep init 2>/dev/null || true) && \
+    rosdep update --rosdistro $ROS_DISTRO && \
+    rosdep install --from-paths /tmp/src -y -i --dependency-types=exec && \
+    # rosdep exits 0 even when apt skips packages (flaky mirrors) - fail the
+    # build if anything is still unmet instead of shipping a broken image
+    ! rosdep install --from-paths /tmp/src -i --dependency-types=exec --simulate 2>/dev/null \
+        | grep -qE 'apt-get install|pip[0-9]* install|pip install' && \
+    # rviz comes in as an exec dep of the description packages but is never
+    # used on the robot - drop it with its ogre stack (~150MB). No autoremove:
+    # on arm64 it swept packages that only looked orphaned (rmws, python3-click)
+    # and the driver crash-looped
+    apt-get purge -y python3-rosdep $(dpkg-query -Wf '${Package}\n' | grep '^ros-'"${ROS_DISTRO}"'-rviz' || true) && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/src /root/.ros \
+           /usr/share/doc/* /usr/share/man/* /usr/share/icons/* && \
+    find /usr/lib/python3* /opt/ros -depth -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# rmw is a runtime choice (RMW_IMPLEMENTATION) so exec-only rosdep doesn't pull
+# the implementations - install all three explicitly. Separate last RUN on
+# purpose (combined with the purge above, autoremove swept them on arm64), and
+# verify they actually landed - apt behind a flaky mirror can skip packages
+# without failing the build.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        -o Acquire::Retries=8 -o Acquire::http::Timeout=60 \
+        ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+        ros-${ROS_DISTRO}-rmw-fastrtps-cpp \
+        ros-${ROS_DISTRO}-rmw-zenoh-cpp && \
+    dpkg -l ros-${ROS_DISTRO}-rmw-cyclonedds-cpp ros-${ROS_DISTRO}-rmw-zenoh-cpp \
+        | awk '/^ii .*rmw-(cyclonedds|zenoh)/{n++} END{exit n==2?0:1}' && \
+    find / -name librmw_cyclonedds_cpp.so 2>/dev/null | grep -q . && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
 COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
+COPY docker/utils/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh \
+        /usr/local/sbin/update_config_directory \
+        /usr/local/sbin/setup_environment
 
-# Setup envs from eeprom
-RUN sed -i "/# <additional-user-commands>/i set -e -a && source setup_environment" /*_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["bash"]

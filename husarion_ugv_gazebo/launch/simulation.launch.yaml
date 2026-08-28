@@ -103,3 +103,5 @@ launch:
           value: $(var log_level)
         - name: tf_namespace_bridge
           value: $(var tf_namespace_bridge)
+        - name: use_rviz
+          value: $(var use_rviz)

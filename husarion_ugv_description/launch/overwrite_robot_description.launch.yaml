@@ -111,15 +111,15 @@ launch:
   # otherwise tangle with shlex per-segment splitting in launch's _parse_cmdline).
   - let:
       name: xacro_shell_cmd
-      value: xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
+      value: 'xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
         wheel_config_path)" controller_config_file:="$(var controller_config_path)" battery_config_file:="$(var
-        battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=$(var
-        namespace) components_config_path:="$(var components_config_path)" components_use_tf_prefix:=$(var
-        components_use_tf_prefix) > "$(var rendered_robot_description)"
+        battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=''$(var
+        namespace)'' components_config_path:="$(var components_config_path)" components_use_tf_prefix:=$(var
+        components_use_tf_prefix) > "$(var rendered_robot_description)"'
 
   - let:
       name: set_param_shell_cmd
-      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set $(var rsp_node)
+      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set '$(var rsp_node)'
         robot_description "$rd"
 
   # Render xacro first, then push the param — chained so the file is fully written

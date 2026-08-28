@@ -29,7 +29,7 @@ launch:
         - value: FATAL
 
   - let:
-      name: rcl_log_level
+      name: external_log_level
       value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
 
   - node:
@@ -44,4 +44,4 @@ launch:
       args: >
         --ros-args
         --log-level $(var log_level)
-        --log-level rcl:=$(var rcl_log_level)
+        --log-level rcl:=$(var external_log_level)

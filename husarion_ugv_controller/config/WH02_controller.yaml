@@ -55,6 +55,7 @@
       velocity_rolling_window_size: 1
 
       enable_odom_tf: false
+      tf_frame_prefix_enable: false
 
       cmd_vel_timeout: 0.2
       publish_limited_velocity: false

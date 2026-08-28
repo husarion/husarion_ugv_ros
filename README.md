@@ -68,7 +68,7 @@ ros2 launch husarion_ugv_gazebo simulation.launch.yaml
 ```
 
 > [!IMPORTANT]
-> You can change spawning robot in simulation, by adding `robot_model:={robot_model}` argument.
+> You can change which robot is spawned in simulation by passing the `robot_model:={robot_model}` argument.
 
 > [!NOTE]
 > The previous Python entry-points (`bringup.launch.py`, `simulation.launch.py`) still
@@ -91,10 +91,29 @@ then resolved as `<common_dir_path>/<package_name>/config/<file>.yaml` (e.g.
 `<common_dir_path>/husarion_ugv_battery/config/battery.yaml`).
 
 **Namespacing.** `bringup.launch.yaml` and `simulation.launch.yaml` wrap the robot's
-nodes in a `push_ros_namespace` group plus `set_remap` for `/tf` and `/tf_static`. When
+nodes in a `push_ros_namespace` group and use `set_remap` entries for `/tf`, `/tf_static`, and `/diagnostics`. When
 `namespace` is non-empty, the optional `tf_namespace_bridge` node (enabled by default)
 republishes `/<namespace>/tf` to the global `/tf` with a frame prefix — required for
 RViz/visualizers running outside the namespace. Disable with `tf_namespace_bridge:=False`.
+
+**Frame names vs topic namespacing.** By default, frame names stay literal (e.g.
+`base_link`, `camera_link`) — the namespace lives only on the *topic* (e.g.
+`/<namespace>/tf`). This is observable in simulation by echoing any sensor topic:
+
+```bash
+ros2 topic echo /<namespace>/camera/image_raw --field header.frame_id
+# default (components_use_tf_prefix:=False):
+camera_link
+# with components_use_tf_prefix:=True:
+<namespace>/camera_link
+```
+
+The same applies to `/<namespace>/scan`, `/<namespace>/imu/data`, etc. Toggle via the
+top-level `components_use_tf_prefix` arg (forwarded automatically through the include
+chain to xacro). On hardware the default workflow runs without a namespace, so the
+prefix is empty either way — practically a sim-only knob. Keep `False` whenever the
+`push_ros_namespace` + `/tf` remap model is in use: mixing literal robot-body frames
+with prefixed component frames disconnects the TF tree.
 
 | 🤖   | 🖥️   | Argument                     | Description <br/> ***Type:*** `Default`                                                                                                                                                                                                                                                                            |
 | --- | --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -103,6 +122,7 @@ RViz/visualizers running outside the namespace. Disable with `tf_namespace_bridg
 | ✅   | ✅   | `battery_config_path`        | Path to the battery configuration file. **Hardware** (`bringup.launch.yaml`): the battery driver config — [`battery.yaml`](./husarion_ugv_battery/config/battery.yaml). **Simulation** (`simulation.launch.yaml`): the Gazebo `LinearBatteryPlugin` config — [`battery_plugin.yaml`](./husarion_ugv_gazebo/config/battery_plugin.yaml). <br/> ***string:*** depends on context |
 | ✅   | ✅   | `common_dir_path`            | When set, configs are resolved from `<common_dir_path>/<package_name>/...` instead of the package share dir, allowing centralized overrides across all packages without forking each one. <br/> ***string:*** `''`                                                                                                  |
 | ✅   | ✅   | `components_config_path`     | Additional components configuration file. Components described in this file are dynamically included in robot's URDF. Available options are described in [the manual](https://husarion.com/manuals/panther/panther-options). <br/> ***string:*** [`components.yaml`](./husarion_ugv_description/config/components.yaml) |
+| ❌   | ✅   | `components_use_tf_prefix`   | Prefix every component's `frame_id` with the robot namespace inside the URDF. Observable in simulation as `header.frame_id` on any sensor topic: `False` → `camera_link`; `True` → `<namespace>/camera_link`. On hardware the default workflow runs without a namespace, so the prefix is empty either way — kept for parity with simulation. Setting `True` while keeping the default `push_ros_namespace` + `/tf` remap model mixes literal robot-body frames with prefixed component frames and disconnects the TF tree. <br/> ***bool:*** `False`                                                                                                          |
 | ✅   | ✅   | `controller_config_path`     | Path to controller configuration file. A path to custom configuration can be specified here. <br/> ***string:*** [`{wheel_type}_controller.yaml`](./husarion_ugv_controller/config/)                                                                                                                               |
 | ✅   | ✅   | `disable_manager`            | Enable or disable manager_bt_node. <br/> ***bool:*** `False`                                                                                                                                                                                                                                                       |
 | ✅   | ❌   | `exit_on_wrong_hw`           | Exit the launch if the hardware configuration is detected as incorrect. When `False`, the launch hangs on `sleep infinity` after printing an error so the launch session stays alive for debugging. <br/> ***bool:*** `False` |

@@ -12,6 +12,7 @@
     default="" />
   <xacro:arg name="namespace" default="" />
   <xacro:arg name="use_madgwick_filter" default="false" />
+  <xacro:arg name="components_use_tf_prefix" default="False" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/lynx/lynx_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.lynx_robot
@@ -35,6 +36,7 @@
       components_config_path="${components_config_path_property}"
       namespace="$(arg namespace)"
       use_sim="$(arg use_sim)"
+      use_tf_prefix="$(arg components_use_tf_prefix)"
     />
   </xacro:unless>
 </robot>

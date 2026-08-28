@@ -29,16 +29,22 @@ copy_package_file() {
 # source robot environment
 source /run/husarion/robot_config.env
 
-copy_package_file husarion_ugv_teleop config/joy2twist_${ROBOT_MODEL_NAME}.yaml
+if [ -z "$ROBOT_MODEL_NAME" ]; then
+  echo "ERROR: ROBOT_MODEL_NAME not set in /run/husarion/robot_config.env"
+  exit 1
+fi
+
 copy_package_file husarion_ugv_controller config
+copy_package_file husarion_ugv_description config
+copy_package_file husarion_ugv_description urdf
+copy_package_file husarion_ugv_diagnostics config
 copy_package_file husarion_ugv_lights config/user_animations.yaml
 copy_package_file husarion_ugv_lights config/${ROBOT_MODEL_NAME}_animations.yaml
 copy_package_file husarion_ugv_localization config
 rm /config/husarion_ugv_localization/config/nmea_navsat.yaml || true
-copy_package_file husarion_ugv_manager behavior_trees/lights.xml
-copy_package_file husarion_ugv_manager behavior_trees/LightsBT.btproj
-copy_package_file husarion_ugv_manager config/shutdown_hosts.yaml
-copy_package_file husarion_ugv_description config/components.yaml
+copy_package_file husarion_ugv_manager behavior_trees
+copy_package_file husarion_ugv_manager config
+copy_package_file husarion_ugv_teleop config/joy2twist_${ROBOT_MODEL_NAME}.yaml
 
 # Change ownership of the copied files to host user
 chown -R 1000:1001 /config

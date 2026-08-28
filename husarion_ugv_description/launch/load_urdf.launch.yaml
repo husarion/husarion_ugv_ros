@@ -40,6 +40,12 @@ launch:
         - value: FATAL
 
   - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace; used to render the gz sensor_name placeholder and the
+        xacro namespace argument.
+
+  - arg:
       name: robot_model
       default: $(env ROBOT_MODEL_NAME panther)
       description: Specify robot model
@@ -97,13 +103,13 @@ launch:
 
   - let:
       name: rendered_controller_config
-      value: /tmp/husarion_ugv_controller_$(env ROBOT_NAMESPACE '').yaml
+      value: /tmp/husarion_ugv_controller_$(var namespace).yaml
 
   - let:
       name: render_controller_config_cmd
       value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
-        -i -e "s|<namespace>/|$(env ROBOT_NAMESPACE '')/|g" -e "s|<static_covariance_orientation>|$(var
-        orientation_covariance)|g" "$(var rendered_controller_config)"
+        -i -e 's|<namespace>/|$(var namespace)/|g' -e 's|<static_covariance_orientation>|$(var
+        orientation_covariance)|g' "$(var rendered_controller_config)"
 
   - executable:
       cmd: bash -c $(var render_controller_config_cmd)
@@ -137,5 +143,5 @@ launch:
                 value: $(command "xacro $(var urdf_xacro) use_sim:=$(var use_sim) wheel_config_file:=$(var
                   wheel_config_path) controller_config_file:=$(var rendered_controller_config)
                   battery_config_file:=$(var battery_config_path) imu_xyz:='$(var imu_xyz)'
-                  imu_rpy:='$(var imu_rpy)' namespace:=$(env ROBOT_NAMESPACE '') components_config_path:=$(var
+                  imu_rpy:='$(var imu_rpy)' namespace:=$(var namespace) components_config_path:=$(var
                   components_config_path) use_madgwick_filter:=$(var use_madgwick_filter)")

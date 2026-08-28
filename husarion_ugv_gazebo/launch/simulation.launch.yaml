@@ -68,8 +68,8 @@ launch:
 
   - let:
       name: render_gz_gui_cmd
-      value: cp "$(var gz_gui)" "$(var rendered_gz_gui)" && sed -i -e "s|{namespace}|$(var
-        namespace)|g" "$(var rendered_gz_gui)"
+      value: cp "$(var gz_gui)" "$(var rendered_gz_gui)" && sed -i -e 's|{namespace}|$(var
+        namespace)|g' "$(var rendered_gz_gui)"
 
   - executable:
       cmd: bash -c $(var render_gz_gui_cmd)
@@ -102,3 +102,5 @@ launch:
           value: $(var log_level)
         - name: tf_namespace_bridge
           value: $(var tf_namespace_bridge)
+        - name: use_rviz
+          value: $(var use_rviz)

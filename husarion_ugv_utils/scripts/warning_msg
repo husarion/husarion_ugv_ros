@@ -22,7 +22,7 @@ import click
 
 
 def main() -> int:
-    msg = " ".join(sys.argv[1:])
+    msg = " ".join(sys.argv[1:]).replace("_", " ")
     print(click.style(msg, bold=True, fg="yellow"), file=sys.stderr)
     return 0
 

@@ -23,6 +23,11 @@ launch:
         - value: FATAL
 
   - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Robot namespace; used to render the gz sensor_name placeholder.
+
+  - arg:
       name: robot_model
       default: $(env ROBOT_MODEL_NAME panther)
       description: Specify robot model
@@ -77,13 +82,13 @@ launch:
   # in gz needs a unique name); render it together with orientation covariance.
   - let:
       name: rendered_controller_config
-      value: /tmp/husarion_ugv_controller_$(env ROBOT_NAMESPACE '').yaml
+      value: /tmp/husarion_ugv_controller_$(var namespace).yaml
 
   - let:
       name: render_controller_config_cmd
       value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
-        -i -e "s|<namespace>/|$(env ROBOT_NAMESPACE '')/|g" -e "s|<static_covariance_orientation>|$(var
-        orientation_covariance)|g" "$(var rendered_controller_config)"
+        -i -e 's|<namespace>/|$(var namespace)/|g' -e 's|<static_covariance_orientation>|$(var
+        orientation_covariance)|g' "$(var rendered_controller_config)"
 
   - executable:
       cmd: bash -c $(var render_controller_config_cmd)

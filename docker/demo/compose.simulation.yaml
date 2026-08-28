@@ -27,4 +27,4 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: >
-      ros2 launch husarion_ugv_gazebo simulation.launch.py launch_gamepad:=true
+      ros2 launch husarion_ugv_gazebo simulation.launch.yaml launch_gamepad:=true

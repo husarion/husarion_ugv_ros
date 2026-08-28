@@ -6,7 +6,7 @@ Package used to control the Husarion UGV robot's lights.
 
 This package contains:
 
-- `lights.launch.py`: Responsible for launching the nodes required to control the robot's lights.
+- `lights.launch.yaml`: Responsible for launching the nodes required to control the robot's lights.
 
 ## Configuration Files
 

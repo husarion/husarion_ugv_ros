@@ -6,6 +6,11 @@ launch:
       default: ''
       description: Path to the common configuration directory.
 
+  - let:
+      name: husarion_ugv_lights_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_lights' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_lights)'")
+
   - arg:
       name: log_level
       default: INFO
@@ -16,11 +21,6 @@ launch:
         - value: WARNING
         - value: ERROR
         - value: FATAL
-
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes.
 
   - arg:
       name: robot_model
@@ -38,11 +38,8 @@ launch:
         - value: 'True'
         - value: 'False'
 
-  - let:
-      name: husarion_ugv_lights_common_dir
-      value: $(eval "'$(var common_dir_path)/husarion_ugv_lights' if '$(var common_dir_path)'
-        else '$(find-pkg-share husarion_ugv_lights)'")
-
+  # Args with defaults that depend on robot_model declared above; placed last to keep
+  # dependency order intact (DeclareLaunchArgument evaluates default eagerly).
   - arg:
       name: animations_config_path
       default: $(var husarion_ugv_lights_common_dir)/config/$(var robot_model)_animations.yaml
@@ -65,7 +62,7 @@ launch:
       pkg: rclcpp_components
       exec: component_container
       name: lights_container
-      namespace: $(var namespace)
+      namespace: ''  # required by ComposableNodeContainer; push_ros_namespace prefixes it
       on_exit: shutdown
       args: >
         --ros-args
@@ -76,7 +73,6 @@ launch:
         - pkg: husarion_ugv_lights
           plugin: husarion_ugv_lights::LightsDriverNode
           name: lights_driver
-          namespace: $(var namespace)
           unless: $(var use_sim)
           remap:
             - from: /diagnostics
@@ -89,7 +85,6 @@ launch:
         - pkg: husarion_ugv_lights
           plugin: husarion_ugv_lights::LightsControllerNode
           name: lights_controller
-          namespace: $(var namespace)
           param:
             - name: animations_config_path
               value: $(var animations_config_path)

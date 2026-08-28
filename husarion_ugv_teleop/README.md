@@ -4,7 +4,7 @@ The package contains configuration and launch files necessary to control the rob
 
 ## Launch Files
 
-- `teleop.launch.py`: Enables robot teleoperation via gamepad by loading the gamepad controller `joy2twist`.
+- `teleop.launch.yaml`: Enables robot teleoperation via gamepad by loading the gamepad controller `joy2twist`.
 
 ## Configuration Files
 

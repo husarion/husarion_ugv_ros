@@ -4,17 +4,16 @@ The package contains a launch file and source files used to run the robot simula
 
 ## Launch Files
 
-- `spawn_robot.launch.py`: Responsible for spawning the robot in the simulator.
-- `simulate_robot.launch.py`: Responsible for giving birth to the robot and simulating its physical behavior, such as driving, displaying data, etc.
-- `simulate_multiple_robots.launch.py`: Similar to the above with logic allowing you to quickly add a swarm of robots.
-- **`simulation.launch.py`**: A target file that runs the gazebo simulator that adds and simulates the robot's behavior in accordance with the given arguments.
+- **`simulation.launch.yaml`**: World-level entry point. Starts Gazebo, the world-level `ros_gz_bridge`, and includes `spawn_robot.launch.yaml` for the robot.
+- `spawn_robot.launch.yaml`: Per-robot orchestrator. Wraps everything in a `push_ros_namespace` group with `set_remap` for `/tf` and `/tf_static`, then spawns the robot in Gazebo and includes the controller, lights, manager, localization, components, RViz, and teleop launches.
+- `simulation.launch.py`: Backwards-compatibility shim re-including `simulation.launch.yaml` (deprecated; emits a deprecation warning).
 
 ### Worlds
 
 To run the simulation with a different world, use:
 
 ```bash
-ros2 launch husarion_ugv_gazebo simulation.launch.py gz_world:=<world>
+ros2 launch husarion_ugv_gazebo simulation.launch.yaml gz_world:=<world>
 ```
 
 Where `<world>` is either a path to an SDF file or the name of a built-in world in `husarion_gz_worlds`. The default world is `husarion_world`.

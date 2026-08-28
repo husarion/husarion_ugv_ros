@@ -13,6 +13,14 @@ launch:
         else '$(find-pkg-share husarion_ugv_teleop)'")
 
   - arg:
+      name: launch_gamepad
+      default: 'False'
+      description: Launch gamepad node.
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
       name: log_level
       default: INFO
       description: Logging level
@@ -22,19 +30,6 @@ launch:
         - value: WARNING
         - value: ERROR
         - value: FATAL
-
-  - arg:
-      name: namespace
-      default: $(env ROBOT_NAMESPACE '')
-      description: Add namespace to all launched nodes
-
-  - arg:
-      name: launch_gamepad
-      default: 'False'
-      description: Launch gamepad node.
-      choice:
-        - value: 'True'
-        - value: 'False'
 
   - let:
       name: joy2twist_params_file
@@ -47,7 +42,5 @@ launch:
       arg:
         - name: log_level
           value: $(var log_level)
-        - name: namespace
-          value: $(var namespace)
         - name: joy2twist_params_file
           value: $(var joy2twist_params_file)

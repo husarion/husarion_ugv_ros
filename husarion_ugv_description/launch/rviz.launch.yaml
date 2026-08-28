@@ -33,10 +33,13 @@ launch:
       name: rendered_rviz_config
       value: /tmp/husarion_ugv_rviz_$(var namespace).rviz
 
+  - let:
+      name: render_rviz_config_cmd
+      value: cp "$(var rviz_config)" "$(var rendered_rviz_config)" && sed -i -e 's,<namespace>/,$(var
+        ns_slash),g' -e 's,<namespace>,$(var namespace),g' "$(var rendered_rviz_config)"
+
   - executable:
-      cmd: 'bash -c "cp \"$(var rviz_config)\" \"$(var rendered_rviz_config)\" && sed -i
-        -e \"s,<namespace>/,$(var ns_slash),g\" -e \"s,<namespace>,$(var namespace),g\"
-        \"$(var rendered_rviz_config)\""'
+      cmd: bash -c $(var render_rviz_config_cmd)
 
   # Small delay so the sed-rendered file is on disk before rviz reads it.
   - timer:

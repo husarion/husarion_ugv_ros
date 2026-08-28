@@ -120,7 +120,7 @@ launch:
   - let:
       name: render_gz_bridge_cmd
       value: cp "$(var gz_bridge_config_path)" "$(var rendered_gz_bridge_config)" && sed
-        -i -e "s|<model_name>|$(var model_name)|g" -e "s|<namespace>/|$(var ns_slash)|g"
+        -i -e 's|<model_name>|$(var model_name)|g' -e 's|<namespace>/|$(var ns_slash)|g'
         "$(var rendered_gz_bridge_config)"
 
   - executable:

@@ -91,8 +91,8 @@ launch:
   - let:
       name: render_controller_config_cmd
       value: cp "$(var controller_config_path)" "$(var rendered_controller_config)" && sed
-        -i -e "s|<namespace>/|$(var ns_slash)|g" -e "s|<static_covariance_orientation>|$(var
-        orientation_covariance)|g" "$(var rendered_controller_config)"
+        -i -e 's|<namespace>/|$(var ns_slash)|g' -e 's|<static_covariance_orientation>|$(var
+        orientation_covariance)|g' "$(var rendered_controller_config)"
 
   - executable:
       cmd: bash -c $(var render_controller_config_cmd)

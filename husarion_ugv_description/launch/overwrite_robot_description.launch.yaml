@@ -104,12 +104,12 @@ launch:
       name: xacro_shell_cmd
       value: 'xacro "$(var urdf_xacro)" use_sim:=$(var use_sim) wheel_config_file:="$(var
         wheel_config_path)" controller_config_file:="$(var controller_config_path)" battery_config_file:="$(var
-        battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=$(var
-        namespace) components_config_path:="$(var components_config_path)" > "$(var rendered_robot_description)"'
+        battery_config_path)" imu_xyz:="$(var imu_xyz)" imu_rpy:="$(var imu_rpy)" namespace:=''$(var
+        namespace)'' components_config_path:="$(var components_config_path)" > "$(var rendered_robot_description)"'
 
   - let:
       name: set_param_shell_cmd
-      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set "$(var namespace_ext)robot_state_publisher"
+      value: rd=`cat "$(var rendered_robot_description)"`; ros2 param set '$(var namespace_ext)robot_state_publisher'
         robot_description "$rd"
 
   # Render xacro to a temp file synchronously.

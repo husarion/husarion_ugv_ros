@@ -59,8 +59,8 @@ launch:
 
   - let:
       name: render_gz_gui_cmd
-      value: cp "$(var gz_gui)" "$(var rendered_gz_gui)" && sed -i -e "s|{namespace}|$(var
-        namespace)|g" "$(var rendered_gz_gui)"
+      value: cp "$(var gz_gui)" "$(var rendered_gz_gui)" && sed -i -e 's|{namespace}|$(var
+        namespace)|g' "$(var rendered_gz_gui)"
 
   - executable:
       cmd: bash -c $(var render_gz_gui_cmd)

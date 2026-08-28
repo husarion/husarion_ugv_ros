@@ -1,0 +1,53 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/husarion_ugv_diagnostics/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_diagnostics_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_diagnostics' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_diagnostics)'")
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes
+
+  - arg:
+      name: system_monitor_config_path
+      default: $(var husarion_ugv_diagnostics_common_dir)/config/system_monitor.yaml
+      description: Specify the path to the system monitor configuration file.
+
+  - let:
+      name: rcl_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - node:
+      pkg: husarion_ugv_diagnostics
+      exec: system_monitor_node
+      name: system_monitor
+      namespace: $(var namespace)
+      param:
+        - from: $(var system_monitor_config_path)
+      remap:
+        - from: /diagnostics
+          to: diagnostics
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var rcl_log_level)

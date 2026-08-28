@@ -1,0 +1,88 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory.
+
+  - arg:
+      name: log_level
+      default: INFO
+      description: Logging level
+      choice:
+        - value: DEBUG
+        - value: INFO
+        - value: WARNING
+        - value: ERROR
+        - value: FATAL
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: use_sim
+      default: 'False'
+      description: Whether simulation is used
+
+  - let:
+      name: husarion_ugv_manager_pkg
+      value: $(find-pkg-share husarion_ugv_manager)
+
+  - let:
+      name: husarion_ugv_manager_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_manager' if '$(var common_dir_path)'
+        else '$(var husarion_ugv_manager_pkg)'")
+
+  - arg:
+      name: lights_bt_project_path
+      default: $(var husarion_ugv_manager_common_dir)/behavior_trees/LightsBT.btproj
+      description: Path to BehaviorTree project file, responsible for lights management.
+
+  - arg:
+      name: safety_bt_project_path
+      default: $(var husarion_ugv_manager_pkg)/behavior_trees/SafetyBT.btproj
+      description: Path to BehaviorTree project file, responsible for safety and shutdown
+        management.
+
+  - arg:
+      name: shutdown_hosts_config_path
+      default: $(var husarion_ugv_manager_common_dir)/config/shutdown_hosts.yaml
+      description: Path to file with list of hosts to request shutdown.
+
+  - let:
+      name: rcl_log_level
+      value: $(eval "'INFO' if '$(var log_level)' == 'DEBUG' else '$(var log_level)'")
+
+  - node:
+      pkg: husarion_ugv_manager
+      exec: lights_manager_node
+      name: lights_manager
+      namespace: $(var namespace)
+      param:
+        - from: $(var husarion_ugv_manager_pkg)/config/lights_manager.yaml
+        - name: bt_project_path
+          value: $(var lights_bt_project_path)
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var rcl_log_level)
+
+  - node:
+      pkg: husarion_ugv_manager
+      exec: safety_manager_node
+      name: safety_manager
+      namespace: $(var namespace)
+      unless: $(var use_sim)
+      param:
+        - from: $(var husarion_ugv_manager_pkg)/config/safety_manager.yaml
+        - name: bt_project_path
+          value: $(var safety_bt_project_path)
+        - name: shutdown_hosts_path
+          value: $(var shutdown_hosts_config_path)
+      args: >
+        --ros-args
+        --log-level $(var log_level)
+        --log-level rcl:=$(var rcl_log_level)

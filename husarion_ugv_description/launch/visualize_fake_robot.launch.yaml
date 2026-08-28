@@ -1,0 +1,100 @@
+---
+launch:
+
+  - arg:
+      name: common_dir_path
+      default: ''
+      description: Path to the common configuration directory. If set, configs are loaded
+        from <common_dir_path>/<package_name>/ instead of the package share dir.
+
+  - let:
+      name: husarion_ugv_description_common_dir
+      value: $(eval "'$(var common_dir_path)/husarion_ugv_description' if '$(var common_dir_path)'
+        else '$(find-pkg-share husarion_ugv_description)'")
+
+  - arg:
+      name: components_config_path
+      default: $(var husarion_ugv_description_common_dir)/config/components.yaml
+      description: Additional components configuration file. Components described in this
+        file are dynamically included in robot's URDF.
+
+  - arg:
+      name: namespace
+      default: $(env ROBOT_NAMESPACE '')
+      description: Add namespace to all launched nodes.
+
+  - arg:
+      name: robot_model
+      default: $(env ROBOT_MODEL_NAME panther)
+      description: Specify robot model
+      choice:
+        - value: lynx
+        - value: panther
+
+  - arg:
+      name: rviz_config
+      default: $(var husarion_ugv_description_common_dir)/rviz/robot_model.rviz
+      description: RViz configuration file.
+
+  - arg:
+      name: use_joint_state_publisher
+      default: 'False'
+      description: Run joint_state_publisher to simulate joint positions (no real controller).
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: use_joint_state_publisher_gui
+      default: 'False'
+      description: Run joint_state_publisher_gui to simulate joint positions (no real controller).
+      choice:
+        - value: 'True'
+        - value: 'False'
+
+  - arg:
+      name: wheel_type
+      default: "$(eval \"{'lynx': 'WH05', 'panther': 'WH01'}['$(var robot_model)']\")"
+      description: Specify the wheel type.
+      choice:
+        - value: WH01
+        - value: WH02
+        - value: WH04
+        - value: WH05
+        - value: custom
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_description)/launch/load_urdf.launch.yaml
+      arg:
+        - name: common_dir_path
+          value: $(var common_dir_path)
+        - name: components_config_path
+          value: $(var components_config_path)
+        - name: namespace
+          value: $(var namespace)
+        - name: robot_model
+          value: $(var robot_model)
+        - name: wheel_type
+          value: $(var wheel_type)
+
+  - include:
+      file: $(find-pkg-share husarion_ugv_description)/launch/rviz.launch.yaml
+      arg:
+        - name: common_dir_path
+          value: $(var common_dir_path)
+        - name: namespace
+          value: $(var namespace)
+        - name: rviz_config
+          value: $(var rviz_config)
+
+  - node:
+      pkg: joint_state_publisher
+      exec: joint_state_publisher
+      namespace: $(var namespace)
+      if: $(var use_joint_state_publisher)
+
+  - node:
+      pkg: joint_state_publisher_gui
+      exec: joint_state_publisher_gui
+      namespace: $(var namespace)
+      if: $(var use_joint_state_publisher_gui)

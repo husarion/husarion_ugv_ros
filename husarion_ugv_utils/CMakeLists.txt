@@ -20,6 +20,9 @@ endforeach()
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
+install(PROGRAMS scripts/welcome_msg scripts/error_msg scripts/warning_msg
+        DESTINATION lib/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 

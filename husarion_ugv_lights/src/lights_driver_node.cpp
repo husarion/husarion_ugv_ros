@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "husarion_ugv_lights/lights_driver_node.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <limits>

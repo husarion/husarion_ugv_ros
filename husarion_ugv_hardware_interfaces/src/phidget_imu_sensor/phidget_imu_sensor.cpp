@@ -48,9 +48,10 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
-CallbackReturn PhidgetImuSensor::on_init(const hardware_interface::HardwareInfo & hardware_info)
+CallbackReturn PhidgetImuSensor::on_init(
+  const hardware_interface::HardwareComponentInterfaceParams & params)
 {
-  if (hardware_interface::SensorInterface::on_init(hardware_info) != CallbackReturn::SUCCESS) {
+  if (hardware_interface::SensorInterface::on_init(params) != CallbackReturn::SUCCESS) {
     return CallbackReturn::ERROR;
   }
 

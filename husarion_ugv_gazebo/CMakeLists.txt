@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 project(husarion_ugv_gazebo)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -33,10 +33,10 @@ endforeach()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Quick QuickControls2)
 
-include_directories(include ${Qt5Core_INCLUDE_DIRS} ${Qt5Qml_INCLUDE_DIRS}
-                    ${Qt5Quick_INCLUDE_DIRS} ${Qt5QuickControls2_INCLUDE_DIRS})
-
 add_library(EStopSystem SHARED src/estop_system.cpp)
+target_include_directories(
+  EStopSystem PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                     $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(EStopSystem rclcpp std_msgs std_srvs)
 target_link_libraries(EStopSystem gz-sim8 gz-plugin2)
 
@@ -45,6 +45,9 @@ qt5_add_resources(resources_rcc src/gui/EStop.qrc)
 
 add_library(EStop SHARED include/husarion_ugv_gazebo/gui/e_stop.hpp
                          src/gui/e_stop.cpp ${resources_rcc})
+target_include_directories(
+  EStop PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+               $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(EStop rclcpp std_msgs std_srvs)
 target_link_libraries(
   EStop
@@ -56,6 +59,9 @@ target_link_libraries(
   ${Qt5QuickControls2_LIBRARIES})
 
 add_library(LEDStrip SHARED src/led_strip.cpp)
+target_include_directories(
+  LEDStrip PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(LEDStrip realtime_tools)
 target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2 gz-transport13)
 

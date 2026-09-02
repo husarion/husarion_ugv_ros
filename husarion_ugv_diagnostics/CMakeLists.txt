@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 
 # Handle superbuild first
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)
@@ -30,8 +30,6 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-include_directories(include)
-
 set(CPPUPROFILE_PREFIX ${CMAKE_BINARY_DIR}/ep_cppuprofile/src/ep_cppuprofile)
 set(ENV{PKG_CONFIG_PATH} "${CPPUPROFILE_PREFIX}/lib:$ENV{PKG_CONFIG_PATH}")
 
@@ -41,8 +39,9 @@ generate_parameter_library(system_monitor_parameters
                            src/system_monitor_parameters.yaml)
 
 add_executable(system_monitor_node src/main.cpp src/system_monitor_node.cpp)
-target_include_directories(system_monitor_node
-                           PUBLIC ${CMAKE_INSTALL_PREFIX}/include)
+target_include_directories(
+  system_monitor_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                              ${CMAKE_INSTALL_PREFIX}/include)
 ament_target_dependencies(system_monitor_node ${PACKAGE_DEPENDENCIES})
 target_link_libraries(system_monitor_node system_monitor_parameters
                       PkgConfig::CPPUPROFILE)
@@ -59,16 +58,18 @@ if(BUILD_TESTING)
   ament_add_gmock(
     ${PROJECT_NAME}_test_system_monitor test/unit/test_system_monitor_node.cpp
     src/system_monitor_node.cpp)
-  target_include_directories(${PROJECT_NAME}_test_system_monitor
-                             PUBLIC ${CMAKE_INSTALL_PREFIX}/include)
+  target_include_directories(
+    ${PROJECT_NAME}_test_system_monitor
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_INSTALL_PREFIX}/include)
   ament_target_dependencies(${PROJECT_NAME}_test_system_monitor
                             ament_cmake_gtest ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_system_monitor
                         system_monitor_parameters PkgConfig::CPPUPROFILE)
 
   ament_add_gmock(${PROJECT_NAME}_test_filesystem test/unit/test_filesystem.cpp)
-  target_include_directories(${PROJECT_NAME}_test_filesystem
-                             PUBLIC ${CMAKE_INSTALL_PREFIX}/include)
+  target_include_directories(
+    ${PROJECT_NAME}_test_filesystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+                                            ${CMAKE_INSTALL_PREFIX}/include)
   ament_target_dependencies(${PROJECT_NAME}_test_filesystem ament_cmake_gtest
                             ${PACKAGE_DEPENDENCIES})
 

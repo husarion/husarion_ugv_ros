@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 project(husarion_ugv_battery)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -18,8 +18,6 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-include_directories(include ${husarion_ugv_utils_INCLUDE_DIRS})
-
 add_executable(
   battery_driver_node
   src/main.cpp
@@ -29,6 +27,8 @@ add_executable(
   src/battery_publisher/battery_publisher.cpp
   src/battery_publisher/dual_battery_publisher.cpp
   src/battery_publisher/single_battery_publisher.cpp)
+target_include_directories(battery_driver_node
+                           PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(battery_driver_node ${PACKAGE_DEPENDENCIES})
 
 generate_parameter_library(battery_parameters src/battery_parameters.yaml)
@@ -54,7 +54,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_battery rclcpp sensor_msgs
-                            husarion_ugv_msgs)
+                            husarion_ugv_msgs husarion_ugv_utils)
 
   ament_add_gtest(${PROJECT_NAME}_test_adc_battery
                   test/battery/test_adc_battery.cpp src/battery/adc_battery.cpp)
@@ -63,7 +63,7 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(${PROJECT_NAME}_test_adc_battery rclcpp sensor_msgs
-                            husarion_ugv_msgs)
+                            husarion_ugv_msgs husarion_ugv_utils)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_roboteq_battery test/battery/test_roboteq_battery.cpp
@@ -72,8 +72,9 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_roboteq_battery
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
-  ament_target_dependencies(${PROJECT_NAME}_test_roboteq_battery
-                            husarion_ugv_msgs rclcpp sensor_msgs)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_roboteq_battery husarion_ugv_msgs husarion_ugv_utils
+    rclcpp sensor_msgs)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_publisher
@@ -129,8 +130,8 @@ if(BUILD_TESTING)
     src/battery/roboteq_battery.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_adc_dual
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/test)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_dual
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_dual
@@ -147,8 +148,8 @@ if(BUILD_TESTING)
     src/battery/roboteq_battery.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_adc_single
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/test)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_single
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_single
@@ -165,8 +166,8 @@ if(BUILD_TESTING)
     src/battery/roboteq_battery.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_roboteq
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
-           $<INSTALL_INTERFACE:include>)
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/test)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_roboteq
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_roboteq

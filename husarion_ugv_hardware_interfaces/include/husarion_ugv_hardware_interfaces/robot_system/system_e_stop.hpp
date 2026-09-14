@@ -94,12 +94,15 @@ public:
    *      after an E-stop state change.
    *   2. Attempt to reset the E-Stop using GPIO by manipulating the ESTOP GPIO pin. This operation
    *      may take some time and can be interrupted by the E-Stop trigger process.
-   *   3. Set the clear_error flag to allow for clearing of Roboteq errors.
-   *   4. Confirm the E-Stop reset was successful with the ReadEStopState method.
+   *   3. Disable the E-Stop of the motor controllers, which restores motor torque.
+   *   4. Set the clear_error flag to allow for clearing of Roboteq errors.
+   *   5. Confirm the E-Stop reset was successful with the ReadEStopState method.
    *
    * @throws EStopResetInterrupted if the E-stop reset operation was halted because the E-stop was
    *         triggered again.
-   * @throws std::runtime_error if an error occurs when trying to reset the E-stop using GPIO.
+   * @throws std::runtime_error if an error occurs when trying to reset the E-stop using GPIO or
+   *         when disabling the E-stop of the motor controllers fails. In the latter case the
+   *         E-stop state is kept, so the reset can be retried.
    */
   void ResetEStop() override;
 

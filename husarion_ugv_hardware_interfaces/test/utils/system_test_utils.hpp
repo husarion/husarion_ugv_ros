@@ -22,6 +22,8 @@
 
 #include <gmock/gmock.h>
 
+#include "hardware_interface/hardware_info.hpp"
+
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
@@ -95,6 +97,11 @@ public:
   MOCK_METHOD(
     (std::unordered_map<husarion_ugv_hardware_interfaces::GPIOPin, bool>),
     QueryControlInterfaceIOStates, (), (const, override));
+
+  std::shared_ptr<::testing::NiceMock<MockGPIODriver>> GetMockGPIODriver()
+  {
+    return std::dynamic_pointer_cast<::testing::NiceMock<MockGPIODriver>>(gpio_driver_);
+  }
 
   using NiceMock = testing::NiceMock<MockGPIOController>;
 };

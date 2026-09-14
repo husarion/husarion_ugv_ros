@@ -127,6 +127,25 @@ if(BUILD_TESTING)
                         PkgConfig::LIBGPIOD)
 
   ament_add_gmock(
+    ${PROJECT_NAME}_test_system_e_stop
+    test/unit/robot_system/test_system_e_stop.cpp
+    src/robot_system/gpio/gpio_controller.cpp
+    src/robot_system/gpio/gpio_driver.cpp
+    src/robot_system/system_e_stop.cpp
+    src/robot_system/robot_driver/roboteq_data_converters.cpp
+    src/robot_system/robot_driver/roboteq_error_filter.cpp
+    src/utils.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_system_e_stop
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_system_e_stop ament_index_cpp hardware_interface
+    husarion_ugv_msgs husarion_ugv_utils)
+  target_link_libraries(${PROJECT_NAME}_test_system_e_stop
+                        PkgConfig::LIBLELY_COAPP PkgConfig::LIBGPIOD)
+
+  ament_add_gmock(
     ${PROJECT_NAME}_test_ugv_system
     test/unit/robot_system/test_ugv_system.cpp
     src/robot_system/gpio/gpio_controller.cpp

@@ -57,7 +57,6 @@ void EStop::TriggerEStop()
 
 void EStop::ResetEStop()
 {
-  robot_driver_->TurnOffEStop();
   if (e_stop_manipulation_mtx_.try_lock()) {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
 
@@ -76,6 +75,19 @@ void EStop::ResetEStop()
     } catch (const std::runtime_error & e) {
       throw std::runtime_error(
         "Error when trying to reset E-stop using GPIO: " + std::string(e.what()));
+    }
+
+    // Motor power is cut while the E-stop is engaged, so the motor controllers answer SDO only
+    // after the GPIO reset above restored it. Releasing their internal E-stop any earlier times
+    // out and aborts the whole reset, leaving the robot unable to leave the E-stop state.
+    try {
+      std::lock_guard<std::mutex> robot_driver_write_lck(*robot_driver_write_mtx_);
+      robot_driver_->TurnOffEStop();
+    } catch (const std::runtime_error & e) {
+      throw std::runtime_error(
+        "E-stop was released on GPIO, but disabling the motor controllers E-stop failed, so the "
+        "E-stop state is kept. Retry the reset. Error: " +
+        std::string(e.what()));
     }
 
     roboteq_error_filter_->SetClearErrorsFlag();

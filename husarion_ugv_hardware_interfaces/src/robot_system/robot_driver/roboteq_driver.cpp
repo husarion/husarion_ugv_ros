@@ -16,6 +16,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -30,6 +31,10 @@
 
 namespace husarion_ugv_hardware_interfaces
 {
+
+// Extra time granted on top of the SDO timeout before the wait is considered lost -
+// lely reports its own timeout through the callback, this only catches a stalled loop.
+static constexpr std::chrono::milliseconds kSDOCompletionMargin{500};
 
 // All ids and sub ids were read directly from the eds file. Lely CANopen doesn't have the option
 // to parse them based on the ParameterName. Additionally between version v60 and v80
@@ -204,17 +209,19 @@ void RoboteqDriver::SyncSDOWrite(
   std::mutex mtx;
   std::condition_variable cv;
   std::error_code err_code;
+  bool completed = false;
 
   try {
     SubmitWrite(
       index, subindex, data,
-      [&mtx, &cv, &err_code](
+      [&mtx, &cv, &err_code, &completed](
         std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
         {
           std::lock_guard<std::mutex> lck_g(mtx);
           if (ec) {
             err_code = ec;
           }
+          completed = true;
         }
         cv.notify_one();
       },
@@ -224,7 +231,14 @@ void RoboteqDriver::SyncSDOWrite(
   }
 
   std::unique_lock<std::mutex> lck(mtx);
-  cv.wait(lck);
+  // The callback runs on the CANopen loop thread and may complete before this wait is reached,
+  // so the predicate is required - a plain wait() would miss the notification and block forever.
+  // The deadline guards against the loop thread dying, which would stop callbacks altogether.
+  if (!cv.wait_for(lck, sdo_operation_timeout_ms_ + kSDOCompletionMargin, [&completed] {
+        return completed;
+      })) {
+    throw std::runtime_error("SDO operation did not complete - no response from the CANopen loop.");
+  }
 
   if (err_code) {
     throw std::runtime_error("Error msg: " + err_code.message());

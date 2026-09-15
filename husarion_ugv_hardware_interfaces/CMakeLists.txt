@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 
 # Handle superbuild first
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)
@@ -40,8 +40,6 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-include_directories(include)
-
 generate_parameter_library(phidgets_spatial_parameters
                            src/phidgets_spatial_parameters.yaml)
 
@@ -69,6 +67,9 @@ add_library(
   src/robot_system/panther_system.cpp
   src/robot_system/ugv_system.cpp
   src/utils.cpp)
+target_include_directories(
+  ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                         $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(${PROJECT_NAME} ${PACKAGE_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME} PkgConfig::LIBLELY_COAPP
                       PkgConfig::LIBGPIOD phidgets_spatial_parameters)
@@ -351,6 +352,32 @@ if(BUILD_TESTING)
                           PkgConfig::LIBLELY_COAPP)
 
   endif()
+
+  set(PROJECT_TEST_TARGETS
+      ${PROJECT_NAME}_test_utils
+      ${PROJECT_NAME}_test_roboteq_error_filter
+      ${PROJECT_NAME}_test_roboteq_data_converters
+      ${PROJECT_NAME}_test_gpiod_controller
+      ${PROJECT_NAME}_test_ugv_system
+      ${PROJECT_NAME}_test_lynx_system
+      ${PROJECT_NAME}_test_panther_system)
+
+  if(TEST_INTEGRATION)
+    list(
+      APPEND
+      PROJECT_TEST_TARGETS
+      ${PROJECT_NAME}_test_system_ros_interface
+      ${PROJECT_NAME}_test_canopen_manager
+      ${PROJECT_NAME}_test_lynx_robot_driver
+      ${PROJECT_NAME}_test_panther_robot_driver
+      ${PROJECT_NAME}_test_roboteq_driver
+      ${PROJECT_NAME}_test_roboteq_robot_driver)
+  endif()
+
+  foreach(TEST_TARGET IN LISTS PROJECT_TEST_TARGETS)
+    target_include_directories(${TEST_TARGET}
+                               PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endforeach()
 
 endif()
 

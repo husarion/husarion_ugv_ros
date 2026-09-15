@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 project(husarion_ugv_description)
 
 find_package(ament_cmake REQUIRED)

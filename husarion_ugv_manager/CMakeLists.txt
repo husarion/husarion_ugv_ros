@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 project(husarion_ugv_manager)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -27,7 +27,10 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-include_directories(include)
+function(target_project_include_directories target)
+  target_include_directories(${target}
+                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endfunction()
 
 add_library(call_set_bool_service_bt_node SHARED
             src/plugins/action/call_set_bool_service_node.cpp)
@@ -71,12 +74,14 @@ add_library(execute_command_bt_node SHARED
 list(APPEND plugin_libs execute_command_bt_node)
 
 foreach(bt_plugin ${plugin_libs})
+  target_project_include_directories(${bt_plugin})
   target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
   ament_target_dependencies(${bt_plugin} ${PACKAGE_DEPENDENCIES})
 endforeach()
 
 add_executable(safety_manager_node src/safety_manager_node_main.cpp
                                    src/safety_manager_node.cpp)
+target_project_include_directories(safety_manager_node)
 ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
@@ -95,6 +100,7 @@ target_link_libraries(safety_manager_node ${plugin_libs}
 
 add_executable(lights_manager_node src/lights_manager_node_main.cpp
                                    src/lights_manager_node.cpp)
+target_project_include_directories(lights_manager_node)
 ament_target_dependencies(
   lights_manager_node
   behaviortree_ros2
@@ -313,6 +319,18 @@ if(BUILD_TESTING)
     tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
                         safety_manager_parameters OpenSSL::SSL)
+
+  set(PROJECT_TEST_TARGETS
+      ${plugin_tests}
+      ${PROJECT_NAME}_test_behavior_tree_utils
+      ${PROJECT_NAME}_test_behavior_tree_manager
+      ${PROJECT_NAME}_test_lights_manager_node
+      ${PROJECT_NAME}_test_lights_behavior_tree
+      ${PROJECT_NAME}_test_safety_manager_node
+      ${PROJECT_NAME}_test_safety_behavior_tree)
+  foreach(TEST_TARGET IN LISTS PROJECT_TEST_TARGETS)
+    target_project_include_directories(${TEST_TARGET})
+  endforeach()
 endif()
 
 ament_export_libraries(${plugin_libs})

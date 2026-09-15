@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.22.1)
 project(husarion_ugv_lights)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -24,18 +24,24 @@ foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
 
-include_directories(include)
-
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 
 add_library(animation_plugins SHARED src/animation/image_animation.cpp
                                      src/animation/moving_image_animation.cpp)
+target_include_directories(
+  animation_plugins
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 ament_target_dependencies(animation_plugins husarion_ugv_utils pluginlib)
 target_link_libraries(animation_plugins png yaml-cpp)
 
 add_library(lights_driver_node_component SHARED src/lights_driver_node.cpp
                                                 src/apa102.cpp)
+target_include_directories(
+  lights_driver_node_component
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(
   lights_driver_node_component
   diagnostic_updater
@@ -58,6 +64,10 @@ add_library(
   src/led_components/segment_converter.cpp
   src/led_components/segment_layer.cpp
   src/led_components/segment_queue_layer.cpp)
+target_include_directories(
+  lights_controller_node_component
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 ament_target_dependencies(
   lights_controller_node_component
   husarion_ugv_msgs

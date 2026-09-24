@@ -29,6 +29,19 @@
 #include "husarion_ugv_hardware_interfaces/phidget_imu_sensor/phidget_imu_sensor.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
 
+namespace
+{
+
+hardware_interface::HardwareComponentInterfaceParams MakeHardwareComponentParams(
+  const hardware_interface::HardwareInfo & hardware_info)
+{
+  hardware_interface::HardwareComponentInterfaceParams params;
+  params.hardware_info = hardware_info;
+  return params;
+}
+
+}  // namespace
+
 class PhidgetImuSensorWrapper : public husarion_ugv_hardware_interfaces::PhidgetImuSensor
 {
 public:
@@ -422,7 +435,8 @@ TEST_F(TestPhidgetImuSensor, CheckMagnitudeWrongValueAndCalibration)
   info.sensors.push_back(sensor_info);
   info = CreateCorrectInterfaces(info);
 
-  ASSERT_EQ(imu_sensor_->on_init(info), CallbackReturn::SUCCESS);
+  ASSERT_EQ(
+    imu_sensor_->on_init(MakeHardwareComponentParams(info)), CallbackReturn::SUCCESS);
 
   double magnitude[3];
   magnitude[0] = husarion_ugv_hardware_interfaces::PhidgetImuSensor::KImuMagneticFieldUnknownValue;
@@ -449,7 +463,8 @@ TEST_F(TestPhidgetImuSensor, CheckCalibrationOnDataCallbackAndAlgorithmInitializ
   info = CreateCorrectInterfaces(info);
   info = AddMadgwickParameters(info);
 
-  ASSERT_EQ(imu_sensor_->on_init(info), CallbackReturn::SUCCESS);
+  ASSERT_EQ(
+    imu_sensor_->on_init(MakeHardwareComponentParams(info)), CallbackReturn::SUCCESS);
   double magnitude[3], acceleration[3], gyration[3];
   magnitude[0] = husarion_ugv_hardware_interfaces::PhidgetImuSensor::KImuMagneticFieldUnknownValue;
   const auto fake_wrong_magnitude_parsed = imu_sensor_->ParseMagnitude(magnitude);
@@ -491,7 +506,8 @@ TEST_F(TestPhidgetImuSensor, CheckReconnection)
   info = CreateCorrectInterfaces(info);
   info = AddMadgwickParameters(info);
 
-  ASSERT_EQ(imu_sensor_->on_init(info), CallbackReturn::SUCCESS);
+  ASSERT_EQ(
+    imu_sensor_->on_init(MakeHardwareComponentParams(info)), CallbackReturn::SUCCESS);
   double magnitude[3], acceleration[3], gyration[3];
   magnitude[0] = husarion_ugv_hardware_interfaces::PhidgetImuSensor::KImuMagneticFieldUnknownValue;
 

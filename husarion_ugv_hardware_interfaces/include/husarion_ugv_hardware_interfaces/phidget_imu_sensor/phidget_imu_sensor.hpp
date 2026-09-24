@@ -57,7 +57,8 @@ class PhidgetImuSensor : public hardware_interface::SensorInterface
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(PhidgetImuSensor)
 
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & hardware_info) override;
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override;
   CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
   CallbackReturn on_cleanup(const rclcpp_lifecycle::State & previous_state) override;
   CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;

@@ -127,7 +127,8 @@ TEST_F(TestUGVSystem, OnInit)
 {
   EXPECT_CALL(*ugv_system_, ReadCANopenSettingsDriverCANIDs()).Times(1);
 
-  auto callback_return = ugv_system_->on_init(hardware_info_);
+  auto callback_return = ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_));
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
 }
@@ -136,7 +137,8 @@ TEST_F(TestUGVSystem, OnConfigure)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
 
   EXPECT_CALL(*ugv_system_, DefineRobotDriver()).Times(1);
   EXPECT_CALL(*ugv_system_, ConfigureGPIOController()).Times(1);
@@ -155,7 +157,8 @@ TEST_F(TestUGVSystem, OnCleanup)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
   EXPECT_CALL(*ugv_system_->GetMockRobotDriver(), Deinitialize()).Times(1);
@@ -170,7 +173,8 @@ TEST_F(TestUGVSystem, OnActivate)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
   auto callback_return = ugv_system_->on_activate(rclcpp_lifecycle::State());
 
@@ -183,7 +187,8 @@ TEST_F(TestUGVSystem, OnDeactivate)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
   ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
 
@@ -199,7 +204,8 @@ TEST_F(TestUGVSystem, OnShutdown)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
   EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop()).Times(1);
@@ -215,7 +221,8 @@ TEST_F(TestUGVSystem, OnError)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
   EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop()).Times(1);
@@ -231,7 +238,8 @@ TEST_F(TestUGVSystem, ExportStateInterfacesInitialValues)
 {
   std::vector<std::string> prefixes = {"fl", "fr", "rl", "rr"};
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
 
   std::vector<hardware_interface::StateInterface> state_interfaces =
     ugv_system_->export_state_interfaces();
@@ -268,7 +276,8 @@ TEST_F(TestUGVSystem, ExportStateInterfaces)
   std::vector<double> velocity = {5.0, 6.0, 7.0, 8.0};
   std::vector<double> effort = {9.0, 10.0, 11.0, 12.0};
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
 
   ugv_system_->SetHwStatePosition(position);
   ugv_system_->SetHwStateVelocity(velocity);
@@ -290,7 +299,8 @@ TEST_F(TestUGVSystem, ExportCommandInterfacesInitialValues)
 {
   std::vector<std::string> prefixes = {"fl", "fr", "rl", "rr"};
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
 
   std::vector<hardware_interface::CommandInterface> command_interfaces =
     ugv_system_->export_command_interfaces();
@@ -321,7 +331,8 @@ TEST_F(TestUGVSystem, ExportCommandInterfaces)
 {
   std::vector<double> velocity = {1.0, 2.0, 3.0, 4.0};
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
 
   ugv_system_->SetHwCommandVelocity(velocity);
 
@@ -339,7 +350,8 @@ TEST_F(TestUGVSystem, Read)
 {
   rclcpp::init(0, nullptr);
 
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
   ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
 
@@ -367,7 +379,8 @@ TEST_F(TestUGVSystem, Write)
   const auto velocity = std::vector<float>{1.0, 2.0, 3.0, 4.0};
 
   // System is deactivated, no speed commands sent
-  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_init(
+    husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_)));
   ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
 
   EXPECT_CALL(*ugv_system_->GetMockEStop(), ReadEStopState()).Times(1);

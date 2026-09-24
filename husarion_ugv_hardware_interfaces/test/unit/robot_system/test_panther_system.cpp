@@ -108,7 +108,8 @@ public:
     hardware_info_.hardware_parameters.emplace("front_driver_can_id", "1");
     hardware_info_.hardware_parameters.emplace("rear_driver_can_id", "2");
 
-    panther_system_->on_init(hardware_info_);
+    panther_system_->on_init(
+      husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_));
     panther_system_->on_configure(rclcpp_lifecycle::State());
   }
 

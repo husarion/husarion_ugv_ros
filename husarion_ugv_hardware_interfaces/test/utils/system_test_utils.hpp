@@ -22,6 +22,8 @@
 
 #include <gmock/gmock.h>
 
+#include <hardware_interface/types/hardware_component_interface_params.hpp>
+
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
@@ -31,6 +33,14 @@
 
 namespace husarion_ugv_hardware_interfaces_test
 {
+
+inline hardware_interface::HardwareComponentInterfaceParams MakeHardwareComponentParams(
+  const hardware_interface::HardwareInfo & hardware_info)
+{
+  hardware_interface::HardwareComponentInterfaceParams params;
+  params.hardware_info = hardware_info;
+  return params;
+}
 
 class MockRobotDriver : public husarion_ugv_hardware_interfaces::RobotDriverInterface
 {

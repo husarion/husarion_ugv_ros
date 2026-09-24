@@ -93,7 +93,8 @@ public:
     hardware_info_ = husarion_ugv_hardware_interfaces_test::GenerateDefaultHardwareInfo();
     hardware_info_.hardware_parameters.emplace("driver_can_id", "1");
 
-    lynx_system_->on_init(hardware_info_);
+    lynx_system_->on_init(
+      husarion_ugv_hardware_interfaces_test::MakeHardwareComponentParams(hardware_info_));
     lynx_system_->on_configure(rclcpp_lifecycle::State());
   }
 

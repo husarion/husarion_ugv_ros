@@ -78,6 +78,27 @@ RUN apt-get update && \
     find / -name librmw_cyclonedds_cpp.so 2>/dev/null | grep -q . && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Stock Fast DDS loses a shared-memory listener when a participant dies
+# uncleanly, and after two such deaths the robot's ROS network stops accepting
+# new nodes. Swap in the patched build and hold it so no later apt run brings
+# the stock one back. It has to come after every RUN that installs ROS
+# packages, and the find fails the build if any other copy of the library
+# would shadow it. One unpatched process is enough to keep the bug alive.
+ARG FASTDDS_PATCHED=v1
+ARG FASTDDS_SHA256_AMD64=0899019619144dd665d0f09246d504881654671756d8e1ec2dd8ebd3d862e57f
+ARG FASTDDS_SHA256_ARM64=59e48c80617f92f5b982a720efe9b1af8a419028a44c6c6aa8637df37bcee6a7
+RUN set -eu; arch=$(dpkg --print-architecture); \
+    case "$arch" in amd64) sum=$FASTDDS_SHA256_AMD64 ;; arm64) sum=$FASTDDS_SHA256_ARM64 ;; *) exit 1 ;; esac; \
+    curl -fsSL --retry 5 -o /tmp/fastdds.deb \
+      "https://github.com/husarion/fastdds-patched/releases/download/${FASTDDS_PATCHED}/fastrtps-${ROS_DISTRO}-${arch}.deb"; \
+    echo "${sum}  /tmp/fastdds.deb" | sha256sum -c -; \
+    apt-get update && apt-get install -y --no-install-recommends /tmp/fastdds.deb; \
+    pkg=$(dpkg-deb -f /tmp/fastdds.deb Package); apt-mark hold "$pkg"; rm -f /tmp/fastdds.deb; \
+    dpkg-query -W -f='${Version}' "$pkg" | grep -q '+husarion'; \
+    dpkg --verify "$pkg"; \
+    test "$(find / -xdev \( -name 'libfastrtps.so*' -o -name 'libfastdds.so*' \) -type f -not -path "/opt/ros/${ROS_DISTRO}/lib/*" | wc -l)" = 0; \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
 COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
 COPY docker/utils/ros_entrypoint.sh /ros_entrypoint.sh

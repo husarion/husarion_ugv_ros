@@ -84,9 +84,9 @@ RUN apt-get update && \
 # the stock one back. It has to come after every RUN that installs ROS
 # packages, and the find fails the build if any other copy of the library
 # would shadow it. One unpatched process is enough to keep the bug alive.
-ARG FASTDDS_PATCHED=v1
-ARG FASTDDS_SHA256_AMD64=0899019619144dd665d0f09246d504881654671756d8e1ec2dd8ebd3d862e57f
-ARG FASTDDS_SHA256_ARM64=59e48c80617f92f5b982a720efe9b1af8a419028a44c6c6aa8637df37bcee6a7
+ARG FASTDDS_PATCHED=v2
+ARG FASTDDS_SHA256_AMD64=d40d2f66309f36bb7f4fda46626ba4c492347b8e0d340c742703875c16aa74ae
+ARG FASTDDS_SHA256_ARM64=267a7b18834309f5ea17888fe37be4ae53371a2ddb8f9950e7c00be1b474fde9
 RUN set -eu; arch=$(dpkg --print-architecture); \
     case "$arch" in amd64) sum=$FASTDDS_SHA256_AMD64 ;; arm64) sum=$FASTDDS_SHA256_ARM64 ;; *) exit 1 ;; esac; \
     curl -fsSL --retry 5 -o /tmp/fastdds.deb \

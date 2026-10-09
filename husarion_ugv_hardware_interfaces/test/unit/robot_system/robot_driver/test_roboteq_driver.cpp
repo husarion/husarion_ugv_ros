@@ -62,7 +62,7 @@ TestRoboteqDriver::TestRoboteqDriver()
   canopen_manager_->Initialize();
 
   roboteq_driver_ = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
-    canopen_manager_->GetMaster(), 1, std::chrono::milliseconds(100));
+    canopen_manager_->GetMaster(), 1, std::chrono::milliseconds(100), 65);
 
   canopen_manager_->Activate();
 }

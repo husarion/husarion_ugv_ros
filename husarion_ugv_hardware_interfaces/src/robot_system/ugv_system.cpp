@@ -58,6 +58,7 @@ CallbackReturn UGVSystem::on_init(const hardware_interface::HardwareInfo & hardw
   try {
     ReadDrivetrainSettings();
     ReadCANopenSettings();
+    ReadRTThreadPriorities();
     ReadInitializationActivationAttempts();
     ReadParametersAndCreateRoboteqErrorFilter();
     ReadDriverStatesUpdateFrequency();
@@ -415,6 +416,37 @@ void UGVSystem::ReadCANopenSettings()
   ReadCANopenSettingsDriverCANIDs();
 }
 
+void UGVSystem::ReadRTThreadPriorities()
+{
+  canopen_settings_.canopen_thread_sched_priority = ReadRTPriority(
+    "canopen_thread_priority", CANopenSettings().canopen_thread_sched_priority);
+  canopen_settings_.rpdo_dispatch_sched_priority = ReadRTPriority(
+    "rpdo_dispatch_priority", CANopenSettings().rpdo_dispatch_sched_priority);
+  gpio_watchdog_sched_priority_ = ReadRTPriority(
+    "gpio_watchdog_priority", Watchdog::kWatchdogSchedPriority);
+  gpio_monitor_sched_priority_ = ReadRTPriority(
+    "gpio_monitor_priority", GPIOController::kMonitorSchedPriority);
+}
+
+unsigned UGVSystem::ReadRTPriority(const std::string & name, const unsigned default_priority)
+{
+  // Optional, so a robot description written before these existed keeps the defaults.
+  const auto it = info_.hardware_parameters.find(name);
+  if (it == info_.hardware_parameters.end()) {
+    return default_priority;
+  }
+
+  const auto priority = ParseRTPriority(it->second);
+  if (!priority) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << it->second << "', expected a whole number in ["
+                          << kMinRTPriority << ", " << kMaxRTPriority << "]. Using the default "
+                          << default_priority << ".");
+    return default_priority;
+  }
+  return *priority;
+}
+
 void UGVSystem::ReadInitializationActivationAttempts()
 {
   max_roboteq_initialization_attempts_ =
@@ -447,7 +479,8 @@ void UGVSystem::ReadDriverStatesUpdateFrequency()
 
 void UGVSystem::ConfigureGPIOController()
 {
-  gpio_controller_ = GPIOControllerFactory::CreateGPIOController();
+  gpio_controller_ = GPIOControllerFactory::CreateGPIOController(
+    gpio_watchdog_sched_priority_, gpio_monitor_sched_priority_);
   gpio_controller_->Start();
 
   RCLCPP_INFO(logger_, "Successfully configured GPIO controller.");

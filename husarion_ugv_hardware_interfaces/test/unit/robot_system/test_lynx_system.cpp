@@ -65,6 +65,8 @@ public:
   {
     return canopen_settings_;
   }
+  unsigned GetGPIOWatchdogSchedPriority() const { return gpio_watchdog_sched_priority_; }
+  unsigned GetGPIOMonitorSchedPriority() const { return gpio_monitor_sched_priority_; }
   std::vector<double> GetHwStatesPositions() { return hw_states_positions_; }
   std::vector<double> GetHwStatesVelocities() { return hw_states_velocities_; }
   std::vector<double> GetHwStatesEfforts() { return hw_states_efforts_; }
@@ -113,6 +115,52 @@ TEST_F(TestLynxSystem, ReadCANopenSettingsDriverCANIDs)
   EXPECT_EQ(canopen_settings.driver_can_ids.size(), 1);
   EXPECT_EQ(
     canopen_settings.driver_can_ids.at(husarion_ugv_hardware_interfaces::DriverNames::DEFAULT), 1);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesDefault)
+{
+  const auto canopen_settings = lynx_system_->GetCANopenSettings();
+
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system_->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system_->GetGPIOMonitorSchedPriority(), 60u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesFromParameters)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "80";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "75";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "62";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "55";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 80u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 75u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 62u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 55u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesInvalidFallBackToDefault)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "99";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "0";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "-1";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "high";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 60u);
 }
 
 TEST_F(TestLynxSystem, UpdateHwStates)

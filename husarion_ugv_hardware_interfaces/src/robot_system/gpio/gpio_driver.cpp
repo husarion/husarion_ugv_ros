@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_driver.hpp"
 
+#include <pthread.h>
+
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
@@ -229,6 +231,7 @@ void GPIODriver::GPIOMonitorOn()
 
 void GPIODriver::MonitorAsyncEvents()
 {
+  pthread_setname_np(pthread_self(), "gpio-monit");
   if (use_rt_) {
     husarion_ugv_utils::ConfigureRT(gpio_monit_thread_sched_priority_);
   }

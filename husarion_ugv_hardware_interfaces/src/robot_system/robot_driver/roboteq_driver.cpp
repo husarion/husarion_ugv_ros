@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 
+#include <pthread.h>
+
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -98,8 +100,11 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 
 RoboteqDriver::RoboteqDriver(
   const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
-  const std::chrono::milliseconds & sdo_operation_timeout_ms)
-: lely::canopen::LoopDriver(*async_master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
+  const std::chrono::milliseconds & sdo_operation_timeout_ms,
+  const unsigned rpdo_dispatch_sched_priority)
+: lely::canopen::LoopDriver(*async_master, id),
+  rpdo_dispatch_sched_priority_(rpdo_dispatch_sched_priority),
+  sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
 {
 }
 
@@ -309,8 +314,9 @@ void RoboteqDriver::PostCmdVel(const std::uint8_t channel, const std::int32_t cm
 void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept
 {
   if (!dispatch_priority_set_.exchange(true, std::memory_order_acq_rel)) {
+    pthread_setname_np(pthread_self(), "rpdo-dispatch");
     try {
-      husarion_ugv_utils::ConfigureRT(kRpdoDispatchSchedPriority);
+      husarion_ugv_utils::ConfigureRT(rpdo_dispatch_sched_priority_);
     } catch (const std::runtime_error & e) {
       std::cerr << "Failed to configure RT priority for the RPDO dispatch thread: " << e.what()
                 << std::endl;

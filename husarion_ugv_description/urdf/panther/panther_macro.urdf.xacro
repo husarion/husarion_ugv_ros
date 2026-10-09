@@ -110,6 +110,12 @@
           <param name="max_write_pdo_cmds_errors_count">2</param>
           <param name="max_read_pdo_motor_states_errors_count">2</param>
           <param name="max_read_pdo_driver_state_errors_count">2</param>
+
+          <!-- SCHED_FIFO priorities of the driver's real-time threads (1-98) -->
+          <param name="canopen_thread_priority">70</param>
+          <param name="rpdo_dispatch_priority">65</param>
+          <param name="gpio_watchdog_priority">60</param>
+          <param name="gpio_monitor_priority">60</param>
         </xacro:unless>
       </hardware>
 

@@ -54,6 +54,13 @@ CAN settings
 - `max_read_pdo_motor_states_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 - `max_read_pdo_driver_state_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 
+Real-time thread priorities. Each is a SCHED_FIFO priority from 1 to 98. A missing parameter keeps the default, and an invalid value is replaced by the default with a warning. Each thread also carries a name, so it can be found with `ps -eLo tid,rtprio,psr,comm` and pinned to a CPU from outside the process.
+
+- `canopen_thread_priority` [*int*, default: **70**]: CANopen communication thread (`lely-io`). It reads the CAN frames and has to stay above the control loop (FIFO 60), or the motor state timestamps go stale and the driver latches the e-stop.
+- `rpdo_dispatch_priority` [*int*, default: **65**]: RPDO dispatch thread of each Roboteq driver (`rpdo-dispatch`), which timestamps every motor state frame.
+- `gpio_watchdog_priority` [*int*, default: **60**]: Safety watchdog thread (`gpio-wdog`). It toggles the watchdog pin every 10 ms while the e-stop is released, and the safety board cuts motor power when the toggling stops.
+- `gpio_monitor_priority` [*int*, default: **60**]: GPIO edge event monitor thread (`gpio-monit`).
+
 PantherSystem additional CAN settings
 
 - `front_driver_can_id` [*int*, default: **1**]: CAN ID defined in the properties of Roboteq (set as in [canopen_configuration.yaml](./config/canopen_configuration.yaml)).

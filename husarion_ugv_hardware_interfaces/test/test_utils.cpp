@@ -93,6 +93,27 @@ TEST(TestUtils, CheckIfJointNameContainValidSequence)
   EXPECT_FALSE(CheckIfJointNameContainValidSequence("wheeljointfr", "fr"));
 }
 
+TEST(TestUtils, ParseRTPriority)
+{
+  using husarion_ugv_hardware_interfaces::ParseRTPriority;
+
+  EXPECT_EQ(ParseRTPriority("1"), 1u);
+  EXPECT_EQ(ParseRTPriority("70"), 70u);
+  EXPECT_EQ(ParseRTPriority("98"), 98u);
+  EXPECT_EQ(ParseRTPriority("065"), 65u);
+
+  EXPECT_FALSE(ParseRTPriority(""));
+  EXPECT_FALSE(ParseRTPriority("0"));
+  EXPECT_FALSE(ParseRTPriority("99"));
+  EXPECT_FALSE(ParseRTPriority("-5"));
+  EXPECT_FALSE(ParseRTPriority("+5"));
+  EXPECT_FALSE(ParseRTPriority(" 60"));
+  EXPECT_FALSE(ParseRTPriority("60.5"));
+  EXPECT_FALSE(ParseRTPriority("high"));
+  EXPECT_FALSE(ParseRTPriority("0070"));
+  EXPECT_FALSE(ParseRTPriority("99999999999999999999"));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

@@ -62,7 +62,8 @@ class RoboteqDriver : public DriverInterface, public lely::canopen::LoopDriver
 public:
   RoboteqDriver(
     const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
-    const std::chrono::milliseconds & sdo_operation_timeout_ms);
+    const std::chrono::milliseconds & sdo_operation_timeout_ms,
+    const unsigned rpdo_dispatch_sched_priority);
 
   /**
    * @brief Triggers boot operations
@@ -171,9 +172,9 @@ public:
   // loop (70) around it were all RT. It lost the core to the ROS stack for
   // tens of milliseconds at a time and the mirrored timestamps aged past the
   // staleness deadline with the wire clean and the control loop on time. The
-  // thread raises itself on its first callback - from outside the process
-  // every thread here is just "ros2_control_node" and cannot be told apart.
-  static constexpr unsigned kRpdoDispatchSchedPriority = 65;
+  // thread raises itself and takes the name "rpdo-dispatch" on its first
+  // callback, so the image can tell it apart from the rest of the process.
+  const unsigned rpdo_dispatch_sched_priority_;
   std::atomic<bool> dispatch_priority_set_{false};
 
   // One in-flight task per channel carrying whatever the newest command is at

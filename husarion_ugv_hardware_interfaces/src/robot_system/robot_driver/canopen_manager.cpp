@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 
+#include <pthread.h>
+
 #include <condition_variable>
 #include <filesystem>
 #include <iostream>
@@ -62,9 +64,11 @@ void CANopenManager::Activate()
   canopen_communication_thread_ = std::thread([this]() {
     // Set the RT priority here, on the thread that actually runs the CANopen loop. It used
     // to be done in Initialize(), which only changed the calling thread's priority and left
-    // this one to inherit it, which is easy to get wrong.
+    // this one to inherit it, which is easy to get wrong. The name lets the image find the
+    // thread from outside the process to pin it.
+    pthread_setname_np(pthread_self(), "lely-io");
     try {
-      husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
+      husarion_ugv_utils::ConfigureRT(canopen_settings_.canopen_thread_sched_priority);
     } catch (const std::runtime_error & e) {
       std::cerr << "Failed to configure RT priority for the CANopen thread: " << e.what()
                 << std::endl

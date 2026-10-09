@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 
+#include <pthread.h>
+
 #include "husarion_ugv_utils/configure_rt.hpp"
 
 #include <chrono>
@@ -32,8 +34,8 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
-Watchdog::Watchdog(std::shared_ptr<GPIODriverInterface> gpio_driver)
-: gpio_driver_(std::move(gpio_driver))
+Watchdog::Watchdog(std::shared_ptr<GPIODriverInterface> gpio_driver, const unsigned sched_priority)
+: gpio_driver_(std::move(gpio_driver)), sched_priority_(sched_priority)
 {
   if (!gpio_driver_->IsPinAvailable(watchdog_pin_)) {
     throw std::runtime_error("Watchdog pin is not configured.");
@@ -78,8 +80,9 @@ void Watchdog::WatchdogThread()
   // enough for the board to latch the e-stop, and it does so in hardware with
   // nothing to log. Caught on a Lynx: 24-39 ms scheduling stalls on this
   // thread and two silent latches in an afternoon.
+  pthread_setname_np(pthread_self(), "gpio-wdog");
   try {
-    husarion_ugv_utils::ConfigureRT(kWatchdogSchedPriority);
+    husarion_ugv_utils::ConfigureRT(sched_priority_);
   } catch (const std::runtime_error & e) {
     std::cerr << "Failed to configure RT priority for the safety watchdog thread: " << e.what()
               << std::endl;
@@ -117,7 +120,10 @@ bool GPIOControllerInterface::IsPinAvailable(const GPIOPin pin) const
   return gpio_driver_->IsPinAvailable(pin);
 }
 
-GPIOController::GPIOController(std::shared_ptr<GPIODriverInterface> gpio_driver)
+GPIOController::GPIOController(
+  std::shared_ptr<GPIODriverInterface> gpio_driver, const unsigned watchdog_sched_priority,
+  const unsigned monitor_sched_priority)
+: watchdog_sched_priority_(watchdog_sched_priority), monitor_sched_priority_(monitor_sched_priority)
 {
   gpio_driver_ = gpio_driver;
 
@@ -128,12 +134,12 @@ GPIOController::GPIOController(std::shared_ptr<GPIODriverInterface> gpio_driver)
 
 void GPIOController::Start()
 {
-  gpio_driver_->GPIOMonitorEnable(true, 60);
+  gpio_driver_->GPIOMonitorEnable(true, monitor_sched_priority_);
 
   gpio_driver_->SetPinValue(GPIOPin::VMOT_ON, true);
   MotorPowerEnable(true);
 
-  watchdog_ = std::make_unique<Watchdog>(gpio_driver_);
+  watchdog_ = std::make_unique<Watchdog>(gpio_driver_, watchdog_sched_priority_);
 }
 
 void GPIOController::EStopTrigger()

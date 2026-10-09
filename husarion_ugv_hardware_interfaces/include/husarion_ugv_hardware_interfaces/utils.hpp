@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -58,6 +59,17 @@ bool OperationWithAttempts(
  * @return true if sequence is present in name and is valid
  */
 bool CheckIfJointNameContainValidSequence(const std::string & name, const std::string & sequence);
+
+constexpr unsigned kMinRTPriority = 1;
+constexpr unsigned kMaxRTPriority = 98;
+
+/**
+ * @brief Parses the SCHED_FIFO priority of one of the driver's RT threads from a hardware
+ * parameter value
+ * @return the priority, or std::nullopt if text is not a whole number in [kMinRTPriority,
+ * kMaxRTPriority]
+ */
+std::optional<unsigned> ParseRTPriority(const std::string & text);
 
 }  // namespace husarion_ugv_hardware_interfaces
 

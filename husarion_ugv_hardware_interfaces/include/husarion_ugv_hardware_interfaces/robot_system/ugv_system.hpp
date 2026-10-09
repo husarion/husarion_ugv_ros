@@ -85,6 +85,8 @@ protected:
 
   void ReadDrivetrainSettings();
   void ReadCANopenSettings();
+  void ReadRTThreadPriorities();
+  unsigned ReadRTPriority(const std::string & name, const unsigned default_priority);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
   void ReadInitializationActivationAttempts();
@@ -144,6 +146,8 @@ protected:
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;
+  unsigned gpio_watchdog_sched_priority_ = Watchdog::kWatchdogSchedPriority;
+  unsigned gpio_monitor_sched_priority_ = GPIOController::kMonitorSchedPriority;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
 

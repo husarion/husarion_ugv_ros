@@ -54,10 +54,13 @@ public:
    * @brief Constructor for Watchdog class.
    *
    * @param gpio_driver Pointer to the GPIODriver object.
+   * @param sched_priority SCHED_FIFO priority of the watchdog thread.
    * @exception std::runtime_error if the Watchdog pin is not configured by GPIODriver or not
    * described in GPIOController gpio_info storage
    */
-  Watchdog(std::shared_ptr<GPIODriverInterface> gpio_driver);
+  Watchdog(
+    std::shared_ptr<GPIODriverInterface> gpio_driver,
+    const unsigned sched_priority = kWatchdogSchedPriority);
 
   /**
    * @brief Destructor for Watchdog class. Turns off the watchdog thread.
@@ -92,6 +95,7 @@ private:
 
   GPIOPin watchdog_pin_ = GPIOPin::WATCHDOG;
   std::shared_ptr<GPIODriverInterface> gpio_driver_;
+  const unsigned sched_priority_;
   std::thread watchdog_thread_;
   std::atomic_bool watchdog_thread_enabled_ = false;
 };
@@ -156,9 +160,16 @@ public:
    * @brief Constructor for GPIOController class.
    *
    * @param gpio_driver Pointer to the GPIODriver object.
+   * @param watchdog_sched_priority SCHED_FIFO priority of the safety watchdog thread.
+   * @param monitor_sched_priority SCHED_FIFO priority of the GPIO monitor thread.
    * @throw `std::runtime_error` When the GPIO driver is not initialized.
    */
-  GPIOController(std::shared_ptr<GPIODriverInterface> gpio_driver);
+  GPIOController(
+    std::shared_ptr<GPIODriverInterface> gpio_driver,
+    const unsigned watchdog_sched_priority = Watchdog::kWatchdogSchedPriority,
+    const unsigned monitor_sched_priority = kMonitorSchedPriority);
+
+  static constexpr unsigned kMonitorSchedPriority = 60;
 
   /**
    * @brief Initializes the GPIODriver, Watchdog, and powers on the motors.
@@ -255,6 +266,9 @@ protected:
   std::unique_ptr<Watchdog> watchdog_;
 
 private:
+  const unsigned watchdog_sched_priority_;
+  const unsigned monitor_sched_priority_;
+
   /**
    * @brief Waits for a specific duration or until an interruption is signaled.
    *
@@ -285,15 +299,20 @@ public:
   /**
    * @brief Creates a GPIO controller.
    *
+   * @param watchdog_sched_priority SCHED_FIFO priority of the safety watchdog thread.
+   * @param monitor_sched_priority SCHED_FIFO priority of the GPIO monitor thread.
    * @return A unique pointer to the created GPIO controller.
    */
-  static std::unique_ptr<GPIOControllerInterface> CreateGPIOController()
+  static std::unique_ptr<GPIOControllerInterface> CreateGPIOController(
+    const unsigned watchdog_sched_priority = Watchdog::kWatchdogSchedPriority,
+    const unsigned monitor_sched_priority = GPIOController::kMonitorSchedPriority)
   {
     std::unique_ptr<GPIOControllerInterface> gpio_controller;
     auto config_info_storage = GPIOController::GetGPIOConfigInfoStorage();
     auto gpio_driver = std::make_shared<GPIODriver>(config_info_storage);
 
-    gpio_controller = std::make_unique<GPIOController>(gpio_driver);
+    gpio_controller = std::make_unique<GPIOController>(
+      gpio_driver, watchdog_sched_priority, monitor_sched_priority);
 
     return gpio_controller;
   };

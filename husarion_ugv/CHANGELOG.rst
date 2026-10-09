@@ -10,6 +10,7 @@ Forthcoming
 * patched Fast DDS v3: the same fixes rebuilt on Fast DDS 2.14.7, so the image builds again against the current ROS repository
 * new use_mag launch argument, off by default: with use_madgwick_filter the IMU orientation no longer uses the magnetometer, which the motors disturb on a stock robot - turn it on for a relocated or external IMU
 * the driver's real-time threads are named (lely-io, rpdo-dispatch, gpio-wdog, gpio-monit) and their priorities are hardware parameters with the old values as defaults
+* the safety watchdog thread lives as long as the driver instead of being recreated on every e-stop reset, and the real-time threads pin themselves to their CPUs (new *_cpu hardware parameters)
 
 2.3.2 (2026-06-25)
 ------------------

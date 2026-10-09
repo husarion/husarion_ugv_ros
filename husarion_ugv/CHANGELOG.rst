@@ -6,6 +6,8 @@ Forthcoming
 -----------
 * the hardware image carries a patched Fast DDS that keeps the robot's ROS network open to new nodes after a process crashes
 * patched Fast DDS v2: the robot's ROS network no longer splits when a process is killed while sending
+* switching the LED strip off or on through lights/enable now updates lights/output_state, so a client reading it back sees the real state
+* patched Fast DDS v3: the same fixes rebuilt on Fast DDS 2.14.7, so the image builds again against the current ROS repository
 
 2.3.2 (2026-06-25)
 ------------------

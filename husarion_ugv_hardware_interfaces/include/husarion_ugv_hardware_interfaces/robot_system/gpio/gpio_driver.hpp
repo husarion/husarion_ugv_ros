@@ -39,7 +39,8 @@ class GPIODriverInterface
 public:
   virtual ~GPIODriverInterface() = default;
   virtual void GPIOMonitorEnable(
-    const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60) = 0;
+    const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60,
+    const int gpio_monit_thread_cpu = -1) = 0;
   virtual void ConfigureEdgeEventCallback(
     const std::function<void(const GPIOInfo &)> & callback) = 0;
   virtual void ChangePinDirection(const GPIOPin pin, const gpiod::line::direction direction) = 0;
@@ -102,13 +103,16 @@ public:
    *        Set within the range of 0-99 to enable and configure the FIFO RT scheduling
    *        policy for the monitor thread. This parameter is considered only if `use_rt` is set to
    *        true. The default priority is 60.
+   * @param gpio_monit_thread_cpu CPU the GPIO monitoring thread pins itself to, -1 to not pin.
+   *        Considered only if `use_rt` is set to true.
    *
    * @note Calling `GPIOMonitorEnable` is optional after constructing the driver object. It allows
    *       asynchronous monitoring of GPIO pin states. Not invoking this method will result in the
    *       lack of functionality to read pin values.
    */
   void GPIOMonitorEnable(
-    const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60) override;
+    const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60,
+    const int gpio_monit_thread_cpu = -1) override;
 
   /**
    * @brief This method sets the provided callback function to be executed upon GPIO edge events.
@@ -246,6 +250,7 @@ private:
    * if real-time monitoring is enabled.
    */
   unsigned gpio_monit_thread_sched_priority_;
+  int gpio_monit_thread_cpu_ = -1;
   std::atomic_bool gpio_monitor_thread_enabled_ = false;
   std::condition_variable monitor_init_cond_var_;
   std::mutex monitor_init_mtx_;

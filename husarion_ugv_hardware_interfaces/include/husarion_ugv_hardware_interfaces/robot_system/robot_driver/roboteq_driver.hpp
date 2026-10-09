@@ -63,7 +63,7 @@ public:
   RoboteqDriver(
     const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
     const std::chrono::milliseconds & sdo_operation_timeout_ms,
-    const unsigned rpdo_dispatch_sched_priority);
+    const unsigned rpdo_dispatch_sched_priority, const int rpdo_dispatch_cpu = -1);
 
   /**
    * @brief Triggers boot operations
@@ -175,6 +175,7 @@ public:
   // thread raises itself and takes the name "rpdo-dispatch" on its first
   // callback, so the image can tell it apart from the rest of the process.
   const unsigned rpdo_dispatch_sched_priority_;
+  const int rpdo_dispatch_cpu_;
   std::atomic<bool> dispatch_priority_set_{false};
 
   // One in-flight task per channel carrying whatever the newest command is at

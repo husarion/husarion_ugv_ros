@@ -68,7 +68,8 @@ void CANopenManager::Activate()
     // thread from outside the process to pin it.
     pthread_setname_np(pthread_self(), "lely-io");
     try {
-      husarion_ugv_utils::ConfigureRT(canopen_settings_.canopen_thread_sched_priority);
+      husarion_ugv_utils::ConfigureRT(
+        canopen_settings_.canopen_thread_sched_priority, canopen_settings_.canopen_thread_cpu);
     } catch (const std::runtime_error & e) {
       std::cerr << "Failed to configure RT priority for the CANopen thread: " << e.what()
                 << std::endl

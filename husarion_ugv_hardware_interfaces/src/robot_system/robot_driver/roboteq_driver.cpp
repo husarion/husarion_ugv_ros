@@ -101,9 +101,10 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 RoboteqDriver::RoboteqDriver(
   const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
   const std::chrono::milliseconds & sdo_operation_timeout_ms,
-  const unsigned rpdo_dispatch_sched_priority)
+  const unsigned rpdo_dispatch_sched_priority, const int rpdo_dispatch_cpu)
 : lely::canopen::LoopDriver(*async_master, id),
   rpdo_dispatch_sched_priority_(rpdo_dispatch_sched_priority),
+  rpdo_dispatch_cpu_(rpdo_dispatch_cpu),
   sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
 {
 }
@@ -316,7 +317,7 @@ void RoboteqDriver::OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subi
   if (!dispatch_priority_set_.exchange(true, std::memory_order_acq_rel)) {
     pthread_setname_np(pthread_self(), "rpdo-dispatch");
     try {
-      husarion_ugv_utils::ConfigureRT(rpdo_dispatch_sched_priority_);
+      husarion_ugv_utils::ConfigureRT(rpdo_dispatch_sched_priority_, rpdo_dispatch_cpu_);
     } catch (const std::runtime_error & e) {
       std::cerr << "Failed to configure RT priority for the RPDO dispatch thread: " << e.what()
                 << std::endl;

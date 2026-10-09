@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/ugv_system.hpp"
 
+#include <sys/sysinfo.h>
+
 #include <array>
 #include <chrono>
 #include <cstdio>
@@ -426,6 +428,11 @@ void UGVSystem::ReadRTThreadPriorities()
     "gpio_watchdog_priority", Watchdog::kWatchdogSchedPriority);
   gpio_monitor_sched_priority_ = ReadRTPriority(
     "gpio_monitor_priority", GPIOController::kMonitorSchedPriority);
+
+  canopen_settings_.canopen_thread_cpu = ReadRTCPU("canopen_thread_cpu", kDefaultCANCPU);
+  canopen_settings_.rpdo_dispatch_cpu = ReadRTCPU("rpdo_dispatch_cpu", kDefaultCANCPU);
+  gpio_watchdog_cpu_ = ReadRTCPU("gpio_watchdog_cpu", kDefaultControlCPU);
+  gpio_monitor_cpu_ = ReadRTCPU("gpio_monitor_cpu", kDefaultControlCPU);
 }
 
 unsigned UGVSystem::ReadRTPriority(const std::string & name, const unsigned default_priority)
@@ -445,6 +452,25 @@ unsigned UGVSystem::ReadRTPriority(const std::string & name, const unsigned defa
     return default_priority;
   }
   return *priority;
+}
+
+int UGVSystem::ReadRTCPU(const std::string & name, const int default_cpu)
+{
+  // The default is checked too: a machine with fewer cores than the robot's computer gets an
+  // unpinned thread and a warning instead of a failed pin.
+  const auto it = info_.hardware_parameters.find(name);
+  const std::string text = it == info_.hardware_parameters.end() ? std::to_string(default_cpu)
+                                                                 : it->second;
+  const int cpu_count = get_nprocs_conf();
+
+  const auto cpu = ParseCPU(text, cpu_count);
+  if (!cpu) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << text << "', expected -1 or a CPU in [0, "
+                          << cpu_count - 1 << "]. The thread will not be pinned.");
+    return -1;
+  }
+  return *cpu;
 }
 
 void UGVSystem::ReadInitializationActivationAttempts()
@@ -480,7 +506,8 @@ void UGVSystem::ReadDriverStatesUpdateFrequency()
 void UGVSystem::ConfigureGPIOController()
 {
   gpio_controller_ = GPIOControllerFactory::CreateGPIOController(
-    gpio_watchdog_sched_priority_, gpio_monitor_sched_priority_);
+    gpio_watchdog_sched_priority_, gpio_monitor_sched_priority_, gpio_watchdog_cpu_,
+    gpio_monitor_cpu_);
   gpio_controller_->Start();
 
   RCLCPP_INFO(logger_, "Successfully configured GPIO controller.");

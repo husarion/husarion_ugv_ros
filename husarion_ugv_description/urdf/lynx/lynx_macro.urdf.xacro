@@ -110,6 +110,11 @@
           <param name="rpdo_dispatch_priority">65</param>
           <param name="gpio_watchdog_priority">60</param>
           <param name="gpio_monitor_priority">60</param>
+          <!-- CPUs the same threads pin themselves to, -1 to not pin -->
+          <param name="canopen_thread_cpu">0</param>
+          <param name="rpdo_dispatch_cpu">0</param>
+          <param name="gpio_watchdog_cpu">3</param>
+          <param name="gpio_monitor_cpu">3</param>
         </xacro:unless>
       </hardware>
 

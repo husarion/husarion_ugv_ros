@@ -114,6 +114,24 @@ TEST(TestUtils, ParseRTPriority)
   EXPECT_FALSE(ParseRTPriority("99999999999999999999"));
 }
 
+TEST(TestUtils, ParseCPU)
+{
+  using husarion_ugv_hardware_interfaces::ParseCPU;
+
+  EXPECT_EQ(ParseCPU("-1", 4), -1);
+  EXPECT_EQ(ParseCPU("0", 4), 0);
+  EXPECT_EQ(ParseCPU("3", 4), 3);
+
+  EXPECT_FALSE(ParseCPU("4", 4));
+  EXPECT_FALSE(ParseCPU("3", 2));
+  EXPECT_FALSE(ParseCPU("", 4));
+  EXPECT_FALSE(ParseCPU("-2", 4));
+  EXPECT_FALSE(ParseCPU(" 1", 4));
+  EXPECT_FALSE(ParseCPU("1.0", 4));
+  EXPECT_FALSE(ParseCPU("cpu0", 4));
+  EXPECT_FALSE(ParseCPU("99999999999", 4));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

@@ -81,4 +81,20 @@ std::optional<unsigned> ParseRTPriority(const std::string & text)
   return priority;
 }
 
+std::optional<int> ParseCPU(const std::string & text, const int cpu_count)
+{
+  if (text == "-1") {
+    return -1;
+  }
+  if (
+    text.empty() || text.size() > 4 || text.find_first_not_of("0123456789") != std::string::npos) {
+    return std::nullopt;
+  }
+  const int cpu = std::stoi(text);
+  if (cpu >= cpu_count) {
+    return std::nullopt;
+  }
+  return cpu;
+}
+
 }  // namespace husarion_ugv_hardware_interfaces

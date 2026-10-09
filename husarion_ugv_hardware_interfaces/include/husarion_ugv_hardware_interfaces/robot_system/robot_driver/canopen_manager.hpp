@@ -65,6 +65,10 @@ struct CANopenSettings
   // Priority of the RPDO dispatch thread lely creates for every Roboteq driver, see
   // RoboteqDriver::OnRpdoWrite.
   unsigned rpdo_dispatch_sched_priority = 65;
+
+  // CPUs the two threads above pin themselves to, -1 leaves them where the kernel puts them.
+  int canopen_thread_cpu = -1;
+  int rpdo_dispatch_cpu = -1;
 };
 
 /**

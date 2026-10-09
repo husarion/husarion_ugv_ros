@@ -60,10 +60,12 @@ GPIODriver::~GPIODriver()
 }
 
 void GPIODriver::GPIOMonitorEnable(
-  const bool use_rt, const unsigned gpio_monit_thread_sched_priority)
+  const bool use_rt, const unsigned gpio_monit_thread_sched_priority,
+  const int gpio_monit_thread_cpu)
 {
   use_rt_ = use_rt;
   gpio_monit_thread_sched_priority_ = gpio_monit_thread_sched_priority;
+  gpio_monit_thread_cpu_ = gpio_monit_thread_cpu;
 
   GPIOMonitorOn();
 }
@@ -233,7 +235,7 @@ void GPIODriver::MonitorAsyncEvents()
 {
   pthread_setname_np(pthread_self(), "gpio-monit");
   if (use_rt_) {
-    husarion_ugv_utils::ConfigureRT(gpio_monit_thread_sched_priority_);
+    husarion_ugv_utils::ConfigureRT(gpio_monit_thread_sched_priority_, gpio_monit_thread_cpu_);
   }
 
   auto edge_event_buffer = gpiod::edge_event_buffer(edge_event_buffer_size_);

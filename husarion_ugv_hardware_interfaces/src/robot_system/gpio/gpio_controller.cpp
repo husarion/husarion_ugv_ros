@@ -34,15 +34,27 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
-Watchdog::Watchdog(std::shared_ptr<GPIODriverInterface> gpio_driver, const unsigned sched_priority)
-: gpio_driver_(std::move(gpio_driver)), sched_priority_(sched_priority)
+Watchdog::Watchdog(
+  std::shared_ptr<GPIODriverInterface> gpio_driver, const unsigned sched_priority, const int cpu)
+: gpio_driver_(std::move(gpio_driver)), sched_priority_(sched_priority), cpu_(cpu)
 {
   if (!gpio_driver_->IsPinAvailable(watchdog_pin_)) {
     throw std::runtime_error("Watchdog pin is not configured.");
   }
+
+  watchdog_thread_ = std::thread(&Watchdog::WatchdogThread, this);
 }
 
-Watchdog::~Watchdog() { TurnOff(); }
+Watchdog::~Watchdog()
+{
+  {
+    std::lock_guard<std::mutex> lck(mtx_);
+    shutdown_ = true;
+    enabled_ = false;
+  }
+  cv_.notify_all();
+  watchdog_thread_.join();
+}
 
 bool Watchdog::TurnOn()
 {
@@ -54,20 +66,23 @@ bool Watchdog::TurnOn()
     throw std::runtime_error("Watchdog pin is not configured.");
   }
 
-  watchdog_thread_enabled_ = true;
-  watchdog_thread_ = std::thread(&Watchdog::WatchdogThread, this);
+  {
+    std::lock_guard<std::mutex> lck(mtx_);
+    enabled_ = true;
+  }
+  cv_.notify_all();
 
   return IsWatchdogEnabled();
 }
 
 bool Watchdog::TurnOff()
 {
-  if (!IsWatchdogEnabled()) {
-    return true;
-  }
-
-  watchdog_thread_enabled_ = false;
-  watchdog_thread_.join();
+  std::unique_lock<std::mutex> lck(mtx_);
+  enabled_ = false;
+  cv_.notify_all();
+  // The same promise the join of the old per-reset thread gave: once this returns nothing
+  // toggles the pin any more and it has been driven low.
+  cv_.wait(lck, [this]() { return !heartbeat_running_; });
 
   return !IsWatchdogEnabled();
 }
@@ -82,23 +97,38 @@ void Watchdog::WatchdogThread()
   // thread and two silent latches in an afternoon.
   pthread_setname_np(pthread_self(), "gpio-wdog");
   try {
-    husarion_ugv_utils::ConfigureRT(sched_priority_);
+    husarion_ugv_utils::ConfigureRT(sched_priority_, cpu_);
   } catch (const std::runtime_error & e) {
     std::cerr << "Failed to configure RT priority for the safety watchdog thread: " << e.what()
               << std::endl;
   }
 
-  while (watchdog_thread_enabled_) {
-    const bool value = gpio_driver_->IsPinActive(watchdog_pin_);
+  std::unique_lock<std::mutex> lck(mtx_);
+  while (true) {
+    cv_.wait(lck, [this]() { return enabled_ || shutdown_; });
+    if (shutdown_) {
+      return;
+    }
 
-    gpio_driver_->SetPinValue(watchdog_pin_, !value);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    heartbeat_running_ = true;
+    lck.unlock();
+
+    while (enabled_ && !shutdown_) {
+      const bool value = gpio_driver_->IsPinActive(watchdog_pin_);
+
+      gpio_driver_->SetPinValue(watchdog_pin_, !value);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    gpio_driver_->SetPinValue(watchdog_pin_, false);
+
+    lck.lock();
+    heartbeat_running_ = false;
+    cv_.notify_all();
   }
-
-  gpio_driver_->SetPinValue(watchdog_pin_, false);
 }
 
-bool Watchdog::IsWatchdogEnabled() const { return watchdog_thread_.joinable(); }
+bool Watchdog::IsWatchdogEnabled() const { return enabled_; }
 
 void GPIOControllerInterface::RegisterGPIOEventCallback(
   const std::function<void(const GPIOInfo &)> & callback)
@@ -122,8 +152,11 @@ bool GPIOControllerInterface::IsPinAvailable(const GPIOPin pin) const
 
 GPIOController::GPIOController(
   std::shared_ptr<GPIODriverInterface> gpio_driver, const unsigned watchdog_sched_priority,
-  const unsigned monitor_sched_priority)
-: watchdog_sched_priority_(watchdog_sched_priority), monitor_sched_priority_(monitor_sched_priority)
+  const unsigned monitor_sched_priority, const int watchdog_cpu, const int monitor_cpu)
+: watchdog_sched_priority_(watchdog_sched_priority),
+  monitor_sched_priority_(monitor_sched_priority),
+  watchdog_cpu_(watchdog_cpu),
+  monitor_cpu_(monitor_cpu)
 {
   gpio_driver_ = gpio_driver;
 
@@ -134,12 +167,12 @@ GPIOController::GPIOController(
 
 void GPIOController::Start()
 {
-  gpio_driver_->GPIOMonitorEnable(true, monitor_sched_priority_);
+  gpio_driver_->GPIOMonitorEnable(true, monitor_sched_priority_, monitor_cpu_);
 
   gpio_driver_->SetPinValue(GPIOPin::VMOT_ON, true);
   MotorPowerEnable(true);
 
-  watchdog_ = std::make_unique<Watchdog>(gpio_driver_, watchdog_sched_priority_);
+  watchdog_ = std::make_unique<Watchdog>(gpio_driver_, watchdog_sched_priority_, watchdog_cpu_);
 }
 
 void GPIOController::EStopTrigger()

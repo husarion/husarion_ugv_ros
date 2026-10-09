@@ -71,6 +71,16 @@ constexpr unsigned kMaxRTPriority = 98;
  */
 std::optional<unsigned> ParseRTPriority(const std::string & text);
 
+/**
+ * @brief Parses the CPU one of the driver's RT threads is pinned to from a hardware parameter
+ * value
+ * @param text the value, -1 means "do not pin"
+ * @param cpu_count number of CPUs of the machine
+ * @return the CPU, -1, or std::nullopt if text is neither -1 nor a whole number in [0,
+ * cpu_count - 1]
+ */
+std::optional<int> ParseCPU(const std::string & text, const int cpu_count);
+
 }  // namespace husarion_ugv_hardware_interfaces
 
 #endif  // HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_

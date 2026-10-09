@@ -87,6 +87,7 @@ protected:
   void ReadCANopenSettings();
   void ReadRTThreadPriorities();
   unsigned ReadRTPriority(const std::string & name, const unsigned default_priority);
+  int ReadRTCPU(const std::string & name, const int default_cpu);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
   void ReadInitializationActivationAttempts();
@@ -148,6 +149,13 @@ protected:
   CANopenSettings canopen_settings_;
   unsigned gpio_watchdog_sched_priority_ = Watchdog::kWatchdogSchedPriority;
   unsigned gpio_monitor_sched_priority_ = GPIOController::kMonitorSchedPriority;
+
+  // Default cores of the RT threads, the same as the image's rt-tuning.env: the CAN chain on
+  // RT_CAN_CORE=0, the control loop and the safety heartbeat next to it on RT_CONTROL_CORE=3.
+  static constexpr int kDefaultCANCPU = 0;
+  static constexpr int kDefaultControlCPU = 3;
+  int gpio_watchdog_cpu_ = -1;
+  int gpio_monitor_cpu_ = -1;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
 

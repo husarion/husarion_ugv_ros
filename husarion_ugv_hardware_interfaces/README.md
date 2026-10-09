@@ -102,7 +102,7 @@ Additional parameters
 
 Madgwick filter settings
 
-- `use_mag` [*bool*, default: **false**]: Use magnitude to calculate orientation.
+- `use_mag` [*bool*, default: **false**]: Use the magnetometer to calculate orientation. Set it with the `use_mag` launch argument. Leave it off on a stock robot - the IMU sits inside the chassis next to the motors and the magnetometer reading is unusable there. Turn it on only for a relocated or external IMU.
 - `gain` [*double*, default: **0.1**]: Gain of the filter. Higher values lead to faster convergence but more noise. Lower values lead to slower convergence but smoother signal.
 - `zeta` [*double*, default: **0.1**]: Gyro drift gain (approx. rad/s).
 - `mag_bias_x` [*double*, default: **0.0**]: Magnetometer bias (hard iron correction), x component.

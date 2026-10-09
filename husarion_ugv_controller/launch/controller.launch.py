@@ -66,6 +66,17 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="False",
+        description=(
+            "Use the IMU magnetometer in the Madgwick filter. Off by default - the stock IMU sits "
+            "inside the chassis next to the motors, so enable it only for a relocated or external IMU"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -130,6 +141,7 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
             "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
         }.items(),
     )
 
@@ -244,6 +256,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

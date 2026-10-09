@@ -71,6 +71,13 @@ def generate_launch_description():
         ]
     )
 
+    joy_dev = LaunchConfiguration("joy_dev")
+    declare_joy_dev = DeclareLaunchArgument(
+        "joy_dev",
+        default_value="/dev/input/js0",
+        description="Path to the joystick device file used by the joy_linux node",
+    )
+
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
 
     # joy2twist's gamepad_controller.launch.py hardcodes the stock
@@ -101,6 +108,7 @@ def generate_launch_description():
         executable="resilient_joy_linux",
         emulate_tty="true",
         namespace=namespace,
+        parameters=[{"dev": joy_dev}],
         remappings=[("/diagnostics", "diagnostics")],
         condition=IfCondition(launch_gamepad),
     )
@@ -110,6 +118,7 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_launch_gamepad_arg,
         declare_common_dir_path_arg,
+        declare_joy_dev,
         joy2twist_launch,
         joy_node,
     ]

@@ -14,16 +14,24 @@
 
 #include "husarion_ugv_gazebo/led_strip.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <limits>
+#include <sstream>
+#include <utility>
 
+#include <gz/common/Console.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/components/LightCmd.hh>
 #include <gz/sim/components/Name.hh>
 
+#include <gz/msgs/boolean.pb.h>
 #include <gz/msgs/color.pb.h>
 #include <gz/msgs/marker.pb.h>
+#include <gz/msgs/marker_v.pb.h>
 
 namespace husarion_ugv_gazebo
 {
@@ -38,6 +46,8 @@ void LEDStrip::Configure(
       "] (Entity=" + std::to_string(entity) +
       ") is not a model. Please make sure that LEDStrip is attached to a valid model.");
   }
+
+  model_name_ = model.Name(ecm);
 
   ParseParameters(sdf);
   light_cmd_ = SetupLightCmd(ecm);
@@ -56,13 +66,17 @@ void LEDStrip::PreUpdate(const gz::sim::UpdateInfo & info, gz::sim::EntityCompon
       last_image_.get(image);
       new_image_available_ = false;
     }
+    last_update_time_ = current_time;
+
+    if (image.data() == last_rendered_data_) {
+      return;
+    }
+    last_rendered_data_ = image.data();
 
     VisualizeLights(ecm, image);
 
     auto light_pose = ecm.Component<gz::sim::components::Pose>(light_entity_)->Data();
     VisualizeMarkers(image, light_pose);
-
-    last_update_time_ = current_time;
   }
 }
 
@@ -82,6 +96,64 @@ void LEDStrip::ParseParameters(const std::shared_ptr<const sdf::Element> & sdf)
   frequency_ = sdf->HasElement("frequency") ? sdf->Get<double>("frequency") : frequency_;
   marker_width_ = sdf->HasElement("width") ? sdf->Get<double>("width") : marker_width_;
   marker_height_ = sdf->HasElement("height") ? sdf->Get<double>("height") : marker_height_;
+
+  render_markers_per_led_ = sdf->HasElement("render_markers_per_led")
+                              ? sdf->Get<int>("render_markers_per_led")
+                              : render_markers_per_led_;
+  if (render_markers_per_led_ < 1) {
+    render_markers_per_led_ = 1;
+  }
+
+  if (sdf->HasElement("strip_base_color")) {
+    std::istringstream color_stream(sdf->Get<std::string>("strip_base_color"));
+    float r, g, b;
+    if (!(color_stream >> r >> g >> b)) {
+      throw std::runtime_error("Error: strip_base_color must have the 'r g b [a]' format.");
+    }
+    // Optional 4th value: ambient wash strength. Read into a temporary so a missing value keeps the
+    // default rather than the 0 that a failed extraction would assign.
+    float a = strip_base_color_.A();
+    float parsed_a;
+    if (color_stream >> parsed_a) {
+      a = parsed_a;
+    }
+    strip_base_color_.Set(r, g, b, a);
+  }
+
+  if (sdf->HasElement("led_range")) {
+    const auto range = sdf->Get<std::string>("led_range");
+    const auto dash = range.find('-');
+    if (dash == std::string::npos) {
+      throw std::runtime_error("Error: led_range must have the <first>-<last> format.");
+    }
+    led_first_ = std::stoi(range.substr(0, dash));
+    led_last_ = std::stoi(range.substr(dash + 1));
+  }
+
+  if (sdf->HasElement("points")) {
+    std::istringstream points_stream(sdf->Get<std::string>("points"));
+    std::string point_token;
+    while (std::getline(points_stream, point_token, ';')) {
+      std::istringstream point(point_token);
+      double x, y, z;
+      if (point >> x >> y >> z) {
+        points_.emplace_back(x, y, z);
+      }
+    }
+    if (points_.size() < 2) {
+      throw std::runtime_error("Error: The points parameter requires at least 2 'x y z' points.");
+    }
+    for (size_t i = 0; i + 1 < points_.size(); ++i) {
+      const double length = (points_[i + 1] - points_[i]).Length();
+      // A zero-length segment (duplicated consecutive points) would divide by zero in
+      // PolylinePointAt and yield NaN vertices.
+      if (length <= 0.0) {
+        throw std::runtime_error("Error: The points parameter has a zero-length segment.");
+      }
+      polyline_seg_lengths_.push_back(length);
+      polyline_length_ += length;
+    }
+  }
 }
 
 gz::msgs::Light LEDStrip::SetupLightCmd(gz::sim::EntityComponentManager & ecm)
@@ -96,7 +168,7 @@ gz::msgs::Light LEDStrip::SetupLightCmd(gz::sim::EntityComponentManager & ecm)
         return true;  // Continue searching
       }
       light_entity_ = entity;
-      igndbg << "Light entity found: " << light_entity_ << std::endl;
+      gzdbg << "Light entity found: " << light_entity_ << std::endl;
       light_cmd = CreateLightMsgFromSdf(light_component->Data());
       return false;  // Stop searching
     });
@@ -149,7 +221,13 @@ gz::msgs::Light LEDStrip::CreateLightMsgFromSdf(const sdf::Light & light_sdf)
 void LEDStrip::ImageCallback(const gz::msgs::Image & msg)
 {
   if (!IsEncodingValid(msg)) {
-    ignerr << "Error: Incorrect image encoding." << std::endl;
+    gzerr << "Error: Incorrect image encoding." << std::endl;
+    return;
+  }
+
+  const size_t step = msg.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8 ? 4 : 3;
+  if (msg.data().size() < msg.width() * msg.height() * step) {
+    gzerr << "Error: Image data smaller than the declared dimensions." << std::endl;
     return;
   }
 
@@ -201,6 +279,10 @@ void LEDStrip::VisualizeLights(gz::sim::EntityComponentManager & ecm, const gz::
   gz::msgs::Set(light_cmd_.mutable_diffuse(), mean_color);
   gz::msgs::Set(light_cmd_.mutable_specular(), mean_color);
 
+  // Rebuild the header each frame; add_data() appends, so reusing the member would grow the
+  // message unboundedly and slow the sim down over time.
+  light_cmd_.clear_header();
+
   auto light_on = light_cmd_.mutable_header()->add_data();
   light_on->set_key("isLightOn");
   light_on->add_value()->assign("1");
@@ -215,55 +297,192 @@ void LEDStrip::VisualizeLights(gz::sim::EntityComponentManager & ecm, const gz::
     light_entity_, gz::sim::components::LightCmd::typeId, gz::sim::ComponentState::PeriodicChange);
 }
 
-void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose)
+std::vector<gz::math::Color> LEDStrip::ExtractLedColors(const gz::msgs::Image & image) const
 {
   const std::string & data = image.data();
-
-  double step_width = marker_width_ / image.width();
-  double step_height = marker_height_ / image.height();
-
   const float max_value = std::numeric_limits<uint8_t>::max();
-  bool is_rgba = (image.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8);
-  int step = is_rgba ? 4 : 3;
+  const bool is_rgba = (image.pixel_format_type() == gz::msgs::PixelFormatType::RGBA_INT8);
+  const int step = is_rgba ? 4 : 3;
 
-  const auto pixel_size = gz::math::Vector3d(0.001, step_width, step_height);
+  const size_t pixel_count = image.width() * image.height();
+  const int first = led_first_ >= 0 ? led_first_ : 0;
+  const int last = led_last_ >= 0 ? led_last_ : static_cast<int>(pixel_count) - 1;
+  const int dir = last >= first ? 1 : -1;
+  const size_t led_count = static_cast<size_t>(std::abs(last - first)) + 1;
 
-  for (size_t y = 0; y < image.height(); ++y) {
-    for (size_t x = 0; x < image.width(); ++x) {
-      size_t idx = (y * image.width() + x) * step;
+  std::vector<gz::math::Color> colors;
+  colors.reserve(led_count);
+  for (size_t i = 0; i < led_count; ++i) {
+    const size_t pixel_idx = static_cast<size_t>(first + dir * static_cast<int>(i));
+    if (pixel_idx >= pixel_count) {
+      gzerr << "Error: led_range exceeds the received frame size." << std::endl;
+      return {};
+    }
+    const size_t idx = pixel_idx * step;
+    const float r = static_cast<uint8_t>(data[idx]) / max_value;
+    const float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
+    const float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
+    const float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
+    colors.emplace_back(r, g, b, a);
+  }
+  return colors;
+}
 
-      float r = static_cast<uint8_t>(data[idx]) / max_value;
-      float g = static_cast<uint8_t>(data[idx + 1]) / max_value;
-      float b = static_cast<uint8_t>(data[idx + 2]) / max_value;
-      float a = is_rgba ? static_cast<uint8_t>(data[idx + 3]) / max_value : 1.0f;
-      auto pixel_color = gz::math::Color(r, g, b, a);
+void LEDStrip::OnMarkerArrayResponse(const gz::msgs::Boolean & /*reply*/, const bool /*result*/) {}
 
-      double x_pos = light_pose.Pos().X();
-      double y_pos = light_pose.Pos().Y() + x * step_width - marker_width_ / 2.0 + step_width / 2.0;
-      double z_pos = light_pose.Pos().Z() + y * step_height;
-      double roll = light_pose.Rot().Roll();
-      double pitch = light_pose.Rot().Pitch();
-      double yaw = light_pose.Rot().Yaw();
-      auto pose = gz::math::Pose3d(x_pos, y_pos, z_pos, roll, pitch, yaw);
+gz::math::Color LEDStrip::Lerp(const gz::math::Color & a, const gz::math::Color & b, double t)
+{
+  return gz::math::Color(
+    a.R() + (b.R() - a.R()) * t, a.G() + (b.G() - a.G()) * t, a.B() + (b.B() - a.B()) * t,
+    a.A() + (b.A() - a.A()) * t);
+}
 
-      CreateMarker(idx, pose, pixel_color, pixel_size);
+gz::math::Color LEDStrip::CompositeOverBase(const gz::math::Color & color) const
+{
+  // The controller resolves animation transparency before publishing, so the received frame is
+  // opaque and its alpha carries no diffuser information. Model the diffuser as a small ambient
+  // wash off its surface added on top of the LED color, fading out as the LED brightens. Adding
+  // (rather than blending toward) the base keeps a dim saturated color's hue instead of washing it
+  // out; a fully lit LED shows its pure color, an unlit one reveals the base instead of going
+  // black. strip_base_color_ alpha sets the wash strength.
+  const float brightness = std::max({color.R(), color.G(), color.B()});
+  const float ambient = strip_base_color_.A() * (1.0f - brightness);
+  return gz::math::Color(
+    std::min(1.0f, color.R() + strip_base_color_.R() * ambient),
+    std::min(1.0f, color.G() + strip_base_color_.G() * ambient),
+    std::min(1.0f, color.B() + strip_base_color_.B() * ambient), 1.0f);
+}
+
+std::vector<gz::math::Color> LEDStrip::ResampleLedColors(
+  const std::vector<gz::math::Color> & led_colors) const
+{
+  const int n = static_cast<int>(led_colors.size());
+  const int m = render_markers_per_led_;
+
+  std::vector<gz::math::Color> resampled;
+  resampled.reserve(static_cast<size_t>(n) * m);
+  for (int s = 0; s < n * m; ++s) {
+    // Sample the piecewise-linear reconstruction (LED color sits at each LED center, i + 0.5) at
+    // this sub-cell center, then composite over the diffuser base.
+    const double x = (s + 0.5) / m - 0.5;
+    gz::math::Color color;
+    if (x <= 0.0) {
+      color = led_colors.front();
+    } else if (x >= n - 1) {
+      color = led_colors.back();
+    } else {
+      const int i0 = static_cast<int>(std::floor(x));
+      color = Lerp(led_colors[i0], led_colors[i0 + 1], x - i0);
+    }
+    resampled.push_back(CompositeOverBase(color));
+  }
+  return resampled;
+}
+
+void LEDStrip::VisualizeMarkers(const gz::msgs::Image & image, const gz::math::Pose3d & light_pose)
+{
+  const auto led_colors = ExtractLedColors(image);
+  if (led_colors.empty()) {
+    return;
+  }
+  const auto colors = ResampleLedColors(led_colors);
+
+  const size_t render_count = colors.size();
+
+  // Merge consecutive equal-color cells into a single marker. A full-strip color change collapses
+  // to one run, so the GUI updates one visual instead of render_count of them; gradients keep their
+  // distinct colors as separate runs. Cost scales with visual complexity, not the LED/marker count.
+  std::vector<ColorRun> runs;
+  for (size_t i = 0; i < render_count; ++i) {
+    if (!runs.empty() && colors[i] == runs.back().color) {
+      runs.back().end = i;
+    } else {
+      runs.push_back({i, i, colors[i]});
     }
   }
+
+  const double step_width = marker_width_ / render_count;
+  const double cell_length = points_.empty() ? 0.0 : polyline_length_ / render_count;
+
+  gz::msgs::Marker_V marker_array;
+  for (size_t r = 0; r < runs.size(); ++r) {
+    if (r < last_runs_.size() && runs[r] == last_runs_[r]) {
+      continue;
+    }
+    const auto & run = runs[r];
+
+    if (!points_.empty()) {
+      CreateRibbonMarker(
+        *marker_array.add_marker(), r, light_pose, run.color,
+        PolylineSegmentVertices(run.start * cell_length, (run.end + 1) * cell_length));
+    } else {
+      // Legacy strip: a straight line along the Y axis at the light position.
+      const double run_width = (run.end - run.start + 1) * step_width;
+      const auto pose = gz::math::Pose3d(
+        light_pose.Pos().X(),
+        light_pose.Pos().Y() + (run.start + run.end + 1) / 2.0 * step_width - marker_width_ / 2.0,
+        light_pose.Pos().Z(), light_pose.Rot().Roll(), light_pose.Rot().Pitch(),
+        light_pose.Rot().Yaw());
+      const auto size = gz::math::Vector3d(kLegacyStripThickness, run_width, marker_height_);
+      CreateMarker(*marker_array.add_marker(), r, pose, run.color, size);
+    }
+  }
+
+  // Remove markers left over from a frame that had more runs than this one.
+  for (size_t r = runs.size(); r < last_runs_.size(); ++r) {
+    auto * marker = marker_array.add_marker();
+    marker->set_action(gz::msgs::Marker::DELETE_MARKER);
+    marker->set_ns(ns_ + light_name_);
+    marker->set_id(r + 1);
+  }
+
+  if (marker_array.marker_size() > 0) {
+    node_.Request("/marker_array", marker_array, &LEDStrip::OnMarkerArrayResponse, this);
+  }
+  last_runs_ = std::move(runs);
+}
+
+gz::math::Vector3d LEDStrip::PolylinePointAt(double distance) const
+{
+  size_t segment = 0;
+  double segment_start = 0.0;
+  while (segment + 1 < polyline_seg_lengths_.size() &&
+         segment_start + polyline_seg_lengths_[segment] < distance) {
+    segment_start += polyline_seg_lengths_[segment];
+    ++segment;
+  }
+
+  const double t = std::clamp(
+    (distance - segment_start) / polyline_seg_lengths_[segment], 0.0, 1.0);
+  return points_[segment] + t * (points_[segment + 1] - points_[segment]);
+}
+
+std::vector<gz::math::Vector3d> LEDStrip::PolylineSegmentVertices(
+  double start_distance, double end_distance) const
+{
+  std::vector<gz::math::Vector3d> vertices;
+  vertices.push_back(PolylinePointAt(start_distance));
+
+  double vertex_distance = 0.0;
+  for (size_t i = 0; i < polyline_seg_lengths_.size(); ++i) {
+    vertex_distance += polyline_seg_lengths_[i];
+    if (vertex_distance > start_distance && vertex_distance < end_distance) {
+      vertices.push_back(points_[i + 1]);
+    }
+  }
+
+  vertices.push_back(PolylinePointAt(end_distance));
+  return vertices;
 }
 
 void LEDStrip::CreateMarker(
-  const uint id, const gz::math::Pose3d pose, const gz::math::Color & color,
-  const gz::math::Vector3d size)
+  gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d & pose,
+  const gz::math::Color & color, const gz::math::Vector3d & size)
 {
-  gz::msgs::Marker marker_msg;
   marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
   marker_msg.set_ns(ns_ + light_name_);
   marker_msg.set_id(id + 1);  // Markers with IDs 0 cannot be overwritten
-  if (ns_.empty()) {
-    marker_msg.set_parent("panther");
-  } else {
-    marker_msg.set_parent(ns_);
-  }
+  marker_msg.set_parent(ns_.empty() ? model_name_ : ns_);
   marker_msg.set_type(gz::msgs::Marker::BOX);
 
   gz::msgs::Set(marker_msg.mutable_pose(), pose);
@@ -271,9 +490,43 @@ void LEDStrip::CreateMarker(
 
   gz::msgs::Set(marker_msg.mutable_material()->mutable_ambient(), color);
   gz::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(), color);
+}
 
-  // Using Request to ensure markers are visible
-  node_.Request("/marker", marker_msg);
+void LEDStrip::CreateRibbonMarker(
+  gz::msgs::Marker & marker_msg, const uint id, const gz::math::Pose3d & strip_pose,
+  const gz::math::Color & color, const std::vector<gz::math::Vector3d> & centerline)
+{
+  marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_ns(ns_ + light_name_);
+  marker_msg.set_id(id + 1);  // Markers with IDs 0 cannot be overwritten
+  marker_msg.set_parent(ns_.empty() ? model_name_ : ns_);
+  marker_msg.set_type(gz::msgs::Marker::TRIANGLE_LIST);
+
+  gz::msgs::Set(marker_msg.mutable_pose(), strip_pose);
+
+  const auto up = gz::math::Vector3d(0.0, 0.0, marker_height_ / 2.0);
+  auto add_triangle =
+    [&](const gz::math::Vector3d & a, const gz::math::Vector3d & b, const gz::math::Vector3d & c) {
+      gz::msgs::Set(marker_msg.add_point(), a);
+      gz::msgs::Set(marker_msg.add_point(), b);
+      gz::msgs::Set(marker_msg.add_point(), c);
+    };
+
+  // Two triangles per centerline section, both windings so the ribbon is visible from both sides.
+  for (size_t i = 0; i + 1 < centerline.size(); ++i) {
+    const auto a_bottom = centerline[i] - up;
+    const auto a_top = centerline[i] + up;
+    const auto b_bottom = centerline[i + 1] - up;
+    const auto b_top = centerline[i + 1] + up;
+
+    add_triangle(a_bottom, b_bottom, a_top);
+    add_triangle(a_top, b_bottom, b_top);
+    add_triangle(a_bottom, a_top, b_bottom);
+    add_triangle(b_bottom, a_top, b_top);
+  }
+
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_ambient(), color);
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(), color);
 }
 
 }  // namespace husarion_ugv_gazebo

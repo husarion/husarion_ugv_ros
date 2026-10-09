@@ -23,7 +23,10 @@ namespace husarion_ugv_gazebo
 
 EStop::EStop() : gz::gui::Plugin()
 {
-  rclcpp::init(0, nullptr);
+  if (!rclcpp::ok()) {
+    rclcpp::init(0, nullptr);
+    owns_rclcpp_context_ = true;
+  }
   node_ = std::make_shared<rclcpp::Node>("gz_estop_gui");
 
   e_stop_sub_ = node_->create_subscription<std_msgs::msg::Bool>(
@@ -34,7 +37,12 @@ EStop::EStop() : gz::gui::Plugin()
   std::thread([this]() { rclcpp::spin(node_); }).detach();
 }
 
-EStop::~EStop() { rclcpp::shutdown(); }
+EStop::~EStop()
+{
+  if (owns_rclcpp_context_ && rclcpp::ok()) {
+    rclcpp::shutdown();
+  }
+}
 
 void EStop::LoadConfig(const tinyxml2::XMLElement * plugin_elem)
 {
@@ -56,8 +64,8 @@ void EStop::ButtonPressed(bool e_stop)
   auto client = e_stop ? e_stop_reset_client_ : e_stop_trigger_client_;
 
   if (!client->service_is_ready()) {
-    ignwarn << "Unavailable service: " << (e_stop ? reset_srv_name_ : trigger_srv_name_)
-            << std::endl;
+    gzwarn << "Unavailable service: " << (e_stop ? reset_srv_name_ : trigger_srv_name_)
+           << std::endl;
     return;
   }
   auto result_future = client->async_send_request(request);
@@ -65,10 +73,10 @@ void EStop::ButtonPressed(bool e_stop)
   try {
     const auto result = result_future.get();
     if (!result->success) {
-      ignwarn << "Service call did not succeed: " << result->message << std::endl;
+      gzwarn << "Service call did not succeed: " << result->message << std::endl;
     }
   } catch (const std::exception & e) {
-    ignerr << "Exception while waiting for service response: " << e.what() << std::endl;
+    gzerr << "Exception while waiting for service response: " << e.what() << std::endl;
   }
 }
 
@@ -86,7 +94,7 @@ void EStop::SetNamespace(const QString & ns)
   e_stop_trigger_client_ = node_->create_client<std_srvs::srv::Trigger>(trigger_srv_name_);
 
   emit OnNamespaceChange();
-  ignmsg << "Namespace changed to: " << namespace_ << std::endl;
+  gzmsg << "Namespace changed to: " << namespace_ << std::endl;
 }
 
 void EStop::SetEStop(bool value)

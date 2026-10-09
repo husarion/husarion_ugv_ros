@@ -63,6 +63,10 @@ private:
   std::string reset_srv_name_ = kDefaultResetSrvName;
   std::string trigger_srv_name_ = kDefaultTriggerSrvName;
 
+  // True only if this plugin initialized the global rclcpp context, so only it shuts it down. The
+  // EStopSystem server plugin shares the context when both run in one process; an unconditional
+  // shutdown here would tear down its ROS interface.
+  bool owns_rclcpp_context_ = false;
   rclcpp::Node::SharedPtr node_;
 
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr e_stop_sub_;

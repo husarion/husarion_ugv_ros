@@ -17,17 +17,14 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">gz_ros2_control</depend>
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">hardware_interface</depend>
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">pluginlib</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp</depend>
-  <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">rclcpp_lifecycle</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">realtime_tools</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">ros_gz_sim</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_msgs</depend>
   <depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">std_srvs</depend>
 
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">controller_manager</exec_depend>
+  <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">gz_ros2_control</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_components_description</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_gz_worlds</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == simulation">husarion_ugv_controller</exec_depend>

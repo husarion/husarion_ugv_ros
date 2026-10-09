@@ -68,5 +68,39 @@
 
     <link name="mount_link" />
 
+    <!-- Corner LED strip anchors used by the simulation lights visualization.
+         The z height is approximate - verify visually against the body mesh. -->
+    <joint name="body_to_lights_fl_joint" type="fixed">
+      <origin xyz="0.256 0.216 0.173" rpy="0.22 0.0 1.05" />
+      <parent link="body_link" />
+      <child link="lights_fl_link" />
+    </joint>
+
+    <link name="lights_fl_link" />
+
+    <joint name="body_to_lights_fr_joint" type="fixed">
+      <origin xyz="0.256 -0.216 0.173" rpy="-0.22 0.0 -1.05" />
+      <parent link="body_link" />
+      <child link="lights_fr_link" />
+    </joint>
+
+    <link name="lights_fr_link" />
+
+    <joint name="body_to_lights_rl_joint" type="fixed">
+      <origin xyz="-0.30 0.21 0.19" rpy="0.0 0.0 3.14" />
+      <parent link="body_link" />
+      <child link="lights_rl_link" />
+    </joint>
+
+    <link name="lights_rl_link" />
+
+    <joint name="body_to_lights_rr_joint" type="fixed">
+      <origin xyz="-0.30 -0.21 0.19" rpy="0.0 0.0 3.14" />
+      <parent link="body_link" />
+      <child link="lights_rr_link" />
+    </joint>
+
+    <link name="lights_rr_link" />
+
   </xacro:macro>
 </robot>

@@ -18,13 +18,10 @@ endif()
 
 set(PACKAGE_DEPENDENCIES
     ament_cmake
-    hardware_interface
     gz-sim8
     gz-msgs10
     gz-plugin2
     gz-transport13
-    gz_ros2_control
-    pluginlib
     rclcpp
     realtime_tools
     std_msgs
@@ -39,16 +36,9 @@ find_package(Qt5 REQUIRED COMPONENTS Core Quick QuickControls2)
 include_directories(include ${Qt5Core_INCLUDE_DIRS} ${Qt5Qml_INCLUDE_DIRS}
                     ${Qt5Quick_INCLUDE_DIRS} ${Qt5QuickControls2_INCLUDE_DIRS})
 
-add_library(estop_system SHARED src/estop_system.cpp)
-ament_target_dependencies(
-  estop_system
-  hardware_interface
-  gz_ros2_control
-  rclcpp
-  rclcpp_lifecycle
-  std_msgs
-  std_srvs)
-target_link_libraries(estop_system gz-sim8)
+add_library(EStopSystem SHARED src/estop_system.cpp)
+ament_target_dependencies(EStopSystem rclcpp std_msgs std_srvs)
+target_link_libraries(EStopSystem gz-sim8 gz-plugin2)
 
 set(CMAKE_AUTOMOC ON)
 qt5_add_resources(resources_rcc src/gui/EStop.qrc)
@@ -70,7 +60,7 @@ ament_target_dependencies(LEDStrip realtime_tools)
 target_link_libraries(LEDStrip gz-sim8 gz-msgs10 gz-plugin2 gz-transport13)
 
 install(
-  TARGETS estop_system EStop LEDStrip
+  TARGETS EStopSystem EStop LEDStrip
   EXPORT export_${PROJECT_NAME}
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
@@ -90,7 +80,5 @@ ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/setup_envs.sh.in")
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})
 ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-
-pluginlib_export_plugin_description_file(gz_ros2_control plugins.xml)
 
 ament_package()

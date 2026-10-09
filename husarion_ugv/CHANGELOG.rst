@@ -9,6 +9,7 @@ Forthcoming
 * switching the LED strip off or on through lights/enable now updates lights/output_state, so a client reading it back sees the real state
 * patched Fast DDS v3: the same fixes rebuilt on Fast DDS 2.14.7, so the image builds again against the current ROS repository
 * new use_mag launch argument, off by default: with use_madgwick_filter the IMU orientation no longer uses the magnetometer, which the motors disturb on a stock robot - turn it on for a relocated or external IMU
+* the driver's real-time threads are named (lely-io, rpdo-dispatch, gpio-wdog, gpio-monit) and their priorities are hardware parameters with the old values as defaults
 
 2.3.2 (2026-06-25)
 ------------------

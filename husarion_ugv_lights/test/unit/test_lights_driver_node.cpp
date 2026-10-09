@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -23,6 +24,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -50,6 +52,8 @@ husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
+  led_output_enabled_(true),
+  global_brightness_(1.0f),
   initialization_attempt_(0),
   channel_1_(channel_1),
   channel_2_(channel_2),
@@ -58,6 +62,11 @@ husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
   channel_1_num_led_ = 46;
   channel_2_num_led_ = 46;
   frame_timeout_ = 0.1;
+
+  rclcpp::PublisherOptions pub_options;
+  pub_options.use_intra_process_comm = rclcpp::IntraProcessSetting::Disable;
+  output_state_pub_ = this->create_publisher<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(), pub_options);
 };
 
 class DriverNodeWrapper : public husarion_ugv_lights::LightsDriverNode
@@ -71,6 +80,12 @@ public:
   }
 
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
+
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::EnableLEDOutputCB(req, res);
+  }
 
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
@@ -303,6 +318,43 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)
+{
+  using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;
+
+  auto listener = std::make_shared<rclcpp::Node>("output_state_listener");
+  LEDOutputStateMsg::SharedPtr last_state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&last_state](const LEDOutputStateMsg::SharedPtr msg) { last_state = msg; });
+
+  auto wait_for_state = [&](bool enabled) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(listener);
+      if (last_state && last_state->enabled == enabled) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  };
+
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+
+  req->data = false;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+  EXPECT_TRUE(res->success);
+  ASSERT_TRUE(wait_for_state(false));
+  EXPECT_FLOAT_EQ(1.0f, last_state->brightness);
+
+  req->data = true;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+  EXPECT_TRUE(res->success);
+  EXPECT_TRUE(wait_for_state(true));
 }
 
 int main(int argc, char ** argv)

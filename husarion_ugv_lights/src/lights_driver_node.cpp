@@ -326,6 +326,8 @@ void LightsDriverNode::EnableLEDOutputCB(
     ClearLEDs();
   }
 
+  PublishOutputState();
+
   RCLCPP_INFO(this->get_logger(), "Physical LED output %s.", enable ? "enabled" : "disabled");
 
   res->success = true;

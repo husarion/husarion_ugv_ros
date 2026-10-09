@@ -223,6 +223,25 @@ TEST_F(TestUGVSystem, OnShutdown)
   rclcpp::shutdown();
 }
 
+TEST_F(TestUGVSystem, OnShutdownReleasesGPIOControllerBeforeROSInterface)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  // The test's own mock member plus the system's gpio_controller_. The ROS services must not add
+  // owners, or the controller and its GPIO monitor thread outlive the teardown order.
+  const std::weak_ptr<husarion_ugv_hardware_interfaces::GPIOControllerInterface> gpio_controller =
+    ugv_system_->GetMockGPIOController();
+  EXPECT_EQ(gpio_controller.use_count(), 2);
+
+  ugv_system_->on_shutdown(rclcpp_lifecycle::State());
+  EXPECT_EQ(gpio_controller.use_count(), 1);
+
+  rclcpp::shutdown();
+}
+
 TEST_F(TestUGVSystem, OnError)
 {
   rclcpp::init(0, nullptr);

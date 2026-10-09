@@ -101,22 +101,32 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
   system_ros_interface_ = std::make_unique<SystemROSInterface>("hardware_controller");
 
+  // The services hold the GPIO controller weakly. A strong copy kept it alive past
+  // gpio_controller_.reset() in the teardown, so its monitor thread outlived the ROS interface it
+  // publishes through. Stopping the driver with the e-stop released then segfaulted: the latch
+  // fires a GPIO edge inside that window.
+  const std::weak_ptr<GPIOControllerInterface> weak_gpio_controller = gpio_controller_;
+  const auto gpio_service =
+    [weak_gpio_controller](bool (GPIOControllerInterface::*method)(const bool)) {
+      return std::function<void(bool)>([weak_gpio_controller, method](const bool enable) {
+        const auto gpio_controller = weak_gpio_controller.lock();
+        if (!gpio_controller) {
+          throw std::runtime_error("GPIO controller is shut down.");
+        }
+        ((*gpio_controller).*method)(enable);
+      });
+    };
+
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/fan_enable",
-    std::bind(&GPIOControllerInterface::FanEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/fan_enable", gpio_service(&GPIOControllerInterface::FanEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/aux_power_enable",
-    std::bind(&GPIOControllerInterface::AUXPowerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/aux_power_enable", gpio_service(&GPIOControllerInterface::AUXPowerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/digital_power_enable",
-    std::bind(
-      &GPIOControllerInterface::DigitalPowerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/digital_power_enable", gpio_service(&GPIOControllerInterface::DigitalPowerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/charger_enable",
-    std::bind(&GPIOControllerInterface::ChargerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/charger_enable", gpio_service(&GPIOControllerInterface::ChargerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/led_control_enable",
-    std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/led_control_enable", gpio_service(&GPIOControllerInterface::LEDControlEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
     "hardware/motor_torque_enable",
     std::bind(&UGVSystem::MotorTorqueEnable, this, std::placeholders::_1));
@@ -225,15 +235,16 @@ CallbackReturn UGVSystem::on_error(const rclcpp_lifecycle::State &)
     system_ros_interface_->BroadcastOnDiagnosticTasks(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "An error has occurred during a node state transition.");
-
-    system_ros_interface_.reset();
   }
+
+  // Same teardown order as on_cleanup - rationale there.
+  e_stop_.reset();
+  gpio_controller_.reset();
+
+  system_ros_interface_.reset();
 
   robot_driver_->Deinitialize();
   robot_driver_.reset();
-
-  gpio_controller_.reset();
-  e_stop_.reset();
 
   return CallbackReturn::SUCCESS;
 }

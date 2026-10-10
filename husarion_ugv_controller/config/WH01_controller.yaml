@@ -18,9 +18,17 @@
       twist_mux_controller:
         type: twist_mux_controller/TwistMuxController
 
+  # The broadcasters and the odometry publish at 50 Hz while the control loop
+  # keeps 100 Hz. Their consumers (EKF, robot_state_publisher, the bridges) run
+  # at 50 Hz or less, so the extra samples only cost CPU.
+  joint_state_broadcaster:
+    ros__parameters:
+      update_rate: 50
+
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
     ros__parameters:
+      update_rate: 50
       sensor_name: <namespace>/imu
       frame_id: <namespace>/imu_link
       # orientation_stddev: 4.3e-2 rad determined experimentally
@@ -45,7 +53,7 @@
       left_wheel_radius_multiplier: 1.0
       right_wheel_radius_multiplier: 1.0
 
-      publish_rate: 100.0
+      publish_rate: 50.0
       odom_frame_id: odom
       base_frame_id: base_link
       twist_covariance_diagonal: [5.4e-5, 5.4e-5, 0.0, 0.0, 0.0, 1.9e-4] # Values measured experimentally

@@ -25,6 +25,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -57,6 +58,17 @@ def generate_launch_description():
             [husarion_ugv_manager_common_dir, "behavior_trees", "LightsBT.btproj"]
         ),
         description="Path to BehaviorTree project file, responsible for lights management.",
+    )
+
+    groot_enabled = LaunchConfiguration("groot_enabled")
+    declare_groot_enabled_arg = DeclareLaunchArgument(
+        "groot_enabled",
+        default_value="True",
+        description=(
+            "Start the Groot2 publisher of the lights, safety and shutdown behavior trees. Each one"
+            " runs a ZMQ server with a heartbeat thread, so turn it off when nothing attaches Groot2."
+        ),
+        choices=["True", "true", "False", "false"],
     )
 
     log_level = LaunchConfiguration("log_level")
@@ -111,6 +123,7 @@ def generate_launch_description():
             PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "lights_manager.yaml"]),
             {
                 "bt_project_path": lights_bt_project_path,
+                "groot_enabled": ParameterValue(groot_enabled, value_type=bool),
             },
         ],
         namespace=namespace,
@@ -132,6 +145,7 @@ def generate_launch_description():
             {
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,
+                "groot_enabled": ParameterValue(groot_enabled, value_type=bool),
             },
         ],
         namespace=namespace,
@@ -147,6 +161,7 @@ def generate_launch_description():
 
     actions = [
         declare_common_dir_path_arg,
+        declare_groot_enabled_arg,
         declare_log_level_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,

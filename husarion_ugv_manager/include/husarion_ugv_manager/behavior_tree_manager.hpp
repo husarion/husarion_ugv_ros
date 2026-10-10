@@ -43,13 +43,15 @@ public:
    * @param tree_name The name of the tree in the BehaviorTree project.
    * @param initial_blackboard A list with initial blackboard values for the tree.
    * @param groot_port The port used for the Groot2 publisher.
+   * @param groot_enabled Whether to start the Groot2 publisher at all.
    */
   BehaviorTreeManager(
     const std::string & tree_name, const std::map<std::string, std::any> & initial_blackboard,
-    const unsigned groot_port = 1667)
+    const unsigned groot_port = 1667, const bool groot_enabled = true)
   : tree_name_(tree_name),
     initial_blackboard_(initial_blackboard),
     groot_port_(groot_port),
+    groot_enabled_(groot_enabled),
     tree_status_(BT::NodeStatus::IDLE)
   {
   }
@@ -58,7 +60,7 @@ public:
 
   /**
    * @brief Creates a BehaviorTree configuration, initializes the tree, and starts the Groot2
-   * publisher.
+   * publisher unless it is disabled.
    *
    * @param factory The factory object used to create the tree.
    */
@@ -66,6 +68,15 @@ public:
   {
     config_ = CreateBTConfig(initial_blackboard_);
     tree_ = factory.createTree(tree_name_, config_.blackboard);
+
+    // The publisher keeps a ZMQ server and a heartbeat thread alive for the whole run, which
+    // costs CPU on a robot nobody attaches Groot2 to.
+    if (!groot_enabled_) {
+      RCLCPP_INFO_STREAM(
+        rclcpp::get_logger("BehaviorTreeManager"),
+        "Groot2 publisher disabled for tree " << tree_name_);
+      return;
+    }
 
     const auto max_port = 65535;
     while (!husarion_ugv_utils::IsPortAvailable(groot_port_)) {
@@ -142,6 +153,7 @@ private:
   const std::string tree_name_;
   const std::map<std::string, std::any> initial_blackboard_;
   unsigned groot_port_;
+  const bool groot_enabled_;
 
   BT::Tree tree_;
   BT::NodeStatus tree_status_;

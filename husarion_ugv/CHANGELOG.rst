@@ -13,6 +13,7 @@ Forthcoming
 * the safety watchdog thread lives as long as the driver instead of being recreated on every e-stop reset, and the real-time threads pin themselves to their CPUs (new *_cpu hardware parameters)
 * stopping the driver with the e-stop released no longer crashes it during shutdown
 * joint_states, imu/data and odometry/wheels publish at 50 Hz instead of 100 Hz, which saves CPU - the control loop still runs at 100 Hz and the EKF already filtered at 50 Hz
+* new lights_controller_frequency launch argument (default 50) sets how often the lights controller renders frames
 
 2.3.2 (2026-06-25)
 ------------------

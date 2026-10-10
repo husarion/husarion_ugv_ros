@@ -18,6 +18,7 @@
 
 #include "husarion_ugv_utils/configure_rt.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <iostream>
@@ -111,18 +112,26 @@ void Watchdog::WatchdogThread()
     }
 
     heartbeat_running_ = true;
-    lck.unlock();
 
+    // Absolute deadlines keep the period at 10 ms whatever the toggle costs, and waiting on the
+    // condition variable instead of sleeping lets TurnOff stop the heartbeat at once rather than
+    // up to a period later. A deadline already in the past (the thread was held off the core)
+    // restarts the schedule from now instead of firing a burst of catch-up toggles.
+    auto deadline = std::chrono::steady_clock::now();
     while (enabled_ && !shutdown_) {
+      lck.unlock();
       const bool value = gpio_driver_->IsPinActive(watchdog_pin_);
-
       gpio_driver_->SetPinValue(watchdog_pin_, !value);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      lck.lock();
+
+      deadline = std::max(deadline + kPeriod, std::chrono::steady_clock::now());
+      cv_.wait_until(lck, deadline, [this]() { return !enabled_ || shutdown_; });
     }
 
+    lck.unlock();
     gpio_driver_->SetPinValue(watchdog_pin_, false);
-
     lck.lock();
+
     heartbeat_running_ = false;
     cv_.notify_all();
   }

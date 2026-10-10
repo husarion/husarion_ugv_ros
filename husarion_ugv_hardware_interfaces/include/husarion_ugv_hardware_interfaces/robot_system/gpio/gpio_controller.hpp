@@ -21,6 +21,7 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_GPIO_GPIO_CONTROLLER_HPP_
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -103,6 +104,7 @@ private:
   std::shared_ptr<GPIODriverInterface> gpio_driver_;
   const unsigned sched_priority_;
   const int cpu_;
+  static constexpr std::chrono::milliseconds kPeriod{10};
 
   // One thread for the life of the Watchdog, parked while it is off. It used to be created on
   // every e-stop reset and joined on every trigger, so each reset ran a fresh thread that started

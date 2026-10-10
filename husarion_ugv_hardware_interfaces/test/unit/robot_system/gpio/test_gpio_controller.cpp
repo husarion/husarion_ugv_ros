@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
@@ -283,6 +284,29 @@ TEST(TestWatchdog, TurnOffWhenOffAndTurnOnWhenOn)
   std::this_thread::sleep_for(std::chrono::milliseconds(30));
   EXPECT_TRUE(watchdog.TurnOff());
   EXPECT_FALSE(recorder.LastValue());
+}
+
+TEST(TestWatchdog, TurnOffDoesNotWaitOutThePeriod)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+
+  // The heartbeat waits out its 10 ms period on a condition variable, so TurnOff wakes it at once.
+  // A plain sleep made TurnOff wait up to a whole period.
+  std::chrono::microseconds slowest{0};
+  for (int i = 0; i < 10; ++i) {
+    watchdog.TurnOn();
+    std::this_thread::sleep_for(std::chrono::milliseconds(23));
+    const auto start = std::chrono::steady_clock::now();
+    watchdog.TurnOff();
+    slowest = std::max(
+      slowest, std::chrono::duration_cast<std::chrono::microseconds>(
+                 std::chrono::steady_clock::now() - start));
+    EXPECT_FALSE(recorder.LastValue());
+  }
+  EXPECT_LT(slowest, std::chrono::milliseconds(5));
 }
 
 TEST(TestWatchdog, DestructionJoinsWhileOn)

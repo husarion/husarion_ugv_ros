@@ -41,7 +41,7 @@ protected:
   virtual void DefineRobotDriver() override;  // virtual for testing
 
   void UpdateHwStates() override;
-  void UpdateMotorsStateDataTimedOut() override;
+  bool UpdateMotorsStateDataTimedOut() override;
 
   void UpdateDriverStateMsg() override;
   void UpdateFlagErrors() override;

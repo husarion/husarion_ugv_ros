@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/panther_system.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -67,16 +68,39 @@ void PantherSystem::UpdateHwStates()
   hw_states_efforts_[3] = rr_motor_state.GetTorque();
 }
 
-void PantherSystem::UpdateMotorsStateDataTimedOut()
+bool PantherSystem::UpdateMotorsStateDataTimedOut()
 {
-  if (
-    robot_driver_->GetData(DriverNames::FRONT).IsMotorStatesDataTimedOut() ||
-    robot_driver_->GetData(DriverNames::REAR).IsMotorStatesDataTimedOut()) {
-    RCLCPP_WARN_STREAM_THROTTLE(logger_, steady_clock_, 1000, "PDO motor state data timeout.");
+  // Per-driver early return keeps the rear driver unconsulted when the front
+  // already timed out (the unit tests pin that ordering) and lets the warn
+  // name the driver instead of hiding it behind a max().
+  // NB the throttle can fold several consecutive timed-out cycles into one
+  // line - absence of repeats is not proof of a single miss.
+  const auto & front_data = robot_driver_->GetData(DriverNames::FRONT);
+  if (front_data.IsMotorStatesDataTimedOut()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (front, oldest data "
+        << front_data.GetMotorStatesAgeMs() << " ms old, freshest "
+        << front_data.GetMotorStatesFreshestAgeMs() << " ms, read cycle " << read_cycle_ms_
+        << " ms).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
-  } else {
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+    return true;
   }
+
+  const auto & rear_data = robot_driver_->GetData(DriverNames::REAR);
+  if (rear_data.IsMotorStatesDataTimedOut()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (rear, oldest data "
+        << rear_data.GetMotorStatesAgeMs() << " ms old, freshest "
+        << rear_data.GetMotorStatesFreshestAgeMs() << " ms, read cycle " << read_cycle_ms_
+        << " ms).");
+    roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
+    return true;
+  }
+
+  roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+  return false;
 }
 
 void PantherSystem::UpdateDriverStateMsg()
@@ -164,30 +188,40 @@ void PantherSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper &
   unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
   std::string message{"No error detected."};
 
-  const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
-  if (front_driver_data.IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
+  // Never let a teardown-race exception escape a diagnostic task - see
+  // LynxSystem::DiagnoseErrors for the rationale; the Panther path is
+  // identical by construction.
+  try {
+    const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
+    if (front_driver_data.IsError()) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "Error detected.";
 
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, front_driver_data.GetErrorMap(), "Front driver error: ");
-  }
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
+        status, front_driver_data.GetErrorMap(), "Front driver error: ");
+    }
 
-  const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
-  if (rear_driver_data.IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
+    const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
+    if (rear_driver_data.IsError()) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "Error detected.";
 
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, rear_driver_data.GetErrorMap(), "Rear driver error: ");
-  }
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
+        status, rear_driver_data.GetErrorMap(), "Rear driver error: ");
+    }
 
-  if (roboteq_error_filter_->IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
+    if (roboteq_error_filter_->IsError()) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "Error detected.";
 
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, roboteq_error_filter_->GetErrorMap(), "", " error");
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
+        status, roboteq_error_filter_->GetErrorMap(), "", " error");
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
+    return;
   }
 
   status.summary(level, message);
@@ -198,20 +232,28 @@ void PantherSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper &
   unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
   std::string message{"Panther system status monitoring."};
 
-  const auto front_driver_state = robot_driver_->GetData(DriverNames::FRONT).GetDriverState();
-  const auto rear_driver_state = robot_driver_->GetData(DriverNames::REAR).GetDriverState();
+  // See DiagnoseErrors - never let a teardown-race exception escape.
+  try {
+    const auto front_driver_state = robot_driver_->GetData(DriverNames::FRONT).GetDriverState();
+    const auto rear_driver_state = robot_driver_->GetData(DriverNames::REAR).GetDriverState();
 
-  auto driver_states_with_names = {
-    std::make_pair(std::string("Front"), front_driver_state),
-    std::make_pair(std::string("Rear"), rear_driver_state)};
+    auto driver_states_with_names = {
+      std::make_pair(std::string("Front"), front_driver_state),
+      std::make_pair(std::string("Rear"), rear_driver_state)};
 
-  for (const auto & [driver_name, driver_state] : driver_states_with_names) {
-    status.add(driver_name + " driver voltage (V)", driver_state.GetVoltage());
-    status.add(driver_name + " driver current (A)", driver_state.GetCurrent());
-    status.add(driver_name + " driver temperature (\u00B0C)", driver_state.GetTemperature());
-    status.add(
-      driver_name + " driver heatsink temperature (\u00B0C)",
-      driver_state.GetHeatsinkTemperature());
+    for (const auto & [driver_name, driver_state] : driver_states_with_names) {
+      status.add(driver_name + " driver voltage (V)", driver_state.GetVoltage());
+      status.add(driver_name + " driver current (A)", driver_state.GetCurrent());
+      status.add(driver_name + " driver temperature (\u00B0C)", driver_state.GetTemperature());
+      status.add(
+        driver_name + " driver heatsink temperature (\u00B0C)",
+        driver_state.GetHeatsinkTemperature());
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
+    return;
   }
   status.summary(level, message);
 }

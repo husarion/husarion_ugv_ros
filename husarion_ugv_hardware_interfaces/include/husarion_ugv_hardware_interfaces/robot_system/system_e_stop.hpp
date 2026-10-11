@@ -112,6 +112,9 @@ protected:
   std::function<bool()> ZeroVelocityCheck;
 
   std::mutex e_stop_manipulation_mtx_;
+  // Last state seen on the hardware line, so the read loop can report the edge
+  // instead of the level - it runs at 100 Hz.
+  bool hardware_line_latched_ = true;
   std::atomic_bool e_stop_triggered_ = true;
   std::atomic_bool software_e_stop_triggered_ = true;
 };

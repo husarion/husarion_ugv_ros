@@ -37,6 +37,8 @@ const husarion_ugv_hardware_interfaces::CANopenSettings kCANopenSettings{
   std::chrono::milliseconds(15),
   std::chrono::milliseconds(75),
   std::chrono::milliseconds(100),
+  70,
+  65,
 };
 
 const husarion_ugv_hardware_interfaces::DrivetrainSettings kDrivetrainSettings{

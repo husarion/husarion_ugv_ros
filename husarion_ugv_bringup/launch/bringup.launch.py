@@ -70,6 +70,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    launch_gamepad = LaunchConfiguration("launch_gamepad")
+    declare_launch_gamepad_arg = DeclareLaunchArgument(
+        "launch_gamepad",
+        default_value="True",
+        description="Launch gamepad node.",
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -171,7 +179,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
         ),
-        launch_arguments={"launch_gamepad": "True"}.items(),
+        launch_arguments={"launch_gamepad": launch_gamepad}.items(),
     )
 
     hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")
@@ -229,6 +237,7 @@ def generate_launch_description():
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_launch_gamepad_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,

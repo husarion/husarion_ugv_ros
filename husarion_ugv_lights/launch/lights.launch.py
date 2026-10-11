@@ -16,7 +16,7 @@
 # limitations under the License.
 
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, Shutdown
 from launch.conditions import UnlessCondition
@@ -28,6 +28,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -61,6 +62,17 @@ def generate_launch_description():
             [husarion_ugv_lights_common_dir, "config", animations_config]
         ),
         description="Path to a YAML file with a description of led configuration.",
+    )
+
+    lights_controller_frequency = LaunchConfiguration("lights_controller_frequency")
+    declare_lights_controller_frequency_arg = DeclareLaunchArgument(
+        "lights_controller_frequency",
+        default_value="50.0",
+        description=(
+            "Frequency in Hz at which the lights controller renders and publishes animation frames."
+            " Animation timing is in seconds, so a lower rate only drops frames - pulses shorter"
+            " than two frames disappear."
+        ),
     )
 
     log_level = LaunchConfiguration("log_level")
@@ -104,10 +116,14 @@ def generate_launch_description():
     driver_config = PythonExpression(["'", robot_model, "_driver.yaml'"])
     driver_config_path = PathJoinSubstitution([husarion_ugv_lights_pkg, "config", driver_config])
     lights_container = ComposableNodeContainer(
-        package="rclcpp_components",
+        # In-repo stand-in for rclcpp_components' component_container: the
+        # stock one aborts when SIGTERM lands mid wait-set rebuild (upstream
+        # executor race), so every driver-compose stop ended with a terminate
+        # in the journal. Same behavior otherwise.
+        package="husarion_ugv_lights",
         name="lights_container",
         namespace=namespace,
-        executable="component_container",
+        executable="resilient_component_container",
         composable_node_descriptions=[
             ComposableNode(
                 package="husarion_ugv_lights",
@@ -129,6 +145,11 @@ def generate_launch_description():
                 parameters=[
                     {"animations_config_path": animations_config_path},
                     {"user_led_animations_path": user_led_animations_path},
+                    {
+                        "controller_frequency": ParameterValue(
+                            lights_controller_frequency, value_type=float
+                        )
+                    },
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
@@ -138,7 +159,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
             "--log-level",
@@ -151,6 +172,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
+        declare_lights_controller_frequency_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,

@@ -10,7 +10,8 @@
             imu_xyz:='0.052 0.073 -0.006'
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''
-            use_madgwick_filter:=false">
+            use_madgwick_filter:=false
+            use_mag:=false">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="0.052 0.073 -0.006" />
@@ -84,10 +85,13 @@
           <param name="driver_can_id">1</param>
           <param name="sdo_operation_timeout_ms">100</param>
 
-          <!-- Depends on frequency of the controller, more critical motors state are sent with
-            higher frequency, other parameters are sent with lower, here allowed time is set
-            to be expected period +50% margin -->
-          <param name="pdo_motor_states_timeout_ms">15</param>
+          <!-- Motor state TPDOs arrive on a 5 ms event timer (200 Hz floor, see
+            canopen_configuration.yaml), so 25 ms of allowed staleness is a five
+            frame margin. The previous 15 ms sat only 1.5 frames above the old
+            10 ms cadence and ordinary scheduling jitter tripped it - the
+            resulting timeout warns escalated to involuntary e-stops under
+            camera plus drive load on a Lynx. -->
+          <param name="pdo_motor_states_timeout_ms">25</param>
           <param name="pdo_driver_state_timeout_ms">75</param>
 
           <!-- It will be rounded to the closest value taking into account current controller frequency -->
@@ -100,6 +104,17 @@
           <param name="max_write_pdo_cmds_errors_count">2</param>
           <param name="max_read_pdo_motor_states_errors_count">2</param>
           <param name="max_read_pdo_driver_state_errors_count">2</param>
+
+          <!-- SCHED_FIFO priorities of the driver's real-time threads (1-98) -->
+          <param name="canopen_thread_priority">70</param>
+          <param name="rpdo_dispatch_priority">65</param>
+          <param name="gpio_watchdog_priority">60</param>
+          <param name="gpio_monitor_priority">60</param>
+          <!-- CPUs the same threads pin themselves to, -1 to not pin -->
+          <param name="canopen_thread_cpu">0</param>
+          <param name="rpdo_dispatch_cpu">0</param>
+          <param name="gpio_watchdog_cpu">3</param>
+          <param name="gpio_monitor_cpu">3</param>
         </xacro:unless>
       </hardware>
 
@@ -160,7 +175,7 @@
           <param name="mag_bias_x">0.0</param>
           <param name="mag_bias_y">0.0</param>
           <param name="mag_bias_z">0.0</param>
-          <param name="use_mag">true</param>
+          <param name="use_mag">${use_mag}</param>
           <param name="stateless">false</param>
           <param name="remove_gravity_vector">false</param>
           <param name="world_frame">enu</param>

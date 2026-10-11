@@ -14,8 +14,12 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/ugv_system.hpp"
 
+#include <sys/sysinfo.h>
+
 #include <array>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -56,6 +60,7 @@ CallbackReturn UGVSystem::on_init(const hardware_interface::HardwareInfo & hardw
   try {
     ReadDrivetrainSettings();
     ReadCANopenSettings();
+    ReadRTThreadPriorities();
     ReadInitializationActivationAttempts();
     ReadParametersAndCreateRoboteqErrorFilter();
     ReadDriverStatesUpdateFrequency();
@@ -96,22 +101,32 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
   system_ros_interface_ = std::make_unique<SystemROSInterface>("hardware_controller");
 
+  // The services hold the GPIO controller weakly. A strong copy kept it alive past
+  // gpio_controller_.reset() in the teardown, so its monitor thread outlived the ROS interface it
+  // publishes through. Stopping the driver with the e-stop released then segfaulted: the latch
+  // fires a GPIO edge inside that window.
+  const std::weak_ptr<GPIOControllerInterface> weak_gpio_controller = gpio_controller_;
+  const auto gpio_service =
+    [weak_gpio_controller](bool (GPIOControllerInterface::*method)(const bool)) {
+      return std::function<void(bool)>([weak_gpio_controller, method](const bool enable) {
+        const auto gpio_controller = weak_gpio_controller.lock();
+        if (!gpio_controller) {
+          throw std::runtime_error("GPIO controller is shut down.");
+        }
+        ((*gpio_controller).*method)(enable);
+      });
+    };
+
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/fan_enable",
-    std::bind(&GPIOControllerInterface::FanEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/fan_enable", gpio_service(&GPIOControllerInterface::FanEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/aux_power_enable",
-    std::bind(&GPIOControllerInterface::AUXPowerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/aux_power_enable", gpio_service(&GPIOControllerInterface::AUXPowerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/digital_power_enable",
-    std::bind(
-      &GPIOControllerInterface::DigitalPowerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/digital_power_enable", gpio_service(&GPIOControllerInterface::DigitalPowerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/charger_enable",
-    std::bind(&GPIOControllerInterface::ChargerEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/charger_enable", gpio_service(&GPIOControllerInterface::ChargerEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
-    "hardware/led_control_enable",
-    std::bind(&GPIOControllerInterface::LEDControlEnable, gpio_controller_, std::placeholders::_1));
+    "hardware/led_control_enable", gpio_service(&GPIOControllerInterface::LEDControlEnable));
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
     "hardware/motor_torque_enable",
     std::bind(&UGVSystem::MotorTorqueEnable, this, std::placeholders::_1));
@@ -145,13 +160,23 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 {
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Teardown order matters: the diagnostic updater inside
+  // system_ros_interface_ keeps ticking on the executor and its tasks call
+  // robot_driver_->GetData() - deinitializing the driver first leaves a
+  // window where DiagnoseErrors() throws out of the timer callback and
+  // std::terminate takes the whole node down (bit us live on a Lynx). The
+  // GPIO event callback has the sibling problem: it publishes through
+  // system_ros_interface_, so the GPIO controller has to go before the
+  // interface it calls into. Stop callers before callees: GPIO watcher
+  // first (e_stop_ holds refs to gpio + driver, drop it alongside), then
+  // the ROS interface (stops the diagnostics executor), then the driver.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -184,13 +209,14 @@ CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
+  // Same teardown order as on_cleanup - rationale there.
+  e_stop_.reset();
   gpio_controller_.reset();
 
   system_ros_interface_.reset();
-  e_stop_.reset();
+
+  robot_driver_->Deinitialize();
+  robot_driver_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -209,15 +235,16 @@ CallbackReturn UGVSystem::on_error(const rclcpp_lifecycle::State &)
     system_ros_interface_->BroadcastOnDiagnosticTasks(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "An error has occurred during a node state transition.");
-
-    system_ros_interface_.reset();
   }
+
+  // Same teardown order as on_cleanup - rationale there.
+  e_stop_.reset();
+  gpio_controller_.reset();
+
+  system_ros_interface_.reset();
 
   robot_driver_->Deinitialize();
   robot_driver_.reset();
-
-  gpio_controller_.reset();
-  e_stop_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -250,6 +277,14 @@ std::vector<CommandInterface> UGVSystem::export_command_interfaces()
 
 return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & /* period */)
 {
+  timespec now_ts;
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  if (last_read_ts_.tv_sec != 0 || last_read_ts_.tv_nsec != 0) {
+    read_cycle_ms_ = static_cast<float>(now_ts.tv_sec - last_read_ts_.tv_sec) * 1000.0F +
+                     static_cast<float>(now_ts.tv_nsec - last_read_ts_.tv_nsec) / 1.0e6F;
+  }
+  last_read_ts_ = now_ts;
+
   UpdateMotorsState();
 
   if (time >= next_driver_state_update_time_) {
@@ -394,6 +429,61 @@ void UGVSystem::ReadCANopenSettings()
   ReadCANopenSettingsDriverCANIDs();
 }
 
+void UGVSystem::ReadRTThreadPriorities()
+{
+  canopen_settings_.canopen_thread_sched_priority = ReadRTPriority(
+    "canopen_thread_priority", CANopenSettings().canopen_thread_sched_priority);
+  canopen_settings_.rpdo_dispatch_sched_priority = ReadRTPriority(
+    "rpdo_dispatch_priority", CANopenSettings().rpdo_dispatch_sched_priority);
+  gpio_watchdog_sched_priority_ = ReadRTPriority(
+    "gpio_watchdog_priority", Watchdog::kWatchdogSchedPriority);
+  gpio_monitor_sched_priority_ = ReadRTPriority(
+    "gpio_monitor_priority", GPIOController::kMonitorSchedPriority);
+
+  canopen_settings_.canopen_thread_cpu = ReadRTCPU("canopen_thread_cpu", kDefaultCANCPU);
+  canopen_settings_.rpdo_dispatch_cpu = ReadRTCPU("rpdo_dispatch_cpu", kDefaultCANCPU);
+  gpio_watchdog_cpu_ = ReadRTCPU("gpio_watchdog_cpu", kDefaultControlCPU);
+  gpio_monitor_cpu_ = ReadRTCPU("gpio_monitor_cpu", kDefaultControlCPU);
+}
+
+unsigned UGVSystem::ReadRTPriority(const std::string & name, const unsigned default_priority)
+{
+  // Optional, so a robot description written before these existed keeps the defaults.
+  const auto it = info_.hardware_parameters.find(name);
+  if (it == info_.hardware_parameters.end()) {
+    return default_priority;
+  }
+
+  const auto priority = ParseRTPriority(it->second);
+  if (!priority) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << it->second << "', expected a whole number in ["
+                          << kMinRTPriority << ", " << kMaxRTPriority << "]. Using the default "
+                          << default_priority << ".");
+    return default_priority;
+  }
+  return *priority;
+}
+
+int UGVSystem::ReadRTCPU(const std::string & name, const int default_cpu)
+{
+  // The default is checked too: a machine with fewer cores than the robot's computer gets an
+  // unpinned thread and a warning instead of a failed pin.
+  const auto it = info_.hardware_parameters.find(name);
+  const std::string text = it == info_.hardware_parameters.end() ? std::to_string(default_cpu)
+                                                                 : it->second;
+  const int cpu_count = get_nprocs_conf();
+
+  const auto cpu = ParseCPU(text, cpu_count);
+  if (!cpu) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << text << "', expected -1 or a CPU in [0, "
+                          << cpu_count - 1 << "]. The thread will not be pinned.");
+    return -1;
+  }
+  return *cpu;
+}
+
 void UGVSystem::ReadInitializationActivationAttempts()
 {
   max_roboteq_initialization_attempts_ =
@@ -426,7 +516,9 @@ void UGVSystem::ReadDriverStatesUpdateFrequency()
 
 void UGVSystem::ConfigureGPIOController()
 {
-  gpio_controller_ = GPIOControllerFactory::CreateGPIOController();
+  gpio_controller_ = GPIOControllerFactory::CreateGPIOController(
+    gpio_watchdog_sched_priority_, gpio_monitor_sched_priority_, gpio_watchdog_cpu_,
+    gpio_monitor_cpu_);
   gpio_controller_->Start();
 
   RCLCPP_INFO(logger_, "Successfully configured GPIO controller.");
@@ -485,13 +577,20 @@ void UGVSystem::UpdateMotorsState()
   try {
     robot_driver_->UpdateMotorsState();
     UpdateHwStates();
-    UpdateMotorsStateDataTimedOut();
+    UpdateCANopenResyncWatchdog(UpdateMotorsStateDataTimedOut());
   } catch (const std::runtime_error & e) {
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
 
     RCLCPP_ERROR_STREAM_THROTTLE(
       logger_, steady_clock_, 5000,
       "An exception occurred while updating motors states: " << e.what());
+
+    // A read that throws (heartbeat timeout, CAN error) is a timed-out read -
+    // without this feed the watchdog is unreachable in exactly the state it
+    // exists for, because a dead master's own symptom raises before the
+    // success-path feed above (bit us live: a wedged master latched the
+    // e-stop every 5 s for hours while the wire carried healthy heartbeats).
+    UpdateCANopenResyncWatchdog(true);
   }
 }
 
@@ -508,6 +607,38 @@ void UGVSystem::UpdateDriverState()
       logger_, steady_clock_, 5000,
       "An exception occurred while updating drivers states: " << e.what());
   }
+}
+
+void UGVSystem::UpdateCANopenResyncWatchdog(const bool data_timed_out)
+{
+  if (!data_timed_out) {
+    pdo_timeout_ongoing_ = false;
+    return;
+  }
+
+  const auto now = std::chrono::steady_clock::now();
+
+  if (!pdo_timeout_ongoing_) {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = now;
+    return;
+  }
+
+  if (now - pdo_timeout_since_ < pdo_timeout_resync_threshold_) {
+    return;
+  }
+
+  // The master can come up (or be recreated into) a state where it no longer receives PDOs
+  // while the bus itself stays healthy. It never recovers on its own and the process never
+  // exits, so the container restart policy can't heal it. Exiting here reuses the restart
+  // machinery for a clean re-initialization - simpler and more reliable than tearing down and
+  // re-creating the master in-process.
+  RCLCPP_FATAL_STREAM(
+    logger_, "CANopen resync watchdog: " << pdo_timeout_resync_threshold_.count()
+                                         << " s of continuous PDO timeout - restarting.");
+  std::fflush(stdout);
+  std::fflush(stderr);
+  std::_Exit(resync_watchdog_exit_code_);
 }
 
 void UGVSystem::UpdateEStopState()

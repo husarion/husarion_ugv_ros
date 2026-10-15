@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
 from launch.conditions import UnlessCondition
@@ -63,6 +63,17 @@ def generate_launch_description():
         "use_madgwick_filter",
         default_value="False",
         description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="False",
+        description=(
+            "Use the IMU magnetometer in the Madgwick filter. Off by default - the stock IMU sits "
+            "inside the chassis next to the motors, so enable it only for a relocated or external IMU"
+        ),
         choices=["True", "true", "False", "false"],
     )
 
@@ -130,6 +141,7 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
             "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
         }.items(),
     )
 
@@ -195,7 +207,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
             "--log-level",
@@ -212,11 +224,16 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # A cold boot on a two-node bus can spend 20-40 s in CANopen init
+        # retries before controller_manager's services appear. With the old
+        # 10 s the spawner died and the robot ended up running with zero
+        # controllers (silently undrivable, self-repaired only by the OS
+        # image's driver watcher restart).
         "--controller-manager-timeout",
-        "10",
+        "60",
         "--ros-args",
         "--log-level",
-        log_level,
+        normalize_log_level(log_level),
         "--log-level",
         limit_log_level_to_info("rcl", log_level),
     ]
@@ -239,6 +256,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -27,6 +28,31 @@ bool EStop::ReadEStopState()
   if (e_stop_manipulation_mtx_.try_lock()) {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
     e_stop_triggered_ = !gpio_controller_->IsPinActive(GPIOPin::E_STOP_RESET);
+
+    // The hardware line is the only evidence that something outside this
+    // process stopped the robot, and it used to change state without a trace -
+    // a pressed button, a Roboteq fault and a safety board watchdog timeout all
+    // read as silence in the log, which cost an afternoon of forensics. Report
+    // the transition, once per edge.
+    if (e_stop_triggered_ != hardware_line_latched_) {
+      hardware_line_latched_ = e_stop_triggered_;
+      // A software trigger stops the watchdog, and the safety board drops the
+      // line some tens of milliseconds later. That edge is ours, not an outside
+      // device's.
+      if (hardware_line_latched_ && software_trigger_requested_) {
+        software_trigger_requested_ = false;
+        std::cerr << "E-Stop ASSERTED on the hardware line after the software trigger requested "
+                     "by this driver."
+                  << std::endl;
+      } else if (hardware_line_latched_) {
+        std::cerr << "E-Stop ASSERTED on the hardware line - stopped by a device outside this "
+                     "driver (e-stop button, Roboteq fault or the safety board watchdog). No "
+                     "software trigger was requested."
+                  << std::endl;
+      } else {
+        std::cerr << "E-Stop hardware line released." << std::endl;
+      }
+    }
 
     // In the case where E-Stop is triggered by another device within the robot's system (e.g.,
     // Roboteq or Safety Board), disabling the software Watchdog is necessary to prevent an
@@ -42,11 +68,13 @@ bool EStop::ReadEStopState()
 
 void EStop::TriggerEStop()
 {
+  std::cerr << "E-Stop triggered in software (service call or driver shutdown)." << std::endl;
   gpio_controller_->InterruptEStopReset();
 
   std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
   try {
     software_e_stop_triggered_ = true;
+    software_trigger_requested_ = true;
     gpio_controller_->EStopTrigger();
   } catch (const std::runtime_error & e) {
     throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
@@ -82,6 +110,7 @@ void EStop::ResetEStop()
 
     e_stop_triggered_ = false;
     software_e_stop_triggered_ = false;
+    software_trigger_requested_ = false;
   } else {
     std::fprintf(stdout, "E-stop trigger operation is in progress, skipping reset.");
   }

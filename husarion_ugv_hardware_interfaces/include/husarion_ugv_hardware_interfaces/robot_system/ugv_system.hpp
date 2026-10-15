@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -84,6 +85,9 @@ protected:
 
   void ReadDrivetrainSettings();
   void ReadCANopenSettings();
+  void ReadRTThreadPriorities();
+  unsigned ReadRTPriority(const std::string & name, const unsigned default_priority);
+  int ReadRTCPU(const std::string & name, const int default_cpu);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
   void ReadInitializationActivationAttempts();
@@ -102,7 +106,9 @@ protected:
   void UpdateEStopState();
 
   virtual void UpdateHwStates() = 0;
-  virtual void UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
+  // Returns whether motor states PDO data is currently timed out.
+  virtual bool UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
+  void UpdateCANopenResyncWatchdog(const bool data_timed_out);
   bool AreVelocityCommandsNearZero();
 
   virtual void UpdateDriverStateMsg() = 0;
@@ -141,6 +147,15 @@ protected:
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;
+  unsigned gpio_watchdog_sched_priority_ = Watchdog::kWatchdogSchedPriority;
+  unsigned gpio_monitor_sched_priority_ = GPIOController::kMonitorSchedPriority;
+
+  // Default cores of the RT threads, the same as the image's rt-tuning.env: the CAN chain on
+  // RT_CAN_CORE=0, the control loop and the safety heartbeat next to it on RT_CONTROL_CORE=3.
+  static constexpr int kDefaultCANCPU = 0;
+  static constexpr int kDefaultControlCPU = 3;
+  int gpio_watchdog_cpu_ = -1;
+  int gpio_monitor_cpu_ = -1;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
 
@@ -162,7 +177,24 @@ protected:
   std::shared_ptr<std::mutex> robot_driver_write_mtx_;
 
   rclcpp::Time next_driver_state_update_time_{0, 0, RCL_STEADY_TIME};
+
+  // Wall time between consecutive read() entries. A staleness warn cannot say
+  // on its own whether the data was late or the reader was: at a 100 Hz
+  // nominal cycle an age of 25 ms with a 10 ms cycle means the PDO stream
+  // stalled, the same age with a 30 ms cycle means this loop missed wakeups
+  // and read data that was fine when it arrived.
+  float read_cycle_ms_ = 0.0F;
+  timespec last_read_ts_{0, 0};
   rclcpp::Duration driver_states_update_period_{0, 0};
+
+  // A PDO timeout persisting this long means the master stopped receiving while the bus can
+  // still be healthy - re-initialization is the only recovery. Transients (SD stalls) are
+  // 2-3 orders of magnitude shorter.
+  static constexpr std::chrono::seconds pdo_timeout_resync_threshold_{30};
+  static constexpr int resync_watchdog_exit_code_ = 74;  // EX_IOERR
+
+  std::chrono::steady_clock::time_point pdo_timeout_since_;
+  bool pdo_timeout_ongoing_ = false;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

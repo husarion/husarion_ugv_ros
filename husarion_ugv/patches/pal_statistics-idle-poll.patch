@@ -1,0 +1,61 @@
+diff --git a/pal_statistics/src/pal_statistics.cpp b/pal_statistics/src/pal_statistics.cpp
+index 03a4037..b035aba 100644
+--- a/pal_statistics/src/pal_statistics.cpp
++++ b/pal_statistics/src/pal_statistics.cpp
+@@ -29,6 +29,11 @@
+ 
+ #include "pal_statistics/pal_statistics.hpp"
+ 
++#ifdef __linux__
++#include <pthread.h>
++#endif
++
++#include <cstdlib>
+ #include <memory>
+ #include <string>
+ #include <utility>
+@@ -339,13 +344,43 @@ bool StatisticsRegistry::updateMsg(
+   }
+ }
+ 
++namespace
++{
++double idlePollRate()
++{
++  constexpr double kDefaultRate = 10.0;
++  const char * env = std::getenv("PAL_STATISTICS_IDLE_POLL_RATE");
++  if (env == nullptr) {
++    return kDefaultRate;
++  }
++  char * end = nullptr;
++  const double rate = std::strtod(env, &end);
++  return (end != env && rate > 0.0) ? rate : kDefaultRate;
++}
++}  // namespace
++
+ void StatisticsRegistry::publisherThreadCycle()
+ {
++#ifdef __linux__
++  pthread_setname_np(pthread_self(), "pal-stats-pub");
++#endif
++  // The thread polls a flag set by publishAsync(). The 2 kHz poll keeps one
++  // sample per message, which a keep_last(1) subscriber needs, but costs a few
++  // percent of a small CPU per registry even when nobody subscribes. Without
++  // subscribers poll slowly. Each wake drains the whole buffer (100 samples),
++  // and a new subscriber gets the fast poll within one idle period. Not a
++  // condition variable on purpose - the notify would add a syscall to the
++  // real-time loop that calls publishAsync().
+   rclcpp::WallRate rate(2000);
++  rclcpp::WallRate idle_rate(idlePollRate());
+   while (rclcpp::ok() && !interrupt_thread_) {
+     try {
+       while (!is_data_ready_ && !interrupt_thread_) {
+-        rate.sleep();
++        if (pub_->get_subscription_count() > 0 || pub_values_->get_subscription_count() > 0) {
++          rate.sleep();
++        } else {
++          idle_rate.sleep();
++        }
+       }
+ 
+       std::unique_lock<std::mutex> data_lock(data_mutex_);

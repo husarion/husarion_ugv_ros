@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/sysinfo.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -46,7 +48,7 @@ public:
 
   void ReadCANopenSettingsDriverCANIDs() { LynxSystem::ReadCANopenSettingsDriverCANIDs(); }
   void UpdateHwStates() { LynxSystem::UpdateHwStates(); }
-  void UpdateMotorsStateDataTimedOut() { LynxSystem::UpdateMotorsStateDataTimedOut(); }
+  bool UpdateMotorsStateDataTimedOut() { return LynxSystem::UpdateMotorsStateDataTimedOut(); }
   void UpdateDriverStateDataTimedOut() { LynxSystem::UpdateDriverStateDataTimedOut(); }
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }
@@ -65,6 +67,10 @@ public:
   {
     return canopen_settings_;
   }
+  unsigned GetGPIOWatchdogSchedPriority() const { return gpio_watchdog_sched_priority_; }
+  unsigned GetGPIOMonitorSchedPriority() const { return gpio_monitor_sched_priority_; }
+  int GetGPIOWatchdogCPU() const { return gpio_watchdog_cpu_; }
+  int GetGPIOMonitorCPU() const { return gpio_monitor_cpu_; }
   std::vector<double> GetHwStatesPositions() { return hw_states_positions_; }
   std::vector<double> GetHwStatesVelocities() { return hw_states_velocities_; }
   std::vector<double> GetHwStatesEfforts() { return hw_states_efforts_; }
@@ -113,6 +119,100 @@ TEST_F(TestLynxSystem, ReadCANopenSettingsDriverCANIDs)
   EXPECT_EQ(canopen_settings.driver_can_ids.size(), 1);
   EXPECT_EQ(
     canopen_settings.driver_can_ids.at(husarion_ugv_hardware_interfaces::DriverNames::DEFAULT), 1);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesDefault)
+{
+  const auto canopen_settings = lynx_system_->GetCANopenSettings();
+
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system_->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system_->GetGPIOMonitorSchedPriority(), 60u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesFromParameters)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "80";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "75";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "62";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "55";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 80u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 75u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 62u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 55u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesInvalidFallBackToDefault)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "99";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "0";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "-1";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "high";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 60u);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsDefault)
+{
+  // The defaults are the robot's layout and only valid on a machine with at least four CPUs.
+  const int control_cpu = get_nprocs_conf() > 3 ? 3 : -1;
+  const auto canopen_settings = lynx_system_->GetCANopenSettings();
+
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, 0);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, 0);
+  EXPECT_EQ(lynx_system_->GetGPIOWatchdogCPU(), control_cpu);
+  EXPECT_EQ(lynx_system_->GetGPIOMonitorCPU(), control_cpu);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsFromParameters)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "1";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-1";
+  hardware_info.hardware_parameters["gpio_watchdog_cpu"] = "0";
+  hardware_info.hardware_parameters["gpio_monitor_cpu"] = "-1";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, get_nprocs_conf() > 1 ? 1 : -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogCPU(), 0);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorCPU(), -1);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsInvalidAreNotPinned)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = std::to_string(get_nprocs_conf());
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-2";
+  hardware_info.hardware_parameters["gpio_watchdog_cpu"] = "two";
+  hardware_info.hardware_parameters["gpio_monitor_cpu"] = "";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogCPU(), -1);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorCPU(), -1);
 }
 
 TEST_F(TestLynxSystem, UpdateHwStates)

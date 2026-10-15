@@ -15,9 +15,11 @@
 #ifndef HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_CONTROLLER_NODE_HPP_
 #define HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_CONTROLLER_NODE_HPP_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "yaml-cpp/yaml.h"
 
@@ -141,6 +143,8 @@ private:
 
   std::unordered_map<std::size_t, std::shared_ptr<LEDPanel>> led_panels_;
   std::unordered_map<std::size_t, rclcpp::Publisher<ImageMsg>::SharedPtr> panel_publishers_;
+  std::unordered_map<std::size_t, std::vector<std::uint8_t>> last_published_frames_;
+  std::unordered_map<std::size_t, rclcpp::Time> last_publish_times_;
   std::unordered_map<std::string, std::shared_ptr<LEDSegment>> segments_;
   std::unordered_map<std::string, std::vector<std::string>> segments_map_;
   std::unordered_map<std::size_t, LEDAnimationDescription> animations_descriptions_;

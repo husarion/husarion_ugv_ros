@@ -23,8 +23,8 @@ This node is of type rclcpp_components is responsible for processing animations 
 
 #### Publishers
 
-- `lights/channel_1_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Front Bumper Lights.
-- `lights/channel_2_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Rear Bumper Lights.
+- `lights/channel_1_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Front Bumper Lights. Published when the frame changes and at least every `frame_keepalive_period`.
+- `lights/channel_2_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Rear Bumper Lights. Published when the frame changes and at least every `frame_keepalive_period`.
 
 #### Service Servers
 
@@ -34,6 +34,7 @@ This node is of type rclcpp_components is responsible for processing animations 
 
 - `animations_config_path` [*string*, default: **$(find husarion_ugv_lights)/husarion_ugv_lights/config/{robot_model}_animations.yaml**]: Path to a YAML file with a description of led configuration. This file includes definition of robot panels, virtual segments and default animations.
 - `controller_frequency` [*float*, default: **50.0**]: Frequency [Hz] at which the lights controller node will process animations.
+- `frame_keepalive_period` [*float*, default: **1.0**]: Time [s] after which an unchanged frame is published again. Frames are otherwise published only when they change.
 - `user_led_animations_path` [*string*, default: **None**]: Path to a YAML file with a description of the user defined animations.
 
 ### LightsDriverNode
@@ -49,9 +50,14 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `lights/channel_1_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: Frame to be displayed on robot Front Bumper Lights.
 - `lights/channel_2_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: Frame to be displayed on robot Rear Bumper Lights.
 
+#### Publishers
+
+- `lights/output_state` [*husarion_ugv_msgs/LEDOutputState*, latched]: Current state of the physical LED output - the `lights/enable` gate and the global brightness. Published on every change, so a client that connects later still learns the current state.
+
 #### Service Servers
 
 - `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
+- `lights/enable` [*std_srvs/SetBool*]: Gates the physical LED output. When disabled the animation topics keep publishing and the frames keep arriving, nothing is written to the strip, and the strip is blanked once so it does not freeze on its last frame.
 
 #### Service Clients
 
@@ -60,6 +66,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 #### Parameters
 
 - `frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
+- `led_output_enabled` [*bool*, default: **true**]: Startup state of the physical LED output, see the `lights/enable` service.
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

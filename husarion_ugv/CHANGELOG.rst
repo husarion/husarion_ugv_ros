@@ -2,6 +2,25 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* the hardware image carries a patched Fast DDS that keeps the robot's ROS network open to new nodes after a process crashes
+* patched Fast DDS v2: the robot's ROS network no longer splits when a process is killed while sending
+* switching the LED strip off or on through lights/enable now updates lights/output_state, so a client reading it back sees the real state
+* patched Fast DDS v3: the same fixes rebuilt on Fast DDS 2.14.7, so the image builds again against the current ROS repository
+* new use_mag launch argument, off by default: with use_madgwick_filter the IMU orientation no longer uses the magnetometer, which the motors disturb on a stock robot - turn it on for a relocated or external IMU
+* the driver's real-time threads are named (lely-io, rpdo-dispatch, gpio-wdog, gpio-monit) and their priorities are hardware parameters with the old values as defaults
+* the safety watchdog thread lives as long as the driver instead of being recreated on every e-stop reset, and the real-time threads pin themselves to their CPUs (new *_cpu hardware parameters)
+* stopping the driver with the e-stop released no longer crashes it during shutdown
+* joint_states, imu/data and odometry/wheels publish at 50 Hz instead of 100 Hz, which saves CPU - the control loop still runs at 100 Hz and the EKF already filtered at 50 Hz
+* new lights_controller_frequency launch argument (default 50) sets how often the lights controller renders frames
+* new groot_enabled launch argument and manager parameter, on by default: turning it off stops the Groot2 publishers of the lights, safety and shutdown trees
+* the hardware image starts faster: its Python is compiled ahead and the ROS environment is set without sourcing setup.bash, and the first-boot config copy no longer starts the ros2 CLI for every package
+* the controller_manager statistics threads no longer poll at 2 kHz while nobody subscribes to introspection_data or statistics, which saves about a seventh of a core
+* the lights controller publishes a frame only when it changes, and repeats an unchanged one every frame_keepalive_period (default 1 s)
+* an e-stop triggered in software no longer logs that an outside device stopped the robot
+* patched Fast DDS v4: fixes truncated large samples over shared memory
+
 2.3.2 (2026-06-25)
 ------------------
 * bump dependencies (`#656 <https://github.com/husarion/husarion_ugv_ros/issues/656>`_)

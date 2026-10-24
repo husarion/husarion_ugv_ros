@@ -15,6 +15,7 @@
 #include "husarion_ugv_lights/apa102.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -52,6 +53,12 @@ APA102::APA102(
   if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_MAX_SPEED_HZ, &speed_) == -1) {
     spi_device_->Close(file_descriptor_);
     throw std::ios_base::failure("Can't set speed for " + device_name_ + ".");
+  }
+
+  for (std::size_t i = 0; i < 256; i++) {
+    red_lut_[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrRed);
+    green_lut_[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrGreen);
+    blue_lut_[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrBlue);
   }
 }
 
@@ -101,12 +108,9 @@ std::vector<std::uint8_t> APA102::RGBAFrameToBGRBuffer(
     const std::uint8_t brightness = (std::uint16_t(frame[padding + 3]) * global_brightness_) / 255;
     buffer[4 + padding] = 0xE0 | brightness;
     // Convert rgb to bgr with color correction
-    buffer[4 + padding + 1] =
-      std::uint8_t(pow(frame[padding + 2] / 255.0, kCorrectionGamma) * kCorrBlue);
-    buffer[4 + padding + 2] =
-      std::uint8_t(pow(frame[padding + 1] / 255.0, kCorrectionGamma) * kCorrGreen);
-    buffer[4 + padding + 3] =
-      std::uint8_t(pow(frame[padding + 0] / 255.0, kCorrectionGamma) * kCorrRed);
+    buffer[4 + padding + 1] = blue_lut_[frame[padding + 2]];
+    buffer[4 + padding + 2] = green_lut_[frame[padding + 1]];
+    buffer[4 + padding + 3] = red_lut_[frame[padding + 0]];
   }
 
   return buffer;

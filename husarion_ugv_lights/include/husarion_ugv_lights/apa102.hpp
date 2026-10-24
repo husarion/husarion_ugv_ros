@@ -20,6 +20,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -164,6 +165,10 @@ private:
   const std::string device_name_;
   const std::uint32_t speed_;
   const int file_descriptor_;
+
+  std::array<std::uint8_t, 256> red_lut_;
+  std::array<std::uint8_t, 256> green_lut_;
+  std::array<std::uint8_t, 256> blue_lut_;
 };
 
 }  // namespace husarion_ugv_lights

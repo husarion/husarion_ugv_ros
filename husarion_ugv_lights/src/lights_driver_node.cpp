@@ -14,10 +14,12 @@
 
 #include "husarion_ugv_lights/lights_driver_node.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -47,8 +49,6 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   led_output_enabled_(true),
   global_brightness_(1.0f),
   initialization_attempt_(0),
-  channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
-  channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
@@ -59,9 +59,24 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
     std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
   this->params_ = this->param_listener_->get_params();
 
+  const auto spi_speed = static_cast<std::uint32_t>(this->params_.spi_speed_hz);
+  const auto spi_max_transfer = static_cast<std::size_t>(this->params_.spi_max_transfer_bytes);
   frame_timeout_ = this->params_.frame_timeout;
   channel_1_num_led_ = this->params_.channel_1_num_led;
   channel_2_num_led_ = this->params_.channel_2_num_led;
+
+  // An SPI message carries at most 511 transfers, and a frame that needs more would fail on every
+  // write. Refuse it here, where the error names the parameter.
+  const std::size_t longest_frame =
+    4 * static_cast<std::size_t>(std::max(channel_1_num_led_, channel_2_num_led_)) + 8;
+  if (spi_max_transfer > 0 && (longest_frame + spi_max_transfer - 1) / spi_max_transfer > 511) {
+    throw std::invalid_argument("spi_max_transfer_bytes is too small for the LED count.");
+  }
+
+  channel_1_ = std::make_shared<APA102>(
+    std::make_shared<SPIDevice>(), "/dev/spiled-channel1", spi_speed, false, spi_max_transfer);
+  channel_2_ = std::make_shared<APA102>(
+    std::make_shared<SPIDevice>(), "/dev/spiled-channel2", spi_speed, false, spi_max_transfer);
 
   led_output_enabled_ = this->params_.led_output_enabled;
 

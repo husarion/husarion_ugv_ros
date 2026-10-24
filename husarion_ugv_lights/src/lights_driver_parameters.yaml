@@ -18,6 +18,22 @@ lights_driver:
       receiving frames and the animation topics keep publishing, but nothing is written to
       the strip. Runtime control is the lights/enable service.
 
+  spi_speed_hz:
+    type: int
+    default_value: 800000
+    description: SPI clock of both LED channels in Hz. The DMA completion of a frame busy-waits
+      until the FIFO drains, so that cost falls as the clock rises.
+    validation: { bounds<>: [100000, 20000000] }
+
+  spi_max_transfer_bytes:
+    type: int
+    default_value: 0
+    description: Largest single SPI transfer in bytes. A longer frame is sent as several transfers
+      of one SPI message, with the chip select held for the whole frame. Below 96 bytes the
+      Raspberry Pi SPI controller sends interrupt driven instead of by DMA. 0 sends each frame as
+      one transfer.
+    validation: { bounds<>: [0, 4096] }
+
   channel_1_num_led:
     type: int
     default_value: 46

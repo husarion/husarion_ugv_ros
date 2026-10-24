@@ -70,3 +70,5 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.
+- `spi_speed_hz` [*int*, default: **800000**]: SPI clock of both LED channels in **[Hz]**.
+- `spi_max_transfer_bytes` [*int*, default: **0**]: Largest single SPI transfer in bytes. A longer frame is sent as several transfers of one message, so on a Raspberry Pi a value below 96 keeps the frame off DMA. **0** sends each frame as one transfer.

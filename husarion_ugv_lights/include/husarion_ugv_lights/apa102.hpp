@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -95,13 +96,16 @@ public:
  * @param device_name name of the device
  * @param speed Speed of the SPI communication
  * @param cs_high Chip select high flag
+ * @param max_transfer_bytes Largest single SPI transfer, a frame longer than that is sent as
+ * several transfers of one message. 0 sends every frame as one transfer.
  */
 class APA102 : public APA102Interface
 {
 public:
   APA102(
     SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
-    const std::uint32_t speed = 800000, const bool cs_high = false);
+    const std::uint32_t speed = 800000, const bool cs_high = false,
+    const std::size_t max_transfer_bytes = 0);
   ~APA102();
 
   /**
@@ -164,6 +168,7 @@ private:
   SPIDeviceInterface::SharedPtr spi_device_;
   const std::string device_name_;
   const std::uint32_t speed_;
+  const std::size_t max_transfer_bytes_;
   const int file_descriptor_;
 
   std::array<std::uint8_t, 256> red_lut_;

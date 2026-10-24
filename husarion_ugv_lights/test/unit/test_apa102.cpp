@@ -15,6 +15,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <memory>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -40,8 +42,10 @@ public:
 class APA102Wrapper : public husarion_ugv_lights::APA102
 {
 public:
-  APA102Wrapper(std::shared_ptr<MockSPIDevice> spi_device, const std::string & device_name)
-  : APA102(spi_device, device_name)
+  APA102Wrapper(
+    std::shared_ptr<MockSPIDevice> spi_device, const std::string & device_name,
+    const std::uint32_t speed = 800000, const std::size_t max_transfer_bytes = 0)
+  : APA102(spi_device, device_name, speed, false, max_transfer_bytes)
   {
   }
 
@@ -210,6 +214,89 @@ TEST_F(TestAPA102, RGBAFrameToBGRBufferMatchesGammaFormula)
     EXPECT_EQ(buffer[led + 2], std::uint8_t(pow(v / 255.0, gamma) * 255)) << "green " << v;
     EXPECT_EQ(buffer[led + 3], std::uint8_t(pow(v / 255.0, gamma) * 245)) << "red " << v;
   }
+}
+
+class TestAPA102Transfers : public testing::Test
+{
+protected:
+  // Sends one frame of num_led LEDs and returns the transfers the ioctl was given.
+  std::vector<struct spi_ioc_transfer> SendFrame(
+    const std::size_t num_led, const std::size_t max_transfer_bytes, const int ioctl_return = 1)
+  {
+    auto spi_device = std::make_shared<MockSPIDevice::NiceMock>();
+    APA102Wrapper apa102(spi_device, kMockDeviceName, 4000000, max_transfer_bytes);
+
+    std::vector<struct spi_ioc_transfer> transfers;
+    expected_bytes_ = num_led * 4 + 8;
+    ON_CALL(*spi_device, IOControl(testing::_, testing::_, testing::_))
+      .WillByDefault(testing::Return(0));
+    for (std::size_t n = 1; n <= 4; n++) {
+      ON_CALL(*spi_device, IOControl(testing::_, SPI_IOC_MESSAGE(n), testing::_))
+        .WillByDefault([&transfers, n, ioctl_return](int, unsigned long, const void * arg) {
+          const auto * tr = static_cast<const struct spi_ioc_transfer *>(arg);
+          transfers.assign(tr, tr + n);
+          return ioctl_return;
+        });
+    }
+
+    apa102.SetPanel(std::vector<std::uint8_t>(num_led * 4, 128));
+    return transfers;
+  }
+
+  void ExpectContiguous(const std::vector<struct spi_ioc_transfer> & transfers)
+  {
+    std::size_t total = 0;
+    for (std::size_t i = 0; i < transfers.size(); i++) {
+      EXPECT_EQ(transfers[i].tx_buf, transfers[0].tx_buf + total);
+      EXPECT_EQ(transfers[i].rx_buf, 0u);
+      EXPECT_EQ(transfers[i].speed_hz, 4000000u);
+      EXPECT_EQ(transfers[i].bits_per_word, 8);
+      EXPECT_EQ(transfers[i].cs_change, 0);
+      total += transfers[i].len;
+    }
+    EXPECT_EQ(total, expected_bytes_);
+  }
+
+  std::size_t expected_bytes_ = 0;
+};
+
+TEST_F(TestAPA102Transfers, WholeFrameByDefault)
+{
+  const auto transfers = SendFrame(24, 0);
+  ASSERT_EQ(transfers.size(), 1u);
+  EXPECT_EQ(transfers[0].len, 104u);
+  ExpectContiguous(transfers);
+}
+
+TEST_F(TestAPA102Transfers, FrameShorterThanLimitIsOneTransfer)
+{
+  const auto transfers = SendFrame(24, 104);
+  ASSERT_EQ(transfers.size(), 1u);
+  ExpectContiguous(transfers);
+}
+
+TEST_F(TestAPA102Transfers, LynxFrameSplit)
+{
+  const auto transfers = SendFrame(24, 64);
+  ASSERT_EQ(transfers.size(), 2u);
+  EXPECT_EQ(transfers[0].len, 64u);
+  EXPECT_EQ(transfers[1].len, 40u);
+  ExpectContiguous(transfers);
+}
+
+TEST_F(TestAPA102Transfers, PantherFrameSplit)
+{
+  const auto transfers = SendFrame(46, 64);
+  ASSERT_EQ(transfers.size(), 3u);
+  for (const auto & tr : transfers) {
+    EXPECT_EQ(tr.len, 64u);
+  }
+  ExpectContiguous(transfers);
+}
+
+TEST_F(TestAPA102Transfers, FailedTransferThrows)
+{
+  EXPECT_THROW(SendFrame(46, 64, -1), std::ios_base::failure);
 }
 
 int main(int argc, char ** argv)

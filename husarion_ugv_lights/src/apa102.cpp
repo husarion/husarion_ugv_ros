@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_lights/apa102.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -28,10 +29,11 @@ namespace husarion_ugv_lights
 
 APA102::APA102(
   SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
-  const std::uint32_t speed, const bool cs_high)
+  const std::uint32_t speed, const bool cs_high, const std::size_t max_transfer_bytes)
 : spi_device_(spi_device),
   device_name_(device_name),
   speed_(speed),
+  max_transfer_bytes_(max_transfer_bytes),
   file_descriptor_(spi_device->Open(device_name))
 {
   if (file_descriptor_ < 0) {
@@ -118,16 +120,32 @@ std::vector<std::uint8_t> APA102::RGBAFrameToBGRBuffer(
 
 void APA102::SPISendBuffer(const std::vector<std::uint8_t> & buffer) const
 {
-  struct spi_ioc_transfer tr;
-  memset(&tr, 0, sizeof(tr));
-  tr.tx_buf = reinterpret_cast<std::uint64_t>(buffer.data());
-  tr.rx_buf = 0;
-  tr.len = static_cast<std::uint32_t>(buffer.size());
-  tr.speed_hz = speed_;
-  tr.delay_usecs = 0;
-  tr.bits_per_word = kBits;
+  // spi-bcm2835 sends a transfer of 96 bytes or more by DMA, and the DMA completion handler then
+  // busy-waits in the IRQ thread until the 64 byte FIFO drains onto the wire - up to 0.64 ms per
+  // frame at 800 kHz. Shorter transfers go out interrupt driven. All transfers of one message
+  // keep the chip select asserted, so the strip sees one continuous frame.
+  const std::size_t chunk = max_transfer_bytes_ > 0 ? max_transfer_bytes_ : buffer.size();
+  const std::size_t num_transfers = std::max<std::size_t>(1, (buffer.size() + chunk - 1) / chunk);
 
-  const int ret = spi_device_->IOControl(file_descriptor_, SPI_IOC_MESSAGE(1), &tr);
+  std::vector<struct spi_ioc_transfer> transfers(num_transfers);
+  for (std::size_t i = 0; i < num_transfers; i++) {
+    auto & tr = transfers[i];
+    memset(&tr, 0, sizeof(tr));
+    const std::size_t offset = i * chunk;
+    tr.tx_buf = reinterpret_cast<std::uint64_t>(buffer.data() + offset);
+    tr.rx_buf = 0;
+    tr.len = static_cast<std::uint32_t>(std::min(chunk, buffer.size() - offset));
+    tr.speed_hz = speed_;
+    tr.delay_usecs = 0;
+    tr.bits_per_word = kBits;
+  }
+
+  const unsigned long request = _IOC(_IOC_WRITE, SPI_IOC_MAGIC, 0, SPI_MSGSIZE(num_transfers));
+  if (request == _IOC(_IOC_WRITE, SPI_IOC_MAGIC, 0, 0)) {
+    throw std::ios_base::failure("Too many SPI transfers for one frame on " + device_name_ + ".");
+  }
+
+  const int ret = spi_device_->IOControl(file_descriptor_, request, transfers.data());
 
   if (ret < 1) {
     throw std::ios_base::failure("Failed to send data over SPI " + device_name_ + ".");

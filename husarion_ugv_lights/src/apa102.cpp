@@ -37,7 +37,8 @@ APA102::APA102(
     throw std::ios_base::failure("Failed to open " + device_name_ + ".");
   }
 
-  static std::uint8_t mode = cs_high ? SPI_MODE_3 : SPI_MODE_3 | SPI_CS_HIGH;
+  // SPI_IOC_WR_MODE32 reads four bytes, so the mode has to be a 32-bit word.
+  const std::uint32_t mode = cs_high ? SPI_MODE_3 : SPI_MODE_3 | SPI_CS_HIGH;
   if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_MODE32, &mode) == -1) {
     spi_device_->Close(file_descriptor_);
     throw std::ios_base::failure("Failed to set mode for " + device_name_ + ".");

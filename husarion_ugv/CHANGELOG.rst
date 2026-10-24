@@ -23,6 +23,7 @@ Forthcoming
 * patched Fast DDS v4: fixes truncated large samples over shared memory
 * GPS over UDP works with routers that put text in front of each NMEA sentence, such as the "(null)" a Teltonika RUTX50 sends - the GPS launch runs husarion_ugv_localization's own nmea_socket_driver
 * patched Fast DDS v5: the robot's shared memory ROS network no longer splits into groups that cannot see each other after a cold boot
+* new spi_speed_hz and spi_max_transfer_bytes lights driver parameters (defaults 800000 and 0, today's behaviour): a transfer limit below 96 bytes keeps the Raspberry Pi SPI controller off DMA, whose completion busy-waits for the FIFO to drain
 
 2.3.2 (2026-06-25)
 ------------------

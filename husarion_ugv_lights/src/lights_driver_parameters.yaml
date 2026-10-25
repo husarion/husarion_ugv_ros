@@ -21,8 +21,10 @@ lights_driver:
   spi_speed_hz:
     type: int
     default_value: 800000
-    description: SPI clock of both LED channels in Hz. The DMA completion of a frame busy-waits
-      until the FIFO drains, so that cost falls as the clock rises.
+    description: SPI clock of both LED channels in Hz. 800000 is the clock the robot was
+      EMC tested with; a different clock changes the strip cable's emissions and needs a new EMC
+      check before it ships. The DMA completion of a frame busy-waits until the FIFO drains, so
+      that cost falls as the clock rises.
     validation: { bounds<>: [100000, 20000000] }
 
   spi_max_transfer_bytes:

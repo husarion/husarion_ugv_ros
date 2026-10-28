@@ -24,6 +24,8 @@ Forthcoming
 * GPS over UDP works with routers that put text in front of each NMEA sentence, such as the "(null)" a Teltonika RUTX50 sends - the GPS launch runs husarion_ugv_localization's own nmea_socket_driver
 * patched Fast DDS v5: the robot's shared memory ROS network no longer splits into groups that cannot see each other after a cold boot
 * new spi_speed_hz and spi_max_transfer_bytes lights driver parameters (defaults 800000 and 0, today's behaviour): a transfer limit below 96 bytes keeps the Raspberry Pi SPI controller off DMA, whose completion busy-waits for the FIFO to drain
+* the Lynx sends its LED frames in transfers of at most 64 bytes, which keeps them off DMA and frees the cpu0 time its completion busy-waited for
+* new led_spi_speed_hz launch argument (default 800000, the EMC tested clock) sets the LED SPI clock for EMC tests, and the lights driver logs the requested and the effective clock at start
 
 2.3.2 (2026-06-25)
 ------------------

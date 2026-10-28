@@ -22,6 +22,7 @@ Forthcoming
 * an e-stop triggered in software no longer logs that an outside device stopped the robot
 * patched Fast DDS v4: fixes truncated large samples over shared memory
 * GPS over UDP works with routers that put text in front of each NMEA sentence, such as the "(null)" a Teltonika RUTX50 sends - the GPS launch runs husarion_ugv_localization's own nmea_socket_driver
+* patched Fast DDS v5: the robot's shared memory ROS network no longer splits into groups that cannot see each other after a cold boot
 
 2.3.2 (2026-06-25)
 ------------------

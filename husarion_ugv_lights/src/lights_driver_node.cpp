@@ -53,8 +53,6 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
-  rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
-
   this->param_listener_ =
     std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
   this->params_ = this->param_listener_->get_params();
@@ -120,6 +118,11 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   diagnostic_updater_.setHardwareID("Bumper Lights");
   diagnostic_updater_.add("Lights driver status", this, &LightsDriverNode::DiagnoseLights);
+
+  // Registered last: a constructor that throws earlier (a parameter out of bounds, an SPI device
+  // that does not open) would leave the hook pointing at a destroyed node, and the container
+  // would crash at shutdown clearing LEDs through a null channel.
+  rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }

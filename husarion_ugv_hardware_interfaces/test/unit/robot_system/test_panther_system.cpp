@@ -55,7 +55,7 @@ public:
 
   void ReadCANopenSettingsDriverCANIDs() { PantherSystem::ReadCANopenSettingsDriverCANIDs(); }
   void UpdateHwStates() { PantherSystem::UpdateHwStates(); }
-  void UpdateMotorsStateDataTimedOut() { PantherSystem::UpdateMotorsStateDataTimedOut(); }
+  bool UpdateMotorsStateDataTimedOut() { return PantherSystem::UpdateMotorsStateDataTimedOut(); }
   void UpdateDriverStateDataTimedOut() { PantherSystem::UpdateDriverStateDataTimedOut(); }
 
   void UpdateDriverStateMsg() { PantherSystem::UpdateDriverStateMsg(); }

@@ -54,6 +54,8 @@ public:
   {
     return LightsControllerNode::AddAnimationToLayer(animation_id, repeating, param);
   }
+
+  void UpdateAndPublishAnimation() { return LightsControllerNode::UpdateAndPublishAnimation(); }
 };
 
 class TestLightsControllerNode : public testing::Test
@@ -69,6 +71,7 @@ protected:
   static constexpr std::size_t kTestChannel = 1;
   static constexpr char kTestSegmentName[] = "test";
   static constexpr char kTestSegmentLedRange[] = "0-9";
+  static constexpr double kTestFrameKeepalivePeriod = 0.3;
 
   std::filesystem::path animations_config_path_;
   std::shared_ptr<ControllerNodeWrapper> lights_controller_node_;
@@ -82,6 +85,7 @@ TestLightsControllerNode::TestLightsControllerNode()
 
   std::vector<rclcpp::Parameter> params;
   params.push_back(rclcpp::Parameter("animations_config_path", animations_config_path_));
+  params.push_back(rclcpp::Parameter("frame_keepalive_period", kTestFrameKeepalivePeriod));
 
   rclcpp::NodeOptions options;
   options.parameter_overrides(params);
@@ -227,6 +231,58 @@ TEST_F(TestLightsControllerNode, AddAnimationToQueueThrowBadAnimationID)
 {
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() { lights_controller_node_->AddAnimationToQueue(99, false); }, "No animation with ID:"));
+}
+
+TEST_F(TestLightsControllerNode, UnchangedFrameRepeatedOnlyAtKeepalivePeriod)
+{
+  auto listener = std::make_shared<rclcpp::Node>("frame_listener");
+  std::vector<sensor_msgs::msg::Image> frames;
+  auto sub = listener->create_subscription<sensor_msgs::msg::Image>(
+    "lights/channel_1_frame", 10,
+    [&frames](const sensor_msgs::msg::Image::SharedPtr msg) { frames.push_back(*msg); });
+
+  auto spin_listener = [&]() {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+    while (std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(listener);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  };
+
+  // Let discovery settle so the first frame is not lost.
+  spin_listener();
+
+  for (int i = 0; i < 5; ++i) {
+    lights_controller_node_->UpdateAndPublishAnimation();
+  }
+  spin_listener();
+  ASSERT_EQ(1u, frames.size());
+
+  std::this_thread::sleep_for(
+    std::chrono::milliseconds(static_cast<int>(kTestFrameKeepalivePeriod * 1000)));
+  lights_controller_node_->UpdateAndPublishAnimation();
+  lights_controller_node_->UpdateAndPublishAnimation();
+  spin_listener();
+  ASSERT_EQ(2u, frames.size());
+  EXPECT_EQ(frames[0].data, frames[1].data);
+
+  YAML::Node animation;
+  animation["image"] = "$(find husarion_ugv_lights)/test/files/animation.png";
+  animation["duration"] = 2;
+  YAML::Node animation_desc;
+  animation_desc["type"] = "husarion_ugv_lights::ImageAnimation";
+  animation_desc["segments"] = "test";
+  animation_desc["animation"] = animation;
+  YAML::Node led_animation;
+  led_animation["id"] = 2;
+  led_animation["animations"] = std::vector<YAML::Node>(1, animation_desc);
+  lights_controller_node_->LoadAnimation(led_animation);
+
+  lights_controller_node_->AddAnimationToQueue(2, false);
+  lights_controller_node_->UpdateAndPublishAnimation();
+  spin_listener();
+  ASSERT_EQ(3u, frames.size());
+  EXPECT_NE(frames[1].data, frames[2].data);
 }
 
 int main(int argc, char ** argv)

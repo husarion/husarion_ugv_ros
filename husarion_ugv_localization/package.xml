@@ -19,7 +19,10 @@
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>nmea_navsat_driver</exec_depend>
   <exec_depend>python3-transforms3d</exec_depend>
+  <exec_depend>rclpy</exec_depend>
   <exec_depend>robot_localization</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

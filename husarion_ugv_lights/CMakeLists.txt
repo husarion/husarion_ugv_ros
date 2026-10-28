@@ -72,6 +72,11 @@ generate_parameter_library(lights_controller_parameters
 target_link_libraries(lights_controller_node_component yaml-cpp
                       lights_controller_parameters)
 
+add_executable(resilient_component_container
+               src/resilient_component_container.cpp)
+ament_target_dependencies(resilient_component_container husarion_ugv_utils
+                          rclcpp rclcpp_components)
+
 rclcpp_components_register_node(
   lights_driver_node_component PLUGIN "husarion_ugv_lights::LightsDriverNode"
   EXECUTABLE lights_driver_node)
@@ -88,6 +93,8 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
+
+install(TARGETS resilient_component_container DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY animations config launch test
         DESTINATION share/${PROJECT_NAME})

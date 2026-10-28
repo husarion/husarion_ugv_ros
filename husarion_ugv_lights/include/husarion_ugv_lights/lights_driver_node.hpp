@@ -15,8 +15,10 @@
 #ifndef HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_DRIVER_NODE_HPP_
 #define HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_DRIVER_NODE_HPP_
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -24,6 +26,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -35,6 +38,7 @@ namespace husarion_ugv_lights
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
 using SetLEDBrightnessSrv = husarion_ugv_msgs::srv::SetLEDBrightness;
+using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;
 
 /**
  * @brief Class for controlling APA102 LEDs based on a ROS Image topic.
@@ -53,6 +57,26 @@ protected:
    * @brief Clears all LEDs on both channels.
    */
   void ClearLEDs();
+
+  /**
+   * @brief Writes the last accepted frame of each channel to the strips again.
+   */
+  void RewriteLastFrames();
+
+  /**
+   * @brief Callback of the service gating the physical LED output.
+   *
+   * @param req Request with the desired state.
+   * @param res Response of the service.
+   */
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res);
+
+  /**
+   * @brief Publishes the current output state. Latched, so a client connecting later
+   * does not have to guess what the strip is doing.
+   */
+  void PublishOutputState();
 
   /**
    * @brief Callback to execute when service invoked to toggle LED control returns response.
@@ -89,9 +113,14 @@ protected:
   double frame_timeout_;
   bool led_control_granted_;
   bool led_control_pending_;
+  bool led_output_enabled_;
+  float global_brightness_;
 
   rclcpp::Time channel_1_ts_;
   rclcpp::Time channel_2_ts_;
+
+  std::vector<std::uint8_t> channel_1_frame_;
+  std::vector<std::uint8_t> channel_2_frame_;
 
 private:
   void OnShutdown();
@@ -128,6 +157,8 @@ private:
 
   rclcpp::Client<SetBoolSrv>::SharedPtr enable_led_control_client_;
   rclcpp::Service<SetLEDBrightnessSrv>::SharedPtr set_brightness_server_;
+  rclcpp::Service<SetBoolSrv>::SharedPtr enable_led_output_server_;
+  rclcpp::Publisher<LEDOutputStateMsg>::SharedPtr output_state_pub_;
 
   rclcpp::CallbackGroup::SharedPtr client_callback_group_;
 

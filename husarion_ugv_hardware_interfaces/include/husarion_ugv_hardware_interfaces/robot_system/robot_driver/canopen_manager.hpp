@@ -54,6 +54,21 @@ struct CANopenSettings
   std::chrono::milliseconds pdo_motor_states_timeout_ms;
   std::chrono::milliseconds pdo_driver_state_timeout_ms;
   std::chrono::milliseconds sdo_operation_timeout_ms;
+
+  // Priority of the CANopen communication thread. It has to be higher than the control
+  // loop so that reading CAN frames (and stamping the timestamps the loop reads) is not
+  // starved when the CPU is busy. If the CAN thread is starved the timestamps go stale and
+  // the driver reports a PDO timeout, which latches the e-stop. The control loop runs at
+  // FIFO 60 here, so this is set above it.
+  unsigned canopen_thread_sched_priority = 70;
+
+  // Priority of the RPDO dispatch thread lely creates for every Roboteq driver, see
+  // RoboteqDriver::OnRpdoWrite.
+  unsigned rpdo_dispatch_sched_priority = 65;
+
+  // CPUs the two threads above pin themselves to, -1 leaves them where the kernel puts them.
+  int canopen_thread_cpu = -1;
+  int rpdo_dispatch_cpu = -1;
 };
 
 /**
@@ -112,8 +127,11 @@ private:
    */
   void NotifyCANCommunicationStarted(const bool result);
 
-  // Priority set to be higher than the priority of the main ros2 control node (50)
-  static constexpr unsigned kCANopenThreadSchedPriority = 60;
+  // Upper bound on waiting for the CANopen thread's started/failed
+  // notification in Activate(). RT configuration + the notify normally take
+  // microseconds; the bound only matters when the notification is lost or
+  // reports failure, where an unbounded wait would hang activation forever.
+  static constexpr std::chrono::seconds kCanopenCommunicationStartTimeout{10};
 
   bool initialized_ = false;
 

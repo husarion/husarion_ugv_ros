@@ -56,7 +56,7 @@ public:
 class MockGPIODriver : public husarion_ugv_hardware_interfaces::GPIODriverInterface
 {
 public:
-  MOCK_METHOD(void, GPIOMonitorEnable, (const bool, const unsigned), (override));
+  MOCK_METHOD(void, GPIOMonitorEnable, (const bool, const unsigned, const int), (override));
   MOCK_METHOD(
     void, ConfigureEdgeEventCallback,
     (const std::function<void(const husarion_ugv_hardware_interfaces::GPIOInfo &)> &), (override));

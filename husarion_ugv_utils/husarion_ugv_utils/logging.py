@@ -18,10 +18,29 @@ from launch.some_substitutions_type import SomeSubstitutionsType
 from launch.substitutions import PythonExpression
 
 
-def limit_log_level_to_info(unit: SomeSubstitutionsType, log_level: SomeSubstitutionsType):
-    log_level = PythonExpression(["'", log_level, "'.upper()'"])
+def normalize_log_level(log_level: SomeSubstitutionsType):
+    # The launch arguments accept WARNING but rcl only parses WARN - a node
+    # handed "--log-level WARNING" dies on argument parsing before it spins.
+    return PythonExpression(
+        ["'WARN' if '", log_level, "'.upper() == 'WARNING' else '", log_level, "'"]
+    )
 
-    if PythonExpression(["'", log_level, "' == 'DEBUG'"]):
-        return PythonExpression(["'", unit, "' + ':=' + 'INFO'"])
-    else:
-        return PythonExpression(["'", unit, "' + ':=' + ", log_level])
+
+def limit_log_level_to_info(unit: SomeSubstitutionsType, log_level: SomeSubstitutionsType):
+    # Keeps a chatty logger unit at INFO when the operator asks for DEBUG.
+    # Evaluation has to happen inside one substitution: a bare `if
+    # PythonExpression(...)` in Python is always truthy, which is how the old
+    # version pinned every unit to INFO no matter the requested level.
+    return PythonExpression(
+        [
+            "'",
+            unit,
+            ":=' + ('INFO' if '",
+            log_level,
+            "'.upper() == 'DEBUG' else ('WARN' if '",
+            log_level,
+            "'.upper() == 'WARNING' else '",
+            log_level,
+            "'))",
+        ]
+    )

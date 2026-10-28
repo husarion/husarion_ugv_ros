@@ -176,6 +176,19 @@ private:
   std::array<std::uint8_t, 256> blue_lut_;
 };
 
+/**
+ * @brief SPI clock the Raspberry Pi controller (spi-bcm2835) really runs for a requested clock
+ *
+ * The controller divides its core clock by an even divider, rounded up so the clock never exceeds
+ * the request.
+ *
+ * @param core_clock_hz Clock feeding the SPI controller
+ * @param requested_hz Requested SPI clock
+ * @return The effective SPI clock in Hz
+ */
+std::uint32_t EffectiveSPISpeed(
+  const std::uint64_t core_clock_hz, const std::uint32_t requested_hz);
+
 }  // namespace husarion_ugv_lights
 
 #endif  // HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_APA102_HPP_

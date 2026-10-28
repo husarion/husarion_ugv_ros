@@ -152,4 +152,21 @@ void APA102::SPISendBuffer(const std::vector<std::uint8_t> & buffer) const
   }
 }
 
+std::uint32_t EffectiveSPISpeed(const std::uint64_t core_clock_hz, const std::uint32_t requested_hz)
+{
+  // Mirrors bcm2835_spi_transfer_one(): an even divider of at least 2, or 65536 when the request
+  // is too slow for any divider the register holds.
+  std::uint64_t divider = 65536;
+  if (requested_hz >= core_clock_hz / 2) {
+    divider = 2;
+  } else if (requested_hz > 0) {
+    divider = (core_clock_hz + requested_hz - 1) / requested_hz;
+    divider += divider % 2;
+    if (divider >= 65536) {
+      divider = 65536;
+    }
+  }
+  return static_cast<std::uint32_t>(core_clock_hz / divider);
+}
+
 }  // namespace husarion_ugv_lights

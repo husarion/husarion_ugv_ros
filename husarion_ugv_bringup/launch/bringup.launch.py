@@ -78,6 +78,16 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="800000",
+        description=(
+            "SPI clock of the LED strips in Hz. 800000 is the clock the robot was EMC tested with"
+            " - other values are for EMC tests."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -131,6 +141,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
+            "led_spi_speed_hz": led_spi_speed_hz,
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
@@ -238,6 +249,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_launch_gamepad_arg,
+        declare_led_spi_speed_hz_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,

@@ -299,6 +299,32 @@ TEST_F(TestAPA102Transfers, FailedTransferThrows)
   EXPECT_THROW(SendFrame(46, 64, -1), std::ios_base::failure);
 }
 
+TEST(TestEffectiveSPISpeed, CockpitClocksAtPi4CoreClock)
+{
+  constexpr std::uint64_t core = 500000000;
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 800000), 798722u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 1000000), 1000000u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 2000000), 2000000u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 4000000), 3968253u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 8000000), 7812500u);
+}
+
+TEST(TestEffectiveSPISpeed, NeverAboveRequest)
+{
+  constexpr std::uint64_t core = 500000000;
+  for (std::uint32_t hz = 100000; hz <= 20000000; hz += 99991) {
+    EXPECT_LE(husarion_ugv_lights::EffectiveSPISpeed(core, hz), hz);
+  }
+}
+
+TEST(TestEffectiveSPISpeed, DividerLimits)
+{
+  constexpr std::uint64_t core = 500000000;
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 300000000), 250000000u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 1000), 7629u);
+  EXPECT_EQ(husarion_ugv_lights::EffectiveSPISpeed(core, 0), 7629u);
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

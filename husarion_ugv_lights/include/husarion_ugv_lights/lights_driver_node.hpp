@@ -123,6 +123,7 @@ protected:
   std::vector<std::uint8_t> channel_2_frame_;
 
 private:
+  void LogSPISpeed(const std::uint32_t requested_hz);
   void OnShutdown();
 
   void InitializationTimerCB();
@@ -143,6 +144,8 @@ private:
   static constexpr unsigned kMaxInitializationAttempts = 3;
   static constexpr unsigned kServiceResponseTimeout = 3;
   static constexpr unsigned kWaitForServiceTimeout = 3;
+  static constexpr std::uint64_t kDefaultSPICoreClockHz = 500000000;
+  static constexpr const char * kSPICoreClockPath = "/sys/kernel/debug/clk/fw-clk-core/clk_rate";
 
   unsigned initialization_attempt_;
   rclcpp::Time led_control_call_time_;

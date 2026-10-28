@@ -75,6 +75,16 @@ def generate_launch_description():
         ),
     )
 
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="800000",
+        description=(
+            "SPI clock of the LED strips in Hz, overriding spi_speed_hz from the driver yaml."
+            " 800000 is the clock the robot was EMC tested with - other values are for EMC tests."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -131,7 +141,10 @@ def generate_launch_description():
                 name="lights_driver",
                 namespace=namespace,
                 remappings=[("/diagnostics", "diagnostics")],
-                parameters=[driver_config_path],
+                parameters=[
+                    driver_config_path,
+                    {"spi_speed_hz": ParameterValue(led_spi_speed_hz, value_type=int)},
+                ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
                 ],
@@ -173,6 +186,7 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
         declare_lights_controller_frequency_arg,
+        declare_led_spi_speed_hz_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,

@@ -8,6 +8,10 @@ This package contains:
 
 - `lights.launch.py`: Responsible for launching the nodes required to control the robot's lights.
 
+### Launch arguments
+
+- `led_spi_speed_hz` [*int*, default: **800000**]: SPI clock of the LED strips in **[Hz]**, passed to the `spi_speed_hz` parameter of `LightsDriverNode` over the value in `{robot_model}_driver.yaml`. 800000 is the clock the robot was EMC tested with, other values are meant for EMC tests. Also a `husarion_ugv_bringup` argument.
+
 ## Configuration Files
 
 - [`{robot_model}_animations.yaml`](./config): Defines and describes the appearance and parameters of the animations for specific robot.
@@ -70,5 +74,5 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.
-- `spi_speed_hz` [*int*, default: **800000**]: SPI clock of both LED channels in **[Hz]**.
-- `spi_max_transfer_bytes` [*int*, default: **0**]: Largest single SPI transfer in bytes. A longer frame is sent as several transfers of one message, so on a Raspberry Pi a value below 96 keeps the frame off DMA. **0** sends each frame as one transfer.
+- `spi_speed_hz` [*int*, default: **800000**]: SPI clock of both LED channels in **[Hz]**. `lights.launch.py` sets it from the `led_spi_speed_hz` launch argument. The Raspberry Pi runs the next lower clock its even divider of the core clock can reach, and the driver logs both values at start.
+- `spi_max_transfer_bytes` [*int*, default: **0**]: Largest single SPI transfer in bytes. A longer frame is sent as several transfers of one message, so on a Raspberry Pi a value below 96 keeps the frame off DMA. **0** sends each frame as one transfer. `lynx_driver.yaml` sets **64**.

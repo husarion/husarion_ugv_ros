@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -70,6 +71,8 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   if (spi_max_transfer > 0 && (longest_frame + spi_max_transfer - 1) / spi_max_transfer > 511) {
     throw std::invalid_argument("spi_max_transfer_bytes is too small for the LED count.");
   }
+
+  LogSPISpeed(spi_speed);
 
   channel_1_ = std::make_shared<APA102>(
     std::make_shared<SPIDevice>(), "/dev/spiled-channel1", spi_speed, false, spi_max_transfer);
@@ -125,6 +128,29 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
+}
+
+void LightsDriverNode::LogSPISpeed(const std::uint32_t requested_hz)
+{
+  // The kernel accepts any clock and silently runs the next one its divider can reach, so an EMC
+  // test needs the effective value. Its core clock is only visible through debugfs, which a
+  // container usually does not have.
+  std::uint64_t core_clock_hz = 0;
+  std::ifstream core_clock_file(kSPICoreClockPath);
+  if (core_clock_file >> core_clock_hz && core_clock_hz > 0) {
+    RCLCPP_INFO(
+      this->get_logger(), "LED SPI clock: requested %u Hz, effective %u Hz (core clock %lu Hz).",
+      requested_hz, EffectiveSPISpeed(core_clock_hz, requested_hz),
+      static_cast<unsigned long>(core_clock_hz));
+    return;
+  }
+
+  RCLCPP_INFO(
+    this->get_logger(),
+    "LED SPI clock: requested %u Hz, effective %u Hz if the SPI core clock is the Raspberry Pi 4's "
+    "default %lu Hz (%s is not readable).",
+    requested_hz, EffectiveSPISpeed(kDefaultSPICoreClockHz, requested_hz),
+    static_cast<unsigned long>(kDefaultSPICoreClockHz), kSPICoreClockPath);
 }
 
 void LightsDriverNode::OnShutdown()

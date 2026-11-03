@@ -115,7 +115,14 @@ void BatteryDriverNode::InitializeWithADCBattery()
                adc1_reader_->GetADCMeasurement(1, kADCCurrentOffset);
       },
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
-      std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
+      [&]() {
+        // A Lynx can carry its charge current through both charge shunts in parallel. A shunt with
+        // no current reads about zero, so the sum also holds for the older single shunt wiring.
+        const float charge = adc0_reader_->GetADCMeasurement(3, 0);
+        return params_.robot_model == "lynx" ? charge + adc0_reader_->GetADCMeasurement(2, 0)
+                                             : charge;
+      },
+      battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
   }

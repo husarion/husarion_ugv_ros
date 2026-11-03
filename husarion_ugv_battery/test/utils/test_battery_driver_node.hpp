@@ -40,7 +40,9 @@ using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 class TestBatteryNode : public testing::Test
 {
 public:
-  TestBatteryNode(const bool use_adc_battery = true, const bool dual_battery = false);
+  TestBatteryNode(
+    const bool use_adc_battery = true, const bool dual_battery = false,
+    const std::string & robot_model = "panther");
   ~TestBatteryNode();
 
 protected:
@@ -63,9 +65,11 @@ protected:
   rclcpp::Publisher<RobotDriverStateMsg>::SharedPtr driver_state_pub_;
 };
 
-TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_battery)
+TestBatteryNode::TestBatteryNode(
+  const bool use_adc_battery, const bool dual_battery, const std::string & robot_model)
 {
   std::vector<rclcpp::Parameter> params;
+  params.push_back(rclcpp::Parameter("robot_model", robot_model));
 
   if (use_adc_battery) {
     device0_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice0;

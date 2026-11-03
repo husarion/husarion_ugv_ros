@@ -51,11 +51,19 @@ def generate_launch_description():
         description="Specify the path to the system monitor configuration file.",
     )
 
+    robot_model = LaunchConfiguration("robot_model")
+    declare_robot_model_arg = DeclareLaunchArgument(
+        "robot_model",
+        default_value=EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther"),
+        description="Specify robot model",
+        choices=["lynx", "panther"],
+    )
+
     battery_driver_node = Node(
         package="husarion_ugv_battery",
         executable="battery_driver_node",
         name="battery_driver",
-        parameters=[battery_config_path],
+        parameters=[battery_config_path, {"robot_model": robot_model}],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
         arguments=[
@@ -71,6 +79,7 @@ def generate_launch_description():
         declare_log_level_arg,
         declare_namespace_arg,
         declare_battery_config_path_arg,
+        declare_robot_model_arg,
         battery_driver_node,
     ]
 

@@ -26,6 +26,7 @@ Forthcoming
 * new spi_speed_hz and spi_max_transfer_bytes lights driver parameters (defaults 800000 and 0, today's behaviour): a transfer limit below 96 bytes keeps the Raspberry Pi SPI controller off DMA, whose completion busy-waits for the FIFO to drain
 * the Lynx sends its LED frames in transfers of at most 64 bytes, which keeps them off DMA and frees the cpu0 time its completion busy-waited for
 * the Panther does the same, in three transfers per frame
+* a Lynx reports its charge current as the sum of both charge shunts, so a Lynx with the shunts in parallel no longer shows half the real current; the battery driver takes a robot_model parameter, set from ROBOT_MODEL_NAME, and a Panther reads the current as before
 * new led_spi_speed_hz launch argument (default 800000, the EMC tested clock) sets the LED SPI clock for EMC tests, and the lights driver logs the requested and the effective clock at start
 
 2.3.2 (2026-06-25)

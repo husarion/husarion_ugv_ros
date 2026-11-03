@@ -54,6 +54,23 @@ TEST_F(TestBatteryNodeADCSingle, BatteryValues)
   EXPECT_FLOAT_EQ(battery_1_state_->charge, battery_state_->charge);
 }
 
+class TestBatteryNodeADCSingleLynx : public TestBatteryNode
+{
+public:
+  TestBatteryNodeADCSingleLynx() : TestBatteryNode(true, false, "lynx") {}
+};
+
+TEST_F(TestBatteryNodeADCSingleLynx, ChargeCurrentIsSumOfBothChannels)
+{
+  // On a Lynx the second charge channel (0.5 A) adds to the first (0.01 A).
+  WriteNumberToFile<int>(100, std::filesystem::path(device0_path_ / "in_voltage2_raw"));
+
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_state_, std::chrono::milliseconds(5000)));
+
+  EXPECT_FLOAT_EQ(2.51, battery_state_->current);
+}
+
 TEST_F(TestBatteryNodeADCSingle, BatteryTimeout)
 {
   ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(

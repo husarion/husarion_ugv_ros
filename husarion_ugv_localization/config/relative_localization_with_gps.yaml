@@ -2,6 +2,9 @@
   ekf_filter:
     ros__parameters:
       frequency: 50.0
+      # robot_localization registers its odometry/filtered frequency check either way but counts
+      # published messages only with this set, so without it the check reports ERROR at 0 Hz.
+      print_diagnostics: true
       sensor_timeout: 0.05
       two_d_mode: true
 

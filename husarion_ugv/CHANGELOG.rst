@@ -28,6 +28,7 @@ Forthcoming
 * the Panther does the same, in three transfers per frame
 * a Lynx reports its charge current as the sum of both charge shunts, so a Lynx with the shunts in parallel no longer shows half the real current; the battery driver takes a robot_model parameter, set from ROBOT_MODEL_NAME, and a Panther reads the current as before
 * the EKF odometry/filtered frequency diagnostic reports the real rate instead of ERROR at 0 Hz (print_diagnostics on in all localization configs)
+* a robot without a gamepad shows a joystick warning ("No gamepad connected.") instead of an error
 * new led_spi_speed_hz launch argument (default 800000, the EMC tested clock) sets the LED SPI clock for EMC tests, and the lights driver logs the requested and the effective clock at start
 
 2.3.2 (2026-06-25)

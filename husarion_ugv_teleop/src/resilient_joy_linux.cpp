@@ -31,14 +31,15 @@
 // \author: Blaise Gassend
 
 // Vendored from ros-drivers/joystick_drivers joy_linux 3.3.0
-// (src/joy_linux_node.cpp) with two behavioral changes. Shutdown signals are
+// (src/joy_linux_node.cpp) with three behavioral changes. Shutdown signals are
 // consumed by husarion_ugv_utils::ShutdownSignalWatcher instead of rclcpp's
 // default handler, and every loop exit condition also checks the resulting
 // flag - the stock node lets the handler invalidate the context mid
 // spin_some() and dies on terminate instead of exiting on a routine container
 // stop. And the reconnect loop asks sysfs whether the joystick exists before
-// opening it - see joystick_present. Everything else stays verbatim; diff
-// against upstream when bumping.
+// opening it - see joystick_present. A missing gamepad is a warning, not an
+// error, since a robot runs fine without one. Everything else stays verbatim;
+// diff against upstream when bumping.
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -98,7 +99,7 @@ private:
     if (open_) {
       stat.summary(0, "OK");
     } else {
-      stat.summary(2, "Joystick not open.");
+      stat.summary(1, "No gamepad connected.");
     }
 
     stat.add("topic", pub_->get_topic_name());
@@ -380,7 +381,7 @@ public:
           break;
         }
         if (first_fault) {
-          RCLCPP_ERROR(
+          RCLCPP_WARN(
             node_->get_logger(), "Couldn't open joystick %s. Will retry every second.",
             joy_dev_.c_str());
           first_fault = false;

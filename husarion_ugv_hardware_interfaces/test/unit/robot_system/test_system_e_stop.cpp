@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -131,6 +133,27 @@ TEST_F(TestEStop, ResetClearsAPendingSoftwareTrigger)
   ReleaseLine();
   SetLineAsserted(true);
   EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, ResetIsNotSkippedWhileTheStateIsBeingRead)
+{
+  // The control loop reads the e-stop state all the time. Every reset requested meanwhile must
+  // reach the GPIO reset, never return as if it had.
+  SetLineAsserted(false);
+  ReadAndCaptureLog();
+  std::atomic_bool stop{false};
+  std::thread reader([&]() {
+    while (!stop) {
+      e_stop_->ReadEStopState();
+      std::this_thread::yield();
+    }
+  });
+  EXPECT_CALL(*gpio_controller_, EStopReset()).Times(200);
+  for (int i = 0; i < 200; ++i) {
+    EXPECT_NO_THROW(e_stop_->ResetEStop());
+  }
+  stop = true;
+  reader.join();
 }
 
 int main(int argc, char ** argv)

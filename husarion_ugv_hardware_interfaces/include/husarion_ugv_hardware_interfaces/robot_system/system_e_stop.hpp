@@ -112,6 +112,8 @@ protected:
   std::function<bool()> ZeroVelocityCheck;
 
   std::mutex e_stop_manipulation_mtx_;
+  // Counts software triggers, so a reset that waited for the mutex can tell one happened meanwhile.
+  std::atomic<std::uint64_t> trigger_count_{0};
   // Last state seen on the hardware line, so the read loop can report the edge
   // instead of the level - it runs at 100 Hz.
   bool hardware_line_latched_ = true;

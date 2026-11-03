@@ -69,6 +69,7 @@ bool EStop::ReadEStopState()
 void EStop::TriggerEStop()
 {
   std::cerr << "E-Stop triggered in software (service call or driver shutdown)." << std::endl;
+  trigger_count_++;
   gpio_controller_->InterruptEStopReset();
 
   std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
@@ -86,34 +87,39 @@ void EStop::TriggerEStop()
 void EStop::ResetEStop()
 {
   robot_driver_->TurnOffEStop();
-  if (e_stop_manipulation_mtx_.try_lock()) {
-    std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
 
-    if (!ZeroVelocityCheck()) {
-      throw std::runtime_error(
-        "Cannot reset the E-stop: the last velocity commands are not zero. Ensure that the "
-        "controller is sending zero velocity commands or not sending any velocity commands before "
-        "attempting to reset the E-stop.");
-    }
-
-    try {
-      gpio_controller_->EStopReset();
-    } catch (const EStopResetInterrupted & e) {
-      throw std::runtime_error(
-        "The E-stop reset operation was halted because the E-stop was triggered again.");
-    } catch (const std::runtime_error & e) {
-      throw std::runtime_error(
-        "Error when trying to reset E-stop using GPIO: " + std::string(e.what()));
-    }
-
-    roboteq_error_filter_->SetClearErrorsFlag();
-
-    e_stop_triggered_ = false;
-    software_e_stop_triggered_ = false;
-    software_trigger_requested_ = false;
-  } else {
-    std::fprintf(stdout, "E-stop trigger operation is in progress, skipping reset.");
+  // ReadEStopState() takes this mutex on every read cycle, so a reset that gave up at the first
+  // busy try lost that race now and then and still reported success (a gate run saw "Resetting
+  // E-Stop." with the line never released). Wait for the mutex instead, as TriggerEStop() does,
+  // and refuse when a trigger happened while waiting - releasing the line then would undo it.
+  const auto triggers_before = trigger_count_.load();
+  std::unique_lock<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
+  if (trigger_count_.load() != triggers_before) {
+    throw std::runtime_error("The E-stop was triggered while the reset waited, so it stays set.");
   }
+
+  if (!ZeroVelocityCheck()) {
+    throw std::runtime_error(
+      "Cannot reset the E-stop: the last velocity commands are not zero. Ensure that the "
+      "controller is sending zero velocity commands or not sending any velocity commands before "
+      "attempting to reset the E-stop.");
+  }
+
+  try {
+    gpio_controller_->EStopReset();
+  } catch (const EStopResetInterrupted & e) {
+    throw std::runtime_error(
+      "The E-stop reset operation was halted because the E-stop was triggered again.");
+  } catch (const std::runtime_error & e) {
+    throw std::runtime_error(
+      "Error when trying to reset E-stop using GPIO: " + std::string(e.what()));
+  }
+
+  roboteq_error_filter_->SetClearErrorsFlag();
+
+  e_stop_triggered_ = false;
+  software_e_stop_triggered_ = false;
+  software_trigger_requested_ = false;
 }
 
 }  // namespace husarion_ugv_hardware_interfaces

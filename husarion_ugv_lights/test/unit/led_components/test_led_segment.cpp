@@ -236,13 +236,16 @@ TEST_F(TestLEDSegment, MergeFrames)
   const std::uint8_t expected_color = (color_2 * alpha_2 + color_1 * (255 - alpha_2)) / 255;
   const std::uint8_t expected_alpha = alpha_2 + (255 - alpha_2) * alpha_1 / 255;
 
-  std::vector<std::uint8_t> base_frame = {color_1, color_1, color_1, alpha_1,
-                                          color_1, color_1, color_1, alpha_1};
-  std::vector<std::uint8_t> overlay_frame = {color_2, color_2, color_2, alpha_2,
-                                             color_2, color_2, color_2, alpha_2};
-  std::vector<std::uint8_t> expected_frame = {expected_color, expected_color, expected_color,
-                                              expected_alpha, expected_color, expected_color,
-                                              expected_color, expected_alpha};
+  // MergeFrames walks every LED of the segment, so the frames must be as long as the segment.
+  std::vector<std::uint8_t> base_frame;
+  std::vector<std::uint8_t> overlay_frame;
+  std::vector<std::uint8_t> expected_frame;
+  for (std::size_t i = 0; i < segment_led_num_; i++) {
+    base_frame.insert(base_frame.end(), {color_1, color_1, color_1, alpha_1});
+    overlay_frame.insert(overlay_frame.end(), {color_2, color_2, color_2, alpha_2});
+    expected_frame.insert(
+      expected_frame.end(), {expected_color, expected_color, expected_color, expected_alpha});
+  }
 
   ASSERT_NO_THROW(led_segment_->MergeFrames(base_frame, overlay_frame));
   EXPECT_EQ(base_frame, expected_frame);

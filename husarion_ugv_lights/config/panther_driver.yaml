@@ -3,3 +3,8 @@ frame_timeout: 0.1
 global_brightness: 1.0
 channel_1_num_led: 46
 channel_2_num_led: 46
+# Three transfers of at most 64 bytes keep each 192-byte frame below the 96 bytes at which the
+# Raspberry Pi SPI controller switches to DMA - measured on a Panther, the DMA completion's
+# busy-wait on cpu0 went from about 3 % to nothing with both strips unchanged on the shared
+# chip select.
+spi_max_transfer_bytes: 64

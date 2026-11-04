@@ -44,6 +44,8 @@ public:
   virtual void Reset(const rclcpp::Time & header_stamp) = 0;
 
   virtual float GetLoadCurrent() = 0;
+  // Where the battery data comes from, as the diagnostics show it.
+  virtual std::string GetSourceName() const { return "unknown"; }
 
   bool HasErrorMsg() const { return !error_msg_.empty(); }
 

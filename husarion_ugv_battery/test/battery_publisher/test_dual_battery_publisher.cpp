@@ -479,6 +479,35 @@ TEST_F(TestDualBatteryPublisherDiagnostics, ChargeCurrent)
   EXPECT_FLOAT_EQ(0.5f, std::stof(GetDiagnosticValue(status, "Charge current battery 2 (A)")));
 }
 
+TEST_F(TestDualBatteryPublisherDiagnostics, PerPackValues)
+{
+  fake_battery_1_->State().voltage = 38.0f;
+  fake_battery_2_->State().voltage = 39.0f;
+  fake_battery_2_->State().power_supply_health = BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD;
+
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_FLOAT_EQ(38.0f, std::stof(GetDiagnosticValue(status, "Battery 1 voltage (V)")));
+  EXPECT_FLOAT_EQ(39.0f, std::stof(GetDiagnosticValue(status, "Battery 2 voltage (V)")));
+  EXPECT_FLOAT_EQ(80.0f, std::stof(GetDiagnosticValue(status, "Battery 1 percentage (%)")));
+  EXPECT_EQ("Cold", GetDiagnosticValue(status, "Battery 2 health"));
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, StatusMismatchWarns)
+{
+  fake_battery_2_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, OneLowPackWarns)
+{
+  for (const auto & battery : {fake_battery_1_, fake_battery_2_}) {
+    battery->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  }
+  fake_battery_2_->State().percentage = 0.1f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

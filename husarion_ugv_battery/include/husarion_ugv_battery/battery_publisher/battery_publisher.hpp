@@ -70,6 +70,26 @@ protected:
     diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & key,
     const float value);
 
+  /**
+   * @brief Adds one battery's voltage, percentage, temperature and health, each key prefixed with
+   * key_prefix (empty for a single battery).
+   */
+  static void AddBatteryState(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const BatteryStateMsg & battery_state,
+    const std::string & key_prefix = "");
+
+  /**
+   * @brief Raises the level to WARN for a low battery or a charger that is plugged in but does not
+   * charge. A dead, overheated or overvoltage battery is the errors task's job.
+   */
+  static void WarnOnBatteryState(
+    const BatteryStateMsg & battery_state, unsigned char & level, std::string & message);
+
+  static std::string MapPowerSupplyHealthToString(const std::uint8_t power_supply_health);
+
+  // Below this the battery status task warns.
+  static constexpr float kLowBatteryPercentage = 0.2f;
+
   void BatteryStatusLogger(const BatteryStateMsg & battery_state);
   bool ChargerConnected() const;
   std::string MapPowerSupplyStatusToString(uint8_t power_supply_status) const;

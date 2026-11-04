@@ -161,6 +161,46 @@ TEST_F(TestSingleBatteryPublisherDiagnostics, ChargeCurrent)
   EXPECT_EQ("n/a", GetDiagnosticValue(status, "Load current (A)"));
 }
 
+TEST_F(TestSingleBatteryPublisherDiagnostics, BatteryValues)
+{
+  fake_battery_->State().voltage = 38.5f;
+  fake_battery_->State().temperature = 21.0f;
+  fake_battery_->State().power_supply_health = BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
+
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("unknown", GetDiagnosticValue(status, "Source"));
+  EXPECT_FLOAT_EQ(38.5f, std::stof(GetDiagnosticValue(status, "Voltage (V)")));
+  EXPECT_FLOAT_EQ(80.0f, std::stof(GetDiagnosticValue(status, "Percentage (%)")));
+  EXPECT_FLOAT_EQ(21.0f, std::stof(GetDiagnosticValue(status, "Temperature (\u00B0C)")));
+  EXPECT_EQ("Good", GetDiagnosticValue(status, "Health"));
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, LowBatteryWarns)
+{
+  fake_battery_->State().percentage = 0.15f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+
+  // Still low while charging, until the pack passes the threshold.
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+  fake_battery_->State().percentage = 0.25f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, DiagnoseStatus().level);
+
+  // Unknown percentage is not low.
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  fake_battery_->State().percentage = std::numeric_limits<float>::quiet_NaN();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, DiagnoseStatus().level);
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, ChargerNotChargingWarns)
+{
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Plugged and not charging", GetDiagnosticValue(status, "Power supply status"));
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

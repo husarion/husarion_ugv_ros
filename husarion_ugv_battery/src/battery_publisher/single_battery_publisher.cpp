@@ -100,15 +100,19 @@ void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatus
 
 void SingleBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "Battery status monitoring";
+
   const auto battery_msg = battery_->GetBatteryMsg();
 
-  auto charging_status = MapPowerSupplyStatusToString(battery_msg.power_supply_status);
-  status.add("Power supply status", charging_status);
-
+  status.add("Source", battery_->GetSourceName());
+  status.add("Power supply status", MapPowerSupplyStatusToString(battery_msg.power_supply_status));
+  AddBatteryState(status, battery_msg);
   AddMeasurement(status, "Load current (A)", battery_->GetLoadCurrent());
   AddMeasurement(status, "Charge current (A)", battery_->GetChargingStatus().current);
 
-  status.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Battery status monitoring");
+  WarnOnBatteryState(battery_msg, level, message);
+  status.summary(level, message);
 }
 
 }  // namespace husarion_ugv_battery

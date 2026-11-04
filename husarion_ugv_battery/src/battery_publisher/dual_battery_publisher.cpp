@@ -235,16 +235,24 @@ void DualBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWr
 
 void DualBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "Battery status monitoring";
+
   const auto battery_1_msg = battery_1_->GetBatteryMsg();
   const auto battery_2_msg = battery_2_->GetBatteryMsg();
   auto charging_status_bat_1 = MapPowerSupplyStatusToString(battery_1_msg.power_supply_status);
   auto charging_status_bat_2 = MapPowerSupplyStatusToString(battery_2_msg.power_supply_status);
+
+  status.add("Source", battery_1_->GetSourceName());
 
   std::string charging_status;
   charging_status_bat_1 == charging_status_bat_2
     ? charging_status = charging_status_bat_1
     : charging_status = "Power supply status not determined, check batteries.";
   status.add("Power supply status", charging_status);
+
+  AddBatteryState(status, battery_1_msg, "Battery 1");
+  AddBatteryState(status, battery_2_msg, "Battery 2");
 
   const auto load_current_bat_1 = battery_1_->GetLoadCurrent();
   const auto load_current_bat_2 = battery_2_->GetLoadCurrent();
@@ -259,7 +267,14 @@ void DualBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWr
   AddMeasurement(status, "Charge current battery 1 (A)", charge_current_bat_1);
   AddMeasurement(status, "Charge current battery 2 (A)", charge_current_bat_2);
 
-  status.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Battery status monitoring");
+  WarnOnBatteryState(battery_1_msg, level, message);
+  WarnOnBatteryState(battery_2_msg, level, message);
+  if (charging_status_bat_1 != charging_status_bat_2) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "The batteries report a different power supply status.";
+  }
+
+  status.summary(level, message);
 }
 
 }  // namespace husarion_ugv_battery

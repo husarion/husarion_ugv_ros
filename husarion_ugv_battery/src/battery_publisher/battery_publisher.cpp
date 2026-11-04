@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -108,6 +109,57 @@ void BatteryPublisher::AddMeasurement(
     status.add(key, "n/a");
   } else {
     status.add(key, value);
+  }
+}
+
+void BatteryPublisher::AddBatteryState(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const BatteryStateMsg & battery_state,
+  const std::string & key_prefix)
+{
+  const auto key = [&key_prefix](const std::string & name) {
+    if (key_prefix.empty()) {
+      return name;
+    }
+    auto lower_name = name;
+    lower_name[0] = static_cast<char>(std::tolower(lower_name[0]));
+    return key_prefix + " " + lower_name;
+  };
+
+  AddMeasurement(status, key("Voltage (V)"), battery_state.voltage);
+  AddMeasurement(status, key("Percentage (%)"), battery_state.percentage * 100.0f);
+  AddMeasurement(status, key("Temperature (\u00B0C)"), battery_state.temperature);
+  status.add(key("Health"), MapPowerSupplyHealthToString(battery_state.power_supply_health));
+}
+
+void BatteryPublisher::WarnOnBatteryState(
+  const BatteryStateMsg & battery_state, unsigned char & level, std::string & message)
+{
+  if (battery_state.percentage < kLowBatteryPercentage) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery low.";
+  }
+
+  if (battery_state.power_supply_status == BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Charger plugged in, but the battery is not charging.";
+  }
+}
+
+std::string BatteryPublisher::MapPowerSupplyHealthToString(const std::uint8_t power_supply_health)
+{
+  switch (power_supply_health) {
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD:
+      return "Good";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT:
+      return "Overheat";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD:
+      return "Dead";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERVOLTAGE:
+      return "Overvoltage";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD:
+      return "Cold";
+    default:
+      return "Unknown";
   }
 }
 

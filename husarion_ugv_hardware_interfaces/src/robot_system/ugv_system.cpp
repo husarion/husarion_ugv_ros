@@ -627,6 +627,7 @@ void UGVSystem::UpdateCANopenResyncWatchdog(const bool data_timed_out)
   if (!pdo_timeout_ongoing_) {
     pdo_timeout_ongoing_ = true;
     pdo_timeout_since_ = now;
+    pdo_timeout_events_.fetch_add(1, std::memory_order_relaxed);
     return;
   }
 
@@ -788,6 +789,70 @@ void UGVSystem::DiagnoseDriversStatus(
     status.add(
       "Charger connected",
       io_state.charger_connected.value() ? std::string("yes") : std::string("no"));
+  }
+
+  status.summary(level, message);
+}
+
+void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "No error detected.";
+  const auto raise = [&level, &message](const unsigned char new_level, const std::string & text) {
+    if (new_level > level) {
+      level = new_level;
+      message = text;
+    }
+  };
+
+  try {
+    for (const auto & driver : GetDriversDiagnosticData()) {
+      const auto & data = driver.data;
+      const std::string error_prefix = driver.name + " error: ";
+
+      if (data.IsFlagError()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
+        husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
+          status, data.GetFlagErrorMap(), error_prefix);
+      }
+      if (data.IsCANError()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
+        status.add(error_prefix + "can_error", true);
+      }
+      if (data.IsHeartbeatTimeout()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
+        status.add(error_prefix + "heartbeat_timeout", true);
+      }
+
+      const std::string warning_prefix = driver.name + " warning: ";
+      if (data.IsMotorStatesDataTimedOut()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data is late.");
+        status.add(warning_prefix + "motor_states_data_timed_out", true);
+      }
+      if (data.IsDriverStateDataTimedOut()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data is late.");
+        status.add(warning_prefix + "driver_state_data_timed_out", true);
+      }
+    }
+
+    const auto pdo_timeout_events = pdo_timeout_events_.load(std::memory_order_relaxed);
+    const auto new_pdo_timeout_events = pdo_timeout_events - pdo_timeout_events_reported_;
+    pdo_timeout_events_reported_ = pdo_timeout_events;
+    if (new_pdo_timeout_events > 0) {
+      raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data was late.");
+      status.add("PDO timeouts since the last report", new_pdo_timeout_events);
+    }
+
+    if (roboteq_error_filter_->IsError()) {
+      raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
+        status, roboteq_error_filter_->GetErrorMap(), "", " error");
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
+    return;
   }
 
   status.summary(level, message);

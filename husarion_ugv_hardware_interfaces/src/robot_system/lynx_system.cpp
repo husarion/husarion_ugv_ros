@@ -23,8 +23,6 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/lynx_robot_driver.hpp"
 
-#include "husarion_ugv_utils/diagnostics.hpp"
-
 namespace husarion_ugv_hardware_interfaces
 {
 
@@ -135,38 +133,7 @@ void LynxSystem::UpdateDriverStateDataTimedOut()
 
 void LynxSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"No error detected."};
-
-  // Belt to the on_shutdown/on_cleanup teardown order: the diagnostics
-  // timer can race any hardware teardown, GetData() on a deinitialized
-  // driver throws, and an exception escaping a diagnostic task terminates
-  // the whole node (bit us live on a Lynx). Report STALE instead.
-  try {
-    const auto driver_data = robot_driver_->GetData(DriverNames::DEFAULT);
-    if (driver_data.IsError()) {
-      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-      message = "Error detected.";
-
-      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-        status, driver_data.GetErrorMap(), "Driver error: ");
-    }
-
-    if (roboteq_error_filter_->IsError()) {
-      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-      message = "Error detected.";
-
-      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-        status, roboteq_error_filter_->GetErrorMap(), "", " error");
-    }
-  } catch (const std::exception & e) {
-    status.summary(
-      diagnostic_updater::DiagnosticStatusWrapper::STALE,
-      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
-    return;
-  }
-
-  status.summary(level, message);
+  DiagnoseDriversErrors(status);
 }
 
 void LynxSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)

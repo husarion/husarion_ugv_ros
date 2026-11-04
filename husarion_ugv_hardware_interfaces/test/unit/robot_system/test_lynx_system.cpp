@@ -53,6 +53,10 @@ public:
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { LynxSystem::UpdateFlagErrors(); }
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
   void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
   {
     LynxSystem::DiagnoseErrors(status);
@@ -448,6 +452,60 @@ TEST_F(TestLynxSystem, DiagnoseStatus)
   status.values.clear();
   lynx_system_->DiagnoseStatus(status);
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsSingleLatePDOIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::MotorDriverState motor_state{};
+  data.SetMotorsStates(motor_state, motor_state, true);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  lynx_system_->TickCANopenResyncWatchdog(true);
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver warning: motor_states_data_timed_out"));
+  EXPECT_EQ("1", GetDiagnosticValue(status, "PDO timeouts since the last report"));
+
+  // The count is per report, and fresh data clears the warning.
+  data.SetMotorsStates(motor_state, motor_state, false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "PDO timeouts since the last report"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsDriverFaultIsAnError)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // fault flag bit 0 - overheat
+  data.SetDriverState(MakeDriverState(40, 0b00000001), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: fault_flag.overheat"));
+
+  data.SetDriverState(MakeDriverState(40), false);
+  data.SetCANError(true);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: can_error"));
 }
 
 TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)

@@ -15,7 +15,9 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -146,6 +148,13 @@ protected:
   void DiagnoseDriversStatus(
     diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name);
 
+  /**
+   * @brief Fills the system errors task. The level comes from the error filter and from faults
+   * the drivers report themselves. A single late PDO is a WARN: the filter escalates it to an
+   * ERROR once it repeats. Never throws, see DiagnoseDriversStatus.
+   */
+  void DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status);
+
   // 10 C below the Over Temperature Limit (OTL 85 C) of the shipped Roboteq profile, at which the
   // controller stops the motors.
   static constexpr float kHeatsinkTemperatureWarn = 75.0F;
@@ -226,6 +235,12 @@ protected:
 
   std::chrono::steady_clock::time_point pdo_timeout_since_;
   bool pdo_timeout_ongoing_ = false;
+
+  // Counted by the control loop at the start of every motor state PDO timeout, read by the
+  // diagnostics.
+  std::atomic<std::uint32_t> pdo_timeout_events_{0};
+  // The diagnostic thread's own record of the count it reported last.
+  std::uint32_t pdo_timeout_events_reported_ = 0;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

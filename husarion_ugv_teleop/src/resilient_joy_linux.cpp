@@ -236,7 +236,7 @@ public:
     node_ = std::make_shared<rclcpp::Node>("joy_node");
 
     diagnostic_ = std::make_shared<diagnostic_updater::Updater>(node_);
-    diagnostic_->add("Joystick Driver Status", this, &Joystick::diagnostics);
+    diagnostic_->add("Gamepad", this, &Joystick::diagnostics);
     diagnostic_->setHardwareID("Gamepad");
 
     // Parameters

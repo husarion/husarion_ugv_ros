@@ -146,10 +146,10 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
 
   system_ros_interface_->AddDiagnosticTask(
-    std::string("system errors"), this, &UGVSystem::DiagnoseErrors);
+    std::string("System errors"), this, &UGVSystem::DiagnoseErrors);
 
   system_ros_interface_->AddDiagnosticTask(
-    std::string("system status"), this, &UGVSystem::DiagnoseStatus);
+    std::string("System status"), this, &UGVSystem::DiagnoseStatus);
 
   system_ros_interface_->AddDiagnosticTask(std::string("E-stop"), this, &UGVSystem::DiagnoseEStop);
 

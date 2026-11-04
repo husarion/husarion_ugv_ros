@@ -825,6 +825,16 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
       }
 
       const std::string warning_prefix = driver.name + " warning: ";
+      const auto add_motor_warning = [&](const std::uint8_t channel, const std::string & motor) {
+        const auto description = data.GetRuntimeError(channel).GetWarningDescription();
+        if (!description.empty()) {
+          raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor " + description + ".");
+          status.add(warning_prefix + motor + " motor", description);
+        }
+      };
+      add_motor_warning(RoboteqDriver::kChannel1, driver.channel_1_motor);
+      add_motor_warning(RoboteqDriver::kChannel2, driver.channel_2_motor);
+
       if (data.IsMotorStatesDataTimedOut()) {
         raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data is late.");
         status.add(warning_prefix + "motor_states_data_timed_out", true);

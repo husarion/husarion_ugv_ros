@@ -307,6 +307,23 @@ TEST(TestRoboteqDataConverters, DriverData)
   EXPECT_FLOAT_EQ(roboteq_data.GetDriverState().GetCurrent(), 3.5);
 }
 
+TEST(TestRoboteqDataConverters, RuntimeErrorSuppressedFlagsAreNotErrors)
+{
+  husarion_ugv_hardware_interfaces::RuntimeError runtime_error;
+  // amps_limit_active, motor_stall, forward_limit_triggered
+  runtime_error.SetData(0b00010011);
+
+  const auto error_map = runtime_error.GetErrorMap();
+  EXPECT_FALSE(error_map.at("runtime_error.amps_limit_active"));
+  EXPECT_TRUE(error_map.at("runtime_error.motor_stall"));
+  EXPECT_FALSE(error_map.at("runtime_error.forward_limit_triggered"));
+  EXPECT_EQ(
+    "current limit active, forward limit switch triggered", runtime_error.GetWarningDescription());
+
+  runtime_error.SetData(0b00000010);
+  EXPECT_EQ("", runtime_error.GetWarningDescription());
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

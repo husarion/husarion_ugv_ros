@@ -115,7 +115,13 @@ public:
 
   std::string GetErrorLog() const;
 
+  // Names of the set flags that do not count as an error.
+  std::vector<std::string> GetSetSuppressedFlags() const;
+
 protected:
+  // Flags that are set and not suppressed - what counts as an error.
+  std::bitset<8> GetErrorFlags() const { return flags_ & (~suppressed_flags_); }
+
   const std::vector<std::string> flag_names_;
 
   std::bitset<8> suppressed_flags_ = 0;
@@ -144,6 +150,12 @@ public:
   RuntimeError();
   husarion_ugv_msgs::msg::RuntimeError GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
+
+  /**
+   * @brief Describes the set flags that are not errors (current limiting, limit switches) for
+   * the operator, e.g. "current limit active". Empty when none is set.
+   */
+  std::string GetWarningDescription() const;
 };
 
 /**

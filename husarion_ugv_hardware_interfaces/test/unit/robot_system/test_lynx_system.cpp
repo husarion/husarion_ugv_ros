@@ -508,6 +508,35 @@ TEST_F(TestLynxSystem, DiagnoseErrorsDriverFaultIsAnError)
   EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: can_error"));
 }
 
+TEST_F(TestLynxSystem, DiagnoseErrorsCurrentLimitIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // runtime flag bit 0 - amps_limit_active, channel 1 is the right motor
+  data.SetDriverState(MakeDriverState(40, 0, 0b00000001), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // With a real fault next to it the current limit is still not listed as an error.
+  data.SetDriverState(MakeDriverState(40, 0b00000001, 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ(
+    "<missing>",
+    GetDiagnosticValue(status, "Driver error: channel_1_motor.runtime_error.amps_limit_active"));
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+}
+
 TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)
 {
   ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))

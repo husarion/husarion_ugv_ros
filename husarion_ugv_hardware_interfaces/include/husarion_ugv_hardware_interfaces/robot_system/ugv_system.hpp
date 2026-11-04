@@ -124,6 +124,32 @@ protected:
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
   void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status);
 
+  // A copy of one motor driver's data, with the names the diagnostics show for it.
+  struct DriverDiagnosticData
+  {
+    std::string name;
+    std::string channel_1_motor;
+    std::string channel_2_motor;
+    DriverData data;
+  };
+
+  // The copy is made without a lock while the control loop may be writing the same data, so one
+  // sample can mix two read cycles. That is harmless for a 1 Hz diagnostic, and a lock here would
+  // put the diagnostic thread in the way of the control loop.
+  virtual std::vector<DriverDiagnosticData> GetDriversDiagnosticData() = 0;
+
+  /**
+   * @brief Fills the system status task from the drivers' data. Never throws: a diagnostic tick
+   * can race the hardware teardown, GetData() on a deinitialized driver throws, and an exception
+   * escaping a diagnostic task terminates the whole node (bit us live on a Lynx).
+   */
+  void DiagnoseDriversStatus(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name);
+
+  // 10 C below the Over Temperature Limit (OTL 85 C) of the shipped Roboteq profile, at which the
+  // controller stops the motors.
+  static constexpr float kHeatsinkTemperatureWarn = 75.0F;
+
   const size_t joint_size_;
 
   // Currently only velocity command mode is supported - although Roboteq driver support position

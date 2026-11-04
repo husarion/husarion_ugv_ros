@@ -51,6 +51,7 @@ protected:
 
   void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) override;
   void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) override;
+  std::vector<DriverDiagnosticData> GetDriversDiagnosticData() override;
 
   static const inline std::vector<std::string> kJointOrder = {"fl", "fr", "rl", "rr"};
 };

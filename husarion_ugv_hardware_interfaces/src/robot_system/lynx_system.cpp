@@ -171,25 +171,12 @@ void LynxSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & st
 
 void LynxSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"Lynx system status monitoring."};
+  DiagnoseDriversStatus(status, "Lynx");
+}
 
-  // See DiagnoseErrors - never let a teardown-race exception escape.
-  try {
-    const auto driver_state = robot_driver_->GetData(DriverNames::DEFAULT).GetDriverState();
-
-    status.add("Driver voltage (V)", driver_state.GetVoltage());
-    status.add("Driver current (A)", driver_state.GetCurrent());
-    status.add("Driver temperature (\u00B0C)", driver_state.GetTemperature());
-    status.add("Driver heatsink temperature (\u00B0C)", driver_state.GetHeatsinkTemperature());
-  } catch (const std::exception & e) {
-    status.summary(
-      diagnostic_updater::DiagnosticStatusWrapper::STALE,
-      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
-    return;
-  }
-
-  status.summary(level, message);
+std::vector<UGVSystem::DriverDiagnosticData> LynxSystem::GetDriversDiagnosticData()
+{
+  return {{"Driver", "right", "left", robot_driver_->GetData(DriverNames::DEFAULT)}};
 }
 
 std::vector<float> LynxSystem::GetSpeedCommands() const

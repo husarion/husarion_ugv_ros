@@ -741,6 +741,41 @@ void UGVSystem::DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & stat
   status.summary(level, message);
 }
 
+void UGVSystem::DiagnoseDriversStatus(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name)
+{
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = robot_name + " system status monitoring.";
+
+  try {
+    for (const auto & driver : GetDriversDiagnosticData()) {
+      const auto & state = driver.data.GetDriverState();
+      status.add(driver.name + " voltage (V)", state.GetVoltage());
+      status.add(driver.name + " battery current (A)", state.GetCurrent());
+      status.add(driver.name + " temperature (\u00B0C)", state.GetTemperature());
+      status.add(driver.name + " heatsink temperature (\u00B0C)", state.GetHeatsinkTemperature());
+      status.add(
+        "Motor current " + driver.channel_1_motor + " (A)",
+        driver.data.GetMotorState(RoboteqDriver::kChannel1).GetCurrent());
+      status.add(
+        "Motor current " + driver.channel_2_motor + " (A)",
+        driver.data.GetMotorState(RoboteqDriver::kChannel2).GetCurrent());
+
+      if (state.GetHeatsinkTemperature() >= kHeatsinkTemperatureWarn) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+        message = driver.name + " heatsink temperature is close to the overheat limit.";
+      }
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
+    return;
+  }
+
+  status.summary(level, message);
+}
+
 void UGVSystem::MotorTorqueEnable(const bool enable)
 {
   const bool e_stop = e_stop_->ReadEStopState();

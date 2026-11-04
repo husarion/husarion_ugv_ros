@@ -229,33 +229,14 @@ void PantherSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper &
 
 void PantherSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"Panther system status monitoring."};
+  DiagnoseDriversStatus(status, "Panther");
+}
 
-  // See DiagnoseErrors - never let a teardown-race exception escape.
-  try {
-    const auto front_driver_state = robot_driver_->GetData(DriverNames::FRONT).GetDriverState();
-    const auto rear_driver_state = robot_driver_->GetData(DriverNames::REAR).GetDriverState();
-
-    auto driver_states_with_names = {
-      std::make_pair(std::string("Front"), front_driver_state),
-      std::make_pair(std::string("Rear"), rear_driver_state)};
-
-    for (const auto & [driver_name, driver_state] : driver_states_with_names) {
-      status.add(driver_name + " driver voltage (V)", driver_state.GetVoltage());
-      status.add(driver_name + " driver current (A)", driver_state.GetCurrent());
-      status.add(driver_name + " driver temperature (\u00B0C)", driver_state.GetTemperature());
-      status.add(
-        driver_name + " driver heatsink temperature (\u00B0C)",
-        driver_state.GetHeatsinkTemperature());
-    }
-  } catch (const std::exception & e) {
-    status.summary(
-      diagnostic_updater::DiagnosticStatusWrapper::STALE,
-      "Hardware data unavailable (shutting down?): " + std::string(e.what()));
-    return;
-  }
-  status.summary(level, message);
+std::vector<UGVSystem::DriverDiagnosticData> PantherSystem::GetDriversDiagnosticData()
+{
+  return {
+    {"Front driver", "front right", "front left", robot_driver_->GetData(DriverNames::FRONT)},
+    {"Rear driver", "rear right", "rear left", robot_driver_->GetData(DriverNames::REAR)}};
 }
 
 std::vector<float> PantherSystem::GetSpeedCommands() const

@@ -53,6 +53,14 @@ public:
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { LynxSystem::UpdateFlagErrors(); }
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    LynxSystem::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    LynxSystem::DiagnoseStatus(status);
+  }
   std::vector<float> GetSpeedCommands() const { return LynxSystem::GetSpeedCommands(); }
 
   void SetHwCommandsVelocities(std::vector<double> & velocities)
@@ -409,6 +417,47 @@ TEST_F(TestLynxSystem, GetSpeedCommands)
   ASSERT_EQ(speed_cmd.size(), 2);
   EXPECT_FLOAT_EQ(speed_cmd[0], fl_v);
   EXPECT_FLOAT_EQ(speed_cmd[1], fr_v);
+}
+
+TEST_F(TestLynxSystem, DiagnoseStatus)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // left - channel 2, right - channel 1
+  data.SetMotorsStates({0, 0, 25, {0, 0}, {0, 0}}, {0, 0, -40, {0, 0}, {0, 0}}, false);
+  data.SetDriverState(MakeDriverState(40), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("Lynx system status monitoring.", status.message);
+  EXPECT_FLOAT_EQ(1.5, std::stof(GetDiagnosticValue(status, "Driver battery current (A)")));
+  EXPECT_FLOAT_EQ(40.0, std::stof(GetDiagnosticValue(status, "Driver voltage (V)")));
+  EXPECT_FLOAT_EQ(2.5, std::stof(GetDiagnosticValue(status, "Motor current right (A)")));
+  EXPECT_FLOAT_EQ(-4.0, std::stof(GetDiagnosticValue(status, "Motor current left (A)")));
+
+  // The shipped Roboteq profile stops the motors at 85 C.
+  data.SetDriverState(MakeDriverState(75), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+}
+
+TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)
+{
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::Throw(std::runtime_error("no data")));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
 }
 
 int main(int argc, char ** argv)

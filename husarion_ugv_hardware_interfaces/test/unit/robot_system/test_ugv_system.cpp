@@ -67,6 +67,7 @@ public:
 
   MOCK_METHOD(void, DiagnoseErrors, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
   MOCK_METHOD(void, DiagnoseStatus, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
+  MOCK_METHOD(std::vector<DriverDiagnosticData>, GetDriversDiagnosticData, (), (override));
 
   void SetHwCommandVelocity(const std::vector<double> & velocity)
   {

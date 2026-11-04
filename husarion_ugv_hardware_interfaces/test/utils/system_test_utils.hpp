@@ -22,6 +22,8 @@
 
 #include <gmock/gmock.h>
 
+#include <diagnostic_updater/diagnostic_status_wrapper.hpp>
+
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
@@ -175,6 +177,32 @@ hardware_interface::HardwareInfo GenerateDefaultHardwareInfo()
   hardware_info.hardware_parameters = hardware_paremeters;
 
   return hardware_info;
+}
+
+inline std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+inline husarion_ugv_hardware_interfaces::DriverState MakeDriverState(
+  const std::int16_t heatsink_temp, const std::uint8_t fault_flags = 0,
+  const std::uint8_t runtime_flags_channel_1 = 0)
+{
+  husarion_ugv_hardware_interfaces::DriverState state{};
+  state.fault_flags = fault_flags;
+  state.runtime_stat_flag_channel_1 = runtime_flags_channel_1;
+  state.battery_current_1 = 12;
+  state.battery_current_2 = 3;
+  state.battery_voltage = 400;
+  state.mcu_temp = 30;
+  state.heatsink_temp = heatsink_temp;
+  return state;
 }
 
 }  // namespace husarion_ugv_hardware_interfaces_test

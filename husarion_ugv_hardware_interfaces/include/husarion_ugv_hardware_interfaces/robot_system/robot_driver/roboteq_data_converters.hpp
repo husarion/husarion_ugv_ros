@@ -82,6 +82,8 @@ public:
   {
     return motor_state_.current * roboteq_current_feedback_to_newton_meters_;
   }
+  // Motor current in A - the Roboteq reports it in A*10.
+  float GetCurrent() const { return motor_state_.current / 10.0F; }
 
 private:
   float roboteq_pos_feedback_to_radians_;

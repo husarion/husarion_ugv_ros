@@ -60,6 +60,14 @@ public:
 
   void UpdateDriverStateMsg() { PantherSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { PantherSystem::UpdateFlagErrors(); }
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    PantherSystem::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    PantherSystem::DiagnoseStatus(status);
+  }
   std::vector<float> GetSpeedCommands() const { return PantherSystem::GetSpeedCommands(); }
 
   void SetHwCommandsVelocities(std::vector<double> & velocities)
@@ -380,6 +388,48 @@ TEST_F(TestPantherSystem, GetSpeedCommands)
   EXPECT_FLOAT_EQ(speed_cmd[1], fr_v);
   EXPECT_FLOAT_EQ(speed_cmd[2], rl_v);
   EXPECT_FLOAT_EQ(speed_cmd[3], rr_v);
+}
+
+TEST_F(TestPantherSystem, DiagnoseStatus)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData front_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::DriverData rear_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // left - channel 2, right - channel 1
+  front_data.SetMotorsStates({0, 0, 10, {0, 0}, {0, 0}}, {0, 0, 20, {0, 0}, {0, 0}}, false);
+  rear_data.SetMotorsStates({0, 0, 30, {0, 0}, {0, 0}}, {0, 0, 40, {0, 0}, {0, 0}}, false);
+  front_data.SetDriverState(MakeDriverState(40), false);
+  rear_data.SetDriverState(MakeDriverState(80), false);
+  ON_CALL(
+    *panther_system_->mock_robot_driver,
+    GetData(::testing::Eq(husarion_ugv_hardware_interfaces::DriverNames::FRONT)))
+    .WillByDefault(::testing::ReturnRef(front_data));
+  ON_CALL(
+    *panther_system_->mock_robot_driver,
+    GetData(::testing::Eq(husarion_ugv_hardware_interfaces::DriverNames::REAR)))
+    .WillByDefault(::testing::ReturnRef(rear_data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  panther_system_->DiagnoseStatus(status);
+
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_THAT(status.message, ::testing::HasSubstr("Rear driver heatsink"));
+  EXPECT_FLOAT_EQ(1.5, std::stof(GetDiagnosticValue(status, "Front driver battery current (A)")));
+  EXPECT_FLOAT_EQ(1.0, std::stof(GetDiagnosticValue(status, "Motor current front right (A)")));
+  EXPECT_FLOAT_EQ(2.0, std::stof(GetDiagnosticValue(status, "Motor current front left (A)")));
+  EXPECT_FLOAT_EQ(3.0, std::stof(GetDiagnosticValue(status, "Motor current rear right (A)")));
+  EXPECT_FLOAT_EQ(4.0, std::stof(GetDiagnosticValue(status, "Motor current rear left (A)")));
+
+  rear_data.SetDriverState(MakeDriverState(74), false);
+  status.clearSummary();
+  status.values.clear();
+  panther_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("Panther system status monitoring.", status.message);
 }
 
 int main(int argc, char ** argv)

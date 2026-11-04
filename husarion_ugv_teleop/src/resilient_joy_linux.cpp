@@ -37,9 +37,11 @@
 // flag - the stock node lets the handler invalidate the context mid
 // spin_some() and dies on terminate instead of exiting on a routine container
 // stop. And the reconnect loop asks sysfs whether the joystick exists before
-// opening it - see joystick_present. A missing gamepad is a warning, not an
-// error, since a robot runs fine without one. Everything else stays verbatim;
-// diff against upstream when bumping.
+// opening it - see joystick_present. The diagnostic follows the robot, not the
+// device: a robot runs fine without a gamepad, so only one that was connected
+// and then lost is a warning (husarion_ugv_teleop::DiagnoseGamepad), the
+// hardware id is "Gamepad" and the developer settings are left out of it.
+// Everything else stays verbatim; diff against upstream when bumping.
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -61,6 +63,7 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <sensor_msgs/msg/joy_feedback_array.hpp>
 
+#include "husarion_ugv_teleop/gamepad_diagnostics.hpp"
 #include "husarion_ugv_utils/shutdown_signal_watcher.hpp"
 
 // Set by the signal watcher; every loop below treats it like !rclcpp::ok().
@@ -71,6 +74,8 @@ class Joystick
 {
 private:
   bool open_;
+  bool opened_before_ = false;
+  std::string opened_name_;
   bool sticky_buttons_;
   bool default_trig_val_;
   std::string joy_dev_;
@@ -96,23 +101,13 @@ private:
   {
     double now = node_->now().seconds();
     double interval = now - lastDiagTime_;
-    if (open_) {
-      stat.summary(0, "OK");
-    } else {
-      stat.summary(1, "No gamepad connected.");
-    }
+    const auto diagnostic = husarion_ugv_teleop::DiagnoseGamepad(open_, opened_before_);
+    stat.summary(diagnostic.level, diagnostic.message);
 
-    stat.add("topic", pub_->get_topic_name());
+    stat.add("connected", open_);
     stat.add("device", joy_dev_);
-    stat.add("device name", joy_dev_name_);
-    stat.add("dead zone", deadzone_);
-    stat.add("autorepeat rate (Hz)", autorepeat_rate_);
-    stat.add("coalesce interval (s)", coalesce_interval_);
+    stat.add("device name", opened_name_);
     stat.add("recent joystick event rate (Hz)", event_count_ / interval);
-    stat.add("recent publication rate (Hz)", pub_count_ / interval);
-    stat.add("subscribers", pub_->get_subscription_count());
-    stat.add("default trig val", default_trig_val_);
-    stat.add("sticky buttons", sticky_buttons_);
     event_count_ = 0;
     pub_count_ = 0;
     lastDiagTime_ = now;
@@ -242,7 +237,7 @@ public:
 
     diagnostic_ = std::make_shared<diagnostic_updater::Updater>(node_);
     diagnostic_->add("Joystick Driver Status", this, &Joystick::diagnostics);
-    diagnostic_->setHardwareID("none");
+    diagnostic_->setHardwareID("Gamepad");
 
     // Parameters
     pub_ = node_->create_publisher<sensor_msgs::msg::Joy>("joy", 10);
@@ -419,7 +414,12 @@ public:
 
       RCLCPP_INFO(
         node_->get_logger(), "Opened joystick: %s. deadzone_: %f.", joy_dev_.c_str(), deadzone_);
+      char opened_name[128] = {};
+      opened_name_ = ioctl(joy_fd, JSIOCGNAME(sizeof(opened_name) - 1), opened_name) < 0
+                       ? std::string()
+                       : std::string(opened_name);
       open_ = true;
+      opened_before_ = true;
       diagnostic_->force_update();
 
       bool tv_set = false;

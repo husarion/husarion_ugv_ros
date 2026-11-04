@@ -431,6 +431,9 @@ void LightsDriverNode::DiagnoseLights(diagnostic_updater::DiagnosticStatusWrappe
   }
 
   status.add("LED control status", led_control_status);
+  // A deliberate output-off is not a fault, but without it here dark LEDs look like one.
+  status.add("LED output", led_output_enabled_ ? std::string("enabled") : std::string("disabled"));
+  status.add("Brightness", global_brightness_);
 
   const auto frames_dropped = frames_dropped_.exchange(0, std::memory_order_relaxed);
   if (frames_dropped > 0) {

@@ -363,6 +363,21 @@ TEST_F(TestLightsDriverNode, DiagnoseLightsCountsDroppedFrames)
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
 }
 
+TEST_F(TestLightsDriverNode, DiagnoseLightsShowsOutputState)
+{
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("enabled", GetDiagnosticValue(status, "LED output"));
+  EXPECT_FLOAT_EQ(1.0f, std::stof(GetDiagnosticValue(status, "Brightness")));
+
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+  req->data = false;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("disabled", GetDiagnosticValue(status, "LED output"));
+}
+
 TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)
 {
   using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;

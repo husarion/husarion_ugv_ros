@@ -9,6 +9,33 @@
       thread_priority: 60
       lock_memory: true
 
+      # TODO: set from the 1 h bench capture. The /diagnostics thresholds of the
+      # controller manager, controllers and hardware components, shown with the
+      # controller_manager 4.48 defaults that apply while this stays commented.
+      # Nobody has measured where normal running sits on the robot yet, and a
+      # read that waits on CAN may come close to the execution time standard
+      # deviation warning. Periodicity is in Hz, execution time in us.
+      # diagnostics:
+      #   threshold:
+      #     controller_manager:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #     controllers:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #       execution_time:
+      #         mean_error: {warn: 1000.0, error: 2000.0}
+      #         standard_deviation: {warn: 100.0, error: 200.0}
+      #     hardware_components:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #       execution_time:
+      #         mean_error: {warn: 1000.0, error: 2000.0}
+      #         standard_deviation: {warn: 100.0, error: 200.0}
+
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
       drive_controller:

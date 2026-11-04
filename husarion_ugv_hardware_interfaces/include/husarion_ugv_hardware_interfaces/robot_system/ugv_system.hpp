@@ -173,6 +173,8 @@ protected:
   std::shared_ptr<EStopInterface> e_stop_;
   // Kept apart from e_stop_, which the teardown resets while the diagnostics may still tick.
   std::shared_ptr<const EStopDiagnostics> e_stop_diagnostics_;
+  // Same for the IO lines, which live in system_ros_interface_.
+  std::shared_ptr<const IOStateDiagnosticsStore> io_state_diagnostics_;
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;

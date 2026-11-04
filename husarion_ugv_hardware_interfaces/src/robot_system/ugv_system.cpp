@@ -23,6 +23,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -102,6 +103,7 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
   }
 
   system_ros_interface_ = std::make_unique<SystemROSInterface>("hardware_controller");
+  io_state_diagnostics_ = system_ros_interface_->GetIOStateDiagnostics();
 
   // The services hold the GPIO controller weakly. A strong copy kept it alive past
   // gpio_controller_.reset() in the teardown, so its monitor thread outlived the ROS interface it
@@ -771,6 +773,21 @@ void UGVSystem::DiagnoseDriversStatus(
       diagnostic_updater::DiagnosticStatusWrapper::STALE,
       "Hardware data unavailable (shutting down?): " + std::string(e.what()));
     return;
+  }
+
+  const auto io_state = io_state_diagnostics_ ? io_state_diagnostics_->Get() : IOStateDiagnostics{};
+  const auto add_io = [&status](const std::string & key, const std::optional<bool> & value) {
+    if (value.has_value()) {
+      status.add(key, value.value() ? std::string("on") : std::string("off"));
+    }
+  };
+  add_io("Motor power", io_state.motor_on);
+  add_io("Aux power", io_state.aux_power);
+  add_io("Fan", io_state.fan);
+  if (io_state.charger_connected.has_value()) {
+    status.add(
+      "Charger connected",
+      io_state.charger_connected.value() ? std::string("yes") : std::string("no"));
   }
 
   status.summary(level, message);

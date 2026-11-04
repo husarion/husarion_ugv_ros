@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -69,6 +70,11 @@ public:
     PantherSystem::DiagnoseStatus(status);
   }
   std::vector<float> GetSpeedCommands() const { return PantherSystem::GetSpeedCommands(); }
+
+  void SetIOState(const std::unordered_map<husarion_ugv_hardware_interfaces::GPIOPin, bool> & state)
+  {
+    system_ros_interface_->InitializeAndPublishIOStateMsg(state);
+  }
 
   void SetHwCommandsVelocities(std::vector<double> & velocities)
   {
@@ -424,12 +430,24 @@ TEST_F(TestPantherSystem, DiagnoseStatus)
   EXPECT_FLOAT_EQ(3.0, std::stof(GetDiagnosticValue(status, "Motor current rear right (A)")));
   EXPECT_FLOAT_EQ(4.0, std::stof(GetDiagnosticValue(status, "Motor current rear left (A)")));
 
+  // The IO lines show up once their state is known.
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor power"));
+
   rear_data.SetDriverState(MakeDriverState(74), false);
+  panther_system_->SetIOState(
+    {{husarion_ugv_hardware_interfaces::GPIOPin::VMOT_ON, true},
+     {husarion_ugv_hardware_interfaces::GPIOPin::CHRG_SENSE, false},
+     {husarion_ugv_hardware_interfaces::GPIOPin::AUX_PW_EN, true},
+     {husarion_ugv_hardware_interfaces::GPIOPin::FAN_SW, false}});
   status.clearSummary();
   status.values.clear();
   panther_system_->DiagnoseStatus(status);
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
   EXPECT_EQ("Panther system status monitoring.", status.message);
+  EXPECT_EQ("on", GetDiagnosticValue(status, "Motor power"));
+  EXPECT_EQ("no", GetDiagnosticValue(status, "Charger connected"));
+  EXPECT_EQ("on", GetDiagnosticValue(status, "Aux power"));
+  EXPECT_EQ("off", GetDiagnosticValue(status, "Fan"));
 }
 
 int main(int argc, char ** argv)

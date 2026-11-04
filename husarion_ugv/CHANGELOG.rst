@@ -31,6 +31,14 @@ Forthcoming
 * a robot without a gamepad shows a joystick warning ("No gamepad connected.") instead of an error
 * an E-stop reset that met the state read in progress was skipped yet reported success; it now waits for the read, and refuses only when a trigger came in meanwhile
 * new led_spi_speed_hz launch argument (default 800000, the EMC tested clock) sets the LED SPI clock for EMC tests, and the lights driver logs the requested and the effective clock at start
+* new "E-stop" diagnostic on the hardware controller: state, source, last change and last refused reset, WARN only when a device outside the driver latched it
+* the hardware controller's "System errors" diagnostic goes ERROR on real faults only: a single late PDO, current limiting, limit switches and a torque disabled on request are warnings, and latched errors are named for the operator with what clears them
+* the "System status" diagnostic shows per-motor currents, the motor power, charger, aux power and fan lines, PDO timeouts in the last hour and the longest read cycle, warns 10 C below the Roboteq overheat limit, and names the Lynx correctly
+* the battery diagnostics show the charge current, the source and per-pack voltage, percentage, temperature and health, warn below 20 %, on a charger that does not charge and on a cold battery, and report missing battery data as STALE instead of OK - on a Lynx without the second charge shunt the charge current reads about 0.12 A with an idle charger, a known offset
+* battery read errors and dropped LED frames no longer broadcast a diagnostic array per event, they are counted in the regular 1 Hz tasks
+* the OS status diagnostic warns on a full disk (its threshold was silently dropped) and lists the usage of every CPU core
+* the gamepad diagnostic is OK on robots without a gamepad and warns only when a connected gamepad is lost
+* the lights diagnostic shows whether the LED output is enabled and the brightness
 
 2.3.2 (2026-06-25)
 ------------------

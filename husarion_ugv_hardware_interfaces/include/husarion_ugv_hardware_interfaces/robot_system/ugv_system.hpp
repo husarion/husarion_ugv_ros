@@ -122,6 +122,7 @@ protected:
 
   virtual void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
+  void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status);
 
   const size_t joint_size_;
 
@@ -144,6 +145,8 @@ protected:
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RobotDriverInterface> robot_driver_;
   std::shared_ptr<EStopInterface> e_stop_;
+  // Kept apart from e_stop_, which the teardown resets while the diagnostics may still tick.
+  std::shared_ptr<const EStopDiagnostics> e_stop_diagnostics_;
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;

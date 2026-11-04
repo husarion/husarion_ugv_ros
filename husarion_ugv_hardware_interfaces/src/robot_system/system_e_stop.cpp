@@ -23,6 +23,38 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
+void EStopDiagnostics::SetSource(const EStopLatchSource source)
+{
+  source_.store(source);
+  last_change_ns_.store(SteadyNowNs());
+}
+
+void EStopDiagnostics::SetResetRefused(const std::string & reason)
+{
+  std::lock_guard<std::mutex> lck(refused_reset_mtx_);
+  last_refused_reset_ = reason;
+  last_refused_reset_ns_ = SteadyNowNs();
+}
+
+EStopDiagnostics::Snapshot EStopDiagnostics::Get() const
+{
+  Snapshot snapshot;
+  snapshot.source = source_.load();
+  snapshot.last_change_ns = last_change_ns_.load();
+
+  std::lock_guard<std::mutex> lck(refused_reset_mtx_);
+  snapshot.last_refused_reset = last_refused_reset_;
+  snapshot.last_refused_reset_ns = last_refused_reset_ns_;
+  return snapshot;
+}
+
+std::int64_t EStopDiagnostics::SteadyNowNs()
+{
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+           std::chrono::steady_clock::now().time_since_epoch())
+    .count();
+}
+
 bool EStop::ReadEStopState()
 {
   if (e_stop_manipulation_mtx_.try_lock()) {
@@ -45,6 +77,7 @@ bool EStop::ReadEStopState()
                      "by this driver."
                   << std::endl;
       } else if (hardware_line_latched_) {
+        diagnostics_->SetSource(EStopLatchSource::HARDWARE);
         std::cerr << "E-Stop ASSERTED on the hardware line - stopped by a device outside this "
                      "driver (e-stop button, Roboteq fault or the safety board watchdog). No "
                      "software trigger was requested."
@@ -82,9 +115,25 @@ void EStop::TriggerEStop()
   }
 
   e_stop_triggered_ = true;
+
+  // A trigger on a robot that is already stopped keeps the first cause - an outside device that
+  // stopped it stays the reason until someone resets it.
+  if (diagnostics_->GetSource() == EStopLatchSource::RELEASED) {
+    diagnostics_->SetSource(EStopLatchSource::SOFTWARE);
+  }
 }
 
 void EStop::ResetEStop()
+{
+  try {
+    ResetEStopImpl();
+  } catch (const std::exception & e) {
+    diagnostics_->SetResetRefused(e.what());
+    throw;
+  }
+}
+
+void EStop::ResetEStopImpl()
 {
   robot_driver_->TurnOffEStop();
 
@@ -120,6 +169,8 @@ void EStop::ResetEStop()
   e_stop_triggered_ = false;
   software_e_stop_triggered_ = false;
   software_trigger_requested_ = false;
+
+  diagnostics_->SetSource(EStopLatchSource::RELEASED);
 }
 
 }  // namespace husarion_ugv_hardware_interfaces

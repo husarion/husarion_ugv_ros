@@ -156,6 +156,69 @@ TEST_F(TestEStop, ResetIsNotSkippedWhileTheStateIsBeingRead)
   reader.join();
 }
 
+TEST_F(TestEStop, DiagnosticsStartLatchedAtStartup)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_EQ(0, snapshot.last_change_ns);
+  EXPECT_TRUE(snapshot.last_refused_reset.empty());
+}
+
+TEST_F(TestEStop, DiagnosticsFollowResetAndSoftwareTrigger)
+{
+  ReleaseLine();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::SOFTWARE, snapshot.source);
+  EXPECT_NE(0, snapshot.last_change_ns);
+}
+
+TEST_F(TestEStop, DiagnosticsBlameTheHardwareLineWithoutATrigger)
+{
+  ReleaseLine();
+
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // A later software trigger does not hide the outside stop.
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, DiagnosticsKeepTheRefusedResetReason)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_CALL(*gpio_controller_, EStopReset())
+    .WillOnce(testing::Throw(std::runtime_error("line stuck")));
+
+  EXPECT_THROW(e_stop_->ResetEStop(), std::runtime_error);
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_THAT(snapshot.last_refused_reset, testing::HasSubstr("line stuck"));
+  EXPECT_NE(0, snapshot.last_refused_reset_ns);
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

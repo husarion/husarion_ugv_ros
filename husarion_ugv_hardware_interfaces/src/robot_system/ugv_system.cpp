@@ -85,6 +85,8 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
+  e_stop_diagnostics_ = e_stop_->GetDiagnostics();
+
   std::fill(hw_commands_velocities_.begin(), hw_commands_velocities_.end(), 0.0);
   std::fill(hw_states_positions_.begin(), hw_states_positions_.end(), 0.0);
   std::fill(hw_states_velocities_.begin(), hw_states_velocities_.end(), 0.0);
@@ -146,6 +148,8 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
   system_ros_interface_->AddDiagnosticTask(
     std::string("system status"), this, &UGVSystem::DiagnoseStatus);
+
+  system_ros_interface_->AddDiagnosticTask(std::string("E-stop"), this, &UGVSystem::DiagnoseEStop);
 
   gpio_controller_->RegisterGPIOEventCallback(
     [this](const auto & state) { system_ros_interface_->PublishIOState(state); });
@@ -681,6 +685,60 @@ bool UGVSystem::AreVelocityCommandsNearZero()
     }
   }
   return true;
+}
+
+void UGVSystem::DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  if (!e_stop_diagnostics_) {
+    status.summary(diagnostic_updater::DiagnosticStatusWrapper::STALE, "E-stop state unavailable.");
+    return;
+  }
+
+  const auto snapshot = e_stop_diagnostics_->Get();
+  const auto now_ns = EStopDiagnostics::SteadyNowNs();
+  const auto seconds_ago = [now_ns](const std::int64_t time_ns) {
+    return static_cast<double>(now_ns - time_ns) / 1.0e9;
+  };
+
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message;
+  std::string source;
+
+  // A latch the driver caused or started in is the robot parked, not a fault. Only a stop by a
+  // device outside the driver is worth the operator's attention.
+  switch (snapshot.source) {
+    case EStopLatchSource::RELEASED:
+      message = "E-stop released.";
+      source = "none";
+      break;
+    case EStopLatchSource::STARTUP:
+      message = "E-stop latched since the driver started.";
+      source = "driver start";
+      break;
+    case EStopLatchSource::SOFTWARE:
+      message = "E-stop latched by software.";
+      source = "software (service call, communication error or driver shutdown)";
+      break;
+    case EStopLatchSource::HARDWARE:
+      level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+      message = "E-stop latched by a device outside the driver.";
+      source = "hardware line (e-stop button, Roboteq fault or safety board watchdog)";
+      break;
+  }
+
+  status.add(
+    "State", snapshot.source == EStopLatchSource::RELEASED ? std::string("released")
+                                                           : std::string("latched"));
+  status.add("Source", source);
+  if (snapshot.last_change_ns != 0) {
+    status.add("Last change (s ago)", seconds_ago(snapshot.last_change_ns));
+  }
+  if (!snapshot.last_refused_reset.empty()) {
+    status.add("Last refused reset", snapshot.last_refused_reset);
+    status.add("Last refused reset (s ago)", seconds_ago(snapshot.last_refused_reset_ns));
+  }
+
+  status.summary(level, message);
 }
 
 void UGVSystem::MotorTorqueEnable(const bool enable)

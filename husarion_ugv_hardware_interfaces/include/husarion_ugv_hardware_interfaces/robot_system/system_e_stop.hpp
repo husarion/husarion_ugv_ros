@@ -16,8 +16,10 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_SYSTEM_E_STOP_HPP_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
@@ -25,6 +27,54 @@
 
 namespace husarion_ugv_hardware_interfaces
 {
+
+enum class EStopLatchSource : std::uint8_t {
+  RELEASED = 0,
+  // Latched since the driver started, the state the safety board powers up in.
+  STARTUP,
+  // Latched by this driver: a service call, a communication error or a shutdown.
+  SOFTWARE,
+  // The hardware line latched with no software trigger requested - the e-stop button, a Roboteq
+  // fault or the safety board watchdog.
+  HARDWARE,
+};
+
+/**
+ * @brief E-stop state for the diagnostics, written on every e-stop state change.
+ *
+ * It lives apart from EStop and is shared with the diagnostic task, so a diagnostic tick that
+ * races the hardware teardown never reads a destroyed object. The latch state is lock-free: the
+ * diagnostic thread must never take e_stop_manipulation_mtx_, which the control loop needs on
+ * every read. Only the refused-reset text has a mutex, shared by the reset service and the
+ * diagnostic task alone.
+ */
+class EStopDiagnostics
+{
+public:
+  struct Snapshot
+  {
+    EStopLatchSource source = EStopLatchSource::STARTUP;
+    // Steady clock time of the last change, 0 when there was none since the driver started.
+    std::int64_t last_change_ns = 0;
+    std::string last_refused_reset;
+    std::int64_t last_refused_reset_ns = 0;
+  };
+
+  void SetSource(const EStopLatchSource source);
+  EStopLatchSource GetSource() const { return source_.load(); }
+  void SetResetRefused(const std::string & reason);
+  Snapshot Get() const;
+
+  static std::int64_t SteadyNowNs();
+
+private:
+  std::atomic<EStopLatchSource> source_{EStopLatchSource::STARTUP};
+  std::atomic<std::int64_t> last_change_ns_{0};
+
+  mutable std::mutex refused_reset_mtx_;
+  std::string last_refused_reset_;
+  std::int64_t last_refused_reset_ns_ = 0;
+};
 
 /**
  * @class EStopInterface
@@ -40,6 +90,7 @@ public:
   virtual bool ReadEStopState() = 0;
   virtual void TriggerEStop() = 0;
   virtual void ResetEStop() = 0;
+  virtual std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const = 0;
 };
 
 /**
@@ -103,7 +154,11 @@ public:
    */
   void ResetEStop() override;
 
+  std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const override { return diagnostics_; }
+
 protected:
+  void ResetEStopImpl();
+
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RoboteqErrorFilter> roboteq_error_filter_;
   std::shared_ptr<RobotDriverInterface> robot_driver_;
@@ -122,6 +177,8 @@ protected:
   bool software_trigger_requested_ = false;
   std::atomic_bool e_stop_triggered_ = true;
   std::atomic_bool software_e_stop_triggered_ = true;
+
+  std::shared_ptr<EStopDiagnostics> diagnostics_ = std::make_shared<EStopDiagnostics>();
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

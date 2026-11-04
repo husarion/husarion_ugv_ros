@@ -249,9 +249,15 @@ void DualBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWr
   const auto load_current_bat_1 = battery_1_->GetLoadCurrent();
   const auto load_current_bat_2 = battery_2_->GetLoadCurrent();
   const auto load_current = load_current_bat_1 + load_current_bat_2;
-  status.add("Load current total (A)", load_current);
-  status.add("Load current battery 1 (A)", load_current_bat_1);
-  status.add("Load current battery 2 (A)", load_current_bat_2);
+  AddMeasurement(status, "Load current total (A)", load_current);
+  AddMeasurement(status, "Load current battery 1 (A)", load_current_bat_1);
+  AddMeasurement(status, "Load current battery 2 (A)", load_current_bat_2);
+
+  const auto charge_current_bat_1 = battery_1_->GetChargingStatus().current;
+  const auto charge_current_bat_2 = battery_2_->GetChargingStatus().current;
+  AddMeasurement(status, "Charge current total (A)", charge_current_bat_1 + charge_current_bat_2);
+  AddMeasurement(status, "Charge current battery 1 (A)", charge_current_bat_1);
+  AddMeasurement(status, "Charge current battery 2 (A)", charge_current_bat_2);
 
   status.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Battery status monitoring");
 }

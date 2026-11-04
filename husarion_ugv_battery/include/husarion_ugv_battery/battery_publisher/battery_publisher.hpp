@@ -65,6 +65,11 @@ protected:
    */
   bool DiagnoseMissingData(diagnostic_updater::DiagnosticStatusWrapper & status);
 
+  // Adds a measured value, or "n/a" when the battery source does not measure it (NaN).
+  static void AddMeasurement(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & key,
+    const float value);
+
   void BatteryStatusLogger(const BatteryStateMsg & battery_state);
   bool ChargerConnected() const;
   std::string MapPowerSupplyStatusToString(uint8_t power_supply_status) const;

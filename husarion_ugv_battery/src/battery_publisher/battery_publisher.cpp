@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -98,6 +99,16 @@ bool BatteryPublisher::DiagnoseMissingData(diagnostic_updater::DiagnosticStatusW
     status.add("Last read error", last_read_error_);
   }
   return false;
+}
+
+void BatteryPublisher::AddMeasurement(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & key, const float value)
+{
+  if (std::isnan(value)) {
+    status.add(key, "n/a");
+  } else {
+    status.add(key, value);
+  }
 }
 
 void BatteryPublisher::BatteryStatusLogger(const BatteryStateMsg & battery_state)

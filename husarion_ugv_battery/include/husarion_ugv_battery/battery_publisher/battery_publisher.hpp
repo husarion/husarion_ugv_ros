@@ -15,7 +15,9 @@
 #ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_PUBLISHER_BATTERY_PUBLISHER_HPP_
 #define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_PUBLISHER_BATTERY_PUBLISHER_HPP_
 
+#include <cstdint>
 #include <memory>
+#include <string>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -54,6 +56,15 @@ protected:
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
 
   bool TimeoutReached();
+
+  /**
+   * @brief Reports the battery STALE while no battery data has arrived for longer than the
+   * battery timeout, with the last read error. Adds the failed reads since the last report.
+   *
+   * @return True when it reported STALE, so the caller has nothing left to diagnose.
+   */
+  bool DiagnoseMissingData(diagnostic_updater::DiagnosticStatusWrapper & status);
+
   void BatteryStatusLogger(const BatteryStateMsg & battery_state);
   bool ChargerConnected() const;
   std::string MapPowerSupplyStatusToString(uint8_t power_supply_status) const;
@@ -70,6 +81,9 @@ private:
   float battery_timeout_;
   rclcpp::Time last_battery_info_time_;
   rclcpp::Subscription<IOStateMsg>::SharedPtr io_state_sub_;
+
+  std::string last_read_error_;
+  std::uint32_t read_failures_since_report_ = 0;
 };
 
 }  // namespace husarion_ugv_battery

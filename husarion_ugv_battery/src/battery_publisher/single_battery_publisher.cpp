@@ -81,6 +81,10 @@ void SingleBatteryPublisher::LogErrors()
 
 void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  if (DiagnoseMissingData(status)) {
+    return;
+  }
+
   unsigned char error_level{diagnostic_updater::DiagnosticStatusWrapper::OK};
   std::string message{"Battery has no errors"};
 

@@ -14,6 +14,8 @@
 
 #include <chrono>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -48,8 +50,20 @@ public:
 
   bool ChargerConnected() const { return BatteryPublisher::ChargerConnected(); }
 
+  bool DiagnoseMissingData(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    return BatteryPublisher::DiagnoseMissingData(status);
+  }
+
+  bool fail_reads = false;
+
   // Mock up methods to make wrapper a valid subclass
-  void Update() {};
+  void Update()
+  {
+    if (fail_reads) {
+      throw std::runtime_error("ADC read failed");
+    }
+  };
   void Reset() {};
   void PublishBatteryState() {};
   void PublishChargingStatus() {};
@@ -118,6 +132,40 @@ TEST_F(TestBatteryPublisher, ChargerConnected)
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
   EXPECT_TRUE(battery_publisher_->ChargerConnected());
+}
+
+TEST_F(TestBatteryPublisher, DiagnoseMissingData)
+{
+  // Nothing read yet.
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  EXPECT_TRUE(battery_publisher_->DiagnoseMissingData(status));
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
+
+  battery_publisher_->Publish();
+  status.clearSummary();
+  status.values.clear();
+  EXPECT_FALSE(battery_publisher_->DiagnoseMissingData(status));
+  EXPECT_TRUE(status.values.empty());
+
+  // A failed read within the timeout is only counted.
+  battery_publisher_->fail_reads = true;
+  battery_publisher_->Publish();
+  status.clearSummary();
+  status.values.clear();
+  EXPECT_FALSE(battery_publisher_->DiagnoseMissingData(status));
+  ASSERT_EQ(2, status.values.size());
+  EXPECT_EQ("1", status.values[0].value);
+  EXPECT_EQ("ADC read failed", status.values[1].value);
+
+  // Reads that keep failing past the timeout make the battery STALE, never OK.
+  std::this_thread::sleep_for(
+    std::chrono::milliseconds(static_cast<int>(kBatteryTimeout * 1000 + 100)));
+  battery_publisher_->Publish();
+  status.clearSummary();
+  status.values.clear();
+  EXPECT_TRUE(battery_publisher_->DiagnoseMissingData(status));
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
+  EXPECT_NE(std::string::npos, status.message.find("ADC read failed"));
 }
 
 int main(int argc, char ** argv)

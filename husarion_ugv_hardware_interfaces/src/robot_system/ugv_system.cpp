@@ -288,6 +288,13 @@ return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & 
   if (last_read_ts_.tv_sec != 0 || last_read_ts_.tv_nsec != 0) {
     read_cycle_ms_ = static_cast<float>(now_ts.tv_sec - last_read_ts_.tv_sec) * 1000.0F +
                      static_cast<float>(now_ts.tv_nsec - last_read_ts_.tv_nsec) / 1.0e6F;
+
+    const auto read_cycle_us = static_cast<std::uint32_t>(read_cycle_ms_ * 1000.0F);
+    auto read_cycle_max_us = read_cycle_max_us_.load(std::memory_order_relaxed);
+    while (read_cycle_us > read_cycle_max_us &&
+           !read_cycle_max_us_.compare_exchange_weak(
+             read_cycle_max_us, read_cycle_us, std::memory_order_relaxed)) {
+    }
   }
   last_read_ts_ = now_ts;
 
@@ -776,6 +783,25 @@ void UGVSystem::DiagnoseDriversStatus(
       diagnostic_updater::DiagnosticStatusWrapper::STALE,
       "Hardware data unavailable (shutting down?): " + std::string(e.what()));
     return;
+  }
+
+  const auto now = std::chrono::steady_clock::now();
+  const auto pdo_timeout_events = pdo_timeout_events_.load(std::memory_order_relaxed);
+  pdo_timeout_history_.emplace_back(now, pdo_timeout_events - pdo_timeout_events_in_history_);
+  pdo_timeout_events_in_history_ = pdo_timeout_events;
+  while (!pdo_timeout_history_.empty() &&
+         now - pdo_timeout_history_.front().first > std::chrono::hours(1)) {
+    pdo_timeout_history_.pop_front();
+  }
+  std::uint32_t pdo_timeouts_last_hour = 0;
+  for (const auto & [time, events] : pdo_timeout_history_) {
+    pdo_timeouts_last_hour += events;
+  }
+  status.add("PDO timeouts in the last hour", pdo_timeouts_last_hour);
+
+  const auto read_cycle_max_us = read_cycle_max_us_.exchange(0, std::memory_order_relaxed);
+  if (read_cycle_max_us > 0) {
+    status.add("Read cycle max since the last report (ms)", read_cycle_max_us / 1000.0);
   }
 
   const auto io_state = io_state_diagnostics_ ? io_state_diagnostics_->Get() : IOStateDiagnostics{};

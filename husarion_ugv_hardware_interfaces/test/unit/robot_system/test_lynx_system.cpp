@@ -589,6 +589,38 @@ TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
 }
 
+TEST_F(TestLynxSystem, DiagnoseStatusCountsPDOTimeouts)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+
+  // Two separate timeouts, the second lasting three cycles.
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(false);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+
+  // The hour keeps them across reports.
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+}
+
 TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)
 {
   ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))

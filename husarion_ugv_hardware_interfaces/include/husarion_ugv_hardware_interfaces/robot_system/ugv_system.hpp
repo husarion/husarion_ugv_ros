@@ -18,9 +18,11 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <diagnostic_updater/diagnostic_status_wrapper.hpp>
@@ -241,6 +243,12 @@ protected:
   std::atomic<std::uint32_t> pdo_timeout_events_{0};
   // The diagnostic thread's own record of the count it reported last.
   std::uint32_t pdo_timeout_events_reported_ = 0;
+  // New timeouts per status report over the last hour, kept by the diagnostic thread.
+  std::deque<std::pair<std::chrono::steady_clock::time_point, std::uint32_t>> pdo_timeout_history_;
+  std::uint32_t pdo_timeout_events_in_history_ = 0;
+  // Longest read() cycle since the last status report, in us. Raised by the control loop, taken
+  // and zeroed by the diagnostics.
+  std::atomic<std::uint32_t> read_cycle_max_us_{0};
 
   // Set while the motor torque is off on request, which raises the Roboteq emergency stop fault.
   std::atomic_bool torque_disabled_by_request_{false};

@@ -90,6 +90,14 @@ void DualBatteryPublisher::LogErrors()
     RCLCPP_ERROR_STREAM_THROTTLE(
       GetLogger(), *GetClock(), 10000, "Battery nr 2 error: " << battery_2_->GetErrorMsg());
   }
+  if (battery_1_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery nr 1 warning: " << battery_1_->GetWarningMsg());
+  }
+  if (battery_2_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery nr 2 warning: " << battery_2_->GetWarningMsg());
+  }
 }
 
 BatteryStateMsg DualBatteryPublisher::MergeBatteryMsgs(
@@ -228,6 +236,16 @@ void DualBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWr
     if (battery_2_->HasErrorMsg()) {
       status.add("Error message: battery 2", battery_2_->GetErrorMsg());
     }
+  } else if (battery_1_->HasWarningMsg() || battery_2_->HasWarningMsg()) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery has warning";
+  }
+
+  if (battery_1_->HasWarningMsg()) {
+    status.add("Warning message: battery 1", battery_1_->GetWarningMsg());
+  }
+  if (battery_2_->HasWarningMsg()) {
+    status.add("Warning message: battery 2", battery_2_->GetWarningMsg());
   }
 
   status.summary(error_level, message);

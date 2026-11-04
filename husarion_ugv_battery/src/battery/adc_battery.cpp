@@ -83,6 +83,7 @@ void ADCBattery::Reset(const rclcpp::Time & header_stamp)
 
   ResetBatteryMsgs(header_stamp);
   SetErrorMsg("");
+  SetWarningMsg("");
 }
 
 inline float ADCBattery::ADCToBatteryVoltage(const float adc_data) const
@@ -183,6 +184,8 @@ std::uint8_t ADCBattery::GetBatteryStatus(const bool charger_connected)
 std::uint8_t ADCBattery::GetBatteryHealth(
   const rclcpp::Time & header_stamp, const float voltage, const float temp)
 {
+  SetWarningMsg("");
+
   if (this->IsBatteryDead(header_stamp, voltage)) {
     SetErrorMsg("Battery voltage is critically low!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
@@ -199,7 +202,8 @@ std::uint8_t ADCBattery::GetBatteryHealth(
   }
 
   if (temp < kLowBatTemp) {
-    SetErrorMsg("The battery is too cold! It may result in reduced effectiveness.");
+    SetErrorMsg("");
+    SetWarningMsg("The battery is too cold! It may result in reduced effectiveness.");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD;
   }
 

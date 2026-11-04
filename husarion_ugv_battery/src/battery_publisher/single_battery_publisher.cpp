@@ -77,6 +77,10 @@ void SingleBatteryPublisher::LogErrors()
     RCLCPP_ERROR_STREAM_THROTTLE(
       GetLogger(), *GetClock(), 10000, "Battery error: " << battery_->GetErrorMsg());
   }
+  if (battery_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery warning: " << battery_->GetWarningMsg());
+  }
 }
 
 void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
@@ -93,6 +97,11 @@ void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatus
     message = "Battery has error";
 
     status.add("Error message", battery_->GetErrorMsg());
+  } else if (battery_->HasWarningMsg()) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery has warning";
+
+    status.add("Warning message", battery_->GetWarningMsg());
   }
 
   status.summary(error_level, message);

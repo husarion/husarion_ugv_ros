@@ -43,6 +43,8 @@ public:
   float GetLoadCurrent() override { return load_current; }
 
   BatteryStateMsg & State() { return battery_state_; }
+  void SetError(const std::string & msg) { SetErrorMsg(msg); }
+  void SetWarning(const std::string & msg) { SetWarningMsg(msg); }
   ChargingStatusMsg & ChargingStatus() { return charging_status_; }
 
   float load_current = 0.0f;
@@ -199,6 +201,24 @@ TEST_F(TestSingleBatteryPublisherDiagnostics, ChargerNotChargingWarns)
   const auto status = DiagnoseStatus();
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
   EXPECT_EQ("Plugged and not charging", GetDiagnosticValue(status, "Power supply status"));
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, ColdBatteryIsAWarning)
+{
+  // Data has to be fresh, or the errors task reports the missing data instead.
+  fake_publisher_->Publish();
+
+  fake_battery_->SetWarning("too cold");
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  fake_publisher_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("too cold", GetDiagnosticValue(status, "Warning message"));
+
+  fake_battery_->SetError("overheat");
+  status.clearSummary();
+  status.values.clear();
+  fake_publisher_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
 }
 
 int main(int argc, char ** argv)

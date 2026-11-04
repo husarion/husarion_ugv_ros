@@ -300,26 +300,32 @@ void LightsDriverNode::FrameCB(
   }
 
   std::string message;
+  auto reason = FrameDropReason::NONE;
   if (
     (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
     rclcpp::Duration::from_seconds(frame_timeout_)) {
+    reason = FrameDropReason::TIMEOUT;
     message = "Timeout exceeded, ignoring frame";
   } else if (rclcpp::Time(msg->header.stamp) < last_time) {
+    reason = FrameDropReason::PAST;
     message = "Dropping message from past";
   } else if (msg->encoding != sensor_msgs::image_encodings::RGBA8) {
+    reason = FrameDropReason::ENCODING;
     message = "Incorrect image encoding ('" + msg->encoding + "')";
   } else if (msg->height != 1) {
+    reason = FrameDropReason::HEIGHT;
     message = "Incorrect image height " + std::to_string(msg->height);
   } else if (
     msg->width != static_cast<std::uint32_t>(
                     panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
+    reason = FrameDropReason::WIDTH;
     message = "Incorrect image width " + std::to_string(msg->width);
   }
 
-  if (!message.empty()) {
-    auto warn_msg = message + " on " + panel_name + "!";
-    PanelThrottleWarnLog(panel_name, warn_msg);
-    diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+  if (reason != FrameDropReason::NONE) {
+    PanelThrottleWarnLog(panel_name, message + " on " + panel_name + "!");
+    frames_dropped_.fetch_add(1, std::memory_order_relaxed);
+    last_frame_drop_reason_.store(reason, std::memory_order_relaxed);
     return;
   }
 
@@ -425,7 +431,38 @@ void LightsDriverNode::DiagnoseLights(diagnostic_updater::DiagnosticStatusWrappe
   }
 
   status.add("LED control status", led_control_status);
+
+  const auto frames_dropped = frames_dropped_.exchange(0, std::memory_order_relaxed);
+  if (frames_dropped > 0) {
+    status.add("Frames dropped since the last report", frames_dropped);
+    status.add(
+      "Last drop reason",
+      FrameDropReasonToString(last_frame_drop_reason_.load(std::memory_order_relaxed)));
+    if (error_level == diagnostic_updater::DiagnosticStatusWrapper::OK) {
+      error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+      message = "Animation frames were dropped.";
+    }
+  }
+
   status.summary(error_level, message);
+}
+
+std::string LightsDriverNode::FrameDropReasonToString(const FrameDropReason reason)
+{
+  switch (reason) {
+    case FrameDropReason::TIMEOUT:
+      return "frame older than the frame timeout";
+    case FrameDropReason::PAST:
+      return "frame older than the previous one";
+    case FrameDropReason::ENCODING:
+      return "wrong image encoding";
+    case FrameDropReason::HEIGHT:
+      return "wrong image height";
+    case FrameDropReason::WIDTH:
+      return "wrong image width";
+    default:
+      return "none";
+  }
 }
 
 }  // namespace husarion_ugv_lights

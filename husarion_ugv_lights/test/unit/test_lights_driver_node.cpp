@@ -99,6 +99,13 @@ public:
     return LightsDriverNode::FrameCB(msg, panel, last_time, panel_name);
   }
 
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseLights()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    LightsDriverNode::DiagnoseLights(status);
+    return status;
+  }
+
   int GetNumLed(const std::string & panel_name) const
   {
     return panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_;
@@ -318,6 +325,42 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsCountsDroppedFrames)
+{
+  auto future = CreateSetBoolSrvFuture(true, true);
+  lights_driver_node_->ToggleLEDControlCB(std::move(future));
+
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Frames dropped since the last report"));
+
+  for (int i = 0; i < 3; ++i) {
+    auto msg = CreateValidImageMsg("channel_1");
+    msg->width = lights_driver_node_->GetNumLed("channel_1") + 1;
+    lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  }
+
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image width", GetDiagnosticValue(status, "Last drop reason"));
+
+  // The count is per report.
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
 }
 
 TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)

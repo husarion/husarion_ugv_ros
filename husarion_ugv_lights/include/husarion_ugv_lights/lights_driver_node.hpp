@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_DRIVER_NODE_HPP_
 #define HUSARION_UGV_LIGHTS_HUSARION_UGV_LIGHTS_LIGHTS_DRIVER_NODE_HPP_
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -108,6 +109,19 @@ protected:
    */
   void PanelThrottleWarnLog(const std::string panel_name, const std::string message);
 
+  void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  enum class FrameDropReason : std::uint8_t {
+    NONE = 0,
+    TIMEOUT,
+    PAST,
+    ENCODING,
+    HEIGHT,
+    WIDTH,
+  };
+
+  static std::string FrameDropReasonToString(const FrameDropReason reason);
+
   int channel_1_num_led_;
   int channel_2_num_led_;
   double frame_timeout_;
@@ -121,6 +135,12 @@ protected:
 
   std::vector<std::uint8_t> channel_1_frame_;
   std::vector<std::uint8_t> channel_2_frame_;
+
+  // Counted per dropped frame and reported by the 1 Hz diagnostic task. A broadcast per dropped
+  // frame reached 100 arrays/s at 50 Hz on two channels, and drops come in bursts exactly when the
+  // robot is already loaded.
+  std::atomic<std::uint32_t> frames_dropped_{0};
+  std::atomic<FrameDropReason> last_frame_drop_reason_{FrameDropReason::NONE};
 
 private:
   void LogSPISpeed(const std::uint32_t requested_hz);
@@ -138,8 +158,6 @@ private:
   void SetBrightnessCB(
     const SetLEDBrightnessSrv::Request::SharedPtr & request,
     SetLEDBrightnessSrv::Response::SharedPtr response);
-
-  void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
 
   static constexpr unsigned kMaxInitializationAttempts = 3;
   static constexpr unsigned kServiceResponseTimeout = 3;

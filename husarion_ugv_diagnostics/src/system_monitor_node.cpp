@@ -199,6 +199,12 @@ void SystemMonitorNode::DiagnoseSystemStatus(
     status.add(limited_value.key, limited_value.value);
   }
 
+  // Values only. The mean hides a single busy core, and the CAN and control threads live on
+  // fixed cores.
+  for (std::size_t i = 0; i < system_status.core_usages.size(); ++i) {
+    status.add("CPU core " + std::to_string(i) + " usage (%)", system_status.core_usages[i]);
+  }
+
   for (const auto & limited_value : limited_values) {
     if (std::isnan(limited_value.value)) {
       message = "Detected system parameter with unknown value.";

@@ -202,6 +202,24 @@ TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusNominal)
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
 }
 
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusPerCoreUsage)
+{
+  auto system_status = MakeNominalSystemStatus();
+  system_status.core_usages[3] = 100.0;
+
+  const auto status = system_monitor_->DiagnoseSystemStatus(system_status);
+  // A single busy core does not change the level.
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+
+  std::string core_3_usage;
+  for (const auto & kv : status.values) {
+    if (kv.key == "CPU core 3 usage (%)") {
+      core_3_usage = kv.value;
+    }
+  }
+  EXPECT_FLOAT_EQ(100.0, std::stof(core_3_usage));
+}
+
 TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusDiskFull)
 {
   // RAM and disk share the same 90 % default threshold.

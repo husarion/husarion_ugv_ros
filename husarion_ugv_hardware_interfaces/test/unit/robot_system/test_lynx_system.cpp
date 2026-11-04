@@ -499,6 +499,15 @@ TEST_F(TestLynxSystem, DiagnoseErrorsDriverFaultIsAnError)
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
   EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: fault_flag.overheat"));
 
+  lynx_system_->GetRoboteqErrorFilter()->UpdateError(
+    husarion_ugv_hardware_interfaces::ErrorsFilterIds::ROBOTEQ_DRIVER, true);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
+  EXPECT_EQ(
+    "E-stop reset or motor torque toggle", GetDiagnosticValue(status, "Latched errors clear on"));
+
   data.SetDriverState(MakeDriverState(40), false);
   data.SetCANError(true);
   status.clearSummary();

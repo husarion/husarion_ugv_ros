@@ -853,10 +853,13 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
       status.add("PDO timeouts since the last report", new_pdo_timeout_events);
     }
 
+    // The filter latches: these stay set until the E-stop is reset or the motor torque toggled,
+    // even after the cause went away.
     if (roboteq_error_filter_->IsError()) {
       raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
       husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-        status, roboteq_error_filter_->GetErrorMap(), "", " error");
+        status, roboteq_error_filter_->GetErrorDescriptionMap());
+      status.add("Latched errors clear on", "E-stop reset or motor torque toggle");
     }
   } catch (const std::exception & e) {
     status.summary(

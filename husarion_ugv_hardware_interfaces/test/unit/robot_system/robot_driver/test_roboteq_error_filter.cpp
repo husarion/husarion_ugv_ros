@@ -212,6 +212,19 @@ TEST(TestRoboteqErrorFilter, ClearErrorsCounters)
   EXPECT_FALSE(roboteq_error_filter.IsError(ErrorsFilterIds::ROBOTEQ_DRIVER));
 }
 
+TEST(TestRoboteqErrorFilter, GetErrorDescriptionMap)
+{
+  using husarion_ugv_hardware_interfaces::ErrorsFilterIds;
+
+  husarion_ugv_hardware_interfaces::RoboteqErrorFilter roboteq_error_filter(2, 2, 1, 1);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true);
+
+  const auto error_map = roboteq_error_filter.GetErrorDescriptionMap();
+  EXPECT_EQ(4, error_map.size());
+  EXPECT_TRUE(error_map.at("Motor controller fault"));
+  EXPECT_FALSE(error_map.at("Motor state data timing out"));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

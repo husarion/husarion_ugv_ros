@@ -81,6 +81,15 @@ std::map<std::string, bool> RoboteqErrorFilter::GetErrorMap() const
   return error_map;
 }
 
+std::map<std::string, bool> RoboteqErrorFilter::GetErrorDescriptionMap() const
+{
+  std::map<std::string, bool> error_map;
+  for (const auto & [id, filter] : error_filters_) {
+    error_map.emplace(error_filter_id_descriptions.at(id), filter.IsError());
+  }
+  return error_map;
+}
+
 void RoboteqErrorFilter::ClearErrorsIfFlagSet()
 {
   if (clear_errors_) {

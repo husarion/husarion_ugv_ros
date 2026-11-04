@@ -241,6 +241,9 @@ protected:
   std::atomic<std::uint32_t> pdo_timeout_events_{0};
   // The diagnostic thread's own record of the count it reported last.
   std::uint32_t pdo_timeout_events_reported_ = 0;
+
+  // Set while the motor torque is off on request, which raises the Roboteq emergency stop fault.
+  std::atomic_bool torque_disabled_by_request_{false};
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

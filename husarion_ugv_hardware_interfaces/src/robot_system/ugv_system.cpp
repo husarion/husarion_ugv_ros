@@ -576,6 +576,8 @@ void UGVSystem::ResetEStop()
   RCLCPP_INFO(logger_, "Resetting E-Stop.");
 
   e_stop_->ResetEStop();
+  // The reset turns the Roboteq emergency stop off, which enables the motor torque again.
+  torque_disabled_by_request_ = false;
 }
 
 void UGVSystem::UpdateMotorsState()
@@ -806,11 +808,23 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
   };
 
   try {
+    // A torque disable on request sets the Roboteq emergency stop fault, and the error filter
+    // latches it. That is the robot doing what it was asked, so it is a WARN while it is the only
+    // fault.
+    const bool torque_disabled_by_request = torque_disabled_by_request_.load();
+    bool flag_error_not_torque_disable = false;
+
     for (const auto & driver : GetDriversDiagnosticData()) {
       const auto & data = driver.data;
       const std::string error_prefix = driver.name + " error: ";
 
-      if (data.IsFlagError()) {
+      if (
+        torque_disabled_by_request && data.IsFlagError() && data.IsOnlyTorqueDisabledFlagError()) {
+        raise(
+          diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor torque disabled by request.");
+        status.add(driver.name + " warning: motor torque", "disabled by request");
+      } else if (data.IsFlagError()) {
+        flag_error_not_torque_disable = true;
         raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
         husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
           status, data.GetFlagErrorMap(), error_prefix);
@@ -855,7 +869,13 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
 
     // The filter latches: these stay set until the E-stop is reset or the motor torque toggled,
     // even after the cause went away.
-    if (roboteq_error_filter_->IsError()) {
+    const bool only_torque_disable_latched =
+      torque_disabled_by_request && !flag_error_not_torque_disable &&
+      roboteq_error_filter_->IsError(ErrorsFilterIds::ROBOTEQ_DRIVER) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::WRITE_PDO_CMDS) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_MOTOR_STATES) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_DRIVER_STATE);
+    if (roboteq_error_filter_->IsError() && !only_torque_disable_latched) {
       raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
       husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
         status, roboteq_error_filter_->GetErrorDescriptionMap());
@@ -887,6 +907,7 @@ void UGVSystem::MotorTorqueEnable(const bool enable)
       } else {
         robot_driver_->TurnOffEStop();
       }
+      torque_disabled_by_request_ = !enable;
     }
 
     roboteq_error_filter_->SetClearErrorsFlag();

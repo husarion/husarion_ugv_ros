@@ -134,6 +134,9 @@ public:
   FaultFlag();
   husarion_ugv_msgs::msg::FaultFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
+
+  // True when the Roboteq emergency stop, which a motor torque disable sets, is the only fault.
+  bool IsOnlyEmergencyStop() const { return GetErrorFlags() == std::bitset<8>(1 << 4); }
 };
 
 class ScriptFlag : public FlagError
@@ -221,6 +224,13 @@ public:
   {
     return fault_flags_.IsError() || script_flags_.IsError() ||
            channel_1_runtime_error_.IsError() || channel_2_runtime_error_.IsError();
+  }
+
+  // True when the only flag error is the Roboteq emergency stop that a torque disable sets.
+  bool IsOnlyTorqueDisabledFlagError() const
+  {
+    return fault_flags_.IsOnlyEmergencyStop() && !script_flags_.IsError() &&
+           !channel_1_runtime_error_.IsError() && !channel_2_runtime_error_.IsError();
   }
 
   bool IsError() const

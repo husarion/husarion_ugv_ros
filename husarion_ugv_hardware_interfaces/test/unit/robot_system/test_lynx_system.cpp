@@ -53,6 +53,7 @@ public:
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { LynxSystem::UpdateFlagErrors(); }
+  void MotorTorqueEnable(const bool enable) { LynxSystem::MotorTorqueEnable(enable); }
   void TickCANopenResyncWatchdog(const bool data_timed_out)
   {
     UpdateCANopenResyncWatchdog(data_timed_out);
@@ -544,6 +545,48 @@ TEST_F(TestLynxSystem, DiagnoseErrorsCurrentLimitIsAWarning)
     "<missing>",
     GetDiagnosticValue(status, "Driver error: channel_1_motor.runtime_error.amps_limit_active"));
   EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // Without a torque disable request the same fault is an error.
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+
+  lynx_system_->MotorTorqueEnable(false);
+  lynx_system_->UpdateFlagErrors();
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("disabled by request", GetDiagnosticValue(status, "Driver warning: motor torque"));
+
+  // Any other fault next to it is still an error.
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault | 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+
+  lynx_system_->MotorTorqueEnable(true);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
 }
 
 TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)

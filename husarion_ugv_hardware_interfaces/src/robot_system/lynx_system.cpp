@@ -172,17 +172,16 @@ void LynxSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & st
 void LynxSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
   unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"Panther system status monitoring."};
+  std::string message{"Lynx system status monitoring."};
 
   // See DiagnoseErrors - never let a teardown-race exception escape.
   try {
     const auto driver_state = robot_driver_->GetData(DriverNames::DEFAULT).GetDriverState();
 
-    status.add("Default driver voltage (V)", driver_state.GetVoltage());
-    status.add("Default driver current (A)", driver_state.GetCurrent());
-    status.add("Default driver temperature (\u00B0C)", driver_state.GetTemperature());
-    status.add(
-      "Default driver heatsink temperature (\u00B0C)", driver_state.GetHeatsinkTemperature());
+    status.add("Driver voltage (V)", driver_state.GetVoltage());
+    status.add("Driver current (A)", driver_state.GetCurrent());
+    status.add("Driver temperature (\u00B0C)", driver_state.GetTemperature());
+    status.add("Driver heatsink temperature (\u00B0C)", driver_state.GetHeatsinkTemperature());
   } catch (const std::exception & e) {
     status.summary(
       diagnostic_updater::DiagnosticStatusWrapper::STALE,

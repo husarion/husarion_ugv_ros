@@ -305,7 +305,11 @@ return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & 
     UpdateDriverState();
     UpdateDriverStateMsg();
     system_ros_interface_->PublishRobotDriverState();
-    next_driver_state_update_time_ = time + driver_states_update_period_;
+    // Step from the planned time so late reads do not stretch the period
+    next_driver_state_update_time_ = next_driver_state_update_time_ + driver_states_update_period_;
+    if (next_driver_state_update_time_ <= time) {
+      next_driver_state_update_time_ = time + driver_states_update_period_;
+    }
   }
 
   UpdateEStopState();

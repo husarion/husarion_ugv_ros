@@ -1,8 +1,8 @@
 diff --git a/pal_statistics/src/pal_statistics.cpp b/pal_statistics/src/pal_statistics.cpp
-index 03a4037..b035aba 100644
+index 03a4037..6fcf17b 100644
 --- a/pal_statistics/src/pal_statistics.cpp
 +++ b/pal_statistics/src/pal_statistics.cpp
-@@ -29,6 +29,11 @@
+@@ -29,8 +29,15 @@
  
  #include "pal_statistics/pal_statistics.hpp"
  
@@ -10,11 +10,15 @@ index 03a4037..b035aba 100644
 +#include <pthread.h>
 +#endif
 +
++#include <chrono>
 +#include <cstdlib>
  #include <memory>
  #include <string>
++#include <thread>
  #include <utility>
-@@ -339,13 +344,43 @@ bool StatisticsRegistry::updateMsg(
+ 
+ #include "lock_free_queue.hpp"
+@@ -339,13 +346,44 @@ bool StatisticsRegistry::updateMsg(
    }
  }
  
@@ -44,17 +48,19 @@ index 03a4037..b035aba 100644
 +  // subscribers poll slowly. Each wake drains the whole buffer (100 samples),
 +  // and a new subscriber gets the fast poll within one idle period. Not a
 +  // condition variable on purpose - the notify would add a syscall to the
-+  // real-time loop that calls publishAsync().
++  // real-time loop that calls publishAsync(). A rate sleep throws once the
++  // context is shut down, so stop polling then and sleep idle without it.
    rclcpp::WallRate rate(2000);
-+  rclcpp::WallRate idle_rate(idlePollRate());
++  const auto idle_period = std::chrono::duration<double>(1.0 / idlePollRate());
    while (rclcpp::ok() && !interrupt_thread_) {
      try {
-       while (!is_data_ready_ && !interrupt_thread_) {
+-      while (!is_data_ready_ && !interrupt_thread_) {
 -        rate.sleep();
++      while (!is_data_ready_ && !interrupt_thread_ && rclcpp::ok()) {
 +        if (pub_->get_subscription_count() > 0 || pub_values_->get_subscription_count() > 0) {
 +          rate.sleep();
 +        } else {
-+          idle_rate.sleep();
++          std::this_thread::sleep_for(idle_period);
 +        }
        }
  

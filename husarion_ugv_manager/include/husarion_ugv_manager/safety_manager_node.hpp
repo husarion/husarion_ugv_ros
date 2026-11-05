@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
 #define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
 
+#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
@@ -24,6 +25,7 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 #include "husarion_ugv_msgs/msg/io_state.hpp"
 #include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
@@ -42,6 +44,7 @@ using BoolMsg = std_msgs::msg::Bool;
 using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
 using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 using SystemStatusMsg = husarion_ugv_msgs::msg::SystemStatus;
+using TriggerSrv = std_srvs::srv::Trigger;
 
 /**
  * @brief This class is responsible for creating a BehaviorTrees responsible for safety and shutdown
@@ -84,6 +87,7 @@ private:
 
   void ShutdownRobot(const std::string & reason);
 
+  static constexpr std::chrono::seconds kServiceStartupTimeout{10};
   static constexpr float kCriticalBatteryTemp = 55.0;
   static constexpr float kFatalBatteryTemp = 62.0;
   static constexpr char kShutdownLocalhostCommand[] =

@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_LIGHTS_MANAGER_NODE_HPP_
 #define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_LIGHTS_MANAGER_NODE_HPP_
 
+#include <chrono>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -26,6 +27,7 @@
 #include "std_msgs/msg/bool.hpp"
 
 #include "husarion_ugv_msgs/msg/led_animation.hpp"
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
@@ -38,6 +40,7 @@ namespace husarion_ugv_manager
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
 using LEDAnimationMsg = husarion_ugv_msgs::msg::LEDAnimation;
+using SetLEDAnimationSrv = husarion_ugv_msgs::srv::SetLEDAnimation;
 
 /**
  * @brief This class is responsible for creating a BehaviorTree responsible for lights management,
@@ -72,6 +75,8 @@ private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
   void EStopCB(const BoolMsg::SharedPtr e_stop);
   void LightsTreeTimerCB();
+
+  static constexpr std::chrono::seconds kServiceStartupTimeout{10};
 
   float update_charging_anim_step_;
 

@@ -74,6 +74,12 @@ void SafetyManagerNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
 
+  // The hardware services start together with this node. Give them one start window before the
+  // tree is built, so its service nodes do not report them as not reachable. Bounded, because the
+  // shutdown branches of the tree need no service.
+  behavior_tree_utils::WaitForService<TriggerSrv>(
+    this->shared_from_this(), "hardware/e_stop_trigger", kServiceStartupTimeout);
+
   RegisterBehaviorTree();
   safety_tree_manager_->Initialize(factory_);
   shutdown_tree_manager_->Initialize(factory_);

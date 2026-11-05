@@ -29,11 +29,14 @@
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
+#include "husarion_ugv_msgs/srv/set_led_animation.hpp"
+
 #include <husarion_ugv_manager/lights_manager_node.hpp>
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
 
 using BoolMsg = std_msgs::msg::Bool;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
+using SetLEDAnimationSrv = husarion_ugv_msgs::srv::SetLEDAnimation;
 
 class LightsManagerNodeWrapper : public husarion_ugv_manager::LightsManagerNode
 {
@@ -66,6 +69,7 @@ protected:
   std::vector<rclcpp::Parameter> CreateTestParameters() const;
 
   std::shared_ptr<LightsManagerNodeWrapper> lights_manager_node_;
+  rclcpp::Service<SetLEDAnimationSrv>::SharedPtr set_animation_server_;
 
 private:
   std::string bt_project_path_;
@@ -94,6 +98,10 @@ TestLightsManagerNode::TestLightsManagerNode()
   options.parameter_overrides(CreateTestParameters());
 
   lights_manager_node_ = std::make_shared<LightsManagerNodeWrapper>("test_lights_manager", options);
+  // Initialize() waits for the lights driver service
+  set_animation_server_ = lights_manager_node_->create_service<SetLEDAnimationSrv>(
+    "lights/set_animation",
+    [](const SetLEDAnimationSrv::Request::SharedPtr, SetLEDAnimationSrv::Response::SharedPtr) {});
   lights_manager_node_->Initialize();
 }
 

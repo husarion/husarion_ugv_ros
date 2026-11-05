@@ -61,6 +61,11 @@ void LightsManagerNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
 
+  // The lights driver starts together with this node. Give it one start window before the tree is
+  // built, so its service nodes do not report the service as not reachable.
+  behavior_tree_utils::WaitForService<SetLEDAnimationSrv>(
+    this->shared_from_this(), "lights/set_animation", kServiceStartupTimeout);
+
   RegisterBehaviorTree();
   lights_tree_manager_->Initialize(factory_);
 

@@ -26,6 +26,7 @@
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_cpp/utils/shared_library.h"
 #include "behaviortree_ros2/plugins.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -106,6 +107,30 @@ inline BT::RosNodeParams CreateRosNodeParamsFromBlackboard(const BT::NodeConfig 
   }
 
   return BT::RosNodeParams(node);
+}
+
+/**
+ * @brief Waits once for a service that the tree calls. Each service node of the tree waits for its
+ * service while the tree is built and logs an error if it is missing, so a server that starts
+ * together with the manager would be reported as not reachable.
+ *
+ * @param node The node used to create a temporary client.
+ * @param service_name The name of the service.
+ * @param timeout Time to wait for the service.
+ * @return True if the service is available within the timeout.
+ */
+template <typename ServiceT>
+inline bool WaitForService(
+  const rclcpp::Node::SharedPtr & node, const std::string & service_name,
+  const std::chrono::milliseconds & timeout)
+{
+  auto client = node->create_client<ServiceT>(service_name);
+  if (client->service_is_ready()) {
+    return true;
+  }
+
+  RCLCPP_INFO(node->get_logger(), "Waiting for service '%s'.", service_name.c_str());
+  return client->wait_for_service(timeout);
 }
 
 }  // namespace husarion_ugv_manager::behavior_tree_utils

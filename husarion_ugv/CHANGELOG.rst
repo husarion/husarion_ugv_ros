@@ -33,6 +33,7 @@ Forthcoming
 * new led_spi_speed_hz launch argument (default 800000, the EMC tested clock) sets the LED SPI clock for EMC tests, and the lights driver logs the requested and the effective clock at start
 * new "E-stop" diagnostic on the hardware controller: state, source, last change and last refused reset, WARN only when a device outside the driver latched it
 * the hardware controller's "System errors" diagnostic goes ERROR on real faults only: a single late PDO, current limiting, limit switches and a torque disabled on request are warnings, and latched errors are named for the operator with what clears them
+* a parked robot reads OK in "System errors": the Roboteq safety stop that a latched e-stop holds the motors with is shown as "safety stop (held by the e-stop)" and warns only with the e-stop released
 * the "System status" diagnostic shows per-motor currents, the motor power, charger, aux power and fan lines, PDO timeouts in the last hour and the longest read cycle, warns 10 C below the Roboteq overheat limit, and names the Lynx correctly
 * the battery diagnostics show the charge current, the source and per-pack voltage, percentage, temperature and health, warn below 20 %, on a charger that does not charge and on a cold battery, and report missing battery data as STALE instead of OK - on a Lynx without the second charge shunt the charge current reads about 0.12 A with an idle charger, a known offset
 * battery read errors and dropped LED frames no longer broadcast a diagnostic array per event, they are counted in the regular 1 Hz tasks

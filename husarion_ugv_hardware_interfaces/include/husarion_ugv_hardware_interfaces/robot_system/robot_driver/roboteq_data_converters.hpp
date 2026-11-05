@@ -157,8 +157,12 @@ public:
   /**
    * @brief Describes the set flags that are not errors (current limiting, limit switches) for
    * the operator, e.g. "current limit active". Empty when none is set.
+   *
+   * @param include_safety_stop false leaves the safety stop out, for when the e-stop holds it.
    */
-  std::string GetWarningDescription() const;
+  std::string GetWarningDescription(const bool include_safety_stop = true) const;
+
+  bool IsSafetyStopActive() const { return flags_.test(3); }
 };
 
 /**

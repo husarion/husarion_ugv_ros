@@ -213,7 +213,7 @@ std::map<std::string, bool> RuntimeError::GetErrorMap() const
   return error_map;
 }
 
-std::string RuntimeError::GetWarningDescription() const
+std::string RuntimeError::GetWarningDescription(const bool include_safety_stop) const
 {
   static const std::map<std::string, std::string> descriptions = {
     {"amps_limit_active", "current limit active"},
@@ -225,6 +225,9 @@ std::string RuntimeError::GetWarningDescription() const
 
   std::string description;
   for (const auto & flag : GetSetSuppressedFlags()) {
+    if (!include_safety_stop && flag == "safety_stop_active") {
+      continue;
+    }
     const auto it = descriptions.find(flag);
     description += (description.empty() ? "" : ", ") +
                    (it != descriptions.end() ? it->second : flag);

@@ -838,6 +838,11 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
     // latches it. That is the robot doing what it was asked, so it is a WARN while it is the only
     // fault.
     const bool torque_disabled_by_request = torque_disabled_by_request_.load();
+
+    // A latched e-stop holds the motors through the Roboteq safety stop, so on a parked robot
+    // that flag is the expected state, not a warning.
+    const bool e_stop_latched = e_stop_diagnostics_ &&
+                                e_stop_diagnostics_->GetSource() != EStopLatchSource::RELEASED;
     bool flag_error_not_torque_disable = false;
 
     for (const auto & driver : GetDriversDiagnosticData()) {
@@ -866,10 +871,14 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
 
       const std::string warning_prefix = driver.name + " warning: ";
       const auto add_motor_warning = [&](const std::uint8_t channel, const std::string & motor) {
-        const auto description = data.GetRuntimeError(channel).GetWarningDescription();
+        const auto & runtime_error = data.GetRuntimeError(channel);
+        const auto description = runtime_error.GetWarningDescription(!e_stop_latched);
         if (!description.empty()) {
           raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor " + description + ".");
           status.add(warning_prefix + motor + " motor", description);
+        }
+        if (e_stop_latched && runtime_error.IsSafetyStopActive()) {
+          status.add(driver.name + ": " + motor + " motor", "safety stop (held by the e-stop)");
         }
       };
       add_motor_warning(RoboteqDriver::kChannel1, driver.channel_1_motor);

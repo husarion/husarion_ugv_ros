@@ -40,6 +40,10 @@ public:
     mock_gpio_controller =
       std::make_shared<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>();
     mock_e_stop = std::make_shared<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock>();
+
+    e_stop_diagnostics = std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+    e_stop_diagnostics->SetSource(husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED);
+    ON_CALL(*mock_e_stop, GetDiagnostics()).WillByDefault(::testing::Return(e_stop_diagnostics));
   }
 
   void DefineRobotDriver() override { robot_driver_ = mock_robot_driver; }
@@ -98,6 +102,7 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>
     mock_gpio_controller;
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> mock_e_stop;
+  std::shared_ptr<husarion_ugv_hardware_interfaces::EStopDiagnostics> e_stop_diagnostics;
 };
 
 class TestLynxSystem : public ::testing::Test
@@ -545,6 +550,46 @@ TEST_F(TestLynxSystem, DiagnoseErrorsCurrentLimitIsAWarning)
     "<missing>",
     GetDiagnosticValue(status, "Driver error: channel_1_motor.runtime_error.amps_limit_active"));
   EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsSafetyStopHeldByTheEStopIsOK)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kSafetyStopActive = 0b00001000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  // A parked robot: the latched e-stop holds the motors through the safety stop.
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: right motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // A current limit next to it is still a warning.
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive | 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // With the e-stop released nothing should hold the motors.
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive), false);
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::RELEASED);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("safety stop active", GetDiagnosticValue(status, "Driver warning: right motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver: right motor"));
 }
 
 TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)

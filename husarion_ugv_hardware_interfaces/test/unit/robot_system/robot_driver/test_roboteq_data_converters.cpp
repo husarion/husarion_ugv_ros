@@ -322,6 +322,13 @@ TEST(TestRoboteqDataConverters, RuntimeErrorSuppressedFlagsAreNotErrors)
 
   runtime_error.SetData(0b00000010);
   EXPECT_EQ("", runtime_error.GetWarningDescription());
+  EXPECT_FALSE(runtime_error.IsSafetyStopActive());
+
+  // safety_stop_active, amps_limit_active
+  runtime_error.SetData(0b00001001);
+  EXPECT_TRUE(runtime_error.IsSafetyStopActive());
+  EXPECT_EQ("current limit active, safety stop active", runtime_error.GetWarningDescription());
+  EXPECT_EQ("current limit active", runtime_error.GetWarningDescription(false));
 }
 
 int main(int argc, char ** argv)

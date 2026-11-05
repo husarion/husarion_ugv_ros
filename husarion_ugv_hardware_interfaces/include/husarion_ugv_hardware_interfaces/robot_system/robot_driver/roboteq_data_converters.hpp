@@ -137,6 +137,10 @@ public:
 
   // True when the Roboteq emergency stop, which a motor torque disable sets, is the only fault.
   bool IsOnlyEmergencyStop() const { return GetErrorFlags() == std::bitset<8>(1 << 4); }
+  bool IsEmergencyStopSet() const { return flags_.test(4); }
+
+  // The emergency stop's key in GetErrorMap and DriverData::GetFlagErrorMap.
+  static constexpr const char * kEmergencyStopKey = "fault_flag.emergency_stop (torque disabled)";
 };
 
 class ScriptFlag : public FlagError

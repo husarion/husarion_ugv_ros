@@ -849,16 +849,23 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
       const auto & data = driver.data;
       const std::string error_prefix = driver.name + " error: ";
 
-      if (
-        torque_disabled_by_request && data.IsFlagError() && data.IsOnlyTorqueDisabledFlagError()) {
+      // With the torque disabled on request the emergency stop fault is that request, also when
+      // other faults are set next to it.
+      const bool torque_disable_fault = torque_disabled_by_request &&
+                                        data.GetFaultFlag().IsEmergencyStopSet();
+      if (torque_disable_fault) {
         raise(
-          diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor torque disabled by request.");
-        status.add(driver.name + " warning: motor torque", "disabled by request");
-      } else if (data.IsFlagError()) {
+          diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor torque disabled on request.");
+        status.add(driver.name + " warning: motor torque", "disabled on request");
+      }
+      if (data.IsFlagError() && !(torque_disable_fault && data.IsOnlyTorqueDisabledFlagError())) {
         flag_error_not_torque_disable = true;
         raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
-        husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-          status, data.GetFlagErrorMap(), error_prefix);
+        auto flag_errors = data.GetFlagErrorMap();
+        if (torque_disable_fault) {
+          flag_errors.erase(FaultFlag::kEmergencyStopKey);
+        }
+        husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(status, flag_errors, error_prefix);
       }
       if (data.IsCANError()) {
         raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
@@ -937,12 +944,15 @@ void UGVSystem::MotorTorqueEnable(const bool enable)
     {
       std::lock_guard<std::mutex> lck_g(*robot_driver_write_mtx_);
 
+      // Marked before the write: an SDO write that times out may still have reached the Roboteq,
+      // and the diagnostics must not read the torque disable it caused as a fault.
       if (!enable) {
+        torque_disabled_by_request_ = true;
         robot_driver_->TurnOnEStop();
       } else {
         robot_driver_->TurnOffEStop();
+        torque_disabled_by_request_ = false;
       }
-      torque_disabled_by_request_ = !enable;
     }
 
     roboteq_error_filter_->SetClearErrorsFlag();

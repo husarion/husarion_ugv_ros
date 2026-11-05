@@ -592,6 +592,31 @@ TEST_F(TestLynxSystem, DiagnoseErrorsSafetyStopHeldByTheEStopIsOK)
   EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver: right motor"));
 }
 
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisableWithATimedOutWriteIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // An SDO write that times out may still have reached the Roboteq and cut the torque.
+  EXPECT_CALL(*lynx_system_->mock_robot_driver, TurnOnEStop())
+    .WillOnce(::testing::Throw(std::runtime_error("SDO write timed out")));
+  EXPECT_THROW(lynx_system_->MotorTorqueEnable(false), std::runtime_error);
+  lynx_system_->UpdateFlagErrors();
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+}
+
 TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
 {
   using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
@@ -617,14 +642,22 @@ TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
   status.values.clear();
   lynx_system_->DiagnoseErrors(status);
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
-  EXPECT_EQ("disabled by request", GetDiagnosticValue(status, "Driver warning: motor torque"));
+  EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Driver warning: motor torque"));
 
-  // Any other fault next to it is still an error.
+  // The latched motor controller fault comes from the same flag, so it is not an error.
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // Any other fault next to it is still an error, listed without the torque disable.
   data.SetDriverState(MakeDriverState(40, kEmergencyStopFault | 0b00000001), false);
   status.clearSummary();
   status.values.clear();
   lynx_system_->DiagnoseErrors(status);
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: fault_flag.overheat"));
+  EXPECT_EQ(
+    "<missing>",
+    GetDiagnosticValue(status, "Driver error: fault_flag.emergency_stop (torque disabled)"));
+  EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Driver warning: motor torque"));
 
   lynx_system_->MotorTorqueEnable(true);
   data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);

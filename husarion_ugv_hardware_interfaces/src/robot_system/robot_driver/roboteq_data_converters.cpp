@@ -93,7 +93,22 @@ std::string FlagError::GetErrorLog() const
       error_msg += flag_names_[i] + " ";
     }
   }
+  for (std::size_t i = flag_names_.size(); i < flags_.size(); i++) {
+    if (GetErrorFlags().test(i)) {
+      error_msg += kUnnamedBitPrefix + std::to_string(i) + " ";
+    }
+  }
   return error_msg;
+}
+
+void FlagError::AddUnnamedErrorBits(
+  std::map<std::string, bool> & error_map, const std::string & key_prefix) const
+{
+  for (std::size_t i = flag_names_.size(); i < flags_.size(); i++) {
+    if (GetErrorFlags().test(i)) {
+      error_map[key_prefix + kUnnamedBitPrefix + std::to_string(i)] = true;
+    }
+  }
 }
 
 std::vector<std::string> FlagError::GetSetSuppressedFlags() const
@@ -143,6 +158,7 @@ std::map<std::string, bool> FaultFlag::GetErrorMap() const
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
     error_map["fault_flag." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "fault_flag.");
   return error_map;
 }
 
@@ -165,6 +181,7 @@ std::map<std::string, bool> ScriptFlag::GetErrorMap() const
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
     error_map["script_flag." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "script_flag.");
   return error_map;
 }
 
@@ -210,6 +227,7 @@ std::map<std::string, bool> RuntimeError::GetErrorMap() const
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
     error_map["runtime_error." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "runtime_error.");
   return error_map;
 }
 

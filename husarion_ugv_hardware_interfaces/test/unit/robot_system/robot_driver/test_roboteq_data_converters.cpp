@@ -331,6 +331,25 @@ TEST(TestRoboteqDataConverters, RuntimeErrorSuppressedFlagsAreNotErrors)
   EXPECT_EQ("current limit active", runtime_error.GetWarningDescription(false));
 }
 
+TEST(TestRoboteqDataConverters, UnnamedFlagBitsShowInTheErrorMap)
+{
+  husarion_ugv_hardware_interfaces::ScriptFlag script_flag;
+  // Bit 5 has no name.
+  script_flag.SetData(0b00100000);
+
+  EXPECT_TRUE(script_flag.IsError());
+  const auto error_map = script_flag.GetErrorMap();
+  ASSERT_TRUE(error_map.count("script_flag.bit_5"));
+  EXPECT_TRUE(error_map.at("script_flag.bit_5"));
+  EXPECT_TRUE(husarion_ugv_hardware_interfaces::FlagError::IsUnnamedBitKey("script_flag.bit_5"));
+  EXPECT_FALSE(
+    husarion_ugv_hardware_interfaces::FlagError::IsUnnamedBitKey("script_flag.loop_error"));
+  EXPECT_EQ("bit_5 ", script_flag.GetErrorLog());
+
+  script_flag.SetData(0);
+  EXPECT_FALSE(script_flag.GetErrorMap().count("script_flag.bit_5"));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

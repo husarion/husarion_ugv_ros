@@ -16,6 +16,7 @@
 
 #include <sys/sysinfo.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdio>
@@ -858,13 +859,26 @@ void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrappe
           diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor torque disabled on request.");
         status.add(driver.name + " warning: motor torque", "disabled on request");
       }
-      if (data.IsFlagError() && !(torque_disable_fault && data.IsOnlyTorqueDisabledFlagError())) {
+      auto flag_errors = data.GetFlagErrorMap();
+      if (torque_disable_fault) {
+        flag_errors.erase(FaultFlag::kEmergencyStopKey);
+        // Bits without a name mean nothing to this driver. On lynx-165f a torque disable left a
+        // flag error set with no named flag but the emergency stop, so one of them came with it.
+        // While the torque is off on request they are shown, but not as a fault.
+        for (auto it = flag_errors.begin(); it != flag_errors.end();) {
+          if (it->second && FlagError::IsUnnamedBitKey(it->first)) {
+            status.add(driver.name + " warning: " + it->first, true);
+            it = flag_errors.erase(it);
+          } else {
+            ++it;
+          }
+        }
+      }
+      if (std::any_of(flag_errors.begin(), flag_errors.end(), [](const auto & flag) {
+            return flag.second;
+          })) {
         flag_error_not_torque_disable = true;
         raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Error detected.");
-        auto flag_errors = data.GetFlagErrorMap();
-        if (torque_disable_fault) {
-          flag_errors.erase(FaultFlag::kEmergencyStopKey);
-        }
         husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(status, flag_errors, error_prefix);
       }
       if (data.IsCANError()) {

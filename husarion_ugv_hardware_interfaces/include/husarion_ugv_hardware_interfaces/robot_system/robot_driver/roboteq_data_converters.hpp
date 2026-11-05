@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <bitset>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -118,7 +119,18 @@ public:
   // Names of the set flags that do not count as an error.
   std::vector<std::string> GetSetSuppressedFlags() const;
 
+  // Error map keys of bits that have no name, e.g. "script_flag.bit_5". A set bit counts as an
+  // error in IsError(), so it has to show up in the maps too.
+  static constexpr const char * kUnnamedBitPrefix = "bit_";
+  static bool IsUnnamedBitKey(const std::string & key)
+  {
+    return key.find(std::string(".") + kUnnamedBitPrefix) != std::string::npos;
+  }
+
 protected:
+  void AddUnnamedErrorBits(
+    std::map<std::string, bool> & error_map, const std::string & key_prefix) const;
+
   // Flags that are set and not suppressed - what counts as an error.
   std::bitset<8> GetErrorFlags() const { return flags_ & (~suppressed_flags_); }
 
@@ -135,8 +147,6 @@ public:
   husarion_ugv_msgs::msg::FaultFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
 
-  // True when the Roboteq emergency stop, which a motor torque disable sets, is the only fault.
-  bool IsOnlyEmergencyStop() const { return GetErrorFlags() == std::bitset<8>(1 << 4); }
   bool IsEmergencyStopSet() const { return flags_.test(4); }
 
   // The emergency stop's key in GetErrorMap and DriverData::GetFlagErrorMap.
@@ -232,13 +242,6 @@ public:
   {
     return fault_flags_.IsError() || script_flags_.IsError() ||
            channel_1_runtime_error_.IsError() || channel_2_runtime_error_.IsError();
-  }
-
-  // True when the only flag error is the Roboteq emergency stop that a torque disable sets.
-  bool IsOnlyTorqueDisabledFlagError() const
-  {
-    return fault_flags_.IsOnlyEmergencyStop() && !script_flags_.IsError() &&
-           !channel_1_runtime_error_.IsError() && !channel_2_runtime_error_.IsError();
   }
 
   bool IsError() const

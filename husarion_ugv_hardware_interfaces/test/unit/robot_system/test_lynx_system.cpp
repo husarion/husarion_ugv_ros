@@ -592,6 +592,41 @@ TEST_F(TestLynxSystem, DiagnoseErrorsSafetyStopHeldByTheEStopIsOK)
   EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver: right motor"));
 }
 
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisableWithAnUnnamedFlagIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+  // A script flag bit without a name.
+  constexpr std::uint8_t kUnnamedScriptFlag = 0b00100000;
+
+  auto state = MakeDriverState(40, kEmergencyStopFault);
+  state.script_flags = kUnnamedScriptFlag;
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(state, false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // Without a torque disable request the unnamed bit is a fault and is named in the task.
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: script_flag.bit_5"));
+
+  lynx_system_->MotorTorqueEnable(false);
+  lynx_system_->UpdateFlagErrors();
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver warning: script_flag.bit_5"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
 TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisableWithATimedOutWriteIsAWarning)
 {
   using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;

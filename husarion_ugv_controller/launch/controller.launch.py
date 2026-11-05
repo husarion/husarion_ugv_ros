@@ -17,7 +17,12 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    Shutdown,
+)
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -263,7 +268,10 @@ def generate_launch_description():
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        load_urdf,
+        # Scoped so the arguments load_urdf declares stay inside it. Launch configurations are
+        # global, and its simulation-only battery_config_path default ("") would otherwise reach
+        # battery.launch.py in bringup, where battery_driver then starts without battery.yaml.
+        GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,
     ]

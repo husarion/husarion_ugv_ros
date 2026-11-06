@@ -108,6 +108,7 @@ void LynxSystem::UpdateDriverStateMsg()
 void LynxSystem::UpdateFlagErrors()
 {
   const auto driver_data = robot_driver_->GetData(DriverNames::DEFAULT);
+  UpdateTorqueEnablePending(driver_data.GetFaultFlag().IsEmergencyStopSet());
   if (driver_data.IsFlagError()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,

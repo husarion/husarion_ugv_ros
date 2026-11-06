@@ -716,12 +716,85 @@ TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
     GetDiagnosticValue(status, "Driver error: fault_flag.emergency_stop (torque disabled)"));
   EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Driver warning: motor torque"));
 
+  // The torque enable lasts until the driver stops reporting the emergency stop. Its fault flags
+  // arrive later than the enable, so the first sample after it is still the old one.
   lynx_system_->MotorTorqueEnable(true);
   data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  lynx_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  data.SetDriverState(MakeDriverState(40), false);
+  lynx_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // After that the same fault is an error again.
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  lynx_system_->UpdateFlagErrors();
   status.clearSummary();
   status.values.clear();
   lynx_system_->DiagnoseErrors(status);
   EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueToggleWithTheEStopLatchedIsOK)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+  constexpr std::uint8_t kSafetyStopActive = 0b00001000;
+  // A runtime flag bit without a name, which the Roboteq raises with the emergency stop.
+  constexpr std::uint8_t kUnnamedRuntimeFlag = 0b10000000;
+
+  const auto parked_state = [&](const bool emergency_stop) {
+    auto state = MakeDriverState(
+      40, emergency_stop ? kEmergencyStopFault : 0,
+      kSafetyStopActive | (emergency_stop ? kUnnamedRuntimeFlag : 0));
+    state.runtime_stat_flag_channel_2 = state.runtime_stat_flag_channel_1;
+    return state;
+  };
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(parked_state(false), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+
+  const auto diagnose = [this]() {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    lynx_system_->UpdateFlagErrors();
+    lynx_system_->DiagnoseErrors(status);
+    return diagnostic_msgs::msg::DiagnosticStatus(status);
+  };
+
+  lynx_system_->MotorTorqueEnable(false);
+  data.SetDriverState(parked_state(true), false);
+  auto status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+
+  lynx_system_->MotorTorqueEnable(true);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  data.SetDriverState(parked_state(false), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: right motor"));
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: left motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
 }
 
 TEST_F(TestLynxSystem, DiagnoseStatusCountsPDOTimeouts)

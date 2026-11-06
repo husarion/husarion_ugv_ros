@@ -157,6 +157,10 @@ protected:
    */
   void DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status);
 
+  // Called by UpdateFlagErrors() before the error filter update, with whether any driver reports
+  // the emergency stop fault.
+  void UpdateTorqueEnablePending(const bool emergency_stop_set);
+
   // 10 C below the Over Temperature Limit (OTL 85 C) of the shipped Roboteq profile, at which the
   // controller stops the motors.
   static constexpr float kHeatsinkTemperatureWarn = 75.0F;
@@ -252,7 +256,9 @@ protected:
   std::atomic<std::uint32_t> read_cycle_max_us_{0};
 
   // Set while the motor torque is off on request, which raises the Roboteq emergency stop fault.
+  // A torque enable keeps it set until the drivers stop reporting that fault.
   std::atomic_bool torque_disabled_by_request_{false};
+  std::atomic_bool torque_enable_pending_{false};
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

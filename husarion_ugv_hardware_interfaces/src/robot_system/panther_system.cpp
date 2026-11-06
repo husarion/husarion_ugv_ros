@@ -146,6 +146,9 @@ void PantherSystem::UpdateFlagErrors()
 {
   const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
   const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
+  UpdateTorqueEnablePending(
+    front_driver_data.GetFaultFlag().IsEmergencyStopSet() ||
+    rear_driver_data.GetFaultFlag().IsEmergencyStopSet());
   if (front_driver_data.IsFlagError() || rear_driver_data.IsFlagError()) {
     if (front_driver_data.IsFlagError()) {
       RCLCPP_WARN_STREAM_THROTTLE(

@@ -589,7 +589,21 @@ void UGVSystem::ResetEStop()
 
   e_stop_->ResetEStop();
   // The reset turns the Roboteq emergency stop off, which enables the motor torque again.
+  torque_enable_pending_ = false;
   torque_disabled_by_request_ = false;
+}
+
+void UGVSystem::UpdateTorqueEnablePending(const bool emergency_stop_set)
+{
+  // The fault flags arrive in a TPDO up to 50 ms after the torque enable was written, and one
+  // stale sample latches the error filter. The request ends only when no driver reports the
+  // emergency stop any more, and the latched errors are cleared on that same sample (bit us live
+  // on a Panther: one of its two drivers was always late and every torque enable read as a fault).
+  if (torque_enable_pending_ && !emergency_stop_set) {
+    torque_enable_pending_ = false;
+    torque_disabled_by_request_ = false;
+    roboteq_error_filter_->SetClearErrorsFlag();
+  }
 }
 
 void UGVSystem::UpdateMotorsState()
@@ -965,16 +979,18 @@ void UGVSystem::MotorTorqueEnable(const bool enable)
       // Marked before the write: an SDO write that times out may still have reached the Roboteq,
       // and the diagnostics must not read the torque disable it caused as a fault.
       if (!enable) {
+        torque_enable_pending_ = false;
         torque_disabled_by_request_ = true;
         robot_driver_->TurnOnEStop();
       } else {
         robot_driver_->TurnOffEStop();
-        torque_disabled_by_request_ = false;
+        torque_enable_pending_ = true;
       }
     }
 
-    roboteq_error_filter_->SetClearErrorsFlag();
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
+    if (!enable) {
+      roboteq_error_filter_->SetClearErrorsFlag();
+    }
   } catch (const std::runtime_error & e) {
     auto warn = "An exception occurred while changing the torque state of the motors: " +
                 std::string(e.what());

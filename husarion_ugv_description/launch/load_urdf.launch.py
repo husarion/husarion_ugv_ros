@@ -110,6 +110,17 @@ def generate_launch_description():
         description="CPU the RPDO dispatch threads pin themselves to. -1 leaves them unpinned",
     )
 
+    uvp_enable = LaunchConfiguration("uvp_enable")
+    declare_uvp_enable_arg = DeclareLaunchArgument(
+        "uvp_enable",
+        default_value="False",
+        description=(
+            "Enable the battery undervoltage protection. The hardware system then latches the"
+            " e-stop when the battery driver reports a UVP trip."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -238,6 +249,8 @@ def generate_launch_description():
             canopen_thread_cpu,
             " rpdo_dispatch_cpu:=",
             rpdo_dispatch_cpu,
+            " uvp_enable:=",
+            PythonExpression(["'true' if '", uvp_enable, "' in ['True', 'true'] else 'false'"]),
         ]
     )
 
@@ -262,6 +275,7 @@ def generate_launch_description():
         declare_use_mag_arg,
         declare_canopen_thread_cpu_arg,
         declare_rpdo_dispatch_cpu_arg,
+        declare_uvp_enable_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

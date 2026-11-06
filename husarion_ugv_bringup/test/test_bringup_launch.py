@@ -36,7 +36,7 @@ from launch_ros.substitutions import FindPackageShare
 SHUTDOWN_AFTER_S = 12.0
 
 
-def run_bringup():
+def run_bringup(launch_arguments=None):
     commands = []
 
     def record(self, context):
@@ -56,7 +56,8 @@ def run_bringup():
                     "launch",
                     "bringup.launch.py",
                 )
-            )
+            ),
+            launch_arguments=(launch_arguments or {}).items(),
         )
         ls = LaunchService()
         ls.include_launch_description(
@@ -105,6 +106,61 @@ def test_every_params_file_exists(commands):
     for cmd in commands:
         for path in params_files(cmd):
             assert os.path.isfile(path), cmd
+
+
+def params_text(cmd):
+    text = ""
+    for path in params_files(cmd):
+        with open(path) as params_file:
+            text += params_file.read()
+    return text
+
+
+def robot_description(commands):
+    for cmd in commands:
+        if cmd[0].endswith("/robot_state_publisher"):
+            return params_text(cmd)
+    raise AssertionError("robot_state_publisher was not launched")
+
+
+@pytest.fixture(scope="module")
+def uvp_commands():
+    os.environ["ROBOT_HW_CONFIG_CORRECT"] = "true"
+    os.environ.setdefault("ROBOT_MODEL_NAME", "panther")
+    return run_bringup(
+        {
+            "uvp_enable": "true",
+            "uvp_threshold_v": "32.5",
+            "uvp_mode": "SHUTDOWN",
+            "uvp_latch_path": "/run/husarion/uvp_latch",
+        }
+    )
+
+
+def test_uvp_off_leaves_robot_description_unchanged(commands):
+    description = robot_description(commands)
+    assert "<ros2_control" in description
+    assert "uvp_enable" not in description
+
+
+def test_uvp_off_managers_and_battery_driver_inert(commands):
+    for name in ("safety_manager", "lights_manager"):
+        assert "uvp_enable: false" in params_text(find_node(commands, name))
+    battery = params_text(find_node(commands, "battery_driver"))
+    assert "uvp.enable: 'False'" in battery, battery
+
+
+def test_uvp_on_reaches_every_part(uvp_commands):
+    assert '<param name="uvp_enable">true</param>' in robot_description(uvp_commands)
+    for name in ("safety_manager", "lights_manager"):
+        assert "uvp_enable: true" in params_text(find_node(uvp_commands, name))
+    battery = params_text(find_node(uvp_commands, "battery_driver"))
+    assert "uvp.enable: 'true'" in battery, battery
+    assert "uvp.threshold_v: '32.5'" in battery, battery
+    assert "uvp.mode: SHUTDOWN" in battery, battery
+    assert "uvp.latch_path: /run/husarion/uvp_latch" in battery, battery
+    # Not passed, so the default.
+    assert "uvp.stop_timeout_min: '5'" in battery, battery
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.battery_protection import declare_uvp_arguments, uvp_parameters
 from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -63,7 +64,7 @@ def generate_launch_description():
         package="husarion_ugv_battery",
         executable="battery_driver_node",
         name="battery_driver",
-        parameters=[battery_config_path, {"robot_model": robot_model}],
+        parameters=[battery_config_path, {"robot_model": robot_model, **uvp_parameters()}],
         namespace=namespace,
         remappings=[("/diagnostics", "diagnostics")],
         arguments=[
@@ -80,6 +81,7 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_battery_config_path_arg,
         declare_robot_model_arg,
+        *declare_uvp_arguments(),
         battery_driver_node,
     ]
 

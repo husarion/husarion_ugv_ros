@@ -15,6 +15,7 @@
   <xacro:arg name="use_mag" default="false" />
   <xacro:arg name="canopen_thread_cpu" default="-1" />
   <xacro:arg name="rpdo_dispatch_cpu" default="-1" />
+  <xacro:arg name="uvp_enable" default="false" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/panther_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.panther_robot
@@ -28,7 +29,8 @@
     use_madgwick_filter="$(arg use_madgwick_filter)"
     use_mag="$(arg use_mag)"
     canopen_thread_cpu="$(arg canopen_thread_cpu)"
-    rpdo_dispatch_cpu="$(arg rpdo_dispatch_cpu)" />
+    rpdo_dispatch_cpu="$(arg rpdo_dispatch_cpu)"
+    uvp_enable="$(arg uvp_enable)" />
 
   <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />

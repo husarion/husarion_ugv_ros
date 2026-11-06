@@ -13,7 +13,8 @@
             use_madgwick_filter:=false
             use_mag:=false
             canopen_thread_cpu:=-1
-            rpdo_dispatch_cpu:=-1">
+            rpdo_dispatch_cpu:=-1
+            uvp_enable:=false">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="0.052 0.073 -0.006" />
@@ -117,6 +118,9 @@
           <param name="rpdo_dispatch_cpu">${rpdo_dispatch_cpu}</param>
           <param name="gpio_watchdog_cpu">3</param>
           <param name="gpio_monitor_cpu">3</param>
+          <xacro:if value="${uvp_enable}">
+            <param name="uvp_enable">true</param>
+          </xacro:if>
         </xacro:unless>
       </hardware>
 

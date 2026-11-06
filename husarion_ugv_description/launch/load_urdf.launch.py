@@ -93,6 +93,23 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    canopen_thread_cpu = LaunchConfiguration("canopen_thread_cpu")
+    declare_canopen_thread_cpu_arg = DeclareLaunchArgument(
+        "canopen_thread_cpu",
+        default_value="-1",
+        description=(
+            "CPU the CANopen communication thread pins itself to. -1 leaves it unpinned. On a "
+            "Raspberry Pi keep it off CPU 0, which handles every I2C interrupt"
+        ),
+    )
+
+    rpdo_dispatch_cpu = LaunchConfiguration("rpdo_dispatch_cpu")
+    declare_rpdo_dispatch_cpu_arg = DeclareLaunchArgument(
+        "rpdo_dispatch_cpu",
+        default_value="-1",
+        description="CPU the RPDO dispatch threads pin themselves to. -1 leaves them unpinned",
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -217,6 +234,10 @@ def generate_launch_description():
             use_madgwick_filter,
             " use_mag:=",
             use_mag,
+            " canopen_thread_cpu:=",
+            canopen_thread_cpu,
+            " rpdo_dispatch_cpu:=",
+            rpdo_dispatch_cpu,
         ]
     )
 
@@ -239,6 +260,8 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
         declare_use_mag_arg,
+        declare_canopen_thread_cpu_arg,
+        declare_rpdo_dispatch_cpu_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

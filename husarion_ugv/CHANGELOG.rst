@@ -38,6 +38,7 @@ Forthcoming
 * the battery diagnostics show the charge current, the source and per-pack voltage, percentage, temperature and health, warn below 20 %, on a charger that does not charge and on a cold battery, and report missing battery data as STALE instead of OK - on a Lynx without the second charge shunt the charge current reads about 0.12 A with an idle charger, a known offset
 * battery read errors and dropped LED frames no longer broadcast a diagnostic array per event, they are counted in the regular 1 Hz tasks
 * the OS status diagnostic warns on a full disk (its threshold was silently dropped) and lists the usage of every CPU core
+* the CANopen and RPDO dispatch threads are no longer pinned to CPU 0 by default, where they starved the I2C interrupt thread and the battery readings timed out; new canopen_thread_cpu and rpdo_dispatch_cpu launch arguments pin them on request
 * the gamepad diagnostic is OK on robots without a gamepad and warns only when a connected gamepad is lost
 * the lights diagnostic shows whether the LED output is enabled and the brightness
 

@@ -187,14 +187,36 @@ TEST_F(TestLynxSystem, RTThreadPrioritiesInvalidFallBackToDefault)
 
 TEST_F(TestLynxSystem, RTThreadCPUsDefault)
 {
-  // The defaults are the robot's layout and only valid on a machine with at least four CPUs.
+  // The GPIO default is the robot's layout and only valid on a machine with at least four CPUs.
   const int control_cpu = get_nprocs_conf() > 3 ? 3 : -1;
   const auto canopen_settings = lynx_system_->GetCANopenSettings();
 
-  EXPECT_EQ(canopen_settings.canopen_thread_cpu, 0);
-  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, 0);
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
   EXPECT_EQ(lynx_system_->GetGPIOWatchdogCPU(), control_cpu);
   EXPECT_EQ(lynx_system_->GetGPIOMonitorCPU(), control_cpu);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsCANPinnedOnlyWhenSet)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "0";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "0";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, 0);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, 0);
+
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "-1";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-1";
+  lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  EXPECT_EQ(lynx_system->GetCANopenSettings().canopen_thread_cpu, -1);
+  EXPECT_EQ(lynx_system->GetCANopenSettings().rpdo_dispatch_cpu, -1);
 }
 
 TEST_F(TestLynxSystem, RTThreadCPUsFromParameters)

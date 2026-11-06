@@ -61,10 +61,10 @@ Real-time thread priorities. Each is a SCHED_FIFO priority from 1 to 98. A missi
 - `gpio_watchdog_priority` [*int*, default: **60**]: Safety watchdog thread (`gpio-wdog`). It toggles the watchdog pin every 10 ms while the e-stop is released, and the safety board cuts motor power when the toggling stops.
 - `gpio_monitor_priority` [*int*, default: **60**]: GPIO edge event monitor thread (`gpio-monit`).
 
-Real-time thread CPUs. Each thread pins itself to the given CPU when it starts, and -1 leaves it unpinned. A value that is not -1 or a CPU of this machine leaves the thread unpinned with a warning, and so does a failed pin. The defaults match the image's core layout: the CAN chain on CPU 0, the control loop and the safety heartbeat on CPU 3.
+Real-time thread CPUs. Each thread pins itself to the given CPU when it starts, and -1 leaves it unpinned. A value that is not -1 or a CPU of this machine leaves the thread unpinned with a warning, and so does a failed pin. The CAN threads are unpinned by default and set from the `canopen_thread_cpu` and `rpdo_dispatch_cpu` launch arguments. Keep them off CPU 0 on a Raspberry Pi, which handles every I2C interrupt: a CAN thread pinned there starves the I2C irq thread and the battery readings time out. The GPIO threads default to CPU 3, next to the control loop.
 
-- `canopen_thread_cpu` [*int*, default: **0**]: CPU of the CANopen communication thread.
-- `rpdo_dispatch_cpu` [*int*, default: **0**]: CPU of the RPDO dispatch threads.
+- `canopen_thread_cpu` [*int*, default: **-1**]: CPU of the CANopen communication thread.
+- `rpdo_dispatch_cpu` [*int*, default: **-1**]: CPU of the RPDO dispatch threads.
 - `gpio_watchdog_cpu` [*int*, default: **3**]: CPU of the safety watchdog thread. The thread is created once when the GPIO controller starts and parks while the e-stop is latched, so it keeps its CPU and priority across e-stop resets.
 - `gpio_monitor_cpu` [*int*, default: **3**]: CPU of the GPIO monitor thread.
 

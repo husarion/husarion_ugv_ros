@@ -172,6 +172,14 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_roboteq
                         battery_parameters)
 
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_uvp_detector test/protection/test_uvp_detector.cpp
+    src/protection/uvp_detector.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_uvp_detector
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+
 endif()
 
 ament_export_dependencies(${PACKAGE_DEPENDENCIES})

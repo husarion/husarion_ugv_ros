@@ -334,3 +334,13 @@ led_animations:
         animation:
           image: $(find husarion_ugv_lights)/animations/lynx/flood_light.png
           duration: 3
+
+  - id: 18
+    name: CHARGE_ASAP
+    priority: 1
+    animations:
+      - type: husarion_ugv_lights::ImageAnimation
+        segments: all
+        animation:
+          image: $(find husarion_ugv_lights)/animations/lynx/charge_asap.png
+          duration: 4

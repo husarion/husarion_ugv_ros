@@ -336,6 +336,33 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
 
+  ament_add_gtest(${PROJECT_NAME}_test_lights_manager_uvp
+                  test/test_lights_manager_uvp.cpp src/lights_manager_node.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_lights_manager_uvp
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_lights_manager_uvp
+    behaviortree_cpp
+    behaviortree_ros2
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_lights_manager_uvp
+                        lights_manager_parameters)
+
+  ament_add_gtest(${PROJECT_NAME}_test_charge_asap_indicator
+                  test/test_charge_asap_indicator.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_charge_asap_indicator
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_manager_uvp test/test_safety_manager_uvp.cpp
     src/safety_manager_node.cpp src/uvp_reaction.cpp)

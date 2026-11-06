@@ -26,17 +26,20 @@
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
 
+#include "husarion_ugv_msgs/msg/battery_protection.hpp"
 #include "husarion_ugv_msgs/msg/led_animation.hpp"
 #include "husarion_ugv_msgs/srv/set_led_animation.hpp"
 
 #include "husarion_ugv_utils/moving_average.hpp"
 
 #include "husarion_ugv_manager/behavior_tree_manager.hpp"
+#include "husarion_ugv_manager/charge_asap_indicator.hpp"
 #include "husarion_ugv_manager/lights_manager_parameters.hpp"
 
 namespace husarion_ugv_manager
 {
 
+using BatteryProtectionMsg = husarion_ugv_msgs::msg::BatteryProtection;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
 using LEDAnimationMsg = husarion_ugv_msgs::msg::LEDAnimation;
@@ -75,6 +78,8 @@ private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
   void EStopCB(const BoolMsg::SharedPtr e_stop);
   void LightsTreeTimerCB();
+  void ProtectionCB(const BatteryProtectionMsg::SharedPtr msg);
+  void ChargeAsapTimerCB();
 
   static constexpr std::chrono::seconds kServiceStartupTimeout{10};
 
@@ -86,6 +91,12 @@ private:
   rclcpp::Subscription<BatteryStateMsg>::SharedPtr battery_sub_;
   rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;
   rclcpp::TimerBase::SharedPtr lights_tree_timer_;
+
+  // Only when the battery undervoltage protection is enabled.
+  rclcpp::Subscription<BatteryProtectionMsg>::SharedPtr protection_sub_;
+  rclcpp::TimerBase::SharedPtr charge_asap_timer_;
+  rclcpp::Client<SetLEDAnimationSrv>::SharedPtr set_animation_client_;
+  ChargeAsapIndicator charge_asap_indicator_;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<double>> battery_percent_ma_;
   BT::BehaviorTreeFactory factory_;

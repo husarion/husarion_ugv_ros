@@ -21,6 +21,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -42,7 +43,8 @@ class TestBatteryNode : public testing::Test
 public:
   TestBatteryNode(
     const bool use_adc_battery = true, const bool dual_battery = false,
-    const std::string & robot_model = "panther");
+    const std::string & robot_model = "panther",
+    const std::vector<rclcpp::Parameter> & extra_params = {});
   ~TestBatteryNode();
 
 protected:
@@ -66,9 +68,10 @@ protected:
 };
 
 TestBatteryNode::TestBatteryNode(
-  const bool use_adc_battery, const bool dual_battery, const std::string & robot_model)
+  const bool use_adc_battery, const bool dual_battery, const std::string & robot_model,
+  const std::vector<rclcpp::Parameter> & extra_params)
 {
-  std::vector<rclcpp::Parameter> params;
+  std::vector<rclcpp::Parameter> params = extra_params;
   params.push_back(rclcpp::Parameter("robot_model", robot_model));
 
   if (use_adc_battery) {

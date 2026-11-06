@@ -20,6 +20,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -46,6 +47,7 @@ BatteryDriverNode::BatteryDriverNode(
   this->param_listener_ =
     std::make_shared<battery::ParamListener>(this->get_node_parameters_interface());
   this->params_ = this->param_listener_->get_params();
+  uvp_params_ = DeclareUvpParameters(*this);
 
   // Running at 10 Hz
   battery_pub_timer_ = this->create_wall_timer(
@@ -106,6 +108,7 @@ void BatteryDriverNode::InitializeWithADCBattery()
     battery_publisher_ = std::make_shared<DualBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_,
       battery_2_);
+    InitializeProtection({battery_1_, battery_2_}, true);
   } else {
     battery_2_.reset();
     battery_1_ = std::make_shared<ADCBattery>(
@@ -125,6 +128,7 @@ void BatteryDriverNode::InitializeWithADCBattery()
       battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
+    InitializeProtection({battery_1_}, true);
   }
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using ADC data.");
@@ -148,8 +152,30 @@ void BatteryDriverNode::InitializeWithRoboteqBattery()
 
   battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
     this->shared_from_this(), diagnostic_updater_, this->params_.battery_timeout, battery_1_);
+  InitializeProtection({battery_1_}, false);
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using motor controllers data.");
+}
+
+void BatteryDriverNode::InitializeProtection(
+  const std::vector<std::shared_ptr<Battery>> & batteries, const bool charging_detectable)
+{
+  if (!uvp_params_.enable) {
+    return;
+  }
+
+  ProtectionPublisher::Config config;
+  config.params = uvp_params_;
+  config.threshold = ResolveUvpThreshold(
+    uvp_params_.threshold, uvp_params_.hat_eeprom_path, &ReadTextFile);
+  config.charging_detectable = charging_detectable;
+  config.battery_timeout = params_.battery_timeout;
+  config.boot_id = ProtectionPublisher::ReadBootId();
+
+  battery_publisher_->SetUpdateEveryBattery(true);
+  protection_publisher_ = std::make_unique<ProtectionPublisher>(
+    this->shared_from_this(), diagnostic_updater_, batteries, config,
+    ProtectionPublisher::SystemClocks(this->get_clock()));
 }
 
 void BatteryDriverNode::BatteryPubTimerCB()
@@ -159,6 +185,9 @@ void BatteryDriverNode::BatteryPubTimerCB()
     return;
   }
   battery_publisher_->Publish();
+  if (protection_publisher_) {
+    protection_publisher_->Update();
+  }
 }
 
 }  // namespace husarion_ugv_battery

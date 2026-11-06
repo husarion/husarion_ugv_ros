@@ -15,6 +15,7 @@
 #include "husarion_ugv_battery/battery_publisher/dual_battery_publisher.hpp"
 
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -49,8 +50,22 @@ DualBatteryPublisher::DualBatteryPublisher(
 void DualBatteryPublisher::Update()
 {
   const auto header_stamp = this->GetClock()->now();
-  battery_1_->Update(header_stamp, ChargerConnected());
+  if (!update_every_battery_) {
+    battery_1_->Update(header_stamp, ChargerConnected());
+    battery_2_->Update(header_stamp, ChargerConnected());
+    return;
+  }
+
+  std::exception_ptr battery_1_error;
+  try {
+    battery_1_->Update(header_stamp, ChargerConnected());
+  } catch (const std::runtime_error &) {
+    battery_1_error = std::current_exception();
+  }
   battery_2_->Update(header_stamp, ChargerConnected());
+  if (battery_1_error) {
+    std::rethrow_exception(battery_1_error);
+  }
 }
 
 void DualBatteryPublisher::Reset()

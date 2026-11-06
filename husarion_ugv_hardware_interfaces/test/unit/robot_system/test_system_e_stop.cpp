@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -217,6 +218,81 @@ TEST_F(TestEStop, DiagnosticsKeepTheRefusedResetReason)
   EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
   EXPECT_THAT(snapshot.last_refused_reset, testing::HasSubstr("line stuck"));
   EXPECT_NE(0, snapshot.last_refused_reset_ns);
+}
+
+TEST_F(TestEStop, UVPTriggerNamesUVPAsTheCause)
+{
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerReplacesAnEarlierCause)
+{
+  ReleaseLine();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  ASSERT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerWhileAResetWaitsRefusesTheReset)
+{
+  // The drive window ending while an operator resets the e-stop: the reset must not undo the
+  // trigger, whichever of the two takes the e-stop mutex first.
+  ReleaseLine();
+
+  std::mutex line_mtx;
+  std::unique_lock<std::mutex> line_lck(line_mtx);
+  ON_CALL(gpio_controller_->Driver(), IsPinActive(GPIOPin::E_STOP_RESET))
+    .WillByDefault(testing::Invoke([&line_mtx](const GPIOPin) {
+      // Holds the e-stop mutex inside ReadEStopState until the test lets go.
+      std::lock_guard<std::mutex> lck(line_mtx);
+      return true;
+    }));
+  EXPECT_CALL(*gpio_controller_, EStopReset()).Times(0);
+
+  testing::internal::CaptureStderr();
+  std::thread reader([this]() { e_stop_->ReadEStopState(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  std::string reset_error;
+  std::thread reset([this, &reset_error]() {
+    try {
+      e_stop_->ResetEStop();
+    } catch (const std::runtime_error & e) {
+      reset_error = e.what();
+    }
+  });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::thread trigger([this]() { e_stop_->TriggerEStopFromUVP(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  line_lck.unlock();
+  reader.join();
+  reset.join();
+  trigger.join();
+  testing::internal::GetCapturedStderr();
+
+  EXPECT_THAT(reset_error, testing::HasSubstr("triggered while the reset waited"));
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
 }
 
 int main(int argc, char ** argv)

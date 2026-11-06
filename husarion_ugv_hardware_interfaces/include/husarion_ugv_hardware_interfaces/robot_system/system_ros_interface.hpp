@@ -220,6 +220,25 @@ public:
   }
 
   /**
+   * @brief Subscribes to a topic in its own callback group.
+   *
+   * @param group_id The callback group, as for AddService. Never 0: the callback must not share a
+   * group with the services.
+   */
+  template <class MsgT>
+  inline void AddSubscription(
+    const std::string & topic_name, const rclcpp::QoS & qos,
+    const std::function<void(const std::shared_ptr<const MsgT>)> & callback,
+    const unsigned group_id)
+  {
+    rclcpp::SubscriptionOptions options;
+    options.callback_group = GetOrCreateNodeCallbackGroup(
+      group_id, rclcpp::CallbackGroupType::MutuallyExclusive);
+    subscriptions_storage_.push_back(
+      node_->create_subscription<MsgT>(topic_name, qos, callback, options));
+  }
+
+  /**
    * @brief Adds a new diagnostic task.
    *
    * @param name The name of the diagnostic task.
@@ -337,6 +356,7 @@ protected:
   diagnostic_updater::Updater diagnostic_updater_;
 
   std::vector<std::any> service_wrappers_storage_;
+  std::vector<rclcpp::SubscriptionBase::SharedPtr> subscriptions_storage_;
 
   std::shared_ptr<IOStateDiagnosticsStore> io_state_diagnostics_ =
     std::make_shared<IOStateDiagnosticsStore>();

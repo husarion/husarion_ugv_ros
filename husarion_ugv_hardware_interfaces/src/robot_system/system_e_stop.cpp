@@ -123,6 +123,14 @@ void EStop::TriggerEStop()
   }
 }
 
+void EStop::TriggerEStopFromUVP()
+{
+  TriggerEStop();
+  // Unlike other triggers, this one replaces the first cause: the protection keeps the robot
+  // stopped for as long as the battery stays low, whatever latched it before.
+  diagnostics_->SetSource(EStopLatchSource::UVP);
+}
+
 void EStop::ResetEStop()
 {
   try {

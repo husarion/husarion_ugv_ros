@@ -33,6 +33,9 @@
 #include <hardware_interface/handle.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_interface_return_values.hpp>
+#include <realtime_tools/realtime_buffer.hpp>
+
+#include "husarion_ugv_msgs/msg/battery_protection.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
@@ -40,6 +43,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_error_filter.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_e_stop.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/uvp_e_stop_guard.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -47,6 +51,7 @@ namespace husarion_ugv_hardware_interfaces
 using return_type = hardware_interface::return_type;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using StateInterface = hardware_interface::StateInterface;
+using BatteryProtectionMsg = husarion_ugv_msgs::msg::BatteryProtection;
 using CommandInterface = hardware_interface::CommandInterface;
 
 /**
@@ -94,6 +99,7 @@ protected:
   int ReadRTCPU(const std::string & name, const int default_cpu);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
+  void ReadUVPSettings();
   void ReadInitializationActivationAttempts();
   void ReadParametersAndCreateRoboteqErrorFilter();
   void ReadDriverStatesUpdateFrequency();
@@ -108,6 +114,14 @@ protected:
   void UpdateMotorsState();
   void UpdateDriverState();
   void UpdateEStopState();
+
+  // The battery undervoltage protection, only when the robot description enables it.
+  void ConfigureUVP();
+  void ProtectionCB(const std::shared_ptr<const BatteryProtectionMsg> msg);
+  void UpdateUVPGuard(const bool e_stop);
+  void DiagnoseUVP(
+    diagnostic_updater::DiagnosticStatusWrapper & status, unsigned char & level,
+    std::string & message);
 
   virtual void UpdateHwStates() = 0;
   // Returns whether motor states PDO data is currently timed out.
@@ -259,6 +273,18 @@ protected:
   // A torque enable keeps it set until the drivers stop reporting that fault.
   std::atomic_bool torque_disabled_by_request_{false};
   std::atomic_bool torque_enable_pending_{false};
+
+  bool uvp_enable_ = false;
+  std::unique_ptr<UvpEStopGuard> uvp_guard_;
+  // Written by the protection subscription, read by the control loop without blocking it.
+  realtime_tools::RealtimeBuffer<UvpProtectionInput> uvp_input_;
+  std::atomic<std::int64_t> uvp_last_msg_ns_{0};
+  std::int64_t uvp_configured_ns_ = 0;
+
+  static constexpr double kUVPTopicStaleTimeout = 3.0;
+  // The battery driver starts some seconds after this driver, so a missing topic is only an error
+  // after this long.
+  static constexpr double kUVPTopicStartupGrace = 30.0;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

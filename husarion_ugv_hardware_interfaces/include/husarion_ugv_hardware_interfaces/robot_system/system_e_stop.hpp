@@ -37,6 +37,8 @@ enum class EStopLatchSource : std::uint8_t {
   // The hardware line latched with no software trigger requested - the e-stop button, a Roboteq
   // fault or the safety board watchdog.
   HARDWARE,
+  // Latched by the battery undervoltage protection.
+  UVP,
 };
 
 /**
@@ -90,6 +92,12 @@ public:
   virtual bool ReadEStopState() = 0;
   virtual void TriggerEStop() = 0;
   virtual void ResetEStop() = 0;
+
+  /**
+   * @brief Triggers the emergency stop for the battery undervoltage protection, which then shows as
+   * its cause also when the e-stop was latched already.
+   */
+  virtual void TriggerEStopFromUVP() { TriggerEStop(); }
   virtual std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const = 0;
 };
 
@@ -153,6 +161,8 @@ public:
    * @throws std::runtime_error if an error occurs when trying to reset the E-stop using GPIO.
    */
   void ResetEStop() override;
+
+  void TriggerEStopFromUVP() override;
 
   std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const override { return diagnostics_; }
 

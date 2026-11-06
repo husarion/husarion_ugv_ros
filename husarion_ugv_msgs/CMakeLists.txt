@@ -12,6 +12,7 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(
   ${PROJECT_NAME}
+  "msg/BatteryProtection.msg"
   "msg/ChargingStatus.msg"
   "msg/DriverState.msg"
   "msg/DriverStateNamed.msg"
@@ -29,6 +30,7 @@ rosidl_generate_interfaces(
   "srv/SetLEDBrightness.srv"
   "srv/SetLEDImageAnimation.srv"
   DEPENDENCIES
+  builtin_interfaces
   std_msgs)
 
 ament_export_dependencies(rosidl_default_runtime)

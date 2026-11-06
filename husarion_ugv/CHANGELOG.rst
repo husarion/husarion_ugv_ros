@@ -41,6 +41,7 @@ Forthcoming
 * the CANopen and RPDO dispatch threads are no longer pinned to CPU 0 by default, where they starved the I2C interrupt thread and the battery readings timed out; new canopen_thread_cpu and rpdo_dispatch_cpu launch arguments pin them on request
 * the gamepad diagnostic is OK on robots without a gamepad and warns only when a connected gamepad is lost
 * the lights diagnostic shows whether the LED output is enabled and the brightness
+* new battery undervoltage protection, off by default (uvp_enable launch argument): the battery driver watches each battery's raw voltage and publishes battery/protection; at the charge ASAP threshold (31.5 V by default) the lights show the new CHARGE_ASAP animation, at the UVP threshold (31.0 V, or robot.battery.uvp_threshold_v in the HAT EEPROM) the robot latches the e-stop and shuts down after 5 min without charging, or shuts down at once in SHUTDOWN mode - every setting is a uvp_* launch argument
 
 2.3.2 (2026-06-25)
 ------------------

@@ -32,6 +32,7 @@ Node responsible for managing Bumper Lights animation scheduling.
 - `battery/battery_status` [*sensor_msgs/BatteryState*]: State of the internal Battery.
 - `hardware/e_stop` [*std_msgs/Bool*]: State of emergency stop.
 - `twist_mux_controller/source` [*std_msgs/String]: Source of the command velocity.
+- `battery/protection` [*husarion_ugv_msgs/BatteryProtection*]: Battery undervoltage protection state. Only with `uvp_enable`.
 
 #### Service Clients (for Default Trees)
 
@@ -51,6 +52,7 @@ Node responsible for managing Bumper Lights animation scheduling.
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.
 - `ros_plugin_libs` [*list*, default: **Empty list**]: List with names of ROS plugins that are used in a BT project.
 - `timer_frequency` [*float*, default: **10.0**]: Frequency **[Hz]** at which lights tree will be ticked.
+- `uvp_enable` [*bool*, default: **false**]: Shows the CHARGE_ASAP animation while the battery undervoltage protection asks to charge. See [Battery Undervoltage Protection](./CONFIGURATION.md#battery-undervoltage-protection-uvp).
 
 ### safety_manager_node
 
@@ -63,6 +65,7 @@ Node responsible for managing safety features, and software shutdown of componen
 - `hardware/io_state` [*husarion_ugv_msgs/IOState*]: State of IO pins.
 - `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: State of motor controllers.
 - `system_status` [*husarion_ugv_msgs/SystemStatus*]: Built-in computer system status, includes the most important computation-related parameters.
+- `battery/protection` [*husarion_ugv_msgs/BatteryProtection*]: Battery undervoltage protection state. Only with `uvp_enable`.
 
 #### Service Clients (for Default Trees)
 
@@ -91,3 +94,4 @@ Node responsible for managing safety features, and software shutdown of componen
   - `secret` [*string*, default: **husarion**]: Secret to sign HTTP request with.
   - `timeout` [*string*, default: **5.0**]: Time in **[s]** to wait for the host to shutdown. The Built-in Computer will turn off after all computers are shutdown or reached timeout. Keep in mind that hardware will cut power off after a given time after pressing the power button. Refer to the hardware manual for more information.
 - `timer_frequency` [*float*, default: **10.0**]: Frequency **[Hz]** at which safety tree will be ticked.
+- `uvp_enable` [*bool*, default: **false**]: Acts on the battery undervoltage protection: AUX power off at the trip, the stop timeout and the UVP shutdown sequence. Adds the "Battery protection reaction" diagnostic task. See [Battery Undervoltage Protection](./CONFIGURATION.md#battery-undervoltage-protection-uvp).

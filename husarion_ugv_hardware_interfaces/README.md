@@ -17,6 +17,10 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 - `hardware/io_state` [*husarion_ugv_msgs/IOState*]: Current IO state.
 - `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: Current motor controllers' state and error flags.
 
+#### Subscribers
+
+- `battery/protection` [*husarion_ugv_msgs/BatteryProtection*]: Battery undervoltage protection state. Only with `uvp_enable`.
+
 #### Service Servers
 
 - `hardware/aux_power_enable` [*std_srvs/SetBool*]: Enables or disables AUX power.
@@ -67,6 +71,10 @@ Real-time thread CPUs. Each thread pins itself to the given CPU when it starts, 
 - `rpdo_dispatch_cpu` [*int*, default: **-1**]: CPU of the RPDO dispatch threads.
 - `gpio_watchdog_cpu` [*int*, default: **3**]: CPU of the safety watchdog thread. The thread is created once when the GPIO controller starts and parks while the e-stop is latched, so it keeps its CPU and priority across e-stop resets.
 - `gpio_monitor_cpu` [*int*, default: **3**]: CPU of the GPIO monitor thread.
+
+Battery undervoltage protection
+
+- `uvp_enable` [*bool*, default: **unset**]: Present only when the protection is enabled (the `uvp_enable` launch argument), so the robot description is unchanged without it. In `STOP` mode the system then latches the e-stop at a UVP trip reported on `battery/protection`, and after any release of the e-stop while UVP is latched it latches it again when the drive window ends. It never releases the e-stop itself. The "E-stop" diagnostic task shows UVP as the cause, the drive window and an ERROR when the protection data is stale. See [Battery Undervoltage Protection](../husarion_ugv_manager/CONFIGURATION.md#battery-undervoltage-protection-uvp).
 
 PantherSystem additional CAN settings
 

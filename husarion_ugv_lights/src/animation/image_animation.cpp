@@ -55,6 +55,7 @@ void ImageAnimation::Initialize(
 std::vector<std::uint8_t> ImageAnimation::UpdateFrame()
 {
   std::vector<std::uint8_t> frame;
+  frame.reserve(this->GetNumberOfLeds() * kRGBAColorLen);
   for (std::size_t i = 0; i < this->GetNumberOfLeds(); i++) {
     auto pixel = gil::const_view(image_)(i, this->GetAnimationIteration());
     frame.push_back(pixel[0]);

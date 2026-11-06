@@ -13,12 +13,14 @@
 // limitations under the License.
 
 #include <any>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 
 #include "gtest/gtest.h"
 
@@ -27,6 +29,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 #include "husarion_ugv_manager/behavior_tree_utils.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
@@ -221,6 +224,55 @@ TEST(TestConvertFromStringVectorOfFloat, WrongInput)
 {
   auto str = "1;2;3;0.1;a;0.2";
   EXPECT_THROW(BT::convertFromString<std::vector<float>>(str), BT::RuntimeError);
+}
+
+using TriggerSrv = std_srvs::srv::Trigger;
+
+void TriggerCB(const TriggerSrv::Request::SharedPtr, TriggerSrv::Response::SharedPtr) {}
+
+TEST(TestWaitForService, ServiceAvailable)
+{
+  rclcpp::init(0, nullptr);
+  auto node = std::make_shared<rclcpp::Node>("test_node");
+  auto service = node->create_service<TriggerSrv>("test_service", TriggerCB);
+
+  EXPECT_TRUE(husarion_ugv_manager::behavior_tree_utils::WaitForService<TriggerSrv>(
+    node, "test_service", std::chrono::milliseconds(1000)));
+
+  rclcpp::shutdown();
+}
+
+TEST(TestWaitForService, ServiceUnavailable)
+{
+  rclcpp::init(0, nullptr);
+  auto node = std::make_shared<rclcpp::Node>("test_node");
+
+  const auto start = std::chrono::steady_clock::now();
+  EXPECT_FALSE(husarion_ugv_manager::behavior_tree_utils::WaitForService<TriggerSrv>(
+    node, "test_service", std::chrono::milliseconds(200)));
+  EXPECT_GE(std::chrono::steady_clock::now() - start, std::chrono::milliseconds(200));
+
+  rclcpp::shutdown();
+}
+
+TEST(TestWaitForService, ServiceStartsLater)
+{
+  rclcpp::init(0, nullptr);
+  auto node = std::make_shared<rclcpp::Node>("test_node");
+  auto server_node = std::make_shared<rclcpp::Node>("server_node");
+  rclcpp::Service<TriggerSrv>::SharedPtr service;
+
+  // Later than the 1 s a service node of the tree waits on construction
+  std::thread server_thread([&]() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    service = server_node->create_service<TriggerSrv>("test_service", TriggerCB);
+  });
+
+  EXPECT_TRUE(husarion_ugv_manager::behavior_tree_utils::WaitForService<TriggerSrv>(
+    node, "test_service", std::chrono::milliseconds(5000)));
+
+  server_thread.join();
+  rclcpp::shutdown();
 }
 
 int main(int argc, char ** argv)

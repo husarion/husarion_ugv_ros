@@ -1,0 +1,302 @@
+// Copyright 2026 Husarion sp. z o.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <atomic>
+#include <chrono>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include "hardware_interface/hardware_info.hpp"
+
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_error_filter.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/system_e_stop.hpp"
+
+#include "utils/system_test_utils.hpp"
+
+using husarion_ugv_hardware_interfaces::GPIOPin;
+using husarion_ugv_hardware_interfaces_test::MockGPIODriver;
+using testing::Return;
+
+class GPIOControllerWithLine : public husarion_ugv_hardware_interfaces_test::MockGPIOController
+{
+public:
+  MockGPIODriver & Driver() { return static_cast<MockGPIODriver &>(*gpio_driver_); }
+};
+
+class TestEStop : public testing::Test
+{
+public:
+  TestEStop()
+  {
+    gpio_controller_ = std::make_shared<testing::NiceMock<GPIOControllerWithLine>>();
+    robot_driver_ =
+      std::make_shared<testing::NiceMock<husarion_ugv_hardware_interfaces_test::MockRobotDriver>>();
+    auto error_filter = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqErrorFilter>(
+      2, 2, 2, 2);
+    e_stop_ = std::make_unique<husarion_ugv_hardware_interfaces::EStop>(
+      gpio_controller_, error_filter, robot_driver_, std::make_shared<std::mutex>(),
+      []() { return true; });
+  }
+
+protected:
+  // The reset pin is active while the hardware line is released.
+  void SetLineAsserted(const bool asserted)
+  {
+    ON_CALL(gpio_controller_->Driver(), IsPinActive(GPIOPin::E_STOP_RESET))
+      .WillByDefault(Return(!asserted));
+  }
+
+  std::string ReadAndCaptureLog()
+  {
+    testing::internal::CaptureStderr();
+    e_stop_->ReadEStopState();
+    return testing::internal::GetCapturedStderr();
+  }
+
+  void ReleaseLine()
+  {
+    SetLineAsserted(false);
+    e_stop_->ResetEStop();
+    ReadAndCaptureLog();
+  }
+
+  std::shared_ptr<testing::NiceMock<GPIOControllerWithLine>> gpio_controller_;
+  std::shared_ptr<testing::NiceMock<husarion_ugv_hardware_interfaces_test::MockRobotDriver>>
+    robot_driver_;
+  std::unique_ptr<husarion_ugv_hardware_interfaces::EStop> e_stop_;
+};
+
+TEST_F(TestEStop, LineAssertedWithoutSoftwareTriggerBlamesOutsideDevice)
+{
+  ReleaseLine();
+
+  SetLineAsserted(true);
+  const auto log = ReadAndCaptureLog();
+  EXPECT_THAT(log, testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, LineAssertedAfterSoftwareTriggerNamesTheTrigger)
+{
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+
+  // The safety board drops the line a few cycles after the watchdog stops.
+  EXPECT_EQ("", ReadAndCaptureLog());
+  SetLineAsserted(true);
+  const auto log = ReadAndCaptureLog();
+  EXPECT_THAT(log, testing::HasSubstr("after the software trigger"));
+  EXPECT_THAT(log, testing::Not(testing::HasSubstr("No software trigger")));
+}
+
+TEST_F(TestEStop, SoftwareTriggerDoesNotCoverLaterOutsideStops)
+{
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  ReleaseLine();
+  SetLineAsserted(true);
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, ResetClearsAPendingSoftwareTrigger)
+{
+  // Triggered while the line was already asserted, so no edge consumed it.
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+
+  ReleaseLine();
+  SetLineAsserted(true);
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, ResetIsNotSkippedWhileTheStateIsBeingRead)
+{
+  // The control loop reads the e-stop state all the time. Every reset requested meanwhile must
+  // reach the GPIO reset, never return as if it had.
+  SetLineAsserted(false);
+  ReadAndCaptureLog();
+  std::atomic_bool stop{false};
+  std::thread reader([&]() {
+    while (!stop) {
+      e_stop_->ReadEStopState();
+      std::this_thread::yield();
+    }
+  });
+  EXPECT_CALL(*gpio_controller_, EStopReset()).Times(200);
+  for (int i = 0; i < 200; ++i) {
+    EXPECT_NO_THROW(e_stop_->ResetEStop());
+  }
+  stop = true;
+  reader.join();
+}
+
+TEST_F(TestEStop, DiagnosticsStartLatchedAtStartup)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_EQ(0, snapshot.last_change_ns);
+  EXPECT_TRUE(snapshot.last_refused_reset.empty());
+}
+
+TEST_F(TestEStop, DiagnosticsFollowResetAndSoftwareTrigger)
+{
+  ReleaseLine();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::SOFTWARE, snapshot.source);
+  EXPECT_NE(0, snapshot.last_change_ns);
+}
+
+TEST_F(TestEStop, DiagnosticsBlameTheHardwareLineWithoutATrigger)
+{
+  ReleaseLine();
+
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // A later software trigger does not hide the outside stop.
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, DiagnosticsKeepTheRefusedResetReason)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_CALL(*gpio_controller_, EStopReset())
+    .WillOnce(testing::Throw(std::runtime_error("line stuck")));
+
+  EXPECT_THROW(e_stop_->ResetEStop(), std::runtime_error);
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_THAT(snapshot.last_refused_reset, testing::HasSubstr("line stuck"));
+  EXPECT_NE(0, snapshot.last_refused_reset_ns);
+}
+
+TEST_F(TestEStop, UVPTriggerNamesUVPAsTheCause)
+{
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerReplacesAnEarlierCause)
+{
+  ReleaseLine();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  ASSERT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerWhileAResetWaitsRefusesTheReset)
+{
+  // The drive window ending while an operator resets the e-stop: the reset must not undo the
+  // trigger, whichever of the two takes the e-stop mutex first.
+  ReleaseLine();
+
+  std::mutex line_mtx;
+  std::unique_lock<std::mutex> line_lck(line_mtx);
+  ON_CALL(gpio_controller_->Driver(), IsPinActive(GPIOPin::E_STOP_RESET))
+    .WillByDefault(testing::Invoke([&line_mtx](const GPIOPin) {
+      // Holds the e-stop mutex inside ReadEStopState until the test lets go.
+      std::lock_guard<std::mutex> lck(line_mtx);
+      return true;
+    }));
+  EXPECT_CALL(*gpio_controller_, EStopReset()).Times(0);
+
+  testing::internal::CaptureStderr();
+  std::thread reader([this]() { e_stop_->ReadEStopState(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  std::string reset_error;
+  std::thread reset([this, &reset_error]() {
+    try {
+      e_stop_->ResetEStop();
+    } catch (const std::runtime_error & e) {
+      reset_error = e.what();
+    }
+  });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::thread trigger([this]() { e_stop_->TriggerEStopFromUVP(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+  line_lck.unlock();
+  reader.join();
+  reset.join();
+  trigger.join();
+  testing::internal::GetCapturedStderr();
+
+  EXPECT_THAT(reset_error, testing::HasSubstr("triggered while the reset waited"));
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+int main(int argc, char ** argv)
+{
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

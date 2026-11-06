@@ -1,4 +1,10 @@
 battery:
+  robot_model:
+    type: string
+    default_value: "panther"
+    description: "Robot model. A Lynx reads its charge current as the sum of both charge channels."
+    validation: { one_of<>: [["lynx", "panther"]] }
+
   adc:
     device0:
       type: string

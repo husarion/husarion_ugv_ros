@@ -23,8 +23,6 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/lynx_robot_driver.hpp"
 
-#include "husarion_ugv_utils/diagnostics.hpp"
-
 namespace husarion_ugv_hardware_interfaces
 {
 
@@ -62,14 +60,23 @@ void LynxSystem::UpdateHwStates()
   hw_states_efforts_[3] = right.GetTorque();
 }
 
-void LynxSystem::UpdateMotorsStateDataTimedOut()
+bool LynxSystem::UpdateMotorsStateDataTimedOut()
 {
-  if (robot_driver_->GetData(DriverNames::DEFAULT).IsMotorStatesDataTimedOut()) {
-    RCLCPP_WARN_STREAM_THROTTLE(logger_, steady_clock_, 1000, "PDO motor state data timeout.");
+  const auto & data = robot_driver_->GetData(DriverNames::DEFAULT);
+  if (data.IsMotorStatesDataTimedOut()) {
+    // NB the throttle can fold several consecutive timed-out cycles into one
+    // line - absence of repeats is not proof of a single miss.
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 1000,
+      "PDO motor state data timeout (oldest data "
+        << data.GetMotorStatesAgeMs() << " ms old, freshest " << data.GetMotorStatesFreshestAgeMs()
+        << " ms, read cycle " << read_cycle_ms_ << " ms).");
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
-  } else {
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+    return true;
   }
+
+  roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, false);
+  return false;
 }
 
 void LynxSystem::UpdateDriverStateMsg()
@@ -101,6 +108,7 @@ void LynxSystem::UpdateDriverStateMsg()
 void LynxSystem::UpdateFlagErrors()
 {
   const auto driver_data = robot_driver_->GetData(DriverNames::DEFAULT);
+  UpdateTorqueEnablePending(driver_data.GetFaultFlag().IsEmergencyStopSet());
   if (driver_data.IsFlagError()) {
     RCLCPP_WARN_STREAM_THROTTLE(
       logger_, steady_clock_, 1000,
@@ -126,43 +134,17 @@ void LynxSystem::UpdateDriverStateDataTimedOut()
 
 void LynxSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"No error detected."};
-
-  const auto driver_data = robot_driver_->GetData(DriverNames::DEFAULT);
-  if (driver_data.IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
-
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, driver_data.GetErrorMap(), "Driver error: ");
-  }
-
-  if (roboteq_error_filter_->IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
-
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, roboteq_error_filter_->GetErrorMap(), "", " error");
-  }
-
-  status.summary(level, message);
+  DiagnoseDriversErrors(status);
 }
 
 void LynxSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"Panther system status monitoring."};
+  DiagnoseDriversStatus(status, "Lynx");
+}
 
-  const auto driver_state = robot_driver_->GetData(DriverNames::DEFAULT).GetDriverState();
-
-  status.add("Default driver voltage (V)", driver_state.GetVoltage());
-  status.add("Default driver current (A)", driver_state.GetCurrent());
-  status.add("Default driver temperature (\u00B0C)", driver_state.GetTemperature());
-  status.add(
-    "Default driver heatsink temperature (\u00B0C)", driver_state.GetHeatsinkTemperature());
-
-  status.summary(level, message);
+std::vector<UGVSystem::DriverDiagnosticData> LynxSystem::GetDriversDiagnosticData()
+{
+  return {{"Driver", "right", "left", robot_driver_->GetData(DriverNames::DEFAULT)}};
 }
 
 std::vector<float> LynxSystem::GetSpeedCommands() const

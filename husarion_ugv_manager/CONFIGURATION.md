@@ -48,6 +48,41 @@ After receiving a message on the `battery/battery_status` topic, the `husarion_u
 > 1. The fan exhibits a form of hysteresis, allowing it to be turned off after a delay of at least 60 seconds.
 > 2. Once the Panther ROS stack initializes, the fan activates and operates for a duration of approximately 60 seconds.
 
+## Battery Undervoltage Protection (UVP)
+
+The battery undervoltage protection makes the robot react before the battery's BMS cuts the power. It is off by default and enabled with the `uvp_enable:=true` launch argument of `bringup.launch.py` (Husarion UGV OS sets it). The battery driver detects it and owns every setting - see [husarion_ugv_battery](../husarion_ugv_battery/README.md#battery-undervoltage-protection-uvp) for the thresholds, the detection and the parameters. The reactions are split so that each works on its own:
+
+| Part | Reaction |
+| ---- | -------- |
+| Hardware system (`ros2_control`) | In `STOP` mode latches the e-stop at the UVP trip and holds it. Works with `disable_manager:=true`. |
+| Safety manager | Optional AUX power off at the trip, the stop timeout T and the UVP shutdown. |
+| Lights manager | The CHARGE_ASAP animation. |
+
+**STOP mode** (default): at the UVP trip the e-stop latches. The e-stop can be reset with `hardware/e_stop_reset` as usual, with all its checks - the protection never releases it itself. Whenever the e-stop is released while UVP is latched, whatever released it, a drive window of `uvp_drive_window_s` (60 s) opens so the robot can reach a charger, and at its end the e-stop latches again. Every later release opens a new window. If the robot does not charge within `uvp_stop_timeout_min` (T, 5 min) from the trip, it shuts down. Charging cancels T. UVP itself stays latched until the battery charges with its voltage back above the threshold plus the hysteresis, or the robot reboots. If the charging stops while UVP is still latched, a full T starts again. T counts from the trip as the battery driver reports it, so a restart of the safety manager does not extend it.
+
+**SHUTDOWN mode**: the robot shuts down at the UVP trip, without an e-stop.
+
+**T = 998** turns every reaction off, on both thresholds and in both modes - no e-stop, no shutdown, no AUX power off and no CHARGE_ASAP animation. Detection, the `battery/protection` topic and a permanent WARN in the diagnostics stay. Battery protection is then the customer's responsibility. On a robot whose battery data comes from the motor controllers (no ADC), charging cannot be detected, so the reactions are always off there.
+
+The UVP shutdown sequence is: the user computers from `shutdown_hosts.yaml`, each waited for at most `uvp_shutdown_hosts_timeout_s` (10 s) or its own `timeout` if shorter, then the AUX power off, then the Built-in Computer. While UVP is latched, every shutdown takes this sequence, including the one at a dead battery and the power button. The sequence is part of the safety manager, not of the BehaviorTree project, so a custom `safety_bt_project_path` does not change it. It needs the `shutdown_hosts_from_file_bt_node`, `execute_command_bt_node` and `call_set_bool_service_bt_node` plugins: without them the UVP shutdown falls back to the `Shutdown` tree and the diagnostics report an ERROR.
+
+> [!NOTE]
+>
+> The wait for the user computers in a shutdown that is not a UVP shutdown is the per-host `timeout` in [`shutdown_hosts.yaml`](./config/shutdown_hosts.yaml), 10 s by default. It is not a UVP setting. On Husarion UGV OS the file can be edited in Husarion Cockpit, on the Driver page in the Driver files tab (`manager/shutdown_hosts.yaml`).
+
+The battery dead shutdown (battery health DEAD, below 27 V for over 2 s) is not part of the protection and stays active in every mode, also with T = 998.
+
+### Behaviour with both EMU settings
+
+The EMU is set with DIP switches and the software cannot read its setting. By default an e-stop puts the motor controllers into active braking.
+
+| Mode | EMU default (e-stop = active braking) | EMU set to cut the power at an e-stop |
+| ---- | ------------------------------------- | -------------------------------------- |
+| STOP | The robot stops, the electronics stay on. There is time to drive to a charger after an e-stop reset, or to plug the charger in. | The power is cut at once, without a shutdown of the OS. |
+| SHUTDOWN | A clean shutdown of the system. | Risk of a power cut during the shutdown: stopping the driver triggers the e-stop (the hardware system's `on_shutdown`), which with this EMU setting cuts the power. |
+
+In both cases the robot reacts before the BMS. The settings only decide whether the OS shuts down cleanly.
+
 ## BehaviorTree
 
 This package contains two main BehaviorTree projects. One is designed for lights handling and the other for safety and system shutdown.
@@ -69,6 +104,7 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
 - `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a HTTP server response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
   - `shutdown_host_file` [*input*, *string*, default: **None**]: global path to YAML file with hosts to shutdown.
+  - `timeout_override` [*input*, *float*, default: **None**]: optional upper bound in **[s]** of each host's `timeout` from the file. Unset, zero or negative keeps the timeouts from the file.
 - `ExecuteCommand` - allows to execute system command. Will return `SUCCESS` if command was executed successfully. The provided ports are:
   - `command` [*input*, *string*, default: **None**]: command to execute.
   - `timeout` [*input*, *string*, default: **None**]: time in **[s]** to wait for command execution. If this timeout is reached the process executing the command will be killed.

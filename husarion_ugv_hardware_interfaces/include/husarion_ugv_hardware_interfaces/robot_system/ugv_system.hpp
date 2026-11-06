@@ -15,9 +15,14 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <diagnostic_updater/diagnostic_status_wrapper.hpp>
@@ -28,6 +33,9 @@
 #include <hardware_interface/handle.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <hardware_interface/types/hardware_interface_return_values.hpp>
+#include <realtime_tools/realtime_buffer.hpp>
+
+#include "husarion_ugv_msgs/msg/battery_protection.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
@@ -35,6 +43,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_error_filter.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_e_stop.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/uvp_e_stop_guard.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -42,6 +51,7 @@ namespace husarion_ugv_hardware_interfaces
 using return_type = hardware_interface::return_type;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using StateInterface = hardware_interface::StateInterface;
+using BatteryProtectionMsg = husarion_ugv_msgs::msg::BatteryProtection;
 using CommandInterface = hardware_interface::CommandInterface;
 
 /**
@@ -84,8 +94,12 @@ protected:
 
   void ReadDrivetrainSettings();
   void ReadCANopenSettings();
+  void ReadRTThreadPriorities();
+  unsigned ReadRTPriority(const std::string & name, const unsigned default_priority);
+  int ReadRTCPU(const std::string & name, const int default_cpu);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
+  void ReadUVPSettings();
   void ReadInitializationActivationAttempts();
   void ReadParametersAndCreateRoboteqErrorFilter();
   void ReadDriverStatesUpdateFrequency();
@@ -101,8 +115,18 @@ protected:
   void UpdateDriverState();
   void UpdateEStopState();
 
+  // The battery undervoltage protection, only when the robot description enables it.
+  void ConfigureUVP();
+  void ProtectionCB(const std::shared_ptr<const BatteryProtectionMsg> msg);
+  void UpdateUVPGuard(const bool e_stop);
+  void DiagnoseUVP(
+    diagnostic_updater::DiagnosticStatusWrapper & status, unsigned char & level,
+    std::string & message);
+
   virtual void UpdateHwStates() = 0;
-  virtual void UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
+  // Returns whether motor states PDO data is currently timed out.
+  virtual bool UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
+  void UpdateCANopenResyncWatchdog(const bool data_timed_out);
   bool AreVelocityCommandsNearZero();
 
   virtual void UpdateDriverStateMsg() = 0;
@@ -116,6 +140,44 @@ protected:
 
   virtual void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
+  void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  // A copy of one motor driver's data, with the names the diagnostics show for it.
+  struct DriverDiagnosticData
+  {
+    std::string name;
+    std::string channel_1_motor;
+    std::string channel_2_motor;
+    DriverData data;
+  };
+
+  // The copy is made without a lock while the control loop may be writing the same data, so one
+  // sample can mix two read cycles. That is harmless for a 1 Hz diagnostic, and a lock here would
+  // put the diagnostic thread in the way of the control loop.
+  virtual std::vector<DriverDiagnosticData> GetDriversDiagnosticData() = 0;
+
+  /**
+   * @brief Fills the system status task from the drivers' data. Never throws: a diagnostic tick
+   * can race the hardware teardown, GetData() on a deinitialized driver throws, and an exception
+   * escaping a diagnostic task terminates the whole node (bit us live on a Lynx).
+   */
+  void DiagnoseDriversStatus(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name);
+
+  /**
+   * @brief Fills the system errors task. The level comes from the error filter and from faults
+   * the drivers report themselves. A single late PDO is a WARN: the filter escalates it to an
+   * ERROR once it repeats. Never throws, see DiagnoseDriversStatus.
+   */
+  void DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  // Called by UpdateFlagErrors() before the error filter update, with whether any driver reports
+  // the emergency stop fault.
+  void UpdateTorqueEnablePending(const bool emergency_stop_set);
+
+  // 10 C below the Over Temperature Limit (OTL 85 C) of the shipped Roboteq profile, at which the
+  // controller stops the motors.
+  static constexpr float kHeatsinkTemperatureWarn = 75.0F;
 
   const size_t joint_size_;
 
@@ -138,9 +200,23 @@ protected:
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RobotDriverInterface> robot_driver_;
   std::shared_ptr<EStopInterface> e_stop_;
+  // Kept apart from e_stop_, which the teardown resets while the diagnostics may still tick.
+  std::shared_ptr<const EStopDiagnostics> e_stop_diagnostics_;
+  // Same for the IO lines, which live in system_ros_interface_.
+  std::shared_ptr<const IOStateDiagnosticsStore> io_state_diagnostics_;
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;
+  unsigned gpio_watchdog_sched_priority_ = Watchdog::kWatchdogSchedPriority;
+  unsigned gpio_monitor_sched_priority_ = GPIOController::kMonitorSchedPriority;
+
+  // The CAN threads are not pinned unless asked to. On a Raspberry Pi every I2C interrupt lands on
+  // CPU 0, and a CAN thread pinned there starves the I2C irq thread into transfer timeouts.
+  static constexpr int kDefaultCANCPU = -1;
+  // The control loop and the safety heartbeat next to it, the image's RT_CONTROL_CORE=3.
+  static constexpr int kDefaultControlCPU = 3;
+  int gpio_watchdog_cpu_ = -1;
+  int gpio_monitor_cpu_ = -1;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
 
@@ -162,7 +238,53 @@ protected:
   std::shared_ptr<std::mutex> robot_driver_write_mtx_;
 
   rclcpp::Time next_driver_state_update_time_{0, 0, RCL_STEADY_TIME};
+
+  // Wall time between consecutive read() entries. A staleness warn cannot say
+  // on its own whether the data was late or the reader was: at a 100 Hz
+  // nominal cycle an age of 25 ms with a 10 ms cycle means the PDO stream
+  // stalled, the same age with a 30 ms cycle means this loop missed wakeups
+  // and read data that was fine when it arrived.
+  float read_cycle_ms_ = 0.0F;
+  timespec last_read_ts_{0, 0};
   rclcpp::Duration driver_states_update_period_{0, 0};
+
+  // A PDO timeout persisting this long means the master stopped receiving while the bus can
+  // still be healthy - re-initialization is the only recovery. Transients (SD stalls) are
+  // 2-3 orders of magnitude shorter.
+  static constexpr std::chrono::seconds pdo_timeout_resync_threshold_{30};
+  static constexpr int resync_watchdog_exit_code_ = 74;  // EX_IOERR
+
+  std::chrono::steady_clock::time_point pdo_timeout_since_;
+  bool pdo_timeout_ongoing_ = false;
+
+  // Counted by the control loop at the start of every motor state PDO timeout, read by the
+  // diagnostics.
+  std::atomic<std::uint32_t> pdo_timeout_events_{0};
+  // The diagnostic thread's own record of the count it reported last.
+  std::uint32_t pdo_timeout_events_reported_ = 0;
+  // New timeouts per status report over the last hour, kept by the diagnostic thread.
+  std::deque<std::pair<std::chrono::steady_clock::time_point, std::uint32_t>> pdo_timeout_history_;
+  std::uint32_t pdo_timeout_events_in_history_ = 0;
+  // Longest read() cycle since the last status report, in us. Raised by the control loop, taken
+  // and zeroed by the diagnostics.
+  std::atomic<std::uint32_t> read_cycle_max_us_{0};
+
+  // Set while the motor torque is off on request, which raises the Roboteq emergency stop fault.
+  // A torque enable keeps it set until the drivers stop reporting that fault.
+  std::atomic_bool torque_disabled_by_request_{false};
+  std::atomic_bool torque_enable_pending_{false};
+
+  bool uvp_enable_ = false;
+  std::unique_ptr<UvpEStopGuard> uvp_guard_;
+  // Written by the protection subscription, read by the control loop without blocking it.
+  realtime_tools::RealtimeBuffer<UvpProtectionInput> uvp_input_;
+  std::atomic<std::int64_t> uvp_last_msg_ns_{0};
+  std::int64_t uvp_configured_ns_ = 0;
+
+  static constexpr double kUVPTopicStaleTimeout = 3.0;
+  // The battery driver starts some seconds after this driver, so a missing topic is only an error
+  // after this long.
+  static constexpr double kUVPTopicStartupGrace = 30.0;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

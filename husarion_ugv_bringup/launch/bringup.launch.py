@@ -17,6 +17,10 @@
 
 import os
 
+from husarion_ugv_utils.battery_protection import (
+    declare_uvp_arguments,
+    uvp_launch_arguments,
+)
 from husarion_ugv_utils.messages import (
     ErrorMessages,
     error_msg,
@@ -70,6 +74,24 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    launch_gamepad = LaunchConfiguration("launch_gamepad")
+    declare_launch_gamepad_arg = DeclareLaunchArgument(
+        "launch_gamepad",
+        default_value="True",
+        description="Launch gamepad node.",
+        choices=["True", "true", "False", "false"],
+    )
+
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="800000",
+        description=(
+            "SPI clock of the LED strips in Hz. 800000 is the clock the robot was EMC tested with"
+            " - other values are for EMC tests."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -84,6 +106,10 @@ def generate_launch_description():
         default_value=EnvironmentVariable("ROBOT_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
     )
+
+    # The battery undervoltage protection, off unless uvp_enable is set. The battery driver gets
+    # every setting, the other parts only the switch.
+    uvp_enable = LaunchConfiguration("uvp_enable")
 
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
     robot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="----")
@@ -100,6 +126,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -123,6 +150,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
+            "led_spi_speed_hz": led_spi_speed_hz,
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
@@ -135,7 +163,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_battery"), "launch", "battery.launch.py"]
             ),
         ),
-        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            **uvp_launch_arguments(),
+        }.items(),
     )
 
     ekf_launch = IncludeLaunchDescription(
@@ -162,6 +194,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -171,7 +204,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
         ),
-        launch_arguments={"launch_gamepad": "True"}.items(),
+        launch_arguments={"launch_gamepad": launch_gamepad}.items(),
     )
 
     hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")
@@ -229,8 +262,11 @@ def generate_launch_description():
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_launch_gamepad_arg,
+        declare_led_spi_speed_hz_arg,
         declare_log_level_arg,
         declare_namespace_arg,
+        *declare_uvp_arguments(),
         welcome_info,
         incorrect_hw_config_action,
         incorrect_os_version_action,

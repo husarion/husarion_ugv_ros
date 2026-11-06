@@ -44,6 +44,11 @@ lights_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
+  groot_enabled:
+    type: bool
+    default_value: true
+    description: Start the Groot2 publisher for the behavior trees. Turn it off when nothing attaches Groot2.
+
   bt_server_port:
     type: int
     default_value: 5555
@@ -72,6 +77,11 @@ lights_manager:
     type: string_array
     default_value: []
     description: A list with names of ROS plugins that are used in a BehaviorTree project.
+
+  uvp_enable:
+    type: bool
+    default_value: false
+    description: Show the CHARGE_ASAP animation while the battery undervoltage protection on battery/protection asks to charge.
 
   timer_frequency:
     type: double

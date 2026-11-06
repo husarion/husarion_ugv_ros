@@ -58,6 +58,14 @@ const std::map<ErrorsFilterIds, std::string> error_filter_id_names = {
   {ErrorsFilterIds::ROBOTEQ_DRIVER, "ROBOTEQ_DRIVER"},
 };
 
+// What each filter means, in the words the diagnostics show to an operator.
+const std::map<ErrorsFilterIds, std::string> error_filter_id_descriptions = {
+  {ErrorsFilterIds::WRITE_PDO_CMDS, "Motor command writes failing"},
+  {ErrorsFilterIds::READ_PDO_MOTOR_STATES, "Motor state data timing out"},
+  {ErrorsFilterIds::READ_PDO_DRIVER_STATE, "Driver state data timing out"},
+  {ErrorsFilterIds::ROBOTEQ_DRIVER, "Motor controller fault"},
+};
+
 /**
  * @brief Class that keeps track of different types of errors. In some rare cases Roboteq
  * controllers can miss for example the SDO response, or PDO can be received a bit later, which
@@ -87,6 +95,11 @@ public:
    * @brief Returns a map of all errors, with their respective names and values.
    */
   std::map<std::string, bool> GetErrorMap() const;
+
+  /**
+   * @brief Same as GetErrorMap, keyed by the operator description of each error.
+   */
+  std::map<std::string, bool> GetErrorDescriptionMap() const;
 
   /**
    * @brief Sets clear errors flag - errors will be cleared upon the next Update (any) method.

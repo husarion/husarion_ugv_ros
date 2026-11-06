@@ -65,4 +65,36 @@ bool CheckIfJointNameContainValidSequence(const std::string & name, const std::s
   return true;
 }
 
+std::optional<unsigned> ParseRTPriority(const std::string & text)
+{
+  if (text.empty() || text.find_first_not_of("0123456789") != std::string::npos) {
+    return std::nullopt;
+  }
+  // At most three digits, so stoul can neither overflow nor accept a sign or spaces.
+  if (text.size() > 3) {
+    return std::nullopt;
+  }
+  const unsigned priority = std::stoul(text);
+  if (priority < kMinRTPriority || priority > kMaxRTPriority) {
+    return std::nullopt;
+  }
+  return priority;
+}
+
+std::optional<int> ParseCPU(const std::string & text, const int cpu_count)
+{
+  if (text == "-1") {
+    return -1;
+  }
+  if (
+    text.empty() || text.size() > 4 || text.find_first_not_of("0123456789") != std::string::npos) {
+    return std::nullopt;
+  }
+  const int cpu = std::stoi(text);
+  if (cpu >= cpu_count) {
+    return std::nullopt;
+  }
+  return cpu;
+}
+
 }  // namespace husarion_ugv_hardware_interfaces

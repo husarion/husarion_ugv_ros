@@ -307,6 +307,49 @@ TEST(TestRoboteqDataConverters, DriverData)
   EXPECT_FLOAT_EQ(roboteq_data.GetDriverState().GetCurrent(), 3.5);
 }
 
+TEST(TestRoboteqDataConverters, RuntimeErrorSuppressedFlagsAreNotErrors)
+{
+  husarion_ugv_hardware_interfaces::RuntimeError runtime_error;
+  // amps_limit_active, motor_stall, forward_limit_triggered
+  runtime_error.SetData(0b00010011);
+
+  const auto error_map = runtime_error.GetErrorMap();
+  EXPECT_FALSE(error_map.at("runtime_error.amps_limit_active"));
+  EXPECT_TRUE(error_map.at("runtime_error.motor_stall"));
+  EXPECT_FALSE(error_map.at("runtime_error.forward_limit_triggered"));
+  EXPECT_EQ(
+    "current limit active, forward limit switch triggered", runtime_error.GetWarningDescription());
+
+  runtime_error.SetData(0b00000010);
+  EXPECT_EQ("", runtime_error.GetWarningDescription());
+  EXPECT_FALSE(runtime_error.IsSafetyStopActive());
+
+  // safety_stop_active, amps_limit_active
+  runtime_error.SetData(0b00001001);
+  EXPECT_TRUE(runtime_error.IsSafetyStopActive());
+  EXPECT_EQ("current limit active, safety stop active", runtime_error.GetWarningDescription());
+  EXPECT_EQ("current limit active", runtime_error.GetWarningDescription(false));
+}
+
+TEST(TestRoboteqDataConverters, UnnamedFlagBitsShowInTheErrorMap)
+{
+  husarion_ugv_hardware_interfaces::ScriptFlag script_flag;
+  // Bit 5 has no name.
+  script_flag.SetData(0b00100000);
+
+  EXPECT_TRUE(script_flag.IsError());
+  const auto error_map = script_flag.GetErrorMap();
+  ASSERT_TRUE(error_map.count("script_flag.bit_5"));
+  EXPECT_TRUE(error_map.at("script_flag.bit_5"));
+  EXPECT_TRUE(husarion_ugv_hardware_interfaces::FlagError::IsUnnamedBitKey("script_flag.bit_5"));
+  EXPECT_FALSE(
+    husarion_ugv_hardware_interfaces::FlagError::IsUnnamedBitKey("script_flag.loop_error"));
+  EXPECT_EQ("bit_5 ", script_flag.GetErrorLog());
+
+  script_flag.SetData(0);
+  EXPECT_FALSE(script_flag.GetErrorMap().count("script_flag.bit_5"));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

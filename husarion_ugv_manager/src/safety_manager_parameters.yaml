@@ -12,6 +12,11 @@ safety_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
+  groot_enabled:
+    type: bool
+    default_value: true
+    description: Start the Groot2 publisher for the behavior trees. Turn it off when nothing attaches Groot2.
+
   bt_server_port:
     type: int
     default_value: 6666
@@ -91,6 +96,11 @@ safety_manager:
     type: string
     default_value: ""
     description: Path to a YAML file containing a list of hosts to request shutdown. To correctly format the YAML file, consult the README.
+
+  uvp_enable:
+    type: bool
+    default_value: false
+    description: Act on the battery undervoltage protection published by the battery driver on battery/protection.
 
   timer_frequency:
     type: double

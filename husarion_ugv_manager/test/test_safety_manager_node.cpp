@@ -28,12 +28,14 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 #include <husarion_ugv_manager/safety_manager_node.hpp>
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
 
 using BoolMsg = std_msgs::msg::Bool;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
+using TriggerSrv = std_srvs::srv::Trigger;
 
 class SafetyManagerNodeWrapper : public husarion_ugv_manager::SafetyManagerNode
 {
@@ -68,6 +70,7 @@ protected:
   const rclcpp::QoS transient_local_qos =
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable();
   std::shared_ptr<SafetyManagerNodeWrapper> safety_manager_node_;
+  rclcpp::Service<TriggerSrv>::SharedPtr e_stop_trigger_server_;
 
 private:
   std::string bt_project_path_;
@@ -102,6 +105,10 @@ TestSafetyManagerNode::TestSafetyManagerNode()
   options.parameter_overrides(CreateTestParameters());
 
   safety_manager_node_ = std::make_shared<SafetyManagerNodeWrapper>("test_safety_manager", options);
+  // Initialize() waits for the hardware e-stop service
+  e_stop_trigger_server_ = safety_manager_node_->create_service<TriggerSrv>(
+    "hardware/e_stop_trigger",
+    [](const TriggerSrv::Request::SharedPtr, TriggerSrv::Response::SharedPtr) {});
   safety_manager_node_->Initialize();
 }
 

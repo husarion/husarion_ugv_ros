@@ -72,6 +72,13 @@ if(BUILD_TESTING)
            $<INSTALL_INTERFACE:include>)
   target_link_libraries(${PROJECT_NAME}_test_yaml_utils yaml-cpp)
 
+  ament_add_gtest(${PROJECT_NAME}_test_configure_rt test/test_configure_rt.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_configure_rt
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_configure_rt realtime_tools)
+
   ament_add_gtest(${PROJECT_NAME}_test_networking_utils
                   test/test_networking_utils.cpp)
   target_include_directories(

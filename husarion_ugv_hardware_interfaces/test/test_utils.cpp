@@ -93,6 +93,45 @@ TEST(TestUtils, CheckIfJointNameContainValidSequence)
   EXPECT_FALSE(CheckIfJointNameContainValidSequence("wheeljointfr", "fr"));
 }
 
+TEST(TestUtils, ParseRTPriority)
+{
+  using husarion_ugv_hardware_interfaces::ParseRTPriority;
+
+  EXPECT_EQ(ParseRTPriority("1"), 1u);
+  EXPECT_EQ(ParseRTPriority("70"), 70u);
+  EXPECT_EQ(ParseRTPriority("98"), 98u);
+  EXPECT_EQ(ParseRTPriority("065"), 65u);
+
+  EXPECT_FALSE(ParseRTPriority(""));
+  EXPECT_FALSE(ParseRTPriority("0"));
+  EXPECT_FALSE(ParseRTPriority("99"));
+  EXPECT_FALSE(ParseRTPriority("-5"));
+  EXPECT_FALSE(ParseRTPriority("+5"));
+  EXPECT_FALSE(ParseRTPriority(" 60"));
+  EXPECT_FALSE(ParseRTPriority("60.5"));
+  EXPECT_FALSE(ParseRTPriority("high"));
+  EXPECT_FALSE(ParseRTPriority("0070"));
+  EXPECT_FALSE(ParseRTPriority("99999999999999999999"));
+}
+
+TEST(TestUtils, ParseCPU)
+{
+  using husarion_ugv_hardware_interfaces::ParseCPU;
+
+  EXPECT_EQ(ParseCPU("-1", 4), -1);
+  EXPECT_EQ(ParseCPU("0", 4), 0);
+  EXPECT_EQ(ParseCPU("3", 4), 3);
+
+  EXPECT_FALSE(ParseCPU("4", 4));
+  EXPECT_FALSE(ParseCPU("3", 2));
+  EXPECT_FALSE(ParseCPU("", 4));
+  EXPECT_FALSE(ParseCPU("-2", 4));
+  EXPECT_FALSE(ParseCPU(" 1", 4));
+  EXPECT_FALSE(ParseCPU("1.0", 4));
+  EXPECT_FALSE(ParseCPU("cpu0", 4));
+  EXPECT_FALSE(ParseCPU("99999999999", 4));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

@@ -13,9 +13,13 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <map>
+#include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -94,6 +98,87 @@ TEST_F(TestShutdownHostsFromFile, GoodShutdownHostsFromFile)
 
   EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
   std::filesystem::remove(config_file_path);
+}
+
+namespace
+{
+
+// Reads the hosts the node would shut down, with the timeout each one got.
+class ShutdownHostsFromFileProbe : public husarion_ugv_manager::ShutdownHostsFromFile
+{
+public:
+  ShutdownHostsFromFileProbe(const std::string & name, const BT::NodeConfig & config)
+  : ShutdownHostsFromFile(name, config)
+  {
+  }
+
+  std::vector<float> Timeouts()
+  {
+    onStart();
+    std::vector<float> timeouts;
+    for (const auto & host : hosts_) {
+      timeouts.push_back(
+        std::dynamic_pointer_cast<husarion_ugv_manager::ShutdownHost>(host)->GetTimeout());
+    }
+    return timeouts;
+  }
+};
+
+std::vector<float> HostTimeouts(const std::string & yaml, const std::optional<float> & override_s)
+{
+  const std::string config_file_path = testing::TempDir() + "test_timeouts.yaml";
+  std::ofstream(config_file_path) << yaml;
+
+  BT::NodeConfig config;
+  config.blackboard = BT::Blackboard::create();
+  config.blackboard->set<std::string>("file", config_file_path);
+  config.input_ports["shutdown_hosts_file"] = "{file}";
+  if (override_s.has_value()) {
+    config.blackboard->set<float>("override", override_s.value());
+    config.input_ports["timeout_override"] = "{override}";
+  }
+  ShutdownHostsFromFileProbe probe("probe", config);
+  const auto timeouts = probe.Timeouts();
+  std::filesystem::remove(config_file_path);
+  return timeouts;
+}
+
+constexpr char kThreeHosts[] =
+  "hosts:\n"
+  "  - ip: 10.15.20.3\n"
+  "    timeout: 10.0\n"
+  "  - ip: 10.15.20.4\n"
+  "    timeout: 2.0\n"
+  "  - ip: 10.15.20.5\n";
+
+}  // namespace
+
+TEST(TestShutdownHostsFromFileTimeout, EffectiveTimeout)
+{
+  using husarion_ugv_manager::ShutdownHostsFromFile;
+  EXPECT_FLOAT_EQ(10.0f, ShutdownHostsFromFile::EffectiveTimeout(10.0f, std::nullopt));
+  EXPECT_FLOAT_EQ(3.0f, ShutdownHostsFromFile::EffectiveTimeout(10.0f, 3.0f));
+  EXPECT_FLOAT_EQ(2.0f, ShutdownHostsFromFile::EffectiveTimeout(2.0f, 3.0f));
+  EXPECT_FLOAT_EQ(10.0f, ShutdownHostsFromFile::EffectiveTimeout(10.0f, 0.0f));
+  EXPECT_FLOAT_EQ(10.0f, ShutdownHostsFromFile::EffectiveTimeout(10.0f, -1.0f));
+}
+
+TEST(TestShutdownHostsFromFileTimeout, WithoutOverrideTheFileDecides)
+{
+  const auto timeouts = HostTimeouts(kThreeHosts, std::nullopt);
+  ASSERT_EQ(3u, timeouts.size());
+  EXPECT_FLOAT_EQ(10.0f, timeouts[0]);
+  EXPECT_FLOAT_EQ(2.0f, timeouts[1]);
+  EXPECT_FLOAT_EQ(5.0f, timeouts[2]);
+}
+
+TEST(TestShutdownHostsFromFileTimeout, OverrideCapsEachHost)
+{
+  const auto timeouts = HostTimeouts(kThreeHosts, 3.0f);
+  ASSERT_EQ(3u, timeouts.size());
+  EXPECT_FLOAT_EQ(3.0f, timeouts[0]);
+  EXPECT_FLOAT_EQ(2.0f, timeouts[1]);
+  EXPECT_FLOAT_EQ(3.0f, timeouts[2]);
 }
 
 int main(int argc, char ** argv)

@@ -52,7 +52,7 @@ LightsManagerNode::LightsManagerNode(
   const auto bt_server_port = this->get_parameter("bt_server_port").as_int();
   const auto initial_blackboard = CreateLightsInitialBlackboard();
   lights_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Lights", initial_blackboard, bt_server_port);
+    "Lights", initial_blackboard, bt_server_port, this->params_.groot_enabled);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -60,6 +60,11 @@ LightsManagerNode::LightsManagerNode(
 void LightsManagerNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
+
+  // The lights driver starts together with this node. Give it one start window before the tree is
+  // built, so its service nodes do not report the service as not reachable.
+  behavior_tree_utils::WaitForService<SetLEDAnimationSrv>(
+    this->shared_from_this(), "lights/set_animation", kServiceStartupTimeout);
 
   RegisterBehaviorTree();
   lights_tree_manager_->Initialize(factory_);
@@ -77,6 +82,15 @@ void LightsManagerNode::Initialize()
 
   lights_tree_timer_ = this->create_wall_timer(
     timer_period, std::bind(&LightsManagerNode::LightsTreeTimerCB, this));
+
+  if (this->params_.uvp_enable) {
+    set_animation_client_ = this->create_client<SetLEDAnimationSrv>("lights/set_animation");
+    protection_sub_ = this->create_subscription<BatteryProtectionMsg>(
+      "battery/protection", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+      std::bind(&LightsManagerNode::ProtectionCB, this, _1));
+    charge_asap_timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(200), std::bind(&LightsManagerNode::ChargeAsapTimerCB, this));
+  }
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
 }
@@ -186,6 +200,33 @@ void LightsManagerNode::BatteryCB(const BatteryStateMsg::SharedPtr battery_state
 void LightsManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
 {
   lights_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
+}
+
+void LightsManagerNode::ProtectionCB(const BatteryProtectionMsg::SharedPtr msg)
+{
+  charge_asap_indicator_.SetProtection(
+    msg->state, msg->reactions_enabled, this->get_clock()->now().nanoseconds());
+}
+
+void LightsManagerNode::ChargeAsapTimerCB()
+{
+  if (!charge_asap_indicator_.Update(this->get_clock()->now().nanoseconds())) {
+    return;
+  }
+
+  auto request = std::make_shared<SetLEDAnimationSrv::Request>();
+  request->animation.id = LEDAnimationMsg::CHARGE_ASAP;
+  request->animation.param = "";
+  request->repeating = false;
+  set_animation_client_->async_send_request(
+    request, [this](rclcpp::Client<SetLEDAnimationSrv>::SharedFuture future) {
+      const auto response = future.get();
+      if (!response->success) {
+        RCLCPP_WARN_STREAM_THROTTLE(
+          this->get_logger(), *this->get_clock(), 60000,
+          "Failed to show the charge ASAP animation: " << response->message);
+      }
+    });
 }
 
 void LightsManagerNode::LightsTreeTimerCB()

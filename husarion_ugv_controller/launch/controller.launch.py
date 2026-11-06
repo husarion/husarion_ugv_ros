@@ -15,9 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    Shutdown,
+)
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -63,6 +68,45 @@ def generate_launch_description():
         "use_madgwick_filter",
         default_value="False",
         description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="False",
+        description=(
+            "Use the IMU magnetometer in the Madgwick filter. Off by default - the stock IMU sits "
+            "inside the chassis next to the motors, so enable it only for a relocated or external IMU"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
+    canopen_thread_cpu = LaunchConfiguration("canopen_thread_cpu")
+    declare_canopen_thread_cpu_arg = DeclareLaunchArgument(
+        "canopen_thread_cpu",
+        default_value="-1",
+        description=(
+            "CPU the CANopen communication thread pins itself to. -1 leaves it unpinned. On a "
+            "Raspberry Pi keep it off CPU 0, which handles every I2C interrupt"
+        ),
+    )
+
+    rpdo_dispatch_cpu = LaunchConfiguration("rpdo_dispatch_cpu")
+    declare_rpdo_dispatch_cpu_arg = DeclareLaunchArgument(
+        "rpdo_dispatch_cpu",
+        default_value="-1",
+        description="CPU the RPDO dispatch threads pin themselves to. -1 leaves them unpinned",
+    )
+
+    uvp_enable = LaunchConfiguration("uvp_enable")
+    declare_uvp_enable_arg = DeclareLaunchArgument(
+        "uvp_enable",
+        default_value="False",
+        description=(
+            "Enable the battery undervoltage protection. The hardware system then latches the"
+            " e-stop when the battery driver reports a UVP trip."
+        ),
         choices=["True", "true", "False", "false"],
     )
 
@@ -130,6 +174,10 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
             "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
+            "canopen_thread_cpu": canopen_thread_cpu,
+            "rpdo_dispatch_cpu": rpdo_dispatch_cpu,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -195,7 +243,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
             "--log-level",
@@ -212,11 +260,16 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # A cold boot on a two-node bus can spend 20-40 s in CANopen init
+        # retries before controller_manager's services appear. With the old
+        # 10 s the spawner died and the robot ended up running with zero
+        # controllers (silently undrivable, self-repaired only by the OS
+        # image's driver watcher restart).
         "--controller-manager-timeout",
-        "10",
+        "60",
         "--ros-args",
         "--log-level",
-        log_level,
+        normalize_log_level(log_level),
         "--log-level",
         limit_log_level_to_info("rcl", log_level),
     ]
@@ -239,13 +292,20 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
+        declare_canopen_thread_cpu_arg,
+        declare_rpdo_dispatch_cpu_arg,
+        declare_uvp_enable_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        load_urdf,
+        # Scoped so the arguments load_urdf declares stay inside it. Launch configurations are
+        # global, and its simulation-only battery_config_path default ("") would otherwise reach
+        # battery.launch.py in bringup, where battery_driver then starts without battery.yaml.
+        GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,
     ]

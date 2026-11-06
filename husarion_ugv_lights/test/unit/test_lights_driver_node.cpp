@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -23,6 +24,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -50,6 +52,8 @@ husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
+  led_output_enabled_(true),
+  global_brightness_(1.0f),
   initialization_attempt_(0),
   channel_1_(channel_1),
   channel_2_(channel_2),
@@ -58,6 +62,11 @@ husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
   channel_1_num_led_ = 46;
   channel_2_num_led_ = 46;
   frame_timeout_ = 0.1;
+
+  rclcpp::PublisherOptions pub_options;
+  pub_options.use_intra_process_comm = rclcpp::IntraProcessSetting::Disable;
+  output_state_pub_ = this->create_publisher<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(), pub_options);
 };
 
 class DriverNodeWrapper : public husarion_ugv_lights::LightsDriverNode
@@ -72,6 +81,12 @@ public:
 
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
 
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::EnableLEDOutputCB(req, res);
+  }
+
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
     return LightsDriverNode::ToggleLEDControlCB(future);
@@ -82,6 +97,13 @@ public:
     const rclcpp::Time & last_time, const std::string & panel_name)
   {
     return LightsDriverNode::FrameCB(msg, panel, last_time, panel_name);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseLights()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    LightsDriverNode::DiagnoseLights(status);
+    return status;
   }
 
   int GetNumLed(const std::string & panel_name) const
@@ -303,6 +325,118 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsCountsDroppedFrames)
+{
+  auto future = CreateSetBoolSrvFuture(true, true);
+  lights_driver_node_->ToggleLEDControlCB(std::move(future));
+
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Frames dropped since the last report"));
+
+  for (int i = 0; i < 3; ++i) {
+    auto msg = CreateValidImageMsg("channel_1");
+    msg->width = lights_driver_node_->GetNumLed("channel_1") + 1;
+    lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  }
+
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image width", GetDiagnosticValue(status, "Last drop reason"));
+
+  // The count is per report.
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsShowsOutputState)
+{
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("enabled", GetDiagnosticValue(status, "LED output"));
+  EXPECT_FLOAT_EQ(1.0f, std::stof(GetDiagnosticValue(status, "Brightness")));
+
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+  req->data = false;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("disabled", GetDiagnosticValue(status, "LED output"));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)
+{
+  using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;
+
+  auto listener = std::make_shared<rclcpp::Node>("output_state_listener");
+  LEDOutputStateMsg::SharedPtr last_state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&last_state](const LEDOutputStateMsg::SharedPtr msg) { last_state = msg; });
+
+  auto wait_for_state = [&](bool enabled) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(listener);
+      if (last_state && last_state->enabled == enabled) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  };
+
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+
+  req->data = false;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+  EXPECT_TRUE(res->success);
+  ASSERT_TRUE(wait_for_state(false));
+  EXPECT_FLOAT_EQ(1.0f, last_state->brightness);
+
+  req->data = true;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+  EXPECT_TRUE(res->success);
+  EXPECT_TRUE(wait_for_state(true));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBRewritesLastFrame)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+
+  auto future = CreateSetBoolSrvFuture(true, true);
+  lights_driver_node_->ToggleLEDControlCB(std::move(future));
+
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+  req->data = false;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+
+  // Only channel 1 received a frame, so only channel 1 is written again.
+  EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+
+  req->data = true;
+  lights_driver_node_->EnableLEDOutputCB(req, res);
+  EXPECT_TRUE(res->success);
 }
 
 int main(int argc, char ** argv)

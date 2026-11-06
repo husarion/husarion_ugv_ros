@@ -15,6 +15,7 @@
 #include "husarion_ugv_manager/plugins/action/shutdown_hosts_from_file_node.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -41,6 +42,12 @@ bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHost
     return false;
   }
 
+  std::optional<float> timeout_override;
+  float timeout_override_value;
+  if (getInput<float>("timeout_override", timeout_override_value)) {
+    timeout_override = timeout_override_value;
+  }
+
   YAML::Node shutdown_hosts;
   try {
     shutdown_hosts = YAML::LoadFile(shutdown_hosts_file);
@@ -63,7 +70,8 @@ bool ShutdownHostsFromFile::UpdateHosts(std::vector<std::shared_ptr<ShutdownHost
       const auto port = husarion_ugv_utils::GetYAMLKeyValue<std::string>(host, "port", "3003");
       const auto secret = husarion_ugv_utils::GetYAMLKeyValue<std::string>(
         host, "secret", "husarion");
-      const auto timeout = husarion_ugv_utils::GetYAMLKeyValue<float>(host, "timeout", 5.0);
+      const auto timeout = EffectiveTimeout(
+        husarion_ugv_utils::GetYAMLKeyValue<float>(host, "timeout", 5.0), timeout_override);
       hosts.push_back(std::make_shared<ShutdownHost>(ip, port, secret, timeout));
     }
   } catch (const std::runtime_error & e) {

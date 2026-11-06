@@ -21,6 +21,8 @@ repos:
       - id: name-tests-test
       - id: mixed-line-ending
       - id: trailing-whitespace
+        # blank context lines in a patch are a single space
+        exclude: \.patch$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
@@ -84,7 +86,9 @@ repos:
         stages: [pre-commit]
         entry: bash -c 'source /opt/ros/jazzy/setup.bash && ament_copyright "$@"' --
         language: system
-        exclude: ^.*\.md$
+        # resilient_joy_linux.cpp is vendored and keeps its upstream Willow
+        # Garage BSD header, which ament_copyright does not recognize.
+        exclude: ^(.*\.md|husarion_ugv_teleop/src/resilient_joy_linux\.cpp)$
 
     # Docs - RestructuredText hooks
   - repo: https://github.com/PyCQA/doc8

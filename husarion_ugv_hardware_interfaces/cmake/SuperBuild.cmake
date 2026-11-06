@@ -24,6 +24,10 @@ ExternalProject_Add(
   GIT_REPOSITORY https://gitlab.com/lely_industries/lely-core.git
   GIT_TAG v2.3.3
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ep_liblely
+  # Reset before apply keeps the patch step idempotent across re-configures.
+  PATCH_COMMAND git checkout -- src/coapp/loop_driver.cpp
+  COMMAND git apply
+          ${PROJECT_SOURCE_DIR}/patches/lely-loop-driver-teardown-throw.patch
   CONFIGURE_COMMAND autoreconf -i <SOURCE_DIR>
   COMMAND
     env CFLAGS=-DNDEBUG CXXFLAGS=-DNDEBUG <SOURCE_DIR>/configure

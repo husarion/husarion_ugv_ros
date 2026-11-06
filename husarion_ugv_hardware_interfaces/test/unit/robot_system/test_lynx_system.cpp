@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/sysinfo.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -38,6 +40,10 @@ public:
     mock_gpio_controller =
       std::make_shared<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>();
     mock_e_stop = std::make_shared<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock>();
+
+    e_stop_diagnostics = std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+    e_stop_diagnostics->SetSource(husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED);
+    ON_CALL(*mock_e_stop, GetDiagnostics()).WillByDefault(::testing::Return(e_stop_diagnostics));
   }
 
   void DefineRobotDriver() override { robot_driver_ = mock_robot_driver; }
@@ -46,11 +52,24 @@ public:
 
   void ReadCANopenSettingsDriverCANIDs() { LynxSystem::ReadCANopenSettingsDriverCANIDs(); }
   void UpdateHwStates() { LynxSystem::UpdateHwStates(); }
-  void UpdateMotorsStateDataTimedOut() { LynxSystem::UpdateMotorsStateDataTimedOut(); }
+  bool UpdateMotorsStateDataTimedOut() { return LynxSystem::UpdateMotorsStateDataTimedOut(); }
   void UpdateDriverStateDataTimedOut() { LynxSystem::UpdateDriverStateDataTimedOut(); }
 
   void UpdateDriverStateMsg() { LynxSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { LynxSystem::UpdateFlagErrors(); }
+  void MotorTorqueEnable(const bool enable) { LynxSystem::MotorTorqueEnable(enable); }
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    LynxSystem::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    LynxSystem::DiagnoseStatus(status);
+  }
   std::vector<float> GetSpeedCommands() const { return LynxSystem::GetSpeedCommands(); }
 
   void SetHwCommandsVelocities(std::vector<double> & velocities)
@@ -65,6 +84,10 @@ public:
   {
     return canopen_settings_;
   }
+  unsigned GetGPIOWatchdogSchedPriority() const { return gpio_watchdog_sched_priority_; }
+  unsigned GetGPIOMonitorSchedPriority() const { return gpio_monitor_sched_priority_; }
+  int GetGPIOWatchdogCPU() const { return gpio_watchdog_cpu_; }
+  int GetGPIOMonitorCPU() const { return gpio_monitor_cpu_; }
   std::vector<double> GetHwStatesPositions() { return hw_states_positions_; }
   std::vector<double> GetHwStatesVelocities() { return hw_states_velocities_; }
   std::vector<double> GetHwStatesEfforts() { return hw_states_efforts_; }
@@ -79,6 +102,7 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>
     mock_gpio_controller;
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> mock_e_stop;
+  std::shared_ptr<husarion_ugv_hardware_interfaces::EStopDiagnostics> e_stop_diagnostics;
 };
 
 class TestLynxSystem : public ::testing::Test
@@ -113,6 +137,122 @@ TEST_F(TestLynxSystem, ReadCANopenSettingsDriverCANIDs)
   EXPECT_EQ(canopen_settings.driver_can_ids.size(), 1);
   EXPECT_EQ(
     canopen_settings.driver_can_ids.at(husarion_ugv_hardware_interfaces::DriverNames::DEFAULT), 1);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesDefault)
+{
+  const auto canopen_settings = lynx_system_->GetCANopenSettings();
+
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system_->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system_->GetGPIOMonitorSchedPriority(), 60u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesFromParameters)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "80";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "75";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "62";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "55";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 80u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 75u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 62u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 55u);
+}
+
+TEST_F(TestLynxSystem, RTThreadPrioritiesInvalidFallBackToDefault)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_priority"] = "99";
+  hardware_info.hardware_parameters["rpdo_dispatch_priority"] = "0";
+  hardware_info.hardware_parameters["gpio_watchdog_priority"] = "-1";
+  hardware_info.hardware_parameters["gpio_monitor_priority"] = "high";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_sched_priority, 70u);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_sched_priority, 65u);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogSchedPriority(), 60u);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorSchedPriority(), 60u);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsDefault)
+{
+  // The GPIO default is the robot's layout and only valid on a machine with at least four CPUs.
+  const int control_cpu = get_nprocs_conf() > 3 ? 3 : -1;
+  const auto canopen_settings = lynx_system_->GetCANopenSettings();
+
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
+  EXPECT_EQ(lynx_system_->GetGPIOWatchdogCPU(), control_cpu);
+  EXPECT_EQ(lynx_system_->GetGPIOMonitorCPU(), control_cpu);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsCANPinnedOnlyWhenSet)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "0";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "0";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, 0);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, 0);
+
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "-1";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-1";
+  lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  EXPECT_EQ(lynx_system->GetCANopenSettings().canopen_thread_cpu, -1);
+  EXPECT_EQ(lynx_system->GetCANopenSettings().rpdo_dispatch_cpu, -1);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsFromParameters)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = "1";
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-1";
+  hardware_info.hardware_parameters["gpio_watchdog_cpu"] = "0";
+  hardware_info.hardware_parameters["gpio_monitor_cpu"] = "-1";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, get_nprocs_conf() > 1 ? 1 : -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogCPU(), 0);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorCPU(), -1);
+}
+
+TEST_F(TestLynxSystem, RTThreadCPUsInvalidAreNotPinned)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_thread_cpu"] = std::to_string(get_nprocs_conf());
+  hardware_info.hardware_parameters["rpdo_dispatch_cpu"] = "-2";
+  hardware_info.hardware_parameters["gpio_watchdog_cpu"] = "two";
+  hardware_info.hardware_parameters["gpio_monitor_cpu"] = "";
+
+  auto lynx_system = std::make_shared<LynxSystemWrapper>();
+  ASSERT_EQ(lynx_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+
+  const auto canopen_settings = lynx_system->GetCANopenSettings();
+  EXPECT_EQ(canopen_settings.canopen_thread_cpu, -1);
+  EXPECT_EQ(canopen_settings.rpdo_dispatch_cpu, -1);
+  EXPECT_EQ(lynx_system->GetGPIOWatchdogCPU(), -1);
+  EXPECT_EQ(lynx_system->GetGPIOMonitorCPU(), -1);
 }
 
 TEST_F(TestLynxSystem, UpdateHwStates)
@@ -309,6 +449,394 @@ TEST_F(TestLynxSystem, GetSpeedCommands)
   ASSERT_EQ(speed_cmd.size(), 2);
   EXPECT_FLOAT_EQ(speed_cmd[0], fl_v);
   EXPECT_FLOAT_EQ(speed_cmd[1], fr_v);
+}
+
+TEST_F(TestLynxSystem, DiagnoseStatus)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // left - channel 2, right - channel 1
+  data.SetMotorsStates({0, 0, 25, {0, 0}, {0, 0}}, {0, 0, -40, {0, 0}, {0, 0}}, false);
+  data.SetDriverState(MakeDriverState(40), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("Lynx system status monitoring.", status.message);
+  EXPECT_FLOAT_EQ(1.5, std::stof(GetDiagnosticValue(status, "Driver battery current (A)")));
+  EXPECT_FLOAT_EQ(40.0, std::stof(GetDiagnosticValue(status, "Driver voltage (V)")));
+  EXPECT_FLOAT_EQ(2.5, std::stof(GetDiagnosticValue(status, "Motor current right (A)")));
+  EXPECT_FLOAT_EQ(-4.0, std::stof(GetDiagnosticValue(status, "Motor current left (A)")));
+
+  // The shipped Roboteq profile stops the motors at 85 C.
+  data.SetDriverState(MakeDriverState(75), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsSingleLatePDOIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::MotorDriverState motor_state{};
+  data.SetMotorsStates(motor_state, motor_state, true);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  lynx_system_->TickCANopenResyncWatchdog(true);
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver warning: motor_states_data_timed_out"));
+  EXPECT_EQ("1", GetDiagnosticValue(status, "PDO timeouts since the last report"));
+
+  // The count is per report, and fresh data clears the warning.
+  data.SetMotorsStates(motor_state, motor_state, false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "PDO timeouts since the last report"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsDriverFaultIsAnError)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // fault flag bit 0 - overheat
+  data.SetDriverState(MakeDriverState(40, 0b00000001), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: fault_flag.overheat"));
+
+  lynx_system_->GetRoboteqErrorFilter()->UpdateError(
+    husarion_ugv_hardware_interfaces::ErrorsFilterIds::ROBOTEQ_DRIVER, true);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
+  EXPECT_EQ(
+    "E-stop reset or motor torque toggle", GetDiagnosticValue(status, "Latched errors clear on"));
+
+  data.SetDriverState(MakeDriverState(40), false);
+  data.SetCANError(true);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: can_error"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsCurrentLimitIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // runtime flag bit 0 - amps_limit_active, channel 1 is the right motor
+  data.SetDriverState(MakeDriverState(40, 0, 0b00000001), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // With a real fault next to it the current limit is still not listed as an error.
+  data.SetDriverState(MakeDriverState(40, 0b00000001, 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ(
+    "<missing>",
+    GetDiagnosticValue(status, "Driver error: channel_1_motor.runtime_error.amps_limit_active"));
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsSafetyStopHeldByTheEStopIsOK)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kSafetyStopActive = 0b00001000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  // A parked robot: the latched e-stop holds the motors through the safety stop.
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: right motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // A current limit next to it is still a warning.
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive | 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("current limit active", GetDiagnosticValue(status, "Driver warning: right motor"));
+
+  // With the e-stop released nothing should hold the motors.
+  data.SetDriverState(MakeDriverState(40, 0, kSafetyStopActive), false);
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::RELEASED);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("safety stop active", GetDiagnosticValue(status, "Driver warning: right motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Driver: right motor"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisableWithAnUnnamedFlagIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+  // A script flag bit without a name.
+  constexpr std::uint8_t kUnnamedScriptFlag = 0b00100000;
+
+  auto state = MakeDriverState(40, kEmergencyStopFault);
+  state.script_flags = kUnnamedScriptFlag;
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(state, false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // Without a torque disable request the unnamed bit is a fault and is named in the task.
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: script_flag.bit_5"));
+
+  lynx_system_->MotorTorqueEnable(false);
+  lynx_system_->UpdateFlagErrors();
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver warning: script_flag.bit_5"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisableWithATimedOutWriteIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // An SDO write that times out may still have reached the Roboteq and cut the torque.
+  EXPECT_CALL(*lynx_system_->mock_robot_driver, TurnOnEStop())
+    .WillOnce(::testing::Throw(std::runtime_error("SDO write timed out")));
+  EXPECT_THROW(lynx_system_->MotorTorqueEnable(false), std::runtime_error);
+  lynx_system_->UpdateFlagErrors();
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueDisabledByRequestIsAWarning)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+
+  // Without a torque disable request the same fault is an error.
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+
+  lynx_system_->MotorTorqueEnable(false);
+  lynx_system_->UpdateFlagErrors();
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Driver warning: motor torque"));
+
+  // The latched motor controller fault comes from the same flag, so it is not an error.
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // Any other fault next to it is still an error, listed without the torque disable.
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault | 0b00000001), false);
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Driver error: fault_flag.overheat"));
+  EXPECT_EQ(
+    "<missing>",
+    GetDiagnosticValue(status, "Driver error: fault_flag.emergency_stop (torque disabled)"));
+  EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Driver warning: motor torque"));
+
+  // The torque enable lasts until the driver stops reporting the emergency stop. Its fault flags
+  // arrive later than the enable, so the first sample after it is still the old one.
+  lynx_system_->MotorTorqueEnable(true);
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  lynx_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  data.SetDriverState(MakeDriverState(40), false);
+  lynx_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // After that the same fault is an error again.
+  data.SetDriverState(MakeDriverState(40, kEmergencyStopFault), false);
+  lynx_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseErrorsTorqueToggleWithTheEStopLatchedIsOK)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+  constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+  constexpr std::uint8_t kSafetyStopActive = 0b00001000;
+  // A runtime flag bit without a name, which the Roboteq raises with the emergency stop.
+  constexpr std::uint8_t kUnnamedRuntimeFlag = 0b10000000;
+
+  const auto parked_state = [&](const bool emergency_stop) {
+    auto state = MakeDriverState(
+      40, emergency_stop ? kEmergencyStopFault : 0,
+      kSafetyStopActive | (emergency_stop ? kUnnamedRuntimeFlag : 0));
+    state.runtime_stat_flag_channel_2 = state.runtime_stat_flag_channel_1;
+    return state;
+  };
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  data.SetDriverState(parked_state(false), false);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+  ON_CALL(*lynx_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+  lynx_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+
+  const auto diagnose = [this]() {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    lynx_system_->UpdateFlagErrors();
+    lynx_system_->DiagnoseErrors(status);
+    return diagnostic_msgs::msg::DiagnosticStatus(status);
+  };
+
+  lynx_system_->MotorTorqueEnable(false);
+  data.SetDriverState(parked_state(true), false);
+  auto status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+
+  lynx_system_->MotorTorqueEnable(true);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  data.SetDriverState(parked_state(false), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: right motor"));
+  EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, "Driver: left motor"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseStatusCountsPDOTimeouts)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  husarion_ugv_hardware_interfaces::DriverData data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::ReturnRef(data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+
+  // Two separate timeouts, the second lasting three cycles.
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(false);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+  lynx_system_->TickCANopenResyncWatchdog(true);
+
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+
+  // The hour keeps them across reports.
+  status.clearSummary();
+  status.values.clear();
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "PDO timeouts in the last hour"));
+}
+
+TEST_F(TestLynxSystem, DiagnoseStatusStaleWhenDataUnavailable)
+{
+  ON_CALL(*lynx_system_->mock_robot_driver, GetData(::testing::_))
+    .WillByDefault(::testing::Throw(std::runtime_error("no data")));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  lynx_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
 }
 
 int main(int argc, char ** argv)

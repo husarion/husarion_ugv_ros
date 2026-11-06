@@ -17,8 +17,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -53,8 +55,10 @@ public:
   void Reset(const rclcpp::Time & header_stamp) override;
 
   float GetLoadCurrent() override { return current_ma_->GetAverage(); }
+  std::string GetSourceName() const override { return "ADC"; }
 
 private:
+  void UpdateWithObservers();
   inline float ADCToBatteryVoltage(const float adc_data) const;
   inline float ADCToBatteryCurrent(const float adc_data) const;
   inline float ADCToBatteryCharge(const float adc_data) const;
@@ -89,7 +93,8 @@ private:
 
   float voltage_raw_;
   float current_raw_;
-  float temp_raw_;
+  // NaN until the first read, which the undervoltage protection reads as not yet plausible.
+  float temp_raw_ = std::numeric_limits<float>::quiet_NaN();
   float charge_raw_;
 
   const std::function<float()> ReadVoltage;

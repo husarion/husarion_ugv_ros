@@ -124,6 +124,7 @@ SystemROSInterface::~SystemROSInterface()
   e_stop_state_publisher_.reset();
 
   service_wrappers_storage_.clear();
+  subscriptions_storage_.clear();
 
   node_.reset();
 }
@@ -227,12 +228,16 @@ bool SystemROSInterface::UpdateIOStateMsg(const GPIOPin pin, const bool pin_valu
 {
   auto & io_state_msg = realtime_io_state_publisher_->msg_;
 
+  const std::int8_t diagnostic_value = pin_value ? 1 : 0;
+
   switch (pin) {
     case GPIOPin::AUX_PW_EN:
       io_state_msg.aux_power = pin_value;
+      io_state_diagnostics_->aux_power.store(diagnostic_value);
       break;
     case GPIOPin::CHRG_SENSE:
       io_state_msg.charger_connected = pin_value;
+      io_state_diagnostics_->charger_connected.store(diagnostic_value);
       break;
     case GPIOPin::CHRG_DISABLE:
       io_state_msg.charger_enabled = !pin_value;
@@ -242,10 +247,12 @@ bool SystemROSInterface::UpdateIOStateMsg(const GPIOPin pin, const bool pin_valu
       break;
     case GPIOPin::FAN_SW:
       io_state_msg.fan = pin_value;
+      io_state_diagnostics_->fan.store(diagnostic_value);
       break;
     case GPIOPin::VMOT_ON:
     case GPIOPin::MOTOR_ON:
       io_state_msg.motor_on = pin_value;
+      io_state_diagnostics_->motor_on.store(diagnostic_value);
       break;
     case GPIOPin::SHDN_INIT:
       io_state_msg.power_button = pin_value;
@@ -258,6 +265,24 @@ bool SystemROSInterface::UpdateIOStateMsg(const GPIOPin pin, const bool pin_valu
   }
 
   return true;
+}
+
+IOStateDiagnostics IOStateDiagnosticsStore::Get() const
+{
+  const auto to_optional = [](const std::atomic<std::int8_t> & value) -> std::optional<bool> {
+    const auto loaded = value.load();
+    if (loaded < 0) {
+      return std::nullopt;
+    }
+    return loaded == 1;
+  };
+
+  IOStateDiagnostics io_state;
+  io_state.motor_on = to_optional(motor_on);
+  io_state.charger_connected = to_optional(charger_connected);
+  io_state.aux_power = to_optional(aux_power);
+  io_state.fan = to_optional(fan);
+  return io_state;
 }
 
 rclcpp::CallbackGroup::SharedPtr SystemROSInterface::GetOrCreateNodeCallbackGroup(

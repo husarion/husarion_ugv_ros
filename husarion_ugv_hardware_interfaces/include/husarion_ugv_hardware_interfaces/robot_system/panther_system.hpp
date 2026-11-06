@@ -41,7 +41,7 @@ protected:
   virtual void DefineRobotDriver() override;  // virtual for testing
 
   void UpdateHwStates() override;
-  void UpdateMotorsStateDataTimedOut() override;
+  bool UpdateMotorsStateDataTimedOut() override;
 
   void UpdateDriverStateMsg() override;
   void UpdateFlagErrors() override;
@@ -51,6 +51,7 @@ protected:
 
   void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) override;
   void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) override;
+  std::vector<DriverDiagnosticData> GetDriversDiagnosticData() override;
 
   static const inline std::vector<std::string> kJointOrder = {"fl", "fr", "rl", "rr"};
 };

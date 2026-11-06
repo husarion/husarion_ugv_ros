@@ -2,6 +2,39 @@
   controller_manager:
     ros__parameters:
       update_rate: 100
+      # Run the update loop on the RT core at the same FIFO priority as the
+      # driver threads - left alone it floats across all cores at FIFO 50,
+      # where a loaded core can stretch a read cycle past the PDO deadline.
+      cpu_affinity: 3
+      thread_priority: 60
+      lock_memory: true
+
+      # TODO: set from the 1 h bench capture. The /diagnostics thresholds of the
+      # controller manager, controllers and hardware components, shown with the
+      # controller_manager 4.48 defaults that apply while this stays commented.
+      # Nobody has measured where normal running sits on the robot yet, and a
+      # read that waits on CAN may come close to the execution time standard
+      # deviation warning. Periodicity is in Hz, execution time in us.
+      # diagnostics:
+      #   threshold:
+      #     controller_manager:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #     controllers:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #       execution_time:
+      #         mean_error: {warn: 1000.0, error: 2000.0}
+      #         standard_deviation: {warn: 100.0, error: 200.0}
+      #     hardware_components:
+      #       periodicity:
+      #         mean_error: {warn: 5.0, error: 10.0}
+      #         standard_deviation: {warn: 5.0, error: 10.0}
+      #       execution_time:
+      #         mean_error: {warn: 1000.0, error: 2000.0}
+      #         standard_deviation: {warn: 100.0, error: 200.0}
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
@@ -12,9 +45,17 @@
       twist_mux_controller:
         type: twist_mux_controller/TwistMuxController
 
+  # The broadcasters and the odometry publish at 50 Hz while the control loop
+  # keeps 100 Hz. Their consumers (EKF, robot_state_publisher, the bridges) run
+  # at 50 Hz or less, so the extra samples only cost CPU.
+  joint_state_broadcaster:
+    ros__parameters:
+      update_rate: 50
+
   # IMU specification: https://www.phidgets.com/?tier=3&catid=10&pcid=8&prodid=1025#Tab_Specifications
   imu_broadcaster:
     ros__parameters:
+      update_rate: 50
       sensor_name: <namespace>/imu
       frame_id: <namespace>/imu_link
       # orientation_stddev: 4.3e-2 rad determined experimentally
@@ -41,7 +82,7 @@
       left_wheel_radius_multiplier: 0.964
       right_wheel_radius_multiplier: 0.964
 
-      publish_rate: 100.0
+      publish_rate: 50.0
       odom_frame_id: odom
       base_frame_id: base_link
       twist_covariance_diagonal: [5.4e-5, 5.4e-5, 0.0, 0.0, 0.0, 1.9e-4] # Values measured experimentally

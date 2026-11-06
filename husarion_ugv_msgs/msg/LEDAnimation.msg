@@ -16,6 +16,7 @@ uint16 BLINKER_LEFT = 14
 uint16 BLINKER_RIGHT = 15
 uint16 GOAL_FAILED = 16
 uint16 FLOOD_LIGHT = 17
+uint16 CHARGE_ASAP = 18
 
 uint16 id
 string param

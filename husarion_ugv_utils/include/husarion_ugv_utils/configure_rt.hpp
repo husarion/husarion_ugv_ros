@@ -15,6 +15,11 @@
 #ifndef HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
 #define HUSARION_UGV_UTILS_HUSARION_UGV_UTILS_CONFIGURE_RT_HPP_
 
+#include <pthread.h>
+#include <sched.h>
+
+#include <cstring>
+#include <iostream>
 #include <stdexcept>
 
 #include "realtime_tools/realtime_helpers.hpp"
@@ -22,14 +27,32 @@
 namespace husarion_ugv_utils
 {
 /**
- * @brief Configures thread that calls this function to FIFO scheduler with RT priority
+ * @brief Configures thread that calls this function to FIFO scheduler with RT priority and,
+ * optionally, pins it to one CPU
  *
  * @param priority RT priority of thread (value in [0, 99] range)
+ * @param cpu CPU to pin the thread to, or a negative value to leave its affinity alone. Pinning
+ * runs first and a failure only prints a warning: a thread on the wrong core still works, while
+ * a throw here would also cost it the RT priority.
  *
  * @exception std::runtime_error if invalid priority is set, kernel isn't RT or configuration fails.
  */
-inline void ConfigureRT(const unsigned priority)
+inline void ConfigureRT(const unsigned priority, const int cpu = -1)
 {
+  if (cpu >= 0) {
+    int ret = EINVAL;
+    if (cpu < CPU_SETSIZE) {
+      cpu_set_t cpu_set;
+      CPU_ZERO(&cpu_set);
+      CPU_SET(cpu, &cpu_set);
+      ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
+    }
+    if (ret != 0) {
+      std::cerr << "Could not pin the thread to CPU " << cpu << ": " << std::strerror(ret)
+                << ". It keeps its current CPU affinity." << std::endl;
+    }
+  }
+
   if (priority > 99) {
     throw std::runtime_error(
       "Invalid priority value. Please set a value between 0 and 99 for RT scheduling.");

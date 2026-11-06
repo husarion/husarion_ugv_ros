@@ -17,6 +17,10 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 - `hardware/io_state` [*husarion_ugv_msgs/IOState*]: Current IO state.
 - `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: Current motor controllers' state and error flags.
 
+#### Subscribers
+
+- `battery/protection` [*husarion_ugv_msgs/BatteryProtection*]: Battery undervoltage protection state. Only with `uvp_enable`.
+
 #### Service Servers
 
 - `hardware/aux_power_enable` [*std_srvs/SetBool*]: Enables or disables AUX power.
@@ -53,6 +57,24 @@ CAN settings
 - `max_write_pdo_cmds_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 - `max_read_pdo_motor_states_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 - `max_read_pdo_driver_state_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
+
+Real-time thread priorities. Each is a SCHED_FIFO priority from 1 to 98. A missing parameter keeps the default, and an invalid value is replaced by the default with a warning. Each thread also carries a name, so it can be found with `ps -eLo tid,rtprio,psr,comm` and pinned to a CPU from outside the process.
+
+- `canopen_thread_priority` [*int*, default: **70**]: CANopen communication thread (`lely-io`). It reads the CAN frames and has to stay above the control loop (FIFO 60), or the motor state timestamps go stale and the driver latches the e-stop.
+- `rpdo_dispatch_priority` [*int*, default: **65**]: RPDO dispatch thread of each Roboteq driver (`rpdo-dispatch`), which timestamps every motor state frame.
+- `gpio_watchdog_priority` [*int*, default: **60**]: Safety watchdog thread (`gpio-wdog`). It toggles the watchdog pin every 10 ms while the e-stop is released, and the safety board cuts motor power when the toggling stops.
+- `gpio_monitor_priority` [*int*, default: **60**]: GPIO edge event monitor thread (`gpio-monit`).
+
+Real-time thread CPUs. Each thread pins itself to the given CPU when it starts, and -1 leaves it unpinned. A value that is not -1 or a CPU of this machine leaves the thread unpinned with a warning, and so does a failed pin. The CAN threads are unpinned by default and set from the `canopen_thread_cpu` and `rpdo_dispatch_cpu` launch arguments. Keep them off CPU 0 on a Raspberry Pi, which handles every I2C interrupt: a CAN thread pinned there starves the I2C irq thread and the battery readings time out. The GPIO threads default to CPU 3, next to the control loop.
+
+- `canopen_thread_cpu` [*int*, default: **-1**]: CPU of the CANopen communication thread.
+- `rpdo_dispatch_cpu` [*int*, default: **-1**]: CPU of the RPDO dispatch threads.
+- `gpio_watchdog_cpu` [*int*, default: **3**]: CPU of the safety watchdog thread. The thread is created once when the GPIO controller starts and parks while the e-stop is latched, so it keeps its CPU and priority across e-stop resets.
+- `gpio_monitor_cpu` [*int*, default: **3**]: CPU of the GPIO monitor thread.
+
+Battery undervoltage protection
+
+- `uvp_enable` [*bool*, default: **unset**]: Present only when the protection is enabled (the `uvp_enable` launch argument), so the robot description is unchanged without it. In `STOP` mode the system then latches the e-stop at a UVP trip reported on `battery/protection`, and after any release of the e-stop while UVP is latched it latches it again when the drive window ends. It never releases the e-stop itself. The "E-stop" diagnostic task shows UVP as the cause, the drive window and an ERROR when the protection data is stale. See [Battery Undervoltage Protection](../husarion_ugv_manager/CONFIGURATION.md#battery-undervoltage-protection-uvp).
 
 PantherSystem additional CAN settings
 
@@ -102,7 +124,7 @@ Additional parameters
 
 Madgwick filter settings
 
-- `use_mag` [*bool*, default: **false**]: Use magnitude to calculate orientation.
+- `use_mag` [*bool*, default: **false**]: Use the magnetometer to calculate orientation. Set it with the `use_mag` launch argument. Leave it off on a stock robot - the IMU sits inside the chassis next to the motors and the magnetometer reading is unusable there. Turn it on only for a relocated or external IMU.
 - `gain` [*double*, default: **0.1**]: Gain of the filter. Higher values lead to faster convergence but more noise. Lower values lead to slower convergence but smoother signal.
 - `zeta` [*double*, default: **0.1**]: Gyro drift gain (approx. rad/s).
 - `mag_bias_x` [*double*, default: **0.0**]: Magnetometer bias (hard iron correction), x component.

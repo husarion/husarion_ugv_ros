@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -22,6 +26,8 @@
 
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
 #include <rclcpp/rclcpp.hpp>
+
+#include "husarion_ugv_msgs/msg/battery_protection.hpp"
 
 #include "husarion_ugv_hardware_interfaces/robot_system/ugv_system.hpp"
 
@@ -57,7 +63,7 @@ public:
   MOCK_METHOD(void, DefineRobotDriver, (), (override));
 
   MOCK_METHOD(void, UpdateHwStates, (), (override));
-  MOCK_METHOD(void, UpdateMotorsStateDataTimedOut, (), (override));
+  MOCK_METHOD(bool, UpdateMotorsStateDataTimedOut, (), (override));
   MOCK_METHOD(void, UpdateDriverStateMsg, (), (override));
   MOCK_METHOD(void, UpdateFlagErrors, (), (override));
   MOCK_METHOD(void, UpdateDriverStateDataTimedOut, (), (override));
@@ -66,6 +72,7 @@ public:
 
   MOCK_METHOD(void, DiagnoseErrors, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
   MOCK_METHOD(void, DiagnoseStatus, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
+  MOCK_METHOD(std::vector<DriverDiagnosticData>, GetDriversDiagnosticData, (), (override));
 
   void SetHwCommandVelocity(const std::vector<double> & velocity)
   {
@@ -93,6 +100,22 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> GetMockEStop()
   {
     return mock_e_stop_;
+  }
+
+  void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    UGVSystem::DiagnoseEStop(status);
+  }
+
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
+
+  void SetPDOTimeoutOngoingSince(const std::chrono::steady_clock::time_point time_point)
+  {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = time_point;
   }
 
   using NiceMock = testing::NiceMock<MockUGVSystem>;
@@ -207,6 +230,25 @@ TEST_F(TestUGVSystem, OnShutdown)
   auto callback_return = ugv_system_->on_shutdown(rclcpp_lifecycle::State());
 
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, OnShutdownReleasesGPIOControllerBeforeROSInterface)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  // The test's own mock member plus the system's gpio_controller_. The ROS services must not add
+  // owners, or the controller and its GPIO monitor thread outlive the teardown order.
+  const std::weak_ptr<husarion_ugv_hardware_interfaces::GPIOControllerInterface> gpio_controller =
+    ugv_system_->GetMockGPIOController();
+  EXPECT_EQ(gpio_controller.use_count(), 2);
+
+  ugv_system_->on_shutdown(rclcpp_lifecycle::State());
+  EXPECT_EQ(gpio_controller.use_count(), 1);
 
   rclcpp::shutdown();
 }
@@ -360,6 +402,31 @@ TEST_F(TestUGVSystem, Read)
   rclcpp::shutdown();
 }
 
+TEST_F(TestUGVSystem, ReadKeepsDriverStateRate)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  int driver_state_updates = 0;
+  ON_CALL(*ugv_system_, UpdateDriverStateMsg()).WillByDefault([&]() { ++driver_state_updates; });
+
+  // 100 Hz reads with +-0.2 ms jitter for one second, 20 Hz driver state expected
+  const int64_t start_ns = 1'000'000'000;
+  for (int i = 0; i < 100; ++i) {
+    const int64_t jitter_ns = (i % 2) ? 200'000 : -200'000;
+    ugv_system_->read(
+      rclcpp::Time(start_ns + i * 10'000'000 + jitter_ns, RCL_STEADY_TIME),
+      rclcpp::Duration(0, 10'000'000));
+  }
+
+  EXPECT_EQ(driver_state_updates, 20);
+
+  rclcpp::shutdown();
+}
+
 TEST_F(TestUGVSystem, Write)
 {
   rclcpp::init(0, nullptr);
@@ -401,6 +468,304 @@ TEST_F(TestUGVSystem, Write)
   callback_return = ugv_system_->write(rclcpp::Time(0, 0, RCL_ROS_TIME), rclcpp::Duration(0, 0));
 
   EXPECT_EQ(callback_return, hardware_interface::return_type::OK);
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdog)
+{
+  // A timeout that clears resets the watchdog - the next one starts counting from zero
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system_->TickCANopenResyncWatchdog(false);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+
+  // A continuous timeout past the threshold exits the process
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->TickCANopenResyncWatchdog(true), ::testing::ExitedWithCode(74),
+    "CANopen resync watchdog");
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogFedByThrowingRead)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  // A dead master surfaces as UpdateMotorsState() throwing (heartbeat
+  // timeout) before the success-path watchdog feed is reached - the
+  // exception path must keep the watchdog counting or it can never fire in
+  // exactly the state it exists for.
+  ON_CALL(*ugv_system_->GetMockRobotDriver(), UpdateMotorsState())
+    .WillByDefault(::testing::Throw(std::runtime_error("Motor controller heartbeat timeout.")));
+
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->read(rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0)),
+    ::testing::ExitedWithCode(74), "CANopen resync watchdog");
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, DiagnoseEStop)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  rclcpp::init(0, nullptr);
+
+  const auto e_stop_diagnostics =
+    std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+  ON_CALL(*ugv_system_->GetMockEStop(), GetDiagnostics())
+    .WillByDefault(::testing::Return(e_stop_diagnostics));
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  const auto diagnose = [this]() -> diagnostic_msgs::msg::DiagnosticStatus {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    ugv_system_->DiagnoseEStop(status);
+    return status;
+  };
+  const auto value_of =
+    [](const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key) {
+      for (const auto & kv : status.values) {
+        if (kv.key == key) {
+          return kv.value;
+        }
+      }
+      return std::string("<missing>");
+    };
+
+  // A robot parked since boot or stopped by the driver is not a fault.
+  auto status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("latched", value_of(status, "State"));
+
+  e_stop_diagnostics->SetSource(EStopLatchSource::SOFTWARE);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_THAT(value_of(status, "Source"), ::testing::HasSubstr("software"));
+
+  e_stop_diagnostics->SetSource(EStopLatchSource::RELEASED);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("released", value_of(status, "State"));
+
+  // Only a stop by a device outside the driver asks for attention.
+  e_stop_diagnostics->SetSource(EStopLatchSource::HARDWARE);
+  e_stop_diagnostics->SetResetRefused("line stuck");
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_THAT(value_of(status, "Source"), ::testing::HasSubstr("hardware line"));
+  EXPECT_EQ("line stuck", value_of(status, "Last refused reset"));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, DiagnoseEStopWithoutState)
+{
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  ugv_system_->DiagnoseEStop(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
+}
+
+namespace
+{
+
+husarion_ugv_msgs::msg::BatteryProtection UVPMsg(const float drive_window_s)
+{
+  husarion_ugv_msgs::msg::BatteryProtection msg;
+  msg.state = husarion_ugv_msgs::msg::BatteryProtection::STATE_UVP;
+  msg.mode = husarion_ugv_msgs::msg::BatteryProtection::MODE_STOP;
+  msg.reactions_enabled = true;
+  msg.drive_window_s = drive_window_s;
+  msg.trip_id = 1;
+  msg.trip_stamp.sec = 1000;
+  return msg;
+}
+
+std::string ValueOf(const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return std::string("<missing>");
+}
+
+}  // namespace
+
+class TestUGVSystemUVP : public TestUGVSystem
+{
+protected:
+  void Configure(const bool uvp_enable)
+  {
+    if (uvp_enable) {
+      hardware_info_.hardware_parameters["uvp_enable"] = "true";
+    }
+    ON_CALL(*ugv_system_->GetMockEStop(), GetDiagnostics())
+      .WillByDefault(::testing::Return(e_stop_diagnostics_));
+    // The mock e-stop latches on a trigger and stays latched until the test releases it.
+    ON_CALL(*ugv_system_->GetMockEStop(), ReadEStopState())
+      .WillByDefault(::testing::Invoke([this]() { return latched_.load(); }));
+    ON_CALL(*ugv_system_->GetMockEStop(), TriggerEStop()).WillByDefault(::testing::Invoke([this]() {
+      latched_ = true;
+      ++triggers_;
+    }));
+
+    ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+    ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+    ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+    probe_node_ = std::make_shared<rclcpp::Node>("uvp_probe");
+    protection_pub_ = probe_node_->create_publisher<husarion_ugv_msgs::msg::BatteryProtection>(
+      "battery/protection", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+  }
+
+  // Runs the control loop at 100 Hz until the predicate holds or the timeout passes.
+  bool ReadUntil(const std::function<bool()> & pred, const std::chrono::milliseconds timeout)
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline) {
+      ugv_system_->read(rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 10'000'000));
+      if (pred()) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseEStop()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    ugv_system_->DiagnoseEStop(status);
+    return status;
+  }
+
+  std::shared_ptr<husarion_ugv_hardware_interfaces::EStopDiagnostics> e_stop_diagnostics_ =
+    std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+  std::atomic_bool latched_{false};
+  std::atomic_int triggers_{0};
+  rclcpp::Node::SharedPtr probe_node_;
+  rclcpp::Publisher<husarion_ugv_msgs::msg::BatteryProtection>::SharedPtr protection_pub_;
+};
+
+TEST_F(TestUGVSystemUVP, DisabledAddsNothing)
+{
+  rclcpp::init(0, nullptr);
+  Configure(false);
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop()).Times(0);
+
+  protection_pub_->publish(UVPMsg(0.1f));
+  EXPECT_FALSE(ReadUntil([this]() { return triggers_ > 0; }, std::chrono::milliseconds(1000)));
+  EXPECT_EQ(0u, probe_node_->count_subscribers("/battery/protection"));
+  EXPECT_EQ("<missing>", ValueOf(DiagnoseEStop(), "UVP"));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystemUVP, TripsOnceAndReTriggersAfterTheDriveWindow)
+{
+  rclcpp::init(0, nullptr);
+  Configure(true);
+  // The protection never releases the e-stop.
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), ResetEStop()).Times(0);
+
+  protection_pub_->publish(UVPMsg(0.3f));
+  ASSERT_TRUE(ReadUntil([this]() { return triggers_ > 0; }, std::chrono::milliseconds(3000)));
+  EXPECT_EQ(1u, probe_node_->count_subscribers("/battery/protection"));
+
+  // The same trip triggers once.
+  EXPECT_FALSE(ReadUntil([this]() { return triggers_ > 1; }, std::chrono::milliseconds(500)));
+  EXPECT_EQ("tripped, holding the e-stop", ValueOf(DiagnoseEStop(), "UVP"));
+
+  // Released, and not through the reset service: the window opens all the same.
+  latched_ = false;
+  const auto released = std::chrono::steady_clock::now();
+  ASSERT_TRUE(ReadUntil([this]() { return triggers_ > 1; }, std::chrono::milliseconds(2000)));
+  EXPECT_GE(std::chrono::steady_clock::now() - released, std::chrono::milliseconds(290));
+  EXPECT_TRUE(latched_);
+
+  // Released again after the re-trigger: a new window.
+  latched_ = false;
+  ASSERT_TRUE(ReadUntil([this]() { return true; }, std::chrono::milliseconds(20)));
+  EXPECT_NE("<missing>", ValueOf(DiagnoseEStop(), "UVP drive window remaining (s)"));
+  ASSERT_TRUE(ReadUntil([this]() { return triggers_ > 2; }, std::chrono::milliseconds(2000)));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystemUVP, ReconfigureWithALatchedTripTriggersAgain)
+{
+  rclcpp::init(0, nullptr);
+  Configure(true);
+  protection_pub_->publish(UVPMsg(60.0f));
+  ASSERT_TRUE(ReadUntil([this]() { return triggers_ == 1; }, std::chrono::milliseconds(3000)));
+
+  // A driver restart: the battery driver's latched message arrives again and stops the robot.
+  ASSERT_NO_THROW(ugv_system_->on_cleanup(rclcpp_lifecycle::State()));
+  latched_ = false;
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+  ASSERT_TRUE(ReadUntil([this]() { return triggers_ == 2; }, std::chrono::milliseconds(3000)));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystemUVP, ReactionsOffNeverTrigger)
+{
+  rclcpp::init(0, nullptr);
+  Configure(true);
+  auto msg = UVPMsg(0.1f);
+  msg.reactions_enabled = false;
+  protection_pub_->publish(msg);
+  EXPECT_FALSE(ReadUntil([this]() { return triggers_ > 0; }, std::chrono::milliseconds(1000)));
+  EXPECT_EQ("not tripped", ValueOf(DiagnoseEStop(), "UVP"));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystemUVP, StaleProtectionDataIsAnError)
+{
+  rclcpp::init(0, nullptr);
+  Configure(true);
+  auto msg = UVPMsg(60.0f);
+  msg.state = husarion_ugv_msgs::msg::BatteryProtection::STATE_OK;
+  protection_pub_->publish(msg);
+  ASSERT_TRUE(ReadUntil(
+    [this]() { return ValueOf(DiagnoseEStop(), "UVP data age (s)") != "<missing>"; },
+    std::chrono::milliseconds(3000)));
+  EXPECT_NE(diagnostic_updater::DiagnosticStatusWrapper::ERROR, DiagnoseEStop().level);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+  const auto status = DiagnoseEStop();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_THAT(status.message, ::testing::HasSubstr("stale"));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, DiagnoseEStopLatchedByUVP)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  rclcpp::init(0, nullptr);
+
+  const auto e_stop_diagnostics =
+    std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+  ON_CALL(*ugv_system_->GetMockEStop(), GetDiagnostics())
+    .WillByDefault(::testing::Return(e_stop_diagnostics));
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  e_stop_diagnostics->SetSource(EStopLatchSource::UVP);
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  ugv_system_->DiagnoseEStop(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_THAT(status.message, ::testing::HasSubstr("undervoltage"));
 
   rclcpp::shutdown();
 }

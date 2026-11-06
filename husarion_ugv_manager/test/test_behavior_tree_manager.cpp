@@ -32,8 +32,8 @@ class BehaviorTreeManagerWrapper : public husarion_ugv_manager::BehaviorTreeMana
 public:
   BehaviorTreeManagerWrapper(
     const std::string & tree_name, const std::map<std::string, std::any> & initial_blackboard,
-    const unsigned groot_port = 1667)
-  : BehaviorTreeManager(tree_name, initial_blackboard, groot_port)
+    const unsigned groot_port = 1667, const bool groot_enabled = true)
+  : BehaviorTreeManager(tree_name, initial_blackboard, groot_port, groot_enabled)
   {
   }
   ~BehaviorTreeManagerWrapper() {}
@@ -128,6 +128,29 @@ TEST_F(TestBehaviorTreeManager, Initialize)
 
   ASSERT_NO_THROW(factory_.registerBehaviorTreeFromText(tree_xml));
   EXPECT_NO_THROW(behavior_tree_manager_->Initialize(factory_));
+}
+
+TEST_F(TestBehaviorTreeManager, InitializeWithoutGroot)
+{
+  const unsigned groot_port = 1668;
+  auto manager = std::make_unique<BehaviorTreeManagerWrapper>(
+    std::string(kTreeName), std::map<std::string, std::any>{}, groot_port, false);
+
+  const std::string tree_xml = R"(
+    <root BTCPP_format="4" project_name="Test">
+      <BehaviorTree ID=")" + std::string(kTreeName) +
+                               R"(">
+        <AlwaysSuccess/>
+      </BehaviorTree>
+    </root>
+  )";
+
+  ASSERT_NO_THROW(factory_.registerBehaviorTreeFromText(tree_xml));
+  ASSERT_TRUE(husarion_ugv_utils::IsPortAvailable(groot_port));
+  EXPECT_NO_THROW(manager->Initialize(factory_));
+  EXPECT_TRUE(husarion_ugv_utils::IsPortAvailable(groot_port));
+  EXPECT_NO_THROW(manager->TickOnce());
+  EXPECT_EQ(manager->GetTreeStatus(), BT::NodeStatus::SUCCESS);
 }
 
 int main(int argc, char ** argv)

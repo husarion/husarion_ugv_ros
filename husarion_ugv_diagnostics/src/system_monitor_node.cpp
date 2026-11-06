@@ -15,7 +15,10 @@
 #include "husarion_ugv_diagnostics/system_monitor_node.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <exception>
+#include <string>
+#include <vector>
 
 #include <cppuprofile/uprofile.h>
 
@@ -166,30 +169,48 @@ husarion_ugv_msgs::msg::SystemStatus SystemMonitorNode::SystemStatusToMessage(
 
 void SystemMonitorNode::DiagnoseSystem(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  params_ = param_listener_->get_params();
+  DiagnoseSystemStatus(GetSystemStatus(), status);
+}
+
+void SystemMonitorNode::DiagnoseSystemStatus(
+  const SystemStatus & system_status, diagnostic_updater::DiagnosticStatusWrapper & status) const
+{
   auto error_level = diagnostic_msgs::msg::DiagnosticStatus::OK;
   std::string message = "System parameters are within acceptable limits.";
 
-  params_ = param_listener_->get_params();
-  auto system_status = GetSystemStatus();
-
-  status.add("CPU usage (%)", system_status.cpu_mean_usage);
-  status.add("CPU temperature (°C)", system_status.cpu_temperature);
-  status.add("RAM memory usage (%)", system_status.ram_usage);
-  status.add("Disk memory usage (%)", system_status.disk_usage);
-
-  std::unordered_map<double, diagnostic_msgs::msg::KeyValue> limits = {
-    {params_.cpu_usage_warn_threshold, status.values[0]},
-    {params_.cpu_temperature_warn_threshold, status.values[1]},
-    {params_.ram_usage_warn_threshold, status.values[2]},
-    {params_.disk_usage_warn_threshold, status.values[3]},
+  struct LimitedValue
+  {
+    std::string key;
+    float value;
+    double warn_threshold;
   };
 
-  for (const auto & [limit, key_value] : limits) {
-    if (std::isnan(std::stod(key_value.value))) {
+  // A list, not a map keyed on the threshold: RAM and disk share the same 90 % default, and the
+  // map dropped the disk entry, so a full disk never warned.
+  const std::vector<LimitedValue> limited_values = {
+    {"CPU usage (%)", system_status.cpu_mean_usage, params_.cpu_usage_warn_threshold},
+    {"CPU temperature (°C)", system_status.cpu_temperature, params_.cpu_temperature_warn_threshold},
+    {"RAM memory usage (%)", system_status.ram_usage, params_.ram_usage_warn_threshold},
+    {"Disk memory usage (%)", system_status.disk_usage, params_.disk_usage_warn_threshold},
+  };
+
+  for (const auto & limited_value : limited_values) {
+    status.add(limited_value.key, limited_value.value);
+  }
+
+  // Values only. The mean hides a single busy core, and the CAN and control threads live on
+  // fixed cores.
+  for (std::size_t i = 0; i < system_status.core_usages.size(); ++i) {
+    status.add("CPU core " + std::to_string(i) + " usage (%)", system_status.core_usages[i]);
+  }
+
+  for (const auto & limited_value : limited_values) {
+    if (std::isnan(limited_value.value)) {
       message = "Detected system parameter with unknown value.";
       error_level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
       break;
-    } else if (std::stod(key_value.value) > limit) {
+    } else if (limited_value.value > limited_value.warn_threshold) {
       message = "At least one system parameter is above the warning threshold.";
       error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
     }

@@ -17,9 +17,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -62,16 +64,53 @@ bool ADCBattery::Present()
 
 void ADCBattery::Update(const rclcpp::Time & header_stamp, const bool charger_connected)
 {
-  voltage_raw_ = ADCToBatteryVoltage(ReadVoltage());
-  current_raw_ = ADCToBatteryCurrent(ReadCurrent());
-  temp_raw_ = ADCToBatteryTemp(ReadTemp());
-  charge_raw_ = ADCToBatteryCharge(ReadCharge());
+  if (voltage_observer_) {
+    UpdateWithObservers();
+  } else {
+    voltage_raw_ = ADCToBatteryVoltage(ReadVoltage());
+    current_raw_ = ADCToBatteryCurrent(ReadCurrent());
+    temp_raw_ = ADCToBatteryTemp(ReadTemp());
+    charge_raw_ = ADCToBatteryCharge(ReadCharge());
+  }
   voltage_ma_->Roll(voltage_raw_);
   current_ma_->Roll(current_raw_);
   temp_ma_->Roll(temp_raw_);
   charge_ma_->Roll(charge_raw_);
 
   UpdateBatteryMsgs(header_stamp, charger_connected);
+}
+
+void ADCBattery::UpdateWithObservers()
+{
+  // The voltage goes to the protection right after it is read, together with the temperature read
+  // next to it, so a current or charge read that throws later in the tick does not lose it. When
+  // the temperature read itself fails, the last temperature stands in: an open thermistor stays
+  // open.
+  try {
+    voltage_raw_ = ADCToBatteryVoltage(ReadVoltage());
+  } catch (const std::runtime_error &) {
+    voltage_observer_(std::numeric_limits<float>::quiet_NaN(), false);
+    throw;
+  }
+
+  float temp = temp_raw_;
+  std::exception_ptr temp_error;
+  try {
+    temp = ADCToBatteryTemp(ReadTemp());
+  } catch (const std::runtime_error &) {
+    temp_error = std::current_exception();
+  }
+  voltage_observer_(voltage_raw_, !std::isnan(temp));
+  if (temp_error) {
+    std::rethrow_exception(temp_error);
+  }
+  temp_raw_ = temp;
+
+  current_raw_ = ADCToBatteryCurrent(ReadCurrent());
+  if (current_observer_) {
+    current_observer_(current_raw_);
+  }
+  charge_raw_ = ADCToBatteryCharge(ReadCharge());
 }
 
 void ADCBattery::Reset(const rclcpp::Time & header_stamp)
@@ -83,6 +122,7 @@ void ADCBattery::Reset(const rclcpp::Time & header_stamp)
 
   ResetBatteryMsgs(header_stamp);
   SetErrorMsg("");
+  SetWarningMsg("");
 }
 
 inline float ADCBattery::ADCToBatteryVoltage(const float adc_data) const
@@ -183,6 +223,8 @@ std::uint8_t ADCBattery::GetBatteryStatus(const bool charger_connected)
 std::uint8_t ADCBattery::GetBatteryHealth(
   const rclcpp::Time & header_stamp, const float voltage, const float temp)
 {
+  SetWarningMsg("");
+
   if (this->IsBatteryDead(header_stamp, voltage)) {
     SetErrorMsg("Battery voltage is critically low!");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD;
@@ -199,7 +241,8 @@ std::uint8_t ADCBattery::GetBatteryHealth(
   }
 
   if (temp < kLowBatTemp) {
-    SetErrorMsg("The battery is too cold! It may result in reduced effectiveness.");
+    SetErrorMsg("");
+    SetWarningMsg("The battery is too cold! It may result in reduced effectiveness.");
     return BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD;
   }
 

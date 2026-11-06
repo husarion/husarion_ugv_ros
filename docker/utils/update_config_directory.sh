@@ -1,11 +1,27 @@
 #!/bin/bash
 set -e
 
+# Same lookup as `ros2 pkg prefix`: the first prefix in AMENT_PREFIX_PATH whose
+# ament index lists the package. Each ros2 CLI call is a Python cold start of
+# about a second on the robot, and this runs ten of them on a first boot.
+package_prefix() {
+  local prefix
+  local IFS=:
+  for prefix in $AMENT_PREFIX_PATH; do
+    if [ -n "$prefix" ] && [ -f "$prefix/share/ament_index/resource_index/packages/$1" ]; then
+      echo "$prefix"
+      return 0
+    fi
+  done
+  echo "Package not found" >&2
+  return 1
+}
+
 # method to copy directory/file using package name
 copy_package_file() {
   local package_name=$1
   local file_name=$2
-  local package_file_path=$(ros2 pkg prefix $package_name)/share/$package_name/$file_name
+  local package_file_path=$(package_prefix $package_name)/share/$package_name/$file_name
 
   if [ ! -d "/config/$package_name" ]; then
     mkdir -p /config/$package_name

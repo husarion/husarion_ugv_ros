@@ -15,16 +15,22 @@
 #ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
 #define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_SAFETY_MANAGER_NODE_HPP_
 
+#include <chrono>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_srvs/srv/set_bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
+#include "husarion_ugv_msgs/msg/battery_protection.hpp"
 #include "husarion_ugv_msgs/msg/io_state.hpp"
 #include "husarion_ugv_msgs/msg/robot_driver_state.hpp"
 #include "husarion_ugv_msgs/msg/system_status.hpp"
@@ -33,15 +39,19 @@
 
 #include "husarion_ugv_manager/behavior_tree_manager.hpp"
 #include "husarion_ugv_manager/safety_manager_parameters.hpp"
+#include "husarion_ugv_manager/uvp_reaction.hpp"
 
 namespace husarion_ugv_manager
 {
 
+using BatteryProtectionMsg = husarion_ugv_msgs::msg::BatteryProtection;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using BoolMsg = std_msgs::msg::Bool;
 using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
 using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 using SystemStatusMsg = husarion_ugv_msgs::msg::SystemStatus;
+using SetBoolSrv = std_srvs::srv::SetBool;
+using TriggerSrv = std_srvs::srv::Trigger;
 
 /**
  * @brief This class is responsible for creating a BehaviorTrees responsible for safety and shutdown
@@ -70,9 +80,38 @@ protected:
    */
   bool SystemReady();
 
+  // The battery undervoltage protection, only when uvp_enable is set.
+  void InitializeUVP();
+  // Whether a shutdown takes the UVP sequence: asked for, or any shutdown while UVP is latched.
+  bool UseUVPShutdown(const bool uvp_requested) const;
+  // Virtual for the tests, which cannot let it power the machine off.
+  virtual void ShutdownRobot(const std::string & reason, const bool uvp = false);
+  void DiagnoseUVP(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  // Hosts first, each with its wait capped, then the AUX power, then this computer. Kept in the
+  // node rather than in the customer's behavior tree project, which may predate it.
+  static constexpr char kUVPShutdownTreeXML[] = R"(
+<root BTCPP_format="4">
+  <BehaviorTree ID="UVPShutdown">
+    <Sequence>
+      <ForceSuccess>
+        <ShutdownHostsFromFile shutdown_hosts_file="{SHUTDOWN_HOSTS_FILE}"
+                               timeout_override="{UVP_HOSTS_TIMEOUT}"/>
+      </ForceSuccess>
+      <ForceSuccess>
+        <CallSetBoolService service_name="hardware/aux_power_enable" data="false"/>
+      </ForceSuccess>
+      <ExecuteCommand command="{SHUTDOWN_LOCALHOST_COMMAND}" timeout="1.0"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
+)";
+
   BT::BehaviorTreeFactory factory_;
   std::unique_ptr<BehaviorTreeManager> safety_tree_manager_;
   std::unique_ptr<BehaviorTreeManager> shutdown_tree_manager_;
+  std::unique_ptr<BehaviorTreeManager> uvp_shutdown_tree_manager_;
+  std::unique_ptr<UvpReaction> uvp_reaction_;
 
 private:
   void BatteryCB(const BatteryStateMsg::SharedPtr battery);
@@ -81,9 +120,10 @@ private:
   void IOStateCB(const IOStateMsg::SharedPtr io_state);
   void SystemStatusCB(const SystemStatusMsg::SharedPtr system_status);
   void SafetyTreeTimerCB();
+  void ProtectionCB(const BatteryProtectionMsg::SharedPtr msg);
+  void UVPTimerCB();
 
-  void ShutdownRobot(const std::string & reason);
-
+  static constexpr std::chrono::seconds kServiceStartupTimeout{10};
   static constexpr float kCriticalBatteryTemp = 55.0;
   static constexpr float kFatalBatteryTemp = 62.0;
   static constexpr char kShutdownLocalhostCommand[] =
@@ -102,6 +142,19 @@ private:
   rclcpp::Subscription<IOStateMsg>::SharedPtr io_state_sub_;
   rclcpp::Subscription<SystemStatusMsg>::SharedPtr system_status_sub_;
   rclcpp::TimerBase::SharedPtr safety_tree_timer_;
+
+  rclcpp::Subscription<BatteryProtectionMsg>::SharedPtr protection_sub_;
+  rclcpp::TimerBase::SharedPtr uvp_timer_;
+  rclcpp::Client<SetBoolSrv>::SharedPtr aux_power_client_;
+  std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  UvpReactionInput uvp_input_;
+  std::int64_t uvp_last_msg_ns_ = 0;
+  std::int64_t uvp_start_ns_ = 0;
+  std::string uvp_shutdown_tree_error_;
+
+  static constexpr double kUVPTopicStaleTimeout = 3.0;
+  // Started together with the battery driver, which needs a few seconds before it publishes.
+  static constexpr double kUVPTopicStartupGrace = 30.0;
 
   std::unique_ptr<husarion_ugv_utils::MovingAverage<double>> battery_temp_ma_;
   std::unique_ptr<husarion_ugv_utils::MovingAverage<double>> cpu_temp_ma_;

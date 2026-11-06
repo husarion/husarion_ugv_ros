@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -39,6 +40,10 @@ public:
       std::make_shared<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>();
     mock_e_stop = std::make_shared<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock>();
 
+    e_stop_diagnostics = std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+    e_stop_diagnostics->SetSource(husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED);
+    ON_CALL(*mock_e_stop, GetDiagnostics()).WillByDefault(::testing::Return(e_stop_diagnostics));
+
     ON_CALL(
       *mock_robot_driver,
       GetData(::testing::Eq(husarion_ugv_hardware_interfaces::DriverNames::FRONT)))
@@ -55,12 +60,26 @@ public:
 
   void ReadCANopenSettingsDriverCANIDs() { PantherSystem::ReadCANopenSettingsDriverCANIDs(); }
   void UpdateHwStates() { PantherSystem::UpdateHwStates(); }
-  void UpdateMotorsStateDataTimedOut() { PantherSystem::UpdateMotorsStateDataTimedOut(); }
+  bool UpdateMotorsStateDataTimedOut() { return PantherSystem::UpdateMotorsStateDataTimedOut(); }
   void UpdateDriverStateDataTimedOut() { PantherSystem::UpdateDriverStateDataTimedOut(); }
 
   void UpdateDriverStateMsg() { PantherSystem::UpdateDriverStateMsg(); }
   void UpdateFlagErrors() { PantherSystem::UpdateFlagErrors(); }
+  void MotorTorqueEnable(const bool enable) { PantherSystem::MotorTorqueEnable(enable); }
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    PantherSystem::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    PantherSystem::DiagnoseStatus(status);
+  }
   std::vector<float> GetSpeedCommands() const { return PantherSystem::GetSpeedCommands(); }
+
+  void SetIOState(const std::unordered_map<husarion_ugv_hardware_interfaces::GPIOPin, bool> & state)
+  {
+    system_ros_interface_->InitializeAndPublishIOStateMsg(state);
+  }
 
   void SetHwCommandsVelocities(std::vector<double> & velocities)
   {
@@ -88,6 +107,7 @@ public:
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockGPIOController::NiceMock>
     mock_gpio_controller;
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockEStop::NiceMock> mock_e_stop;
+  std::shared_ptr<husarion_ugv_hardware_interfaces::EStopDiagnostics> e_stop_diagnostics;
 
 private:
   husarion_ugv_hardware_interfaces::DriverData default_driver_data =
@@ -380,6 +400,201 @@ TEST_F(TestPantherSystem, GetSpeedCommands)
   EXPECT_FLOAT_EQ(speed_cmd[1], fr_v);
   EXPECT_FLOAT_EQ(speed_cmd[2], rl_v);
   EXPECT_FLOAT_EQ(speed_cmd[3], rr_v);
+}
+
+TEST_F(TestPantherSystem, DiagnoseStatus)
+{
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  using husarion_ugv_hardware_interfaces_test::MakeDriverState;
+
+  husarion_ugv_hardware_interfaces::DriverData front_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::DriverData rear_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  // left - channel 2, right - channel 1
+  front_data.SetMotorsStates({0, 0, 10, {0, 0}, {0, 0}}, {0, 0, 20, {0, 0}, {0, 0}}, false);
+  rear_data.SetMotorsStates({0, 0, 30, {0, 0}, {0, 0}}, {0, 0, 40, {0, 0}, {0, 0}}, false);
+  front_data.SetDriverState(MakeDriverState(40), false);
+  rear_data.SetDriverState(MakeDriverState(80), false);
+  ON_CALL(
+    *panther_system_->mock_robot_driver,
+    GetData(::testing::Eq(husarion_ugv_hardware_interfaces::DriverNames::FRONT)))
+    .WillByDefault(::testing::ReturnRef(front_data));
+  ON_CALL(
+    *panther_system_->mock_robot_driver,
+    GetData(::testing::Eq(husarion_ugv_hardware_interfaces::DriverNames::REAR)))
+    .WillByDefault(::testing::ReturnRef(rear_data));
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  panther_system_->DiagnoseStatus(status);
+
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_THAT(status.message, ::testing::HasSubstr("Rear driver heatsink"));
+  EXPECT_FLOAT_EQ(1.5, std::stof(GetDiagnosticValue(status, "Front driver battery current (A)")));
+  EXPECT_FLOAT_EQ(1.0, std::stof(GetDiagnosticValue(status, "Motor current front right (A)")));
+  EXPECT_FLOAT_EQ(2.0, std::stof(GetDiagnosticValue(status, "Motor current front left (A)")));
+  EXPECT_FLOAT_EQ(3.0, std::stof(GetDiagnosticValue(status, "Motor current rear right (A)")));
+  EXPECT_FLOAT_EQ(4.0, std::stof(GetDiagnosticValue(status, "Motor current rear left (A)")));
+
+  // The IO lines show up once their state is known.
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor power"));
+
+  rear_data.SetDriverState(MakeDriverState(74), false);
+  panther_system_->SetIOState(
+    {{husarion_ugv_hardware_interfaces::GPIOPin::VMOT_ON, true},
+     {husarion_ugv_hardware_interfaces::GPIOPin::CHRG_SENSE, false},
+     {husarion_ugv_hardware_interfaces::GPIOPin::AUX_PW_EN, true},
+     {husarion_ugv_hardware_interfaces::GPIOPin::FAN_SW, false}});
+  status.clearSummary();
+  status.values.clear();
+  panther_system_->DiagnoseStatus(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("Panther system status monitoring.", status.message);
+  EXPECT_EQ("on", GetDiagnosticValue(status, "Motor power"));
+  EXPECT_EQ("no", GetDiagnosticValue(status, "Charger connected"));
+  EXPECT_EQ("on", GetDiagnosticValue(status, "Aux power"));
+  EXPECT_EQ("off", GetDiagnosticValue(status, "Fan"));
+}
+
+namespace
+{
+constexpr std::uint8_t kEmergencyStopFault = 0b00010000;
+constexpr std::uint8_t kSafetyStopActive = 0b00001000;
+// A runtime flag bit without a name, which the Roboteq raises with the emergency stop.
+constexpr std::uint8_t kUnnamedRuntimeFlag = 0b10000000;
+
+husarion_ugv_hardware_interfaces::DriverState MakeParkedDriverState(const bool emergency_stop)
+{
+  auto state = husarion_ugv_hardware_interfaces_test::MakeDriverState(
+    40, emergency_stop ? kEmergencyStopFault : 0,
+    kSafetyStopActive | (emergency_stop ? kUnnamedRuntimeFlag : 0));
+  state.runtime_stat_flag_channel_2 = state.runtime_stat_flag_channel_1;
+  return state;
+}
+}  // namespace
+
+TEST_F(TestPantherSystem, DiagnoseErrorsTorqueToggleWithTheEStopLatchedIsOK)
+{
+  using husarion_ugv_hardware_interfaces::DriverNames;
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  husarion_ugv_hardware_interfaces::DriverData front_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::DriverData rear_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  front_data.SetDriverState(MakeParkedDriverState(false), false);
+  rear_data.SetDriverState(MakeParkedDriverState(false), false);
+  ON_CALL(*panther_system_->mock_robot_driver, GetData(::testing::Eq(DriverNames::FRONT)))
+    .WillByDefault(::testing::ReturnRef(front_data));
+  ON_CALL(*panther_system_->mock_robot_driver, GetData(::testing::Eq(DriverNames::REAR)))
+    .WillByDefault(::testing::ReturnRef(rear_data));
+  ON_CALL(*panther_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+  panther_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+
+  const auto diagnose = [this]() {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    panther_system_->UpdateFlagErrors();
+    panther_system_->DiagnoseErrors(status);
+    return diagnostic_msgs::msg::DiagnosticStatus(status);
+  };
+  const auto expect_held_by_the_e_stop = [](const diagnostic_msgs::msg::DiagnosticStatus & status) {
+    for (const auto & motor :
+         {"Front driver: front right motor", "Front driver: front left motor",
+          "Rear driver: rear right motor", "Rear driver: rear left motor"}) {
+      EXPECT_EQ("safety stop (held by the e-stop)", GetDiagnosticValue(status, motor)) << motor;
+    }
+  };
+
+  auto status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  expect_held_by_the_e_stop(status);
+
+  panther_system_->MotorTorqueEnable(false);
+  front_data.SetDriverState(MakeParkedDriverState(true), false);
+  rear_data.SetDriverState(MakeParkedDriverState(true), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // The fault flags of both drivers are still the ones from before the enable.
+  panther_system_->MotorTorqueEnable(true);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Motor torque disabled on request.", status.message);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // The front driver released its emergency stop first.
+  front_data.SetDriverState(MakeParkedDriverState(false), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Front driver warning: motor torque"));
+  EXPECT_EQ("disabled on request", GetDiagnosticValue(status, "Rear driver warning: motor torque"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  rear_data.SetDriverState(MakeParkedDriverState(false), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("No error detected.", status.message);
+  expect_held_by_the_e_stop(status);
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Motor controller fault"));
+
+  // Once the torque is on, an emergency stop on one driver is a fault again.
+  rear_data.SetDriverState(MakeParkedDriverState(true), false);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ(
+    "True",
+    GetDiagnosticValue(status, "Rear driver error: fault_flag.emergency_stop (torque disabled)"));
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
+}
+
+TEST_F(TestPantherSystem, DiagnoseErrorsDriverFaultDuringATorqueToggleIsAnError)
+{
+  using husarion_ugv_hardware_interfaces::DriverNames;
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  using husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+  constexpr std::uint8_t kOverheatFault = 0b00000001;
+
+  husarion_ugv_hardware_interfaces::DriverData front_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  husarion_ugv_hardware_interfaces::DriverData rear_data(
+    husarion_ugv_hardware_interfaces_test::kDrivetrainSettings);
+  front_data.SetDriverState(MakeParkedDriverState(true), false);
+  rear_data.SetDriverState(MakeParkedDriverState(true), false);
+  ON_CALL(*panther_system_->mock_robot_driver, GetData(::testing::Eq(DriverNames::FRONT)))
+    .WillByDefault(::testing::ReturnRef(front_data));
+  ON_CALL(*panther_system_->mock_robot_driver, GetData(::testing::Eq(DriverNames::REAR)))
+    .WillByDefault(::testing::ReturnRef(rear_data));
+  ON_CALL(*panther_system_->mock_e_stop, ReadEStopState()).WillByDefault(::testing::Return(true));
+  panther_system_->e_stop_diagnostics->SetSource(EStopLatchSource::STARTUP);
+
+  panther_system_->MotorTorqueEnable(false);
+  auto state = MakeParkedDriverState(true);
+  state.fault_flags |= kOverheatFault;
+  rear_data.SetDriverState(state, false);
+  panther_system_->UpdateFlagErrors();
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  panther_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Rear driver error: fault_flag.overheat"));
+  EXPECT_EQ("<missing>", GetDiagnosticValue(status, "Front driver error: fault_flag.overheat"));
+
+  // A fault that is still there once the torque enable completed latches again.
+  panther_system_->MotorTorqueEnable(true);
+  front_data.SetDriverState(MakeParkedDriverState(false), false);
+  state = MakeParkedDriverState(false);
+  state.fault_flags |= kOverheatFault;
+  rear_data.SetDriverState(state, false);
+  panther_system_->UpdateFlagErrors();
+  status.clearSummary();
+  status.values.clear();
+  panther_system_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Rear driver error: fault_flag.overheat"));
+  EXPECT_EQ("True", GetDiagnosticValue(status, "Motor controller fault"));
 }
 
 int main(int argc, char ** argv)

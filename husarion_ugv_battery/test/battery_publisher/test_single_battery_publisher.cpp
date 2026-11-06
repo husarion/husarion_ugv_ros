@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <chrono>
+#include <limits>
 #include <memory>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -21,12 +23,58 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 
+#include "husarion_ugv_msgs/msg/charging_status.hpp"
+
 #include "husarion_ugv_battery/battery/adc_battery.hpp"
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_battery/battery_publisher/single_battery_publisher.hpp"
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
+using ChargingStatusMsg = husarion_ugv_msgs::msg::ChargingStatus;
+
+// A battery whose messages the test sets directly.
+class FakeBattery : public husarion_ugv_battery::Battery
+{
+public:
+  bool Present() override { return true; }
+  void Update(const rclcpp::Time &, const bool) override {}
+  void Reset(const rclcpp::Time &) override {}
+  float GetLoadCurrent() override { return load_current; }
+
+  BatteryStateMsg & State() { return battery_state_; }
+  void SetError(const std::string & msg) { SetErrorMsg(msg); }
+  void SetWarning(const std::string & msg) { SetWarningMsg(msg); }
+  ChargingStatusMsg & ChargingStatus() { return charging_status_; }
+
+  float load_current = 0.0f;
+};
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+class SingleBatteryPublisherWrapper : public husarion_ugv_battery::SingleBatteryPublisher
+{
+public:
+  using SingleBatteryPublisher::SingleBatteryPublisher;
+
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    SingleBatteryPublisher::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    SingleBatteryPublisher::DiagnoseStatus(status);
+  }
+};
 
 class TestSingleBatteryPublisher : public testing::Test
 {
@@ -75,6 +123,102 @@ TEST_F(TestSingleBatteryPublisher, CorrectTopicPublished)
   battery_publisher_->Publish();
   ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
     node_, battery_1_state_, std::chrono::milliseconds(1000)));
+}
+
+class TestSingleBatteryPublisherDiagnostics : public TestSingleBatteryPublisher
+{
+public:
+  TestSingleBatteryPublisherDiagnostics()
+  {
+    fake_battery_ = std::make_shared<FakeBattery>();
+    fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+    fake_battery_->State().percentage = 0.8f;
+    fake_battery_->ChargingStatus().current = 0.12f;
+    fake_publisher_ = std::make_shared<SingleBatteryPublisherWrapper>(
+      node_, diagnostic_updater_, 10.0, fake_battery_);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseStatus()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    fake_publisher_->DiagnoseStatus(status);
+    return status;
+  }
+
+protected:
+  std::shared_ptr<FakeBattery> fake_battery_;
+  std::shared_ptr<SingleBatteryPublisherWrapper> fake_publisher_;
+};
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, ChargeCurrent)
+{
+  auto status = DiagnoseStatus();
+  EXPECT_FLOAT_EQ(0.12f, std::stof(GetDiagnosticValue(status, "Charge current (A)")));
+
+  // The Roboteq fallback measures neither current.
+  fake_battery_->ChargingStatus().current = std::numeric_limits<float>::quiet_NaN();
+  fake_battery_->load_current = std::numeric_limits<float>::quiet_NaN();
+  status = DiagnoseStatus();
+  EXPECT_EQ("n/a", GetDiagnosticValue(status, "Charge current (A)"));
+  EXPECT_EQ("n/a", GetDiagnosticValue(status, "Load current (A)"));
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, BatteryValues)
+{
+  fake_battery_->State().voltage = 38.5f;
+  fake_battery_->State().temperature = 21.0f;
+  fake_battery_->State().power_supply_health = BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD;
+
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("unknown", GetDiagnosticValue(status, "Source"));
+  EXPECT_FLOAT_EQ(38.5f, std::stof(GetDiagnosticValue(status, "Voltage (V)")));
+  EXPECT_FLOAT_EQ(80.0f, std::stof(GetDiagnosticValue(status, "Percentage (%)")));
+  EXPECT_FLOAT_EQ(21.0f, std::stof(GetDiagnosticValue(status, "Temperature (\u00B0C)")));
+  EXPECT_EQ("Good", GetDiagnosticValue(status, "Health"));
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, LowBatteryWarns)
+{
+  fake_battery_->State().percentage = 0.15f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+
+  // Still low while charging, until the pack passes the threshold.
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+  fake_battery_->State().percentage = 0.25f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, DiagnoseStatus().level);
+
+  // Unknown percentage is not low.
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  fake_battery_->State().percentage = std::numeric_limits<float>::quiet_NaN();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, DiagnoseStatus().level);
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, ChargerNotChargingWarns)
+{
+  fake_battery_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING;
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("Plugged and not charging", GetDiagnosticValue(status, "Power supply status"));
+}
+
+TEST_F(TestSingleBatteryPublisherDiagnostics, ColdBatteryIsAWarning)
+{
+  // Data has to be fresh, or the errors task reports the missing data instead.
+  fake_publisher_->Publish();
+
+  fake_battery_->SetWarning("too cold");
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  fake_publisher_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("too cold", GetDiagnosticValue(status, "Warning message"));
+
+  fake_battery_->SetError("overheat");
+  status.clearSummary();
+  status.values.clear();
+  fake_publisher_->DiagnoseErrors(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
 }
 
 int main(int argc, char ** argv)

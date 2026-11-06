@@ -64,10 +64,12 @@ void PantherRobotDriver::DefineDrivers()
 {
   auto front_driver = std::make_shared<RoboteqDriver>(
     canopen_manager_.GetMaster(), canopen_settings_.driver_can_ids.at(DriverNames::FRONT),
-    canopen_settings_.sdo_operation_timeout_ms);
+    canopen_settings_.sdo_operation_timeout_ms, canopen_settings_.rpdo_dispatch_sched_priority,
+    canopen_settings_.rpdo_dispatch_cpu);
   auto rear_driver = std::make_shared<RoboteqDriver>(
     canopen_manager_.GetMaster(), canopen_settings_.driver_can_ids.at(DriverNames::REAR),
-    canopen_settings_.sdo_operation_timeout_ms);
+    canopen_settings_.sdo_operation_timeout_ms, canopen_settings_.rpdo_dispatch_sched_priority,
+    canopen_settings_.rpdo_dispatch_cpu);
 
   auto fl_motor_driver = std::make_shared<RoboteqMotorDriver>(
     std::dynamic_pointer_cast<RoboteqDriver>(front_driver), MotorChannels::LEFT);

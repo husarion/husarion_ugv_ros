@@ -15,7 +15,9 @@
 #ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_PUBLISHER_BATTERY_PUBLISHER_HPP_
 #define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_PUBLISHER_BATTERY_PUBLISHER_HPP_
 
+#include <cstdint>
 #include <memory>
+#include <string>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -44,6 +46,15 @@ public:
 
   void Publish();
 
+  /**
+   * @brief Makes a battery whose read throws leave the next battery to be updated anyway, so the
+   * undervoltage protection keeps seeing every battery. Off by default.
+   */
+  void SetUpdateEveryBattery(const bool update_every_battery)
+  {
+    update_every_battery_ = update_every_battery;
+  }
+
 protected:
   virtual void Update() = 0;
   virtual void Reset() = 0;
@@ -54,6 +65,40 @@ protected:
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
 
   bool TimeoutReached();
+
+  /**
+   * @brief Reports the battery STALE while no battery data has arrived for longer than the
+   * battery timeout, with the last read error. Adds the failed reads since the last report.
+   *
+   * @return True when it reported STALE, so the caller has nothing left to diagnose.
+   */
+  bool DiagnoseMissingData(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  // Adds a measured value, or "n/a" when the battery source does not measure it (NaN).
+  static void AddMeasurement(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & key,
+    const float value);
+
+  /**
+   * @brief Adds one battery's voltage, percentage, temperature and health, each key prefixed with
+   * key_prefix (empty for a single battery).
+   */
+  static void AddBatteryState(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const BatteryStateMsg & battery_state,
+    const std::string & key_prefix = "");
+
+  /**
+   * @brief Raises the level to WARN for a low battery or a charger that is plugged in but does not
+   * charge. A dead, overheated or overvoltage battery is the errors task's job.
+   */
+  static void WarnOnBatteryState(
+    const BatteryStateMsg & battery_state, unsigned char & level, std::string & message);
+
+  static std::string MapPowerSupplyHealthToString(const std::uint8_t power_supply_health);
+
+  // Below this the battery status task warns.
+  static constexpr float kLowBatteryPercentage = 0.2f;
+
   void BatteryStatusLogger(const BatteryStateMsg & battery_state);
   bool ChargerConnected() const;
   std::string MapPowerSupplyStatusToString(uint8_t power_supply_status) const;
@@ -64,12 +109,16 @@ protected:
   // Use weak pointer to prevent circular dependency
   rclcpp::Node::WeakPtr node_;
   std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  bool update_every_battery_ = false;
 
 private:
   bool charger_connected_;
   float battery_timeout_;
   rclcpp::Time last_battery_info_time_;
   rclcpp::Subscription<IOStateMsg>::SharedPtr io_state_sub_;
+
+  std::string last_read_error_;
+  std::uint32_t read_failures_since_report_ = 0;
 };
 
 }  // namespace husarion_ugv_battery

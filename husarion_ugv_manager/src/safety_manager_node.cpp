@@ -84,6 +84,10 @@ void SafetyManagerNode::Initialize()
   safety_tree_manager_->Initialize(factory_);
   shutdown_tree_manager_->Initialize(factory_);
 
+  if (this->params_.uvp_enable) {
+    InitializeUVP();
+  }
+
   // -------------------------------
   //   Subscribers
   // -------------------------------
@@ -110,6 +114,50 @@ void SafetyManagerNode::Initialize()
     timer_period, std::bind(&SafetyManagerNode::SafetyTreeTimerCB, this));
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
+}
+
+void SafetyManagerNode::InitializeUVP()
+{
+  uvp_reaction_ = std::make_unique<UvpReaction>();
+  uvp_start_ns_ = this->get_clock()->now().nanoseconds();
+
+  try {
+    factory_.registerBehaviorTreeFromText(kUVPShutdownTreeXML);
+    const std::map<std::string, std::any> uvp_shutdown_initial_blackboard = {
+      {"SHUTDOWN_HOSTS_FILE", this->params_.shutdown_hosts_path},
+      {"SHUTDOWN_LOCALHOST_COMMAND", kShutdownLocalhostCommand},
+      {"UVP_HOSTS_TIMEOUT", uvp_input_.shutdown_hosts_timeout_s},
+    };
+    uvp_shutdown_tree_manager_ = std::make_unique<BehaviorTreeManager>(
+      "UVPShutdown", uvp_shutdown_initial_blackboard, 8888, false);
+    uvp_shutdown_tree_manager_->Initialize(factory_);
+  } catch (const std::exception & e) {
+    // The plugins it needs come from the plugin_libs parameter, which a customer can change.
+    uvp_shutdown_tree_manager_.reset();
+    uvp_shutdown_tree_error_ = e.what();
+    RCLCPP_ERROR_STREAM(
+      this->get_logger(),
+      "UVP shutdown sequence unavailable, a UVP shutdown uses the normal "
+      "shutdown tree: "
+        << e.what());
+  }
+
+  aux_power_client_ = this->create_client<SetBoolSrv>("hardware/aux_power_enable");
+
+  using namespace std::placeholders;
+  protection_sub_ = this->create_subscription<BatteryProtectionMsg>(
+    "battery/protection", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    std::bind(&SafetyManagerNode::ProtectionCB, this, _1));
+
+  // T keeps running when the battery driver stops publishing.
+  uvp_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(100), std::bind(&SafetyManagerNode::UVPTimerCB, this));
+
+  diagnostic_updater_ = std::make_shared<diagnostic_updater::Updater>(this);
+  diagnostic_updater_->setHardwareID("Safety manager");
+  diagnostic_updater_->add("Battery protection reaction", this, &SafetyManagerNode::DiagnoseUVP);
+
+  RCLCPP_INFO(this->get_logger(), "Battery undervoltage protection reactions enabled.");
 }
 
 void SafetyManagerNode::RegisterBehaviorTree()
@@ -238,6 +286,103 @@ void SafetyManagerNode::SystemStatusCB(const SystemStatusMsg::SharedPtr system_s
   safety_tree_manager_->GetBlackboard()->set<double>("cpu_temp", cpu_temp_ma_->GetAverage());
 }
 
+void SafetyManagerNode::ProtectionCB(const BatteryProtectionMsg::SharedPtr msg)
+{
+  uvp_input_.received = true;
+  uvp_input_.state = msg->state;
+  uvp_input_.mode = msg->mode;
+  uvp_input_.reactions_enabled = msg->reactions_enabled;
+  uvp_input_.stop_timeout_min = msg->stop_timeout_min;
+  uvp_input_.aux_off_at_trip = msg->aux_off_at_trip;
+  uvp_input_.shutdown_hosts_timeout_s = msg->shutdown_hosts_timeout_s;
+  uvp_input_.trip_id = msg->trip_id;
+  uvp_input_.trip_stamp_ns = rclcpp::Time(msg->trip_stamp).nanoseconds();
+  uvp_input_.seconds_since_trip = msg->seconds_since_trip;
+  uvp_input_.charging = msg->charging;
+  uvp_last_msg_ns_ = this->get_clock()->now().nanoseconds();
+
+  UVPTimerCB();
+}
+
+void SafetyManagerNode::UVPTimerCB()
+{
+  const auto actions = uvp_reaction_->Update(
+    uvp_input_, std::chrono::duration_cast<std::chrono::nanoseconds>(
+                  std::chrono::steady_clock::now().time_since_epoch())
+                  .count());
+
+  if (actions.aux_off) {
+    RCLCPP_WARN(this->get_logger(), "Battery undervoltage protection: turning the AUX power off.");
+    auto request = std::make_shared<SetBoolSrv::Request>();
+    request->data = false;
+    aux_power_client_->async_send_request(
+      request, [this](rclcpp::Client<SetBoolSrv>::SharedFuture future) {
+        const auto response = future.get();
+        if (!response->success) {
+          RCLCPP_ERROR_STREAM(
+            this->get_logger(), "Failed to turn the AUX power off: " << response->message);
+        }
+      });
+  }
+
+  if (actions.shutdown) {
+    ShutdownRobot(actions.reason, true);
+  }
+}
+
+bool SafetyManagerNode::UseUVPShutdown(const bool uvp_requested) const
+{
+  return uvp_shutdown_tree_manager_ &&
+         (uvp_requested || (uvp_reaction_ && uvp_reaction_->Latched()));
+}
+
+void SafetyManagerNode::DiagnoseUVP(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "Battery protection not tripped.";
+
+  const auto steady_now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               std::chrono::steady_clock::now().time_since_epoch())
+                               .count();
+  const auto now_ns = this->get_clock()->now().nanoseconds();
+
+  status.add("UVP", uvp_reaction_->Latched() ? std::string("latched") : std::string("not latched"));
+  const auto seconds_to_shutdown = uvp_reaction_->SecondsToShutdown(steady_now_ns);
+  if (seconds_to_shutdown.has_value()) {
+    status.add("Seconds to UVP shutdown", seconds_to_shutdown.value());
+  }
+  if (uvp_reaction_->Latched()) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = seconds_to_shutdown.has_value()
+                ? "Battery undervoltage: the robot shuts down unless it charges."
+                : "Battery undervoltage: the shutdown waits while the robot charges.";
+  }
+  status.add(
+    "UVP shutdown sequence",
+    uvp_shutdown_tree_manager_ ? std::string("ready") : "unavailable: " + uvp_shutdown_tree_error_);
+  if (!uvp_shutdown_tree_manager_) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    message = "UVP shutdown sequence unavailable, a UVP shutdown uses the normal shutdown tree.";
+  }
+
+  if (uvp_last_msg_ns_ == 0) {
+    status.add("UVP data", "not received yet");
+    if (static_cast<double>(now_ns - uvp_start_ns_) / 1e9 > kUVPTopicStartupGrace) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "No battery protection data on battery/protection, the protection cannot act.";
+    }
+  } else {
+    const auto age = static_cast<double>(now_ns - uvp_last_msg_ns_) / 1e9;
+    status.add("UVP data age (s)", age);
+    if (age > kUVPTopicStaleTimeout) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "Battery protection data is stale.";
+    }
+  }
+
+  status.summary(level, message);
+}
+
 void SafetyManagerNode::SafetyTreeTimerCB()
 {
   if (!SystemReady()) {
@@ -276,27 +421,42 @@ bool SafetyManagerNode::SystemReady()
   return true;
 }
 
-void SafetyManagerNode::ShutdownRobot(const std::string & reason)
+void SafetyManagerNode::ShutdownRobot(const std::string & reason, const bool uvp)
 {
-  RCLCPP_ERROR(this->get_logger(), "Soft shutdown initialized. Reason: %s", reason.c_str());
+  const bool uvp_sequence = UseUVPShutdown(uvp);
+  const std::string sequence = uvp_sequence ? " (UVP shutdown sequence)" : "";
+  RCLCPP_ERROR(
+    this->get_logger(), "Soft shutdown initialized. Reason: %s%s", reason.c_str(),
+    sequence.c_str());
 
   // On UGV OS the journal lives in RAM, so the line above is lost with the power off. Syslog is
   // the log that survives there (bit us live: a Lynx powered off seconds after every driver start
   // and nothing on disk said the safety manager had seen the power board's shutdown line).
   openlog("husarion_ugv", LOG_PID | LOG_NDELAY, LOG_DAEMON);
-  syslog(LOG_CRIT, "robot shutdown requested by safety manager: %s", reason.c_str());
+  syslog(
+    LOG_CRIT, "robot shutdown requested by safety manager: %s%s", reason.c_str(), sequence.c_str());
   closelog();
 
   safety_tree_timer_->cancel();
+  if (uvp_timer_) {
+    uvp_timer_->cancel();
+  }
   safety_tree_manager_->HaltTree();
+
+  auto & shutdown_tree_manager = uvp_sequence ? *uvp_shutdown_tree_manager_
+                                              : *shutdown_tree_manager_;
+  if (uvp_sequence) {
+    shutdown_tree_manager.GetBlackboard()->set<float>(
+      "UVP_HOSTS_TIMEOUT", uvp_input_.shutdown_hosts_timeout_s);
+  }
 
   // tick shutdown tree
   auto status = BT::NodeStatus::RUNNING;
   auto start_time = this->get_clock()->now();
   rclcpp::Rate rate(30.0);  // 30 Hz
   while (rclcpp::ok() && status == BT::NodeStatus::RUNNING) {
-    shutdown_tree_manager_->TickOnce();
-    status = shutdown_tree_manager_->GetTreeStatus();
+    shutdown_tree_manager.TickOnce();
+    status = shutdown_tree_manager.GetTreeStatus();
     rate.sleep();
   }
 

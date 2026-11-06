@@ -15,7 +15,9 @@
 #ifndef HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_ACTION_SHUTDOWN_HOSTS_FROM_FILE_NODE_HPP_
 #define HUSARION_UGV_MANAGER_HUSARION_UGV_MANAGER_PLUGINS_ACTION_SHUTDOWN_HOSTS_FROM_FILE_NODE_HPP_
 
+#include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -39,8 +41,25 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<std::string>(
-      "shutdown_hosts_file", "Absolute path to a YAML file listing the hosts to shut down.")};
+    return {
+      BT::InputPort<std::string>(
+        "shutdown_hosts_file", "Absolute path to a YAML file listing the hosts to shut down."),
+      BT::InputPort<float>(
+        "timeout_override",
+        "Optional. Caps each host's timeout from the file at this many seconds. Unset, zero or "
+        "negative leaves the timeouts from the file."),
+    };
+  }
+
+  /**
+   * @brief The timeout a host gets: its own, capped by the override when one is set.
+   */
+  static float EffectiveTimeout(const float host_timeout, const std::optional<float> & override_s)
+  {
+    if (!override_s.has_value() || !(override_s.value() > 0.0f)) {
+      return host_timeout;
+    }
+    return std::min(host_timeout, override_s.value());
   }
 
 private:

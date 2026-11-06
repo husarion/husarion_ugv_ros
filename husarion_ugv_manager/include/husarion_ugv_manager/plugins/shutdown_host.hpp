@@ -148,6 +148,7 @@ public:
   std::string GetError() const override { return failure_reason_; }
   std::string GetOutput() const override { return command_handler_->GetOutput(); }
   ShutdownHostState GetState() const override { return state_; }
+  float GetTimeout() const { return static_cast<float>(timeout_ms_.count()) / 1000.0f; }
 
 protected:
   bool IsAvailable() const

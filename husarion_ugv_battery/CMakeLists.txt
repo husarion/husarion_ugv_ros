@@ -12,7 +12,8 @@ set(PACKAGE_DEPENDENCIES
     husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp
-    sensor_msgs)
+    sensor_msgs
+    yaml-cpp)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
@@ -179,6 +180,16 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_uvp_detector
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_uvp_parameters test/protection/test_uvp_parameters.cpp
+    src/protection/uvp_parameters.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_uvp_parameters
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_uvp_parameters rclcpp)
+  target_link_libraries(${PROJECT_NAME}_test_uvp_parameters yaml-cpp)
 
 endif()
 

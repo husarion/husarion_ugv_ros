@@ -109,6 +109,10 @@ if(BUILD_TESTING)
     test/unit/robot_system/robot_driver/test_roboteq_error_filter.cpp
     src/robot_system/robot_driver/roboteq_error_filter.cpp)
 
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_sdo_deadline_miss_counter
+    test/unit/robot_system/robot_driver/test_sdo_deadline_miss_counter.cpp)
+
   ament_add_gmock(
     ${PROJECT_NAME}_test_roboteq_data_converters
     test/unit/robot_system/robot_driver/test_roboteq_data_converters.cpp

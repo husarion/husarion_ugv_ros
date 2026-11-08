@@ -49,7 +49,9 @@ Node responsible for managing Bumper Lights animation scheduling.
 - `plugin_libs` [*list*, default: **Empty list**]: List with names of plugins that are used in the BT project.
 - `ros_communication_timeout.availability` [*float*, default: **1.0**]: Timeout **[s]** to wait for a service/action while initializing BT node.
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.
+- `ros_communication_timeout.startup` [*float*, default: **10.0**]: Timeout **[s]** to wait once at startup for the services in `startup_services` before the tree is built. `0.0` skips the wait, for example when the node runs without the lights or the hardware driver.
 - `ros_plugin_libs` [*list*, default: **Empty list**]: List with names of ROS plugins that are used in a BT project.
+- `startup_services` [*list*, default: **[lights/set_animation]**]: Services to wait for once at startup. The default is the one the default tree calls. An empty list skips the wait. The node answers its parameter services while it waits.
 - `timer_frequency` [*float*, default: **10.0**]: Frequency **[Hz]** at which lights tree will be ticked.
 
 ### safety_manager_node
@@ -84,10 +86,12 @@ Node responsible for managing safety features, and software shutdown of componen
 - `plugin_libs` [*list*, default: **Empty list**]: List with names of plugins that are used in the BT project.
 - `ros_communication_timeout.availability` [*float*, default: **1.0**]: Timeout **[s]** to wait for a service/action while initializing BT node.
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.
+- `ros_communication_timeout.startup` [*float*, default: **10.0**]: Timeout **[s]** to wait once at startup for the services in `startup_services` before the tree is built. `0.0` skips the wait, for example when the node runs without the lights or the hardware driver.
 - `ros_plugin_libs` [*list*, default: **Empty list**]: List with names of ROS plugins that are used in a BT project.
 - `shutdown_hosts_path` [*string*, default: **None**]: Path to a YAML file containing a list of hosts to request shutdown. To correctly format the YAML file, include a **hosts** field consisting of a list with the following fields:
   - `ip` [*string*, default: **None**]: IP of a host to shutdown using HTTP request.
   - `port` [*string*, default: **3003**]: HTTP communication port.
   - `secret` [*string*, default: **husarion**]: Secret to sign HTTP request with.
   - `timeout` [*string*, default: **5.0**]: Time in **[s]** to wait for the host to shutdown. The Built-in Computer will turn off after all computers are shutdown or reached timeout. Keep in mind that hardware will cut power off after a given time after pressing the power button. Refer to the hardware manual for more information.
+- `startup_services` [*list*, default: **[hardware/e_stop_trigger]**]: Services to wait for once at startup, before the safety tree is built. The default is the one the default tree calls. An empty list skips the wait. The shutdown tree does not wait: a power button press during the wait shuts down at once.
 - `timer_frequency` [*float*, default: **10.0**]: Frequency **[Hz]** at which safety tree will be ticked.

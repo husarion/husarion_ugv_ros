@@ -21,11 +21,13 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_cpp/utils/shared_library.h"
 #include "behaviortree_ros2/plugins.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -106,6 +108,67 @@ inline BT::RosNodeParams CreateRosNodeParamsFromBlackboard(const BT::NodeConfig 
   }
 
   return BT::RosNodeParams(node);
+}
+
+/**
+ * @brief Waits once for services that the tree calls, spinning the node meanwhile. Each service
+ * node of a tree waits only briefly for its service while the tree is built and logs an error if it
+ * is missing, so a server that starts together with the manager would be reported as not reachable.
+ *
+ * @param node The node, which must not be added to another executor yet.
+ * @param service_names The names of the services, resolved like the node's own clients (namespace
+ * and remapping).
+ * @param timeout Time to wait for all of them.
+ * @return True if every service has a server within the timeout. A timeout is logged as a warning.
+ * False also when the node's context was shut down during the wait.
+ */
+inline bool WaitForServices(
+  const rclcpp::Node::SharedPtr & node, const std::vector<std::string> & service_names,
+  const std::chrono::duration<double> & timeout)
+{
+  std::vector<std::string> resolved_names;
+  for (const auto & name : service_names) {
+    resolved_names.push_back(
+      node->get_node_base_interface()->resolve_topic_or_service_name(name, true));
+  }
+  const auto missing_services = [&]() {
+    std::string missing;
+    for (const auto & name : resolved_names) {
+      if (node->count_services(name) == 0) {
+        missing += (missing.empty() ? "'" : ", '") + name + "'";
+      }
+    }
+    return missing;
+  };
+
+  const auto context = node->get_node_base_interface()->get_context();
+  rclcpp::ExecutorOptions executor_options;
+  executor_options.context = context;
+  rclcpp::executors::SingleThreadedExecutor executor(executor_options);
+  executor.add_node(node);
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  auto missing = missing_services();
+  bool waiting_logged = false;
+  while (!missing.empty()) {
+    if (std::chrono::steady_clock::now() >= deadline) {
+      RCLCPP_WARN(
+        node->get_logger(), "Services not available after %.1f s: %s", timeout.count(),
+        missing.c_str());
+      break;
+    }
+    executor.spin_once(std::chrono::milliseconds(50));
+    // A callback, or a signal, may have shut the context down, and the graph cannot be read then.
+    if (!context->is_valid()) {
+      break;
+    }
+    missing = missing_services();
+    if (!missing.empty() && !waiting_logged) {
+      RCLCPP_INFO(node->get_logger(), "Waiting for services: %s", missing.c_str());
+      waiting_logged = true;
+    }
+  }
+  executor.remove_node(node);
+  return context->is_valid() && missing.empty();
 }
 
 }  // namespace husarion_ugv_manager::behavior_tree_utils

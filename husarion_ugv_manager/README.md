@@ -46,6 +46,7 @@ Node responsible for managing Bumper Lights animation scheduling.
 - `battery.percent.threshold.low` [*float*, default: **0.4**]: If the Battery percentage drops below this value, the animation indicating a low Battery state will start being displayed.
 - `battery.percent.window_len` [*int*, default: **6**]: Moving average window length used to smooth out Battery percentage readings.
 - `bt_project_path` [*string*, default: **$(find husarion_ugv_manager)/config/PantherBT.btproj**]: Path to a BehaviorTree project.
+- `groot_enabled` [*bool*, default: **true**]: Start the Groot2 publisher of the behavior trees. Set it with the `groot_enabled` launch argument. Turn it off when nothing attaches Groot2.
 - `plugin_libs` [*list*, default: **Empty list**]: List with names of plugins that are used in the BT project.
 - `ros_communication_timeout.availability` [*float*, default: **1.0**]: Timeout **[s]** to wait for a service/action while initializing BT node.
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.
@@ -83,6 +84,7 @@ Node responsible for managing safety features, and software shutdown of componen
 - `driver.temp.fan_on` [*float*, default: **45.0**]: Temperature in **[&deg;C]** of any drivers above which the fan is turned on.
 - `driver.temp.window_len` [*int*, default: **6**]: Moving average window length used to smooth out the temperature readings of each driver.
 - `fan_turn_off_timeout` [*float*, default: **60.0**]: Minimal time in **[s]**, after which the fan may be turned off.
+- `groot_enabled` [*bool*, default: **true**]: Start the Groot2 publisher of the behavior trees. Set it with the `groot_enabled` launch argument. Turn it off when nothing attaches Groot2.
 - `plugin_libs` [*list*, default: **Empty list**]: List with names of plugins that are used in the BT project.
 - `ros_communication_timeout.availability` [*float*, default: **1.0**]: Timeout **[s]** to wait for a service/action while initializing BT node.
 - `ros_communication_timeout.response` [*float*, default: **1.0**]: Timeout **[s]** to receive a service/action response after call.

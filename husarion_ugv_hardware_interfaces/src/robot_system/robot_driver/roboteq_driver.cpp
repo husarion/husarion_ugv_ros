@@ -20,6 +20,8 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -104,8 +106,11 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 RoboteqDriver::RoboteqDriver(
   const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
   const std::chrono::milliseconds & sdo_operation_timeout_ms,
-  const unsigned rpdo_dispatch_sched_priority, const int rpdo_dispatch_cpu)
-: lely::canopen::LoopDriver(*async_master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
+  const unsigned rpdo_dispatch_sched_priority, const int rpdo_dispatch_cpu,
+  const bool exit_on_sdo_wedge)
+: lely::canopen::LoopDriver(*async_master, id),
+  sdo_operation_timeout_ms_(sdo_operation_timeout_ms),
+  exit_on_sdo_wedge_(exit_on_sdo_wedge)
 {
   // lely runs OnRpdoWrite, which timestamps every motor state frame, and the boot callbacks on a
   // thread it creates for this driver. This task names that thread and sets its priority before
@@ -295,6 +300,7 @@ void RoboteqDriver::SyncSDOWrite(
   if (!state->cv.wait_for(
         lck, sdo_operation_timeout_ms_ + kSdoConfirmationTimeoutMargin,
         [&state]() { return state->done; })) {
+    HandleSdoDeadlineMiss();
     if (state->submitted) {
       throw std::runtime_error(
         "SDO write submitted but not confirmed in time, it may have reached the controller.");
@@ -308,11 +314,28 @@ void RoboteqDriver::SyncSDOWrite(
     throw std::runtime_error("SDO write not sent: the CANopen master did not run it in time.");
   }
 
+  // Only a caller that got its confirmation in time clears the count. A late confirmation of an
+  // abandoned write lands in its own wait state and does not.
+  sdo_deadline_misses_.OnDelivered();
+
   if (state->err_code) {
     throw std::runtime_error(
       "SDO write error, message: " +
       (state->err_msg.empty() ? state->err_code.message() : state->err_msg));
   }
+}
+
+void RoboteqDriver::HandleSdoDeadlineMiss()
+{
+  if (!exit_on_sdo_wedge_ || !sdo_deadline_misses_.OnMiss()) {
+    return;
+  }
+
+  std::cerr << "CANopen resync watchdog: " << kMaxSdoDeadlineMisses
+            << " SDO write confirmations missed their deadline - exiting to restart." << std::endl;
+  std::fflush(stdout);
+  std::fflush(stderr);
+  std::_Exit(kCANopenResyncWatchdogExitCode);
 }
 
 void RoboteqDriver::PostCmdVel(const std::uint8_t channel, const std::int32_t cmd)

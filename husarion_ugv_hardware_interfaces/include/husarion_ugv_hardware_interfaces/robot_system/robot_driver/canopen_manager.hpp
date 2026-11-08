@@ -15,6 +15,8 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_ROBOT_DRIVER_CANOPEN_MANAGER_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_ROBOT_DRIVER_CANOPEN_MANAGER_HPP_
 
+#include <sysexits.h>
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -75,7 +77,14 @@ struct CANopenSettings
   // Use the master dcf from config/limited_tpdo_rates, which writes TPDO inhibit and event timers
   // into the motor controllers on every slave boot.
   bool limit_tpdo_rates = false;
+
+  // Exit the process when the master stops receiving PDOs or delivering SDO confirmations, so that
+  // a restart policy initializes it again. See UGVSystem::UpdateCANopenResyncWatchdog.
+  bool canopen_resync_watchdog = false;
 };
+
+// Exit code of the CANopen resync watchdog, 74. Both its PDO and SDO halves use it.
+constexpr int kCANopenResyncWatchdogExitCode = EX_IOERR;
 
 /**
  * @brief CANopenManager takes care of CANopen communication - creates master controller

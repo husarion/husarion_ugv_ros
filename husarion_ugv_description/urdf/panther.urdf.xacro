@@ -24,6 +24,8 @@
   <xacro:arg name="pdo_motor_states_timeout_ms" default="15" />
   <xacro:arg name="pdo_driver_state_timeout_ms" default="75" />
   <xacro:arg name="limit_tpdo_rates" default="false" />
+  <xacro:arg name="canopen_resync_watchdog" default="false" />
+  <xacro:arg name="canopen_resync_watchdog_timeout_s" default="30" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/panther/panther_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.panther_robot
@@ -46,7 +48,9 @@
     gpio_monitor_cpu="$(arg gpio_monitor_cpu)"
     pdo_motor_states_timeout_ms="$(arg pdo_motor_states_timeout_ms)"
     pdo_driver_state_timeout_ms="$(arg pdo_driver_state_timeout_ms)"
-    limit_tpdo_rates="$(arg limit_tpdo_rates)" />
+    limit_tpdo_rates="$(arg limit_tpdo_rates)"
+    canopen_resync_watchdog="$(arg canopen_resync_watchdog)"
+    canopen_resync_watchdog_timeout_s="$(arg canopen_resync_watchdog_timeout_s)" />
 
   <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />

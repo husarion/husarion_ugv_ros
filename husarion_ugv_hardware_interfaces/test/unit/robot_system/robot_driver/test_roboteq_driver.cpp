@@ -13,10 +13,14 @@
 // limitations under the License.
 
 #include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
 #include <future>
 #include <memory>
 #include <stdexcept>
@@ -623,12 +627,184 @@ TEST_F(TestRoboteqDriver, UnconfirmedSDOWriteMayHaveReachedTheController)
   block->Release();
 }
 
+// A temporary directory and TMPDIR for one test, both restored on the way out.
+class ScopedTmpDir
+{
+public:
+  ScopedTmpDir()
+  : path_(
+      std::filesystem::temp_directory_path() / ("husarion_ugv_test_" + std::to_string(getpid())))
+  {
+    const char * old = std::getenv("TMPDIR");
+    had_old_ = old != nullptr;
+    old_ = had_old_ ? old : "";
+    std::filesystem::create_directories(path_);
+    setenv("TMPDIR", path_.c_str(), 1);
+  }
+
+  ~ScopedTmpDir()
+  {
+    if (had_old_) {
+      setenv("TMPDIR", old_.c_str(), 1);
+    } else {
+      unsetenv("TMPDIR");
+    }
+    std::error_code ec;
+    std::filesystem::remove_all(path_, ec);
+  }
+
+private:
+  std::filesystem::path path_;
+  bool had_old_ = false;
+  std::string old_;
+};
+
+TEST(TestRoboteqDriverLimitedTPDORates, SlaveBootsWithTheLimitedTimers)
+{
+  using husarion_ugv_hardware_interfaces_test::kCANopenSettings;
+
+  // The master opens slave_1.bin when the slave boots, after the temporary DCF copy is gone. The
+  // objects are declared in teardown order, so a failed assertion still tears everything down.
+  ScopedTmpDir tmp_dir;
+  husarion_ugv_hardware_interfaces_test::FakeCANSocket can_socket(
+    kCANopenSettings.can_interface_name);
+  can_socket.Initialize();
+  auto settings = kCANopenSettings;
+  settings.limit_tpdo_rates = true;
+  husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(settings);
+  husarion_ugv_hardware_interfaces_test::MockRoboteq mock_roboteq;
+  mock_roboteq.Start(std::chrono::milliseconds(10), std::chrono::milliseconds(50));
+  struct StopMock
+  {
+    husarion_ugv_hardware_interfaces_test::MockRoboteq & mock;
+    ~StopMock() { mock.Stop(); }
+  } stop_mock{mock_roboteq};
+  canopen_manager.Initialize();
+  auto driver = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
+    canopen_manager.GetMaster(), 1, std::chrono::milliseconds(100));
+  struct StopCommunication
+  {
+    husarion_ugv_hardware_interfaces::CANopenManager & manager;
+    std::shared_ptr<husarion_ugv_hardware_interfaces::RoboteqDriver> & driver;
+    ~StopCommunication()
+    {
+      manager.StopCommunication();
+      driver.reset();
+    }
+  } stop_communication{canopen_manager, driver};
+  canopen_manager.Activate();
+  auto boot = driver->Boot();
+  ASSERT_EQ(boot.wait_for(std::chrono::seconds(2)), std::future_status::ready);
+  EXPECT_NO_THROW(boot.get());
+
+  auto slave = mock_roboteq.GetDriver();
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1800, 3), 40);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1800, 5), 5);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1801, 3), 40);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1801, 5), 5);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1802, 3), 90);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1803, 3), 400);
+  EXPECT_EQ(slave->GetObjectValue<std::uint16_t>(0x1803, 5), 50);
+  EXPECT_EQ(slave->GetObjectValue<std::uint32_t>(0x1800, 1), 0x40000181u);
+}
+
+// Runs in the death test's own process, so it sets up its own bus and slave.
+void MissThreeSDOConfirmationsWithResyncWatchdog()
+{
+  using husarion_ugv_hardware_interfaces_test::kCANopenSettings;
+
+  husarion_ugv_hardware_interfaces_test::FakeCANSocket can_socket(
+    kCANopenSettings.can_interface_name);
+  can_socket.Initialize();
+  husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(kCANopenSettings);
+  husarion_ugv_hardware_interfaces_test::MockRoboteq mock_roboteq;
+  mock_roboteq.Start(std::chrono::milliseconds(10), std::chrono::milliseconds(50));
+  canopen_manager.Initialize();
+  auto driver = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
+    canopen_manager.GetMaster(), 1, std::chrono::milliseconds(100),
+    kCANopenSettings.rpdo_dispatch_sched_priority, -1, true);
+  canopen_manager.Activate();
+  driver->Boot().wait();
+
+  for (int i = 0; i < 3; ++i) {
+    TestRoboteqDriver::ExecutorBlock block(driver->GetExecutor());
+    try {
+      driver->TurnOffEStop();
+    } catch (const std::runtime_error &) {
+    }
+  }
+  std::exit(0);
+}
+
+TEST(TestRoboteqDriverResyncWatchdog, ExitsAfterThreeUnconfirmedSDOWrites)
+{
+  EXPECT_EXIT(
+    MissThreeSDOConfirmationsWithResyncWatchdog(),
+    testing::ExitedWithCode(husarion_ugv_hardware_interfaces::kCANopenResyncWatchdogExitCode), "");
+}
+
+// Runs in the death test's own process: an absent slave must not count as a wedged master.
+void WriteToAnAbsentSlaveWithResyncWatchdog()
+{
+  using husarion_ugv_hardware_interfaces_test::kCANopenSettings;
+
+  // Each lely Poll restores the SIGUSR1 handler it found when it is destroyed, and the master
+  // wakes its thread with SIGUSR1. With the default action in place, stopping the slave would
+  // leave the default behind and the next wake-up would kill the process. A handler that does
+  // nothing, like lely's own, survives any restore order.
+  struct sigaction wake_up = {};
+  wake_up.sa_handler = [](int) {};
+  sigemptyset(&wake_up.sa_mask);
+  sigaction(SIGUSR1, &wake_up, nullptr);
+
+  // The slave starts before the master opens its channel, as in the other tests. A master that
+  // hears the slave's boot-up message boots it by itself, and Boot() then fails.
+  husarion_ugv_hardware_interfaces_test::FakeCANSocket can_socket(
+    kCANopenSettings.can_interface_name);
+  can_socket.Initialize();
+  husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(kCANopenSettings);
+  husarion_ugv_hardware_interfaces_test::MockRoboteq mock_roboteq;
+  mock_roboteq.Start(std::chrono::milliseconds(10), std::chrono::milliseconds(50));
+  canopen_manager.Initialize();
+  auto driver = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
+    canopen_manager.GetMaster(), 1, std::chrono::milliseconds(100),
+    kCANopenSettings.rpdo_dispatch_sched_priority, -1, true);
+  canopen_manager.Activate();
+  driver->Boot().wait();
+  mock_roboteq.Stop();
+
+  // lely's own SDO timeout aborts each write within the deadline, which is a confirmation.
+  for (int i = 0; i < 3; ++i) {
+    try {
+      driver->TurnOffEStop();
+    } catch (const std::runtime_error &) {
+    }
+  }
+  std::_Exit(0);
+}
+
+TEST(TestRoboteqDriverResyncWatchdog, AbsentSlaveDoesNotExit)
+{
+  EXPECT_EXIT(WriteToAnAbsentSlaveWithResyncWatchdog(), testing::ExitedWithCode(0), "");
+}
+
+TEST_F(TestRoboteqDriver, UnconfirmedSDOWritesDoNotExitWithWatchdogOff)
+{
+  BootRoboteqDriver();
+  for (int i = 0; i < 3; ++i) {
+    auto block = BlockDriverExecutor();
+    EXPECT_THROW(roboteq_driver_->TurnOffEStop(), std::runtime_error);
+  }
+}
+
 // OnCanError/OnHeartbeatTimeout isn't tested, because it reacts to lower-level CAN errors (CRC),
 // which are hard to simulate, but it would be nice to add it
 
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
+  // The death test forks after lely and the mock slave started threads.
+  GTEST_FLAG_SET(death_test_style, "threadsafe");
 
   auto result = RUN_ALL_TESTS();
   return result;

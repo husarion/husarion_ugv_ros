@@ -18,11 +18,15 @@
 
 #include <array>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
+#include <future>
 #include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <diagnostic_updater/diagnostic_status_wrapper.hpp>
@@ -74,6 +78,10 @@ CallbackReturn UGVSystem::on_init(const hardware_interface::HardwareInfo & hardw
 
 CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 {
+  // read() runs while INACTIVE too, so a timeout left over from before a cleanup must not count
+  // against the fresh master either.
+  pdo_timeout_ongoing_ = false;
+
   try {
     ConfigureGPIOController();
     ConfigureRobotDriver();
@@ -161,12 +169,17 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 {
   DestroyComponents();
+  pdo_timeout_ongoing_ = false;
 
   return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
 {
+  // A timeout left over from before a deactivate or cleanup must not count against the new
+  // activation, whose first reads see no PDO yet.
+  pdo_timeout_ongoing_ = false;
+
   return CallbackReturn::SUCCESS;
 }
 
@@ -406,8 +419,22 @@ void UGVSystem::ReadCANopenSettings()
   const auto limit_tpdo_rates = info_.hardware_parameters.find("limit_tpdo_rates");
   canopen_settings_.limit_tpdo_rates = limit_tpdo_rates != info_.hardware_parameters.end() &&
                                        hardware_interface::parse_bool(limit_tpdo_rates->second);
+  const auto resync_watchdog = info_.hardware_parameters.find("canopen_resync_watchdog");
+  canopen_settings_.canopen_resync_watchdog =
+    resync_watchdog != info_.hardware_parameters.end() &&
+    hardware_interface::parse_bool(resync_watchdog->second);
+  ReadCANopenResyncWatchdogTimeout();
 
   ReadCANopenSettingsDriverCANIDs();
+
+  if (
+    canopen_settings_.canopen_resync_watchdog &&
+    canopen_settings_.driver_can_ids.count(DriverNames::DEFAULT)) {
+    RCLCPP_WARN(
+      logger_,
+      "canopen_resync_watchdog is on: when it exits, only the Roboteq command watchdog (RWD) stops "
+      "the wheels of a Lynx. Make sure it is set in the motor controller configuration.");
+  }
 }
 
 void UGVSystem::ReadRTThreadPriorities()
@@ -472,6 +499,30 @@ int UGVSystem::ReadRTCPU(const std::string & name, const int default_cpu)
     return default_cpu;
   }
   return *cpu;
+}
+
+void UGVSystem::ReadCANopenResyncWatchdogTimeout()
+{
+  canopen_resync_watchdog_timeout_ = kDefaultCANopenResyncWatchdogTimeout;
+  const auto it = info_.hardware_parameters.find("canopen_resync_watchdog_timeout_s");
+  if (it == info_.hardware_parameters.end() || !canopen_settings_.canopen_resync_watchdog) {
+    return;
+  }
+
+  const auto default_timeout = canopen_resync_watchdog_timeout_;
+  try {
+    std::size_t parsed = 0;
+    const int timeout = std::stoi(it->second, &parsed);
+    if (parsed != it->second.size() || timeout <= 0) {
+      throw std::invalid_argument("not a positive whole number");
+    }
+    canopen_resync_watchdog_timeout_ = std::chrono::seconds(timeout);
+  } catch (const std::exception &) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid canopen_resync_watchdog_timeout_s '"
+                 << it->second << "', expected a positive whole number of seconds. Using "
+                 << default_timeout.count() << " s.");
+  }
 }
 
 void UGVSystem::ReadInitializationActivationAttempts()
@@ -613,13 +664,18 @@ void UGVSystem::UpdateMotorsState()
   try {
     robot_driver_->UpdateMotorsState();
     UpdateHwStates();
-    UpdateMotorsStateDataTimedOut();
+    UpdateCANopenResyncWatchdog(UpdateMotorsStateDataTimedOut());
   } catch (const std::runtime_error & e) {
     roboteq_error_filter_->UpdateError(ErrorsFilterIds::READ_PDO_MOTOR_STATES, true);
 
     RCLCPP_ERROR_STREAM_THROTTLE(
       logger_, steady_clock_, 5000,
       "An exception occurred while updating motors states: " << e.what());
+
+    // The wedge keeps heartbeats coming while PDOs stop. A heartbeat timeout or a CAN error is a
+    // controller that lost power or a bus fault, which a restart does not heal, so it does not
+    // count and ends a count in progress.
+    UpdateCANopenResyncWatchdog(false);
   }
 }
 
@@ -636,6 +692,54 @@ void UGVSystem::UpdateDriverState()
       logger_, steady_clock_, 5000,
       "An exception occurred while updating drivers states: " << e.what());
   }
+}
+
+void UGVSystem::UpdateCANopenResyncWatchdog(const bool data_timed_out)
+{
+  if (!data_timed_out) {
+    pdo_timeout_ongoing_ = false;
+    return;
+  }
+
+  const auto now = std::chrono::steady_clock::now();
+
+  if (!pdo_timeout_ongoing_) {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = now;
+    return;
+  }
+
+  if (
+    !canopen_settings_.canopen_resync_watchdog ||
+    now - pdo_timeout_since_ < canopen_resync_watchdog_timeout_) {
+    return;
+  }
+
+  // The master can end up in a state where it no longer receives PDOs while the bus is healthy,
+  // and it does not recover on its own. Exiting lets a restart policy initialize it again, which
+  // is simpler and more reliable than recreating the master in-process.
+  RCLCPP_FATAL_STREAM(
+    logger_, "CANopen resync watchdog: " << canopen_resync_watchdog_timeout_.count()
+                                         << " s of continuous PDO timeout - exiting to restart.");
+
+  // Best effort, at most 100 ms: latch the motor controllers if the master can still send. On a
+  // Lynx nothing else stops the wheels after the exit, unless the Roboteq's own RWD is set.
+  if (robot_driver_) {
+    auto latched = std::make_shared<std::promise<void>>();
+    auto latched_future = latched->get_future();
+    std::thread([robot_driver = robot_driver_, latched]() {
+      try {
+        robot_driver->TurnOnEStop();
+      } catch (const std::exception &) {
+      }
+      latched->set_value();
+    }).detach();
+    latched_future.wait_for(std::chrono::milliseconds(100));
+  }
+
+  std::fflush(stdout);
+  std::fflush(stderr);
+  std::_Exit(kCANopenResyncWatchdogExitCode);
 }
 
 void UGVSystem::UpdateEStopState()

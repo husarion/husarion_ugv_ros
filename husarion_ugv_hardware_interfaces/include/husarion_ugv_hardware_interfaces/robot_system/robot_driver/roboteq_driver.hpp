@@ -29,6 +29,7 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/cmd_write_status.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/sdo_deadline_miss_counter.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -59,7 +60,8 @@ public:
   RoboteqDriver(
     const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
     const std::chrono::milliseconds & sdo_operation_timeout_ms,
-    const unsigned rpdo_dispatch_sched_priority = 65, const int rpdo_dispatch_cpu = -1);
+    const unsigned rpdo_dispatch_sched_priority = 65, const int rpdo_dispatch_cpu = -1,
+    const bool exit_on_sdo_wedge = false);
 
   /**
    * @brief Triggers boot operations
@@ -243,6 +245,16 @@ private:
   // within sdo_operation_timeout_ms_, so the margin only matters when the master is not running or
   // is starved for longer than the margin, which then also reports the write as not sent.
   static constexpr std::chrono::milliseconds kSdoConfirmationTimeoutMargin{1000};
+
+  // The master can stop running SDO writes while PDOs and heartbeats keep flowing, which the PDO
+  // resync watchdog cannot see. With exit_on_sdo_wedge_, kMaxSdoDeadlineMisses missed deadlines
+  // within kSdoDeadlineMissWindow exit the process.
+  void HandleSdoDeadlineMiss();
+
+  static constexpr unsigned kMaxSdoDeadlineMisses = 3;
+  static constexpr std::chrono::seconds kSdoDeadlineMissWindow{60};
+  const bool exit_on_sdo_wedge_;
+  SdoDeadlineMissCounter sdo_deadline_misses_{kMaxSdoDeadlineMisses, kSdoDeadlineMissWindow};
 
   std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };

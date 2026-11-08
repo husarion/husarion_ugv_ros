@@ -169,6 +169,25 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    canopen_resync_watchdog = LaunchConfiguration("canopen_resync_watchdog")
+    declare_canopen_resync_watchdog_arg = DeclareLaunchArgument(
+        "canopen_resync_watchdog",
+        default_value="False",
+        description=(
+            "Exit the driver with code 74 after canopen_resync_watchdog_timeout_s of continuous"
+            " PDO timeout or 3 lost SDO confirmations within a minute, so that a restart policy"
+            " initializes the CANopen master again"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
+    canopen_resync_watchdog_timeout_s = LaunchConfiguration("canopen_resync_watchdog_timeout_s")
+    declare_canopen_resync_watchdog_timeout_s_arg = DeclareLaunchArgument(
+        "canopen_resync_watchdog_timeout_s",
+        default_value="30",
+        description="Seconds of continuous PDO timeout after which canopen_resync_watchdog exits",
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -245,6 +264,8 @@ def generate_launch_description():
             "pdo_motor_states_timeout_ms": pdo_motor_states_timeout_ms,
             "pdo_driver_state_timeout_ms": pdo_driver_state_timeout_ms,
             "limit_tpdo_rates": limit_tpdo_rates,
+            "canopen_resync_watchdog": canopen_resync_watchdog,
+            "canopen_resync_watchdog_timeout_s": canopen_resync_watchdog_timeout_s,
         }.items(),
     )
 
@@ -366,6 +387,8 @@ def generate_launch_description():
         declare_pdo_motor_states_timeout_ms_arg,
         declare_pdo_driver_state_timeout_ms_arg,
         declare_limit_tpdo_rates_arg,
+        declare_canopen_resync_watchdog_arg,
+        declare_canopen_resync_watchdog_timeout_s_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

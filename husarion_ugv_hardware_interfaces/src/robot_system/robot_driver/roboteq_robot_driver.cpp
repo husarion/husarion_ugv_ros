@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <memory>
@@ -231,6 +232,19 @@ void RoboteqRobotDriver::SetMotorsStates(
 
   // Channel 1 - right, Channel 2 - left
   data.SetMotorsStates(right_state, left_state, data_timed_out);
+
+  // The ages tell a stalled PDO stream (both old) from a single quiet object (freshest recent).
+  if (data_timed_out) {
+    const auto age_ms = [&current_time](const timespec & ts) {
+      return std::chrono::duration<float, std::milli>(
+               lely::util::from_timespec(current_time) - lely::util::from_timespec(ts))
+        .count();
+    };
+    const auto ages = {
+      age_ms(left_state.pos_timestamp), age_ms(left_state.vel_current_timestamp),
+      age_ms(right_state.pos_timestamp), age_ms(right_state.vel_current_timestamp)};
+    data.SetMotorsStatesTimeoutAges(std::max(ages), std::min(ages));
+  }
 }
 
 void RoboteqRobotDriver::SetDriverState(

@@ -271,6 +271,52 @@ TEST(TestCmdWriteStatus, LaggingFailedWritesReachTheFilter)
   EXPECT_TRUE(roboteq_error_filter.IsError(ErrorsFilterIds::WRITE_PDO_CMDS));
 }
 
+TEST(TestRoboteqErrorFilter, GetErrorDescriptionMap)
+{
+  using husarion_ugv_hardware_interfaces::ErrorsFilterIds;
+
+  husarion_ugv_hardware_interfaces::RoboteqErrorFilter roboteq_error_filter(2, 2, 1, 1);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true);
+
+  const auto error_map = roboteq_error_filter.GetErrorDescriptionMap();
+  EXPECT_EQ(4, error_map.size());
+  EXPECT_TRUE(error_map.at("Motor controller fault"));
+  EXPECT_FALSE(error_map.at("Motor state data timing out"));
+}
+
+TEST(TestRoboteqErrorFilter, UnexcusedError)
+{
+  using husarion_ugv_hardware_interfaces::ErrorsFilterIds;
+
+  husarion_ugv_hardware_interfaces::RoboteqErrorFilter roboteq_error_filter(2, 2, 1, 1);
+
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true, true);
+  EXPECT_TRUE(roboteq_error_filter.IsError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+  EXPECT_FALSE(roboteq_error_filter.IsUnexcusedError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+
+  // A real fault keeps the latched error unexcused after it went away.
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true, false);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true, true);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
+  EXPECT_TRUE(roboteq_error_filter.IsUnexcusedError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+
+  roboteq_error_filter.SetClearErrorsFlag();
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
+  EXPECT_FALSE(roboteq_error_filter.IsError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+  EXPECT_FALSE(roboteq_error_filter.IsUnexcusedError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+}
+
+TEST(TestRoboteqErrorFilter, UnexcusedErrorInARunThatLatches)
+{
+  using husarion_ugv_hardware_interfaces::ErrorsFilterIds;
+
+  // The excused error of the second sample latches it, but the run had a real fault in it.
+  husarion_ugv_hardware_interfaces::RoboteqErrorFilter roboteq_error_filter(2, 2, 1, 1);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::WRITE_PDO_CMDS, true, false);
+  roboteq_error_filter.UpdateError(ErrorsFilterIds::WRITE_PDO_CMDS, true, true);
+  EXPECT_TRUE(roboteq_error_filter.IsUnexcusedError(ErrorsFilterIds::WRITE_PDO_CMDS));
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

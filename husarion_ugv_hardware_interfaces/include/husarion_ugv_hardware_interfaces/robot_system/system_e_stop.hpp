@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/gpio/gpio_controller.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
@@ -26,6 +27,55 @@
 
 namespace husarion_ugv_hardware_interfaces
 {
+
+enum class EStopLatchSource : std::uint8_t {
+  RELEASED = 0,
+  // Latched since the driver started, the state the safety board powers up in.
+  STARTUP,
+  // Latched by this driver: a service call, a communication error or a shutdown.
+  SOFTWARE,
+  // The hardware line latched with no software trigger requested - the e-stop button, a Roboteq
+  // fault or the safety board watchdog. Seen only as an edge of a released line, so a button
+  // pressed on a robot that is already latched keeps the earlier source.
+  HARDWARE,
+};
+
+/**
+ * @brief E-stop state for the diagnostics, written on every e-stop state change.
+ *
+ * It lives apart from EStop and is shared with the diagnostic task, so a diagnostic tick that
+ * races the hardware teardown never reads a destroyed object. The latch state is lock-free: the
+ * diagnostic thread must never take e_stop_manipulation_mtx_, which the control loop needs on
+ * every read. Only the refused-reset text has a mutex, shared by the reset service and the
+ * diagnostic task alone.
+ */
+class EStopDiagnostics
+{
+public:
+  struct Snapshot
+  {
+    EStopLatchSource source = EStopLatchSource::STARTUP;
+    // Steady clock time of the last change, 0 when there was none since the driver started.
+    std::int64_t last_change_ns = 0;
+    std::string last_refused_reset;
+    std::int64_t last_refused_reset_ns = 0;
+  };
+
+  void SetSource(const EStopLatchSource source);
+  EStopLatchSource GetSource() const { return source_.load(); }
+  void SetResetRefused(const std::string & reason);
+  Snapshot Get() const;
+
+  static std::int64_t SteadyNowNs();
+
+private:
+  std::atomic<EStopLatchSource> source_{EStopLatchSource::STARTUP};
+  std::atomic<std::int64_t> last_change_ns_{0};
+
+  mutable std::mutex refused_reset_mtx_;
+  std::string last_refused_reset_;
+  std::int64_t last_refused_reset_ns_ = 0;
+};
 
 /**
  * @class EStopInterface
@@ -45,6 +95,7 @@ public:
    * @brief Triggers the emergency stop and refuses every later reset, for the teardown.
    */
   virtual void Close() = 0;
+  virtual std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const = 0;
 };
 
 /**
@@ -59,14 +110,15 @@ public:
     std::shared_ptr<RoboteqErrorFilter> roboteq_error_filter,
     std::shared_ptr<RobotDriverInterface> robot_driver,
     std::shared_ptr<std::mutex> robot_driver_write_mtx, std::function<bool()> zero_velocity_check,
-    std::function<bool()> roboteq_e_stop_set = {})
+    std::function<bool()> roboteq_e_stop_set = {}, std::function<void()> before_relatch = {})
   : EStopInterface(),
     gpio_controller_(gpio_controller),
     roboteq_error_filter_(roboteq_error_filter),
     robot_driver_(robot_driver),
     robot_driver_write_mtx_(robot_driver_write_mtx),
     ZeroVelocityCheck(zero_velocity_check),
-    RoboteqEStopSet(roboteq_e_stop_set) {};
+    RoboteqEStopSet(roboteq_e_stop_set),
+    BeforeRelatch(before_relatch) {};
 
   virtual ~EStop() override = default;
 
@@ -122,6 +174,7 @@ public:
    * @throws std::runtime_error if triggering the E-stop using GPIO fails.
    */
   void Close() override;
+  std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const override { return diagnostics_; }
 
 protected:
   void ResetEStopImpl(const std::uint64_t triggers_before);
@@ -136,6 +189,9 @@ protected:
   std::function<bool()> ZeroVelocityCheck;
   // Whether a motor controller reports its emergency stop fault, read from its driver state.
   std::function<bool()> RoboteqEStopSet;
+  // Called before a refused reset latches the motor controllers again, so the diagnostics know
+  // the emergency stop fault it causes before the controllers report it.
+  std::function<void()> BeforeRelatch;
 
   std::mutex e_stop_manipulation_mtx_;
   // Software triggers, counted when requested and again once they hold the mutex, so a reset can
@@ -150,6 +206,8 @@ protected:
   bool software_trigger_requested_ = false;
   std::atomic_bool e_stop_triggered_ = true;
   std::atomic_bool software_e_stop_triggered_ = true;
+
+  std::shared_ptr<EStopDiagnostics> diagnostics_ = std::make_shared<EStopDiagnostics>();
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

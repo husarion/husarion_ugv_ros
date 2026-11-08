@@ -23,8 +23,6 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/panther_robot_driver.hpp"
 
-#include "husarion_ugv_utils/diagnostics.hpp"
-
 namespace husarion_ugv_hardware_interfaces
 {
 
@@ -124,6 +122,9 @@ void PantherSystem::UpdateFlagErrors()
 {
   const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
   const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
+  UpdateTorqueRequest(
+    front_driver_data.GetFaultFlag().IsEmergencyStopSet() ||
+    rear_driver_data.GetFaultFlag().IsEmergencyStopSet());
   if (front_driver_data.IsFlagError() || rear_driver_data.IsFlagError()) {
     if (front_driver_data.IsFlagError()) {
       RCLCPP_WARN_STREAM_THROTTLE(
@@ -139,7 +140,12 @@ void PantherSystem::UpdateFlagErrors()
           << rear_driver_data.GetFlagErrorLog());
     }
 
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, true);
+    const auto excused = [this](const DriverData & data) {
+      return !data.IsFlagError() || IsFlagErrorOnlyTorqueDisable(data);
+    };
+    roboteq_error_filter_->UpdateError(
+      ErrorsFilterIds::ROBOTEQ_DRIVER, true,
+      excused(front_driver_data) && excused(rear_driver_data));
 
     HandleRobotDriverWriteOperation([this] { robot_driver_->AttemptErrorFlagReset(); });
   } else {
@@ -161,59 +167,19 @@ void PantherSystem::UpdateDriverStateDataTimedOut()
 
 void PantherSystem::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"No error detected."};
-
-  const auto front_driver_data = robot_driver_->GetData(DriverNames::FRONT);
-  if (front_driver_data.IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
-
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, front_driver_data.GetErrorMap(), "Front driver error: ");
-  }
-
-  const auto rear_driver_data = robot_driver_->GetData(DriverNames::REAR);
-  if (rear_driver_data.IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
-
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, rear_driver_data.GetErrorMap(), "Rear driver error: ");
-  }
-
-  if (roboteq_error_filter_->IsError()) {
-    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
-    message = "Error detected.";
-
-    husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(
-      status, roboteq_error_filter_->GetErrorMap(), "", " error");
-  }
-
-  status.summary(level, message);
+  DiagnoseDriversErrors(status);
 }
 
 void PantherSystem::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
-  unsigned char level{diagnostic_updater::DiagnosticStatusWrapper::OK};
-  std::string message{"Panther system status monitoring."};
+  DiagnoseDriversStatus(status, "Panther");
+}
 
-  const auto front_driver_state = robot_driver_->GetData(DriverNames::FRONT).GetDriverState();
-  const auto rear_driver_state = robot_driver_->GetData(DriverNames::REAR).GetDriverState();
-
-  auto driver_states_with_names = {
-    std::make_pair(std::string("Front"), front_driver_state),
-    std::make_pair(std::string("Rear"), rear_driver_state)};
-
-  for (const auto & [driver_name, driver_state] : driver_states_with_names) {
-    status.add(driver_name + " driver voltage (V)", driver_state.GetVoltage());
-    status.add(driver_name + " driver current (A)", driver_state.GetCurrent());
-    status.add(driver_name + " driver temperature (\u00B0C)", driver_state.GetTemperature());
-    status.add(
-      driver_name + " driver heatsink temperature (\u00B0C)",
-      driver_state.GetHeatsinkTemperature());
-  }
-  status.summary(level, message);
+std::vector<UGVSystem::DriverDiagnosticData> PantherSystem::GetDriversDiagnosticData()
+{
+  return {
+    {"Front driver", "front right", "front left", robot_driver_->GetData(DriverNames::FRONT)},
+    {"Rear driver", "rear right", "rear left", robot_driver_->GetData(DriverNames::REAR)}};
 }
 
 std::vector<float> PantherSystem::GetSpeedCommands() const

@@ -34,6 +34,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/robot_driver.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_error_filter.hpp"
+#include "husarion_ugv_hardware_interfaces/robot_system/system_diagnostics_state.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_e_stop.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp"
 
@@ -125,6 +126,48 @@ protected:
 
   virtual void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
   virtual void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status) = 0;
+  void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  // A copy of one motor driver's data, with the names the diagnostics show for it.
+  struct DriverDiagnosticData
+  {
+    std::string name;
+    std::string right_motor;
+    std::string left_motor;
+    DriverData data;
+  };
+
+  // A known race, accepted for now: the copy is made without a lock while the control loop may
+  // write the same data, as the diagnostics did before. A lock would put the diagnostic thread in
+  // the way of the control loop.
+  virtual std::vector<DriverDiagnosticData> GetDriversDiagnosticData() = 0;
+
+  /**
+   * @brief Fills the system status task from the drivers' data.
+   */
+  void DiagnoseDriversStatus(
+    diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name);
+
+  /**
+   * @brief Fills the system errors task. The level comes from the error filter and from faults
+   * the drivers report themselves. A single late PDO is a WARN: the filter escalates it to an
+   * ERROR once it repeats.
+   */
+  void DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  void UpdateReadCycleMax();
+
+  // Called by UpdateFlagErrors() before the error filter update, with whether any driver reports
+  // the emergency stop fault. Ends a torque request once the flags confirm it.
+  void UpdateTorqueRequest(const bool emergency_stop_set);
+  // True when every flag error of the driver comes from a torque disable this driver asked for.
+  bool IsFlagErrorOnlyTorqueDisable(const DriverData & data) const;
+  void SetTorqueRequest(const TorqueRequest request);
+  void MarkRelatchAfterRefusedReset();
+
+  // 10 C below the 85 C overheat limit of the Roboteq configuration the robots ship with, at which
+  // the controller stops the motors.
+  static constexpr float kHeatsinkTemperatureWarn = 75.0F;
 
   const size_t joint_size_;
 
@@ -147,6 +190,12 @@ protected:
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RobotDriverInterface> robot_driver_;
   std::shared_ptr<EStopInterface> e_stop_;
+  // Kept apart from e_stop_, so the diagnostic tasks do not depend on the teardown joining the
+  // diagnostic executor before it resets e_stop_.
+  std::shared_ptr<const EStopDiagnostics> e_stop_diagnostics_;
+  // Same for the IO lines, which live in system_ros_interface_.
+  std::shared_ptr<const IOStateDiagnosticsStore> io_state_diagnostics_;
+  SystemDiagnosticsState diagnostics_state_;
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;

@@ -16,11 +16,13 @@
 
 #include <sys/sysinfo.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -83,6 +85,16 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
+  e_stop_diagnostics_ = e_stop_->GetDiagnostics();
+
+  // The new drivers count their PDO timeouts from zero.
+  diagnostics_state_.pdo_timeouts_reported = 0;
+  diagnostics_state_.pdo_timeouts_in_history = 0;
+  diagnostics_state_.pdo_timeout_history.clear();
+  diagnostics_state_.read_period_max_us.store(0);
+  diagnostics_state_.last_read_ts = {0, 0};
+  diagnostics_state_.torque_request.store(TorqueRequest::NONE);
+
   std::fill(hw_commands_velocities_.begin(), hw_commands_velocities_.end(), 0.0);
   std::fill(hw_states_positions_.begin(), hw_states_positions_.end(), 0.0);
   std::fill(hw_states_velocities_.begin(), hw_states_velocities_.end(), 0.0);
@@ -98,6 +110,7 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
   }
 
   system_ros_interface_ = std::make_unique<SystemROSInterface>("hardware_controller");
+  io_state_diagnostics_ = system_ros_interface_->GetIOStateDiagnostics();
 
   system_ros_interface_->AddService<SetBoolSrv, std::function<void(bool)>>(
     "hardware/fan_enable",
@@ -130,10 +143,12 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
 
   system_ros_interface_->AddDiagnosticTask(
-    std::string("system errors"), this, &UGVSystem::DiagnoseErrors);
+    std::string("System errors"), this, &UGVSystem::DiagnoseErrors);
 
   system_ros_interface_->AddDiagnosticTask(
-    std::string("system status"), this, &UGVSystem::DiagnoseStatus);
+    std::string("System status"), this, &UGVSystem::DiagnoseStatus);
+
+  system_ros_interface_->AddDiagnosticTask(std::string("E-stop"), this, &UGVSystem::DiagnoseEStop);
 
   // The callback runs on the GPIO monitor thread and on the thread of any SetPinValue() caller,
   // also while the teardown resets the ROS interface. It publishes under a mutex the teardown
@@ -166,6 +181,9 @@ CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_activate(const rclcpp_lifecycle::State &)
 {
+  // read() runs while inactive too, but a deactivate and activate in between is not a period.
+  diagnostics_state_.restart_read_period.store(true);
+
   return CallbackReturn::SUCCESS;
 }
 
@@ -256,6 +274,8 @@ std::vector<CommandInterface> UGVSystem::export_command_interfaces()
 
 return_type UGVSystem::read(const rclcpp::Time & time, const rclcpp::Duration & /* period */)
 {
+  UpdateReadCycleMax();
+
   UpdateMotorsState();
 
   if (time >= next_driver_state_update_time_) {
@@ -532,7 +552,8 @@ void UGVSystem::ConfigureEStop()
   e_stop_ = std::make_shared<EStop>(
     gpio_controller_, roboteq_error_filter_, robot_driver_, robot_driver_write_mtx_,
     std::bind(&UGVSystem::AreVelocityCommandsNearZero, this),
-    std::bind(&UGVSystem::IsRoboteqEStopSet, this));
+    std::bind(&UGVSystem::IsRoboteqEStopSet, this),
+    std::bind(&UGVSystem::MarkRelatchAfterRefusedReset, this));
 
   RCLCPP_INFO(logger_, "Successfully configured E-Stop");
 }
@@ -599,7 +620,105 @@ void UGVSystem::ResetEStop()
 
   RCLCPP_INFO(logger_, "Resetting E-Stop.");
 
+  // A refused reset of a latched E-stop marks its latch through MarkRelatchAfterRefusedReset.
   e_stop_->ResetEStop();
+  // The reset turns the Roboteq emergency stop off, which enables the motor torque again.
+  SetTorqueRequest(TorqueRequest::NONE);
+}
+
+void UGVSystem::MarkRelatchAfterRefusedReset()
+{
+  // Marked before the write, like a torque disable: the fault flags of the latch can arrive
+  // before the write returns.
+  SetTorqueRequest(TorqueRequest::RELATCH_PENDING);
+}
+
+void UGVSystem::SetTorqueRequest(const TorqueRequest request)
+{
+  diagnostics_state_.torque_request_ns.store(EStopDiagnostics::SteadyNowNs());
+  diagnostics_state_.torque_request.store(request);
+}
+
+void UGVSystem::UpdateTorqueRequest(const bool emergency_stop_set)
+{
+  // The fault flags arrive in a TPDO up to 50 ms after a torque change was written, and on a
+  // Panther the two drivers report it at different times. A request ends when every driver
+  // confirms it, or after kTorqueRequestTimeout when they never do. A compare-exchange keeps a
+  // request the service writes meanwhile.
+  auto request = diagnostics_state_.torque_request.load();
+  if (request == TorqueRequest::NONE) {
+    return;
+  }
+
+  const bool timed_out = EStopDiagnostics::SteadyNowNs() -
+                           diagnostics_state_.torque_request_ns.load() >
+                         std::chrono::nanoseconds(kTorqueRequestTimeout).count();
+  auto next = request;
+  switch (request) {
+    case TorqueRequest::DISABLE_PENDING:
+    case TorqueRequest::RELATCH_PENDING:
+      if (emergency_stop_set) {
+        next = request == TorqueRequest::DISABLE_PENDING ? TorqueRequest::DISABLED
+                                                         : TorqueRequest::RELATCHED;
+      } else if (timed_out) {
+        next = TorqueRequest::NONE;
+      }
+      break;
+    case TorqueRequest::DISABLED:
+    case TorqueRequest::RELATCHED:
+      // The torque came back without an enable request, the request is over.
+      if (!emergency_stop_set) {
+        next = TorqueRequest::NONE;
+      }
+      break;
+    case TorqueRequest::ENABLE_PENDING:
+      if (!emergency_stop_set || timed_out) {
+        next = TorqueRequest::NONE;
+      }
+      break;
+    default:
+      break;
+  }
+
+  if (
+    next == request || !diagnostics_state_.torque_request.compare_exchange_strong(request, next)) {
+    return;
+  }
+
+  // A torque toggle clears the latched errors once the enable is confirmed or timed out, so a
+  // stale sample from before the enable does not latch them again.
+  if (request == TorqueRequest::ENABLE_PENDING) {
+    roboteq_error_filter_->SetClearErrorsFlag();
+  }
+  // The torque came back without an enable. A motor controller fault latched only by the disable
+  // ends with it; a real fault next to it stays.
+  const bool only_the_disable_latched =
+    !roboteq_error_filter_->IsUnexcusedError(ErrorsFilterIds::ROBOTEQ_DRIVER) &&
+    !roboteq_error_filter_->IsError(ErrorsFilterIds::WRITE_PDO_CMDS) &&
+    !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_MOTOR_STATES) &&
+    !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_DRIVER_STATE);
+  if (
+    (request == TorqueRequest::DISABLED || request == TorqueRequest::RELATCHED) &&
+    only_the_disable_latched) {
+    roboteq_error_filter_->SetClearErrorsFlag();
+  }
+}
+
+bool UGVSystem::IsFlagErrorOnlyTorqueDisable(const DriverData & data) const
+{
+  if (
+    diagnostics_state_.torque_request.load() == TorqueRequest::NONE ||
+    !data.GetFaultFlag().IsEmergencyStopSet()) {
+    return false;
+  }
+
+  auto flag_errors = data.GetFlagErrorMap();
+  flag_errors.erase(FaultFlag::kEmergencyStopKey);
+  for (const auto & channel : {"channel_1_motor.", "channel_2_motor."}) {
+    flag_errors.erase(std::string(channel) + RuntimeError::kEmergencyStopBitKey);
+  }
+  return std::none_of(
+    flag_errors.begin(), flag_errors.end(), [](const auto & flag) { return flag.second; });
 }
 
 void UGVSystem::UpdateMotorsState()
@@ -674,6 +793,307 @@ bool UGVSystem::AreVelocityCommandsNearZero()
   return true;
 }
 
+void UGVSystem::DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  if (!e_stop_diagnostics_) {
+    status.summary(diagnostic_updater::DiagnosticStatusWrapper::STALE, "E-stop state unavailable.");
+    return;
+  }
+
+  const auto snapshot = e_stop_diagnostics_->Get();
+  const auto now_ns = EStopDiagnostics::SteadyNowNs();
+  const auto seconds_ago = [now_ns](const std::int64_t time_ns) {
+    return static_cast<double>(now_ns - time_ns) / 1.0e9;
+  };
+
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message;
+  std::string source;
+
+  // A latch the driver caused or started in is the robot parked, not a fault. Only a stop by a
+  // device outside the driver is worth the operator's attention.
+  switch (snapshot.source) {
+    case EStopLatchSource::RELEASED:
+      message = "E-stop released.";
+      source = "none";
+      break;
+    case EStopLatchSource::STARTUP:
+      message = "E-stop latched since the driver started.";
+      source = "driver start";
+      break;
+    case EStopLatchSource::SOFTWARE:
+      message = "E-stop latched by software.";
+      source = "software (service call, communication error or driver shutdown)";
+      break;
+    case EStopLatchSource::HARDWARE:
+      level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+      message = "E-stop latched by a device outside the driver.";
+      source = "hardware line (e-stop button, Roboteq fault or safety board watchdog)";
+      break;
+  }
+
+  status.add(
+    "State", snapshot.source == EStopLatchSource::RELEASED ? std::string("released")
+                                                           : std::string("latched"));
+  status.add("Source", source);
+  if (snapshot.last_change_ns != 0) {
+    status.add("Last change (s ago)", seconds_ago(snapshot.last_change_ns));
+  }
+  if (!snapshot.last_refused_reset.empty()) {
+    status.add("Last refused reset", snapshot.last_refused_reset);
+    status.add("Last refused reset (s ago)", seconds_ago(snapshot.last_refused_reset_ns));
+  }
+
+  status.summary(level, message);
+}
+
+void UGVSystem::DiagnoseDriversStatus(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & robot_name)
+{
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = robot_name + " system status monitoring.";
+  std::uint32_t pdo_timeouts = 0;
+
+  try {
+    for (const auto & driver : GetDriversDiagnosticData()) {
+      const auto & state = driver.data.GetDriverState();
+      status.add(driver.name + " voltage (V)", state.GetVoltage());
+      status.add(driver.name + " battery current (A)", state.GetCurrent());
+      status.add(driver.name + " temperature (\u00B0C)", state.GetTemperature());
+      status.add(driver.name + " heatsink temperature (\u00B0C)", state.GetHeatsinkTemperature());
+      status.add(
+        "Motor current " + driver.right_motor + " (A)",
+        driver.data.GetMotorState(MotorChannels::RIGHT).GetCurrent());
+      status.add(
+        "Motor current " + driver.left_motor + " (A)",
+        driver.data.GetMotorState(MotorChannels::LEFT).GetCurrent());
+      if (driver.data.GetMotorStatesTimeouts() > 0) {
+        status.addf(
+          driver.name + " motor state PDO age at the last timeout (ms)",
+          "%.1f oldest, %.1f freshest", driver.data.GetMotorStatesTimeoutOldestAgeMs(),
+          driver.data.GetMotorStatesTimeoutFreshestAgeMs());
+      }
+      pdo_timeouts += driver.data.GetMotorStatesTimeouts();
+
+      if (state.GetHeatsinkTemperature() >= kHeatsinkTemperatureWarn) {
+        level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+        message = driver.name + " heatsink temperature is close to the overheat limit.";
+      }
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable: " + std::string(e.what()));
+    return;
+  }
+
+  auto & diag = diagnostics_state_;
+  const auto now = std::chrono::steady_clock::now();
+  // The counters are unsigned: a counter that went backwards adds nothing instead of wrapping.
+  diag.pdo_timeout_history.emplace_back(
+    now,
+    pdo_timeouts >= diag.pdo_timeouts_in_history ? pdo_timeouts - diag.pdo_timeouts_in_history : 0);
+  diag.pdo_timeouts_in_history = pdo_timeouts;
+  while (!diag.pdo_timeout_history.empty() &&
+         now - diag.pdo_timeout_history.front().first > std::chrono::hours(1)) {
+    diag.pdo_timeout_history.pop_front();
+  }
+  std::uint32_t pdo_timeouts_last_hour = 0;
+  for (const auto & [time, timeouts] : diag.pdo_timeout_history) {
+    pdo_timeouts_last_hour += timeouts;
+  }
+  status.add("PDO timeouts in the last hour", pdo_timeouts_last_hour);
+
+  const auto read_period_max_us = diag.read_period_max_us.exchange(0, std::memory_order_relaxed);
+  if (read_period_max_us > 0) {
+    status.add("Read period max since the last report (ms)", read_period_max_us / 1000.0);
+  }
+
+  const auto io_state = io_state_diagnostics_ ? io_state_diagnostics_->Get() : IOStateDiagnostics{};
+  const auto add_io = [&status](const std::string & key, const std::optional<bool> & value) {
+    if (value.has_value()) {
+      status.add(key, value.value() ? std::string("on") : std::string("off"));
+    }
+  };
+  add_io("Motor power", io_state.motor_on);
+  add_io("Aux power", io_state.aux_power);
+  add_io("Fan", io_state.fan);
+  if (io_state.charger_connected.has_value()) {
+    status.add(
+      "Charger connected",
+      io_state.charger_connected.value() ? std::string("yes") : std::string("no"));
+  }
+
+  status.summary(level, message);
+}
+
+void UGVSystem::DiagnoseDriversErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "No error detected.";
+  const auto raise = [&level, &message](const unsigned char new_level, const std::string & text) {
+    if (new_level > level) {
+      level = new_level;
+      message = text;
+    }
+  };
+
+  try {
+    // A torque disable on request sets the Roboteq emergency stop fault, and the error filter
+    // latches it. That is the robot doing what it was asked, so it is a WARN while it is the only
+    // fault.
+    const auto torque_request = diagnostics_state_.torque_request.load();
+    const bool torque_disabled_by_request = torque_request != TorqueRequest::NONE;
+    const bool relatched = torque_request == TorqueRequest::RELATCH_PENDING ||
+                           torque_request == TorqueRequest::RELATCHED;
+
+    // A latched e-stop holds the motors through the Roboteq safety stop, so on a parked robot
+    // that flag is the expected state, not a warning.
+    const bool e_stop_latched = e_stop_diagnostics_ &&
+                                e_stop_diagnostics_->GetSource() != EStopLatchSource::RELEASED;
+    bool flag_error_not_torque_disable = false;
+    std::uint32_t pdo_timeouts = 0;
+
+    for (const auto & driver : GetDriversDiagnosticData()) {
+      const auto & data = driver.data;
+      const std::string error_prefix = driver.name + " error: ";
+      pdo_timeouts += data.GetMotorStatesTimeouts();
+
+      // With the torque disabled on request the emergency stop fault is that request, also when
+      // other faults are set next to it.
+      const bool torque_disable_fault = torque_disabled_by_request &&
+                                        data.GetFaultFlag().IsEmergencyStopSet();
+      if (torque_disable_fault && relatched) {
+        raise(
+          diagnostic_updater::DiagnosticStatusWrapper::WARN,
+          "Motor controllers latched again after a refused E-stop reset.");
+        status.add(driver.name + " warning: motor torque", "disabled after a refused E-stop reset");
+      } else if (torque_disable_fault) {
+        raise(
+          diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor torque disabled on request.");
+        status.add(driver.name + " warning: motor torque", "disabled on request");
+      }
+      auto flag_errors = data.GetFlagErrorMap();
+      if (torque_disable_fault) {
+        flag_errors.erase(FaultFlag::kEmergencyStopKey);
+        // The controller sets this unnamed runtime bit on both channels while its emergency stop
+        // is on, so it comes with the torque disable.
+        for (const auto & channel : {"channel_1_motor.", "channel_2_motor."}) {
+          const auto key = std::string(channel) + RuntimeError::kEmergencyStopBitKey;
+          const auto it = flag_errors.find(key);
+          if (it != flag_errors.end() && it->second) {
+            status.add(driver.name + " warning: " + key, true);
+            flag_errors.erase(it);
+          }
+        }
+      }
+      for (const auto & [flag, is_set] : flag_errors) {
+        if (is_set) {
+          flag_error_not_torque_disable = true;
+          raise(
+            diagnostic_updater::DiagnosticStatusWrapper::ERROR,
+            driver.name + " fault: " + flag + ".");
+        }
+      }
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(status, flag_errors, error_prefix);
+      if (data.IsCANError()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, driver.name + " CAN error.");
+        status.add(error_prefix + "can_error", true);
+      }
+      if (data.IsHeartbeatTimeout()) {
+        raise(
+          diagnostic_updater::DiagnosticStatusWrapper::ERROR, driver.name + " heartbeat timeout.");
+        status.add(error_prefix + "heartbeat_timeout", true);
+      }
+
+      const std::string warning_prefix = driver.name + " warning: ";
+      const auto add_motor_warning = [&](const std::uint8_t channel, const std::string & motor) {
+        const auto & runtime_error = data.GetRuntimeError(channel);
+        const auto description = runtime_error.GetWarningDescription(!e_stop_latched);
+        if (!description.empty()) {
+          raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor " + description + ".");
+          status.add(warning_prefix + motor + " motor", description);
+        }
+        if (e_stop_latched && runtime_error.IsSafetyStopActive()) {
+          status.add(driver.name + ": " + motor + " motor", "safety stop (held by the e-stop)");
+        }
+      };
+      add_motor_warning(MotorChannels::RIGHT, driver.right_motor);
+      add_motor_warning(MotorChannels::LEFT, driver.left_motor);
+
+      if (data.IsMotorStatesDataTimedOut()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data is late.");
+        status.add(warning_prefix + "motor_states_data_timed_out", true);
+      }
+      if (data.IsDriverStateDataTimedOut()) {
+        raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data is late.");
+        status.add(warning_prefix + "driver_state_data_timed_out", true);
+      }
+    }
+
+    const auto new_pdo_timeouts = pdo_timeouts >= diagnostics_state_.pdo_timeouts_reported
+                                    ? pdo_timeouts - diagnostics_state_.pdo_timeouts_reported
+                                    : 0;
+    diagnostics_state_.pdo_timeouts_reported = pdo_timeouts;
+    if (new_pdo_timeouts > 0) {
+      raise(diagnostic_updater::DiagnosticStatusWrapper::WARN, "Motor controller data was late.");
+      status.add("PDO timeouts since the last report", new_pdo_timeouts);
+    }
+
+    // The filter latches: these stay set after the cause went away, until it is cleared.
+    // A fault that latched while the torque was off and cleared since is still a fault.
+    const bool only_torque_disable_latched =
+      torque_disabled_by_request && !flag_error_not_torque_disable &&
+      roboteq_error_filter_->IsError(ErrorsFilterIds::ROBOTEQ_DRIVER) &&
+      !roboteq_error_filter_->IsUnexcusedError(ErrorsFilterIds::ROBOTEQ_DRIVER) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::WRITE_PDO_CMDS) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_MOTOR_STATES) &&
+      !roboteq_error_filter_->IsError(ErrorsFilterIds::READ_PDO_DRIVER_STATE);
+    if (roboteq_error_filter_->IsError() && !only_torque_disable_latched) {
+      const auto latched_errors = roboteq_error_filter_->GetErrorDescriptionMap();
+      for (const auto & [description, is_set] : latched_errors) {
+        if (is_set) {
+          raise(diagnostic_updater::DiagnosticStatusWrapper::ERROR, description + ".");
+        }
+      }
+      husarion_ugv_utils::diagnostics::AddKeyValueIfTrue(status, latched_errors);
+      status.add(
+        "Latched errors clear on",
+        "a successful E-stop reset, a torque disable, or a torque enable once the motor "
+        "controllers confirm it");
+    }
+  } catch (const std::exception & e) {
+    status.summary(
+      diagnostic_updater::DiagnosticStatusWrapper::STALE,
+      "Hardware data unavailable: " + std::string(e.what()));
+    return;
+  }
+
+  status.summary(level, message);
+}
+
+void UGVSystem::UpdateReadCycleMax()
+{
+  timespec now_ts;
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  auto & last_ts = diagnostics_state_.last_read_ts;
+  if (diagnostics_state_.restart_read_period.exchange(false)) {
+    last_ts = {0, 0};
+  }
+  if (last_ts.tv_sec != 0 || last_ts.tv_nsec != 0) {
+    const auto read_period_us = std::min<std::int64_t>(
+      (now_ts.tv_sec - last_ts.tv_sec) * 1000000LL + (now_ts.tv_nsec - last_ts.tv_nsec) / 1000,
+      std::numeric_limits<std::uint32_t>::max());
+    const auto read_cycle_us = static_cast<std::uint32_t>(read_period_us);
+    auto & read_period_max_us = diagnostics_state_.read_period_max_us;
+    auto max_us = read_period_max_us.load(std::memory_order_relaxed);
+    while (read_cycle_us > max_us && !read_period_max_us.compare_exchange_weak(
+                                       max_us, read_cycle_us, std::memory_order_relaxed)) {
+    }
+  }
+  last_ts = now_ts;
+}
+
 void UGVSystem::MotorTorqueEnable(const bool enable)
 {
   try {
@@ -685,15 +1105,20 @@ void UGVSystem::MotorTorqueEnable(const bool enable)
         throw std::invalid_argument("Can't enable/disable torque when E-Stop is not triggered.");
       }
 
+      // Marked before the write: an SDO write that times out may still have reached the Roboteq,
+      // and the diagnostics must not read the torque disable it caused as a fault.
       if (!enable) {
+        SetTorqueRequest(TorqueRequest::DISABLE_PENDING);
         robot_driver_->TurnOnEStop();
       } else {
         robot_driver_->TurnOffEStop();
+        SetTorqueRequest(TorqueRequest::ENABLE_PENDING);
       }
     }
 
-    roboteq_error_filter_->SetClearErrorsFlag();
-    roboteq_error_filter_->UpdateError(ErrorsFilterIds::ROBOTEQ_DRIVER, false);
+    if (!enable) {
+      roboteq_error_filter_->SetClearErrorsFlag();
+    }
   } catch (const std::runtime_error & e) {
     auto warn = "An exception occurred while changing the torque state of the motors: " +
                 std::string(e.what());

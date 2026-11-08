@@ -89,11 +89,37 @@ std::string FlagError::GetErrorLog() const
 {
   std::string error_msg = "";
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
-    if ((flags_ & (~suppressed_flags_)).test(i)) {
+    if (GetErrorFlags().test(i)) {
       error_msg += flag_names_[i] + " ";
     }
   }
+  for (std::size_t i = flag_names_.size(); i < flags_.size(); i++) {
+    if (GetErrorFlags().test(i)) {
+      error_msg += kUnnamedBitPrefix + std::to_string(i) + " ";
+    }
+  }
   return error_msg;
+}
+
+void FlagError::AddUnnamedErrorBits(
+  std::map<std::string, bool> & error_map, const std::string & key_prefix) const
+{
+  for (std::size_t i = flag_names_.size(); i < flags_.size(); i++) {
+    if (GetErrorFlags().test(i)) {
+      error_map[key_prefix + kUnnamedBitPrefix + std::to_string(i)] = true;
+    }
+  }
+}
+
+std::vector<std::string> FlagError::GetSetSuppressedFlags() const
+{
+  std::vector<std::string> set_suppressed_flags;
+  for (std::size_t i = 0; i < flag_names_.size(); i++) {
+    if ((flags_ & suppressed_flags_).test(i)) {
+      set_suppressed_flags.push_back(flag_names_[i]);
+    }
+  }
+  return set_suppressed_flags;
 }
 
 FaultFlag::FaultFlag()
@@ -130,8 +156,9 @@ std::map<std::string, bool> FaultFlag::GetErrorMap() const
 {
   std::map<std::string, bool> error_map;
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
-    error_map["fault_flag." + flag_names_[i]] = flags_.test(i);
+    error_map["fault_flag." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "fault_flag.");
   return error_map;
 }
 
@@ -152,8 +179,9 @@ std::map<std::string, bool> ScriptFlag::GetErrorMap() const
 {
   std::map<std::string, bool> error_map;
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
-    error_map["script_flag." + flag_names_[i]] = flags_.test(i);
+    error_map["script_flag." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "script_flag.");
   return error_map;
 }
 
@@ -197,9 +225,32 @@ std::map<std::string, bool> RuntimeError::GetErrorMap() const
 {
   std::map<std::string, bool> error_map;
   for (std::size_t i = 0; i < flag_names_.size(); i++) {
-    error_map["runtime_error." + flag_names_[i]] = flags_.test(i);
+    error_map["runtime_error." + flag_names_[i]] = GetErrorFlags().test(i);
   }
+  AddUnnamedErrorBits(error_map, "runtime_error.");
   return error_map;
+}
+
+std::string RuntimeError::GetWarningDescription(const bool include_safety_stop) const
+{
+  static const std::map<std::string, std::string> descriptions = {
+    {"amps_limit_active", "current limit active"},
+    {"safety_stop_active", "safety stop active"},
+    {"forward_limit_triggered", "forward limit switch triggered"},
+    {"reverse_limit_triggered", "reverse limit switch triggered"},
+    {"amps_trigger_activated", "current trigger activated"},
+  };
+
+  std::string description;
+  for (const auto & flag : GetSetSuppressedFlags()) {
+    if (!include_safety_stop && flag == "safety_stop_active") {
+      continue;
+    }
+    const auto it = descriptions.find(flag);
+    description += (description.empty() ? "" : ", ") +
+                   (it != descriptions.end() ? it->second : flag);
+  }
+  return description;
 }
 
 void DriverData::SetMotorsStates(
@@ -208,6 +259,9 @@ void DriverData::SetMotorsStates(
 {
   channel_1_motor_state_.SetData(channel_1_state);
   channel_2_motor_state_.SetData(channel_2_state);
+  if (data_timed_out && !motor_states_data_timed_out_) {
+    ++motor_states_timeouts_;
+  }
   motor_states_data_timed_out_ = data_timed_out;
 }
 

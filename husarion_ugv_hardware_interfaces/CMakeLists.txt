@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
-# Handle superbuild first
+# Handle superbuild first. Building with USE_SUPERBUILD=OFF against a system
+# lely-core skips patches/lely-loop-driver-teardown-throw.patch.
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)
 
 if(USE_SUPERBUILD)

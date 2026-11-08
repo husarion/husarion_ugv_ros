@@ -1,0 +1,53 @@
+Use the non-throwing ev::Loop::run() and poll() in the LoopDriver thread.
+
+The throwing overloads read the thread-local error left by the last failed
+operation after the loop returns. An error that was already handled (an SDO
+abort during a slave boot, a failed fopen) then surfaces as a
+std::system_error out of the thread function when the loop is stopped for
+teardown, and the process ends in std::terminate with "run: No such file or
+directory". A loop that fails while not stopped is still reported, through
+diag().
+
+Applies to lely-core v2.3.3. Not submitted to lely-core yet; drop it once an
+upstream release carries an equivalent fix.
+
+diff --git a/src/coapp/loop_driver.cpp b/src/coapp/loop_driver.cpp
+--- a/src/coapp/loop_driver.cpp
++++ b/src/coapp/loop_driver.cpp
+@@ -26,6 +26,7 @@
+ #if !LELY_NO_COAPP_MASTER && !LELY_NO_THREADS
+ 
+ #include <lely/coapp/loop_driver.hpp>
++#include <lely/util/diag.h>
+ 
+ #include <atomic>
+ #ifdef __MINGW32__
+@@ -151,10 +152,16 @@
+   auto exec = self->GetExecutor();
+ 
+   // Start the event loop. Signal the existence of a fake task to prevent the
+-  // loop for stopping early.
++  // loop for stopping early. The non-throwing overloads are used because the
++  // throwing ones report the error left by the last failed operation even when
++  // the loop was stopped normally, and an exception escaping this thread
++  // function terminates the process.
++  ::std::error_code ec;
+   exec.on_task_init();
+-  loop.run();
++  loop.run(ec);
+   exec.on_task_fini();
++  if (ec && !loop.stopped())
++    diag(DIAG_ERROR, ec.value(), "LoopDriver event loop failed");
+ 
+   // Deregister the driver to prevent the master from queueing new events. This
+   // also cancels any outstanding SDO requests.
+@@ -162,7 +169,8 @@
+ 
+   // Finish remaining tasks, but do not block.
+   loop.restart();
+-  loop.poll();
++  // The error is ignored: the driver is already deregistered.
++  loop.poll(ec);
+ 
+   // Satisfy the promise to signal that the thread is about to terminate and it
+   // a call to the destructor will not block.

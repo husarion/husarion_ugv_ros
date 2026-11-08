@@ -14,10 +14,12 @@
 
 #include "husarion_ugv_lights/lights_driver_node.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -55,12 +57,8 @@ LightsDriverNode::LightsDriverNode(
   led_output_enabled_(true),
   global_brightness_(1.0f),
   initialization_attempt_(0),
-  channel_1_(
-    channel_1 ? channel_1
-              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
-  channel_2_(
-    channel_2 ? channel_2
-              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
+  channel_1_(channel_1),
+  channel_2_(channel_2),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
@@ -72,6 +70,29 @@ LightsDriverNode::LightsDriverNode(
   frame_timeout_ = this->params_.frame_timeout;
   channel_1_num_led_ = this->params_.channel_1_num_led;
   channel_2_num_led_ = this->params_.channel_2_num_led;
+
+  ValidateSPIParams(this->params_);
+
+  const auto spi_speed = this->params_.spi_speed_hz > 0
+                           ? static_cast<std::uint32_t>(this->params_.spi_speed_hz)
+                           : APA102::kDefaultSPISpeedHz;
+  const auto spi_max_transfer = static_cast<std::size_t>(this->params_.spi_max_transfer_bytes);
+
+  // The controller silently runs the next clock its divider reaches. Its core clock is only
+  // readable through debugfs, and the firmware may scale it, so this assumes a fixed value.
+  RCLCPP_INFO(
+    this->get_logger(), "LED SPI clock %u Hz requested, %u Hz at a %lu MHz SPI core clock.",
+    spi_speed, EffectiveSPISpeed(kDefaultSPICoreClockHz, spi_speed),
+    static_cast<unsigned long>(kDefaultSPICoreClockHz / 1000000));
+
+  if (!channel_1_) {
+    channel_1_ = std::make_shared<APA102>(
+      std::make_shared<SPIDevice>(), "/dev/spiled-channel1", spi_speed, false, spi_max_transfer);
+  }
+  if (!channel_2_) {
+    channel_2_ = std::make_shared<APA102>(
+      std::make_shared<SPIDevice>(), "/dev/spiled-channel2", spi_speed, false, spi_max_transfer);
+  }
 
   led_output_enabled_ = this->params_.led_output_enabled;
 
@@ -134,6 +155,26 @@ void LightsDriverNode::RegisterShutdownHook()
   shutdown_callback_handle_ =
     this->get_node_base_interface()->get_context()->add_on_shutdown_callback(
       std::bind(&LightsDriverNode::OnShutdown, this));
+}
+
+void LightsDriverNode::ValidateSPIParams(const lights_driver::Params & params)
+{
+  // The bounds have to admit 0, the "use the default" value, so the lower limit of a real clock is
+  // checked here. A clock below 100 kHz is a typo, not a setting.
+  if (params.spi_speed_hz != 0 && params.spi_speed_hz < kMinSPISpeedHz) {
+    throw std::invalid_argument(
+      "spi_speed_hz must be 0 or between " + std::to_string(kMinSPISpeedHz) + " and " +
+      std::to_string(kMaxSPISpeedHz) + ", got " + std::to_string(params.spi_speed_hz) + ".");
+  }
+
+  // A frame that needs more transfers than one SPI message holds would fail on every write, so
+  // refuse it here, where the error names the parameter.
+  const auto longest_channel =
+    static_cast<std::size_t>(std::max(params.channel_1_num_led, params.channel_2_num_led));
+  const auto max_transfer = static_cast<std::size_t>(params.spi_max_transfer_bytes);
+  if (APA102::NumberOfTransfers(longest_channel, max_transfer) > APA102::kMaxSPITransfers) {
+    throw std::invalid_argument("spi_max_transfer_bytes is too small for the LED count.");
+  }
 }
 
 void LightsDriverNode::OnShutdown()

@@ -58,6 +58,12 @@ public:
 
   ~LightsDriverNode();
 
+  /**
+   * @brief Throws std::invalid_argument when the SPI parameters cannot work: a clock below the
+   * lower limit, or a transfer size too small for the LED count.
+   */
+  static void ValidateSPIParams(const lights_driver::Params & params);
+
 protected:
   /**
    * @brief Clears all LEDs on both channels.
@@ -175,6 +181,10 @@ private:
   static constexpr unsigned kMaxInitializationAttempts = 3;
   static constexpr unsigned kServiceResponseTimeout = 3;
   static constexpr unsigned kWaitForServiceTimeout = 3;
+  static constexpr std::uint64_t kDefaultSPICoreClockHz = 500000000;
+  static constexpr std::int64_t kMinSPISpeedHz = 100000;
+  // Also the upper bound of spi_speed_hz in lights_driver_parameters.yaml.
+  static constexpr std::int64_t kMaxSPISpeedHz = 20000000;
 
   rclcpp::OnShutdownCallbackHandle shutdown_callback_handle_;
 

@@ -81,6 +81,17 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="0",
+        description=(
+            "SPI clock of the LED strips in Hz. 0 keeps the driver default of 800000, the"
+            " certified clock. Any other value must be between 100000 and 20000000. Changing it"
+            " affects EMC."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -135,6 +146,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "led_control_retry_forever": led_control_retry_forever,
+            "led_spi_speed_hz": led_spi_speed_hz,
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
@@ -242,6 +254,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_led_control_retry_forever_arg,
+        declare_led_spi_speed_hz_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,

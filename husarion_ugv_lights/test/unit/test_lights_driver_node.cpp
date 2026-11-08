@@ -38,6 +38,7 @@
 #include "husarion_ugv_lights/apa102.hpp"
 #include "husarion_ugv_lights/lights_driver_node.hpp"
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
+#include "husarion_ugv_utils/test/test_utils.hpp"
 
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
@@ -824,6 +825,38 @@ TEST(TestLightsDriverNodeShutdownHook, ShutdownClearsLEDs)
   EXPECT_CALL(*channel_2, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_2") * 4, 0)))
     .Times(1);
   context->shutdown("test");
+}
+
+TEST(TestLightsDriverNodeSPIParams, DefaultsAccepted)
+{
+  EXPECT_NO_THROW(
+    husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(lights_driver::Params()));
+}
+
+TEST(TestLightsDriverNodeSPIParams, ClockBelowLowerLimitRefused)
+{
+  lights_driver::Params params;
+  params.spi_speed_hz = 8000;
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::invalid_argument>(
+    [&]() { husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params); }, "spi_speed_hz"));
+
+  params.spi_speed_hz = 100000;
+  EXPECT_NO_THROW(husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params));
+}
+
+TEST(TestLightsDriverNodeSPIParams, TransferSizeTooSmallRefused)
+{
+  // 600 LEDs make a 2408-byte frame: 602 transfers of 4 bytes, more than one message holds, or 301
+  // of 8 bytes.
+  lights_driver::Params params;
+  params.channel_2_num_led = 600;
+  params.spi_max_transfer_bytes = 4;
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::invalid_argument>(
+    [&]() { husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params); },
+    "spi_max_transfer_bytes"));
+
+  params.spi_max_transfer_bytes = 8;
+  EXPECT_NO_THROW(husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params));
 }
 
 int main(int argc, char ** argv)

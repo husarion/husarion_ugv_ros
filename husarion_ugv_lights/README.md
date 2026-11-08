@@ -11,6 +11,8 @@ This package contains:
 ### Launch arguments
 
 - `led_control_retry_forever` [*bool*, default: **False**]: Passed to the `led_control_retry_forever` parameter of `LightsDriverNode`. `bringup.launch.py` forwards it.
+- `led_spi_speed_hz` [*int*, default: **0**]: Passed to the `spi_speed_hz` parameter of `LightsDriverNode`: **0** or a clock between **100000** and **20000000** Hz. Also a `husarion_ugv_bringup` argument.
+- `led_spi_max_transfer_bytes` [*int*, default: **0**]: Passed to the `spi_max_transfer_bytes` parameter of `LightsDriverNode`. Opt-in and meant to save CPU; its effect has not been measured, so leave it at **0** unless you measure it.
 - `lights_controller_frequency` [*float*, default: **50.0**]: Passed to the `controller_frequency` parameter of `LightsControllerNode`. Animations are timed in seconds, so a lower rate drops frames and keeps their timing, but a pulse shorter than two frames can disappear.
 - `lights_frame_keepalive_period` [*float*, default: **0.0**]: Passed to the `frame_keepalive_period` parameter of `LightsControllerNode`.
 
@@ -76,3 +78,5 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `led_control_retry_forever` [*bool*, default: **false**]: Keep asking for LED control at startup until the hardware grants it. With **false** the driver gives up after three attempts and the lights container exits, which stops the launch. It covers startup only: control lost later, for example when the hardware interface restarts, is not asked for again.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.
+- `spi_speed_hz` [*int*, default: **0**]: SPI clock of both LED channels in **[Hz]**. **0** keeps the default of 800000, the clock the robots are certified with. Any other value must be between **100000** and **20000000**. Otherwise the driver fails to load with an error naming the parameter: the container and the controller keep running, and the strips stay dark, as with a missing SPI device. Changing it affects EMC. `lights.launch.py` sets it from the `led_spi_speed_hz` launch argument, so it is not read from `{robot_model}_driver.yaml`. The Raspberry Pi runs the next lower clock its even divider of the core clock can reach, and at start the driver logs the requested clock and the clock that divider gives at the default core clock.
+- `spi_max_transfer_bytes` [*int*, default: **0**]: Largest single SPI transfer in bytes. A longer frame is sent as several transfers of one message, so on a Raspberry Pi a value below 96 keeps the frame off DMA. **0** sends each frame as one transfer. `lights.launch.py` sets it from the `led_spi_max_transfer_bytes` launch argument.

@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <future>
 #include <memory>
 #include <string>
 #include <thread>
@@ -38,6 +39,26 @@ public:
   ~TestRoboteqDriver();
 
   void BootRoboteqDriver();
+
+  // Blocks an executor until Release() is called or the guard is destroyed, so a failed ASSERT
+  // does not leave the fixture teardown waiting on a blocked executor.
+  class ExecutorBlock
+  {
+  public:
+    explicit ExecutorBlock(lely::ev::Executor executor);
+    ~ExecutorBlock() { Release(); }
+    void Release();
+
+  private:
+    std::promise<void> release_;
+    bool released_ = false;
+  };
+
+  std::unique_ptr<ExecutorBlock> BlockMasterExecutor();
+  std::unique_ptr<ExecutorBlock> BlockDriverExecutor();
+
+  // Returns once every task posted to the master's executor before this call has run.
+  bool WaitForMasterExecutor();
 
 protected:
   bool TestBoot();
@@ -69,6 +90,9 @@ TestRoboteqDriver::TestRoboteqDriver()
 
 TestRoboteqDriver::~TestRoboteqDriver()
 {
+  // The same order as RoboteqRobotDriver::Deinitialize(): no posted task runs after the driver
+  // is gone.
+  canopen_manager_->StopCommunication();
   roboteq_driver_.reset();
   canopen_manager_->Deinitialize();
   mock_roboteq_->Stop();
@@ -87,6 +111,44 @@ void TestRoboteqDriver::BootRoboteqDriver()
   roboteq_driver_->AddMotorDriver(husarion_ugv_hardware_interfaces::MotorNames::RIGHT, motor_2);
   auto future = roboteq_driver_->Boot();
   future.wait();
+}
+
+TestRoboteqDriver::ExecutorBlock::ExecutorBlock(lely::ev::Executor executor)
+{
+  auto released = release_.get_future().share();
+  auto blocked = std::make_shared<std::promise<void>>();
+  auto blocked_future = blocked->get_future();
+  executor.post([released, blocked]() {
+    blocked->set_value();
+    released.wait();
+  });
+  blocked_future.wait();
+}
+
+void TestRoboteqDriver::ExecutorBlock::Release()
+{
+  if (!released_) {
+    released_ = true;
+    release_.set_value();
+  }
+}
+
+std::unique_ptr<TestRoboteqDriver::ExecutorBlock> TestRoboteqDriver::BlockMasterExecutor()
+{
+  return std::make_unique<ExecutorBlock>(canopen_manager_->GetMaster()->GetExecutor());
+}
+
+std::unique_ptr<TestRoboteqDriver::ExecutorBlock> TestRoboteqDriver::BlockDriverExecutor()
+{
+  return std::make_unique<ExecutorBlock>(roboteq_driver_->GetExecutor());
+}
+
+bool TestRoboteqDriver::WaitForMasterExecutor()
+{
+  auto done = std::make_shared<std::promise<void>>();
+  auto done_future = done->get_future();
+  canopen_manager_->GetMaster()->GetExecutor().post([done]() { done->set_value(); });
+  return done_future.wait_for(std::chrono::seconds(1)) == std::future_status::ready;
 }
 
 bool TestRoboteqDriver::TestBoot()
@@ -385,6 +447,54 @@ TEST_F(TestRoboteqDriver, WriteTimeout)
         ->TurnOnSafetyStop();
     },
     "SDO protocol timed out"));
+}
+
+TEST_F(TestRoboteqDriver, SDOWriteNotSentWhenMasterStopped)
+{
+  BootRoboteqDriver();
+  canopen_manager_->StopCommunication();
+
+  // Nothing runs the posted write, so the wait ends at the SDO timeout plus the margin.
+  const auto start = std::chrono::steady_clock::now();
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { roboteq_driver_->TurnOnEStop(); }, "SDO write not sent"));
+  EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(3));
+}
+
+TEST_F(TestRoboteqDriver, AbandonedSDOWriteIsNeverSent)
+{
+  BootRoboteqDriver();
+  // Count the writes, not the value: the blocked executor misses heartbeats, and the master then
+  // resets the slave, which clears the value.
+  const auto writes = mock_roboteq_->GetDriver()->CountWrites<std::uint8_t>(0x200D, 0);
+  roboteq_driver_->TurnOffEStop();
+  ASSERT_EQ(writes->load(), 1);
+
+  // The write waits behind a blocked executor past its deadline, then the executor runs again.
+  // A failed e_stop_reset must not release the motor controllers later.
+  auto block = BlockMasterExecutor();
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { roboteq_driver_->TurnOffEStop(); }, "SDO write not sent"));
+  block->Release();
+
+  // The dropped write was queued before this sentinel, so its turn has passed once it runs.
+  ASSERT_TRUE(WaitForMasterExecutor());
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  EXPECT_EQ(writes->load(), 1);
+}
+
+TEST_F(TestRoboteqDriver, UnconfirmedSDOWriteMayHaveReachedTheController)
+{
+  BootRoboteqDriver();
+  const auto writes = mock_roboteq_->GetDriver()->CountWrites<std::uint8_t>(0x200D, 0);
+
+  // The confirmation is delivered on the driver's own executor. With that one blocked, the write
+  // goes out but the caller never learns how it ended.
+  auto block = BlockDriverExecutor();
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { roboteq_driver_->TurnOffEStop(); }, "may have reached the controller"));
+  EXPECT_EQ(writes->load(), 1);
+  block->Release();
 }
 
 // OnCanError/OnHeartbeatTimeout isn't tested, because it reacts to lower-level CAN errors (CRC),

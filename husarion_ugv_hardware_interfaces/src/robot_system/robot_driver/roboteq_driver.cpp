@@ -16,7 +16,9 @@
 
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -101,6 +103,15 @@ RoboteqDriver::RoboteqDriver(
 {
 }
 
+std::weak_ptr<RoboteqDriver> RoboteqDriver::GetWeakSelf()
+{
+  auto weak_self = weak_from_this();
+  if (weak_self.expired()) {
+    throw std::runtime_error("RoboteqDriver must be owned by a std::shared_ptr.");
+  }
+  return weak_self;
+}
+
 std::future<void> RoboteqDriver::Boot()
 {
   std::lock_guard<std::mutex> lck(boot_mtx_);
@@ -161,7 +172,8 @@ void RoboteqDriver::TurnOnEStop()
 {
   try {
     SyncSDOWrite<std::uint8_t>(
-      RoboteqCANObjects::turn_on_e_stop.id, RoboteqCANObjects::turn_on_e_stop.subid, 1);
+      RoboteqCANObjects::turn_on_e_stop.id, RoboteqCANObjects::turn_on_e_stop.subid, 1,
+      SdoLateWrite::kKeepQueued);
   } catch (const std::runtime_error & e) {
     throw std::runtime_error("Error when trying to turn on E-stop: " + std::string(e.what()));
   }
@@ -199,35 +211,96 @@ std::shared_ptr<MotorDriverInterface> RoboteqDriver::GetMotorDriver(const MotorN
 
 template <typename T>
 void RoboteqDriver::SyncSDOWrite(
-  const std::uint16_t index, const std::uint8_t subindex, const T data)
+  const std::uint16_t index, const std::uint8_t subindex, const T data,
+  const SdoLateWrite late_write)
 {
-  std::mutex mtx;
-  std::condition_variable cv;
-  std::error_code err_code;
+  // Shared with the posted task and the confirmation, which can outlive this call.
+  struct WaitState
+  {
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::error_code err_code;
+    std::string err_msg;
+    bool submitted = false;
+    bool done = false;
+    bool abandoned = false;
+  };
+  auto state = std::make_shared<WaitState>();
 
-  try {
-    SubmitWrite(
-      index, subindex, data,
-      [&mtx, &cv, &err_code](
-        std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) mutable {
-        {
-          std::lock_guard<std::mutex> lck_g(mtx);
-          if (ec) {
-            err_code = ec;
+  // The write runs on the master's executor, so a caller that gives up before it ran can still
+  // drop it, depending on late_write. The task holds a weak pointer, so a task left in the queue
+  // never reaches a destroyed driver. Never call this from the master's executor or a driver loop,
+  // it would wait on its own queue.
+  master.GetExecutor().post([weak_self = GetWeakSelf(), state, index, subindex, data]() {
+    // The master co-owns the driver while this runs. The drivers must only be dropped with the
+    // master loop stopped, or ~LoopDriver could run on the master's own executor.
+    auto self = weak_self.lock();
+    if (!self) {
+      return;
+    }
+    {
+      std::lock_guard<std::mutex> lck_g(state->mtx);
+      if (state->abandoned) {
+        return;
+      }
+      state->submitted = true;
+    }
+
+    try {
+      self->SubmitWrite(
+        index, subindex, data,
+        [state](std::uint8_t, std::uint16_t, std::uint8_t, std::error_code ec) {
+          {
+            std::lock_guard<std::mutex> lck_g(state->mtx);
+            if (ec) {
+              state->err_code = ec;
+            }
+            state->done = true;
           }
-        }
-        cv.notify_one();
-      },
-      sdo_operation_timeout_ms_);
-  } catch (const lely::canopen::SdoError & e) {
-    throw std::runtime_error("SDO write error, message: " + std::string(e.what()));
+          state->cv.notify_one();
+        },
+        self->sdo_operation_timeout_ms_);
+    } catch (const lely::canopen::SdoError & e) {
+      {
+        std::lock_guard<std::mutex> lck_g(state->mtx);
+        state->err_code = e.code();
+        state->err_msg = e.what();
+        state->done = true;
+      }
+      state->cv.notify_one();
+    } catch (const std::exception & e) {
+      {
+        std::lock_guard<std::mutex> lck_g(state->mtx);
+        state->err_code = std::make_error_code(std::errc::io_error);
+        state->err_msg = e.what();
+        state->done = true;
+      }
+      state->cv.notify_one();
+    }
+  });
+
+  // The predicate covers a confirmation that arrives before this thread starts waiting.
+  std::unique_lock<std::mutex> lck(state->mtx);
+  if (!state->cv.wait_for(
+        lck, sdo_operation_timeout_ms_ + kSdoConfirmationTimeoutMargin,
+        [&state]() { return state->done; })) {
+    if (state->submitted) {
+      throw std::runtime_error(
+        "SDO write submitted but not confirmed in time, it may have reached the controller.");
+    }
+    if (late_write == SdoLateWrite::kKeepQueued) {
+      throw std::runtime_error(
+        "SDO write not sent in time: the CANopen master did not run it yet, it may still be "
+        "sent.");
+    }
+    state->abandoned = true;
+    throw std::runtime_error("SDO write not sent: the CANopen master did not run it in time.");
   }
 
-  std::unique_lock<std::mutex> lck(mtx);
-  cv.wait(lck);
-
-  if (err_code) {
-    throw std::runtime_error("Error msg: " + err_code.message());
+  if (state->err_code) {
+    throw std::runtime_error(
+      "SDO write error, message: " +
+      (state->err_msg.empty() ? state->err_code.message() : state->err_msg));
   }
 }
 

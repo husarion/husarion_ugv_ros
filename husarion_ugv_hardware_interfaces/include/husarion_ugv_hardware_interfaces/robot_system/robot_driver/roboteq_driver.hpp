@@ -37,9 +37,22 @@ class RoboteqMotorDriver;
  * @brief Hardware implementation of Driver with lely LoopDriver for Roboteq drivers
  * control
  */
-class RoboteqDriver : public DriverInterface, public lely::canopen::LoopDriver
+// What SyncSDOWrite does with a write the master has not run when the caller stops waiting.
+enum class SdoLateWrite {
+  // Dropped: a release that goes out after the caller reported a failure must never happen.
+  kDrop,
+  // Sent when the master runs it: a latch that goes out late is still what the caller wanted.
+  kKeepQueued,
+};
+
+class RoboteqDriver : public DriverInterface,
+                      public lely::canopen::LoopDriver,
+                      public std::enable_shared_from_this<RoboteqDriver>
 {
 public:
+  /**
+   * @brief Must be owned by a std::shared_ptr: SDO writes and velocity commands throw otherwise.
+   */
   RoboteqDriver(
     const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
     const std::chrono::milliseconds & sdo_operation_timeout_ms);
@@ -97,12 +110,16 @@ public:
   std::shared_ptr<MotorDriverInterface> GetMotorDriver(const MotorNames name) override;
 
   /**
-   * @brief Blocking SDO write operation
+   * @brief Blocking SDO write operation. The write is submitted on the CANopen master's executor
+   * and the wait is bounded by the SDO timeout plus kSdoConfirmationTimeoutMargin.
    *
-   * @exception std::runtime_error if operation fails
+   * @param late_write what happens to a write the master has not run when the wait ends.
+   * @exception std::runtime_error if operation fails or no confirmation arrives in time
    */
   template <typename T>
-  void SyncSDOWrite(const std::uint16_t index, const std::uint8_t subindex, const T data);
+  void SyncSDOWrite(
+    const std::uint16_t index, const std::uint8_t subindex, const T data,
+    const SdoLateWrite late_write = SdoLateWrite::kDrop);
 
   /**
    * @brief Returns the last timestamp of the position data for the given channel
@@ -126,6 +143,10 @@ public:
   static constexpr std::uint8_t kChannel2 = 2;
 
 private:
+  // Tasks posted to the master's executor hold this, not a raw pointer, so a task that runs or is
+  // dropped after the driver is gone does nothing.
+  std::weak_ptr<RoboteqDriver> GetWeakSelf();
+
   void OnBoot(
     const lely::canopen::NmtState st, const char es, const std::string & what) noexcept override;
   void OnRpdoWrite(const std::uint16_t idx, const std::uint8_t subidx) noexcept override;
@@ -156,6 +177,11 @@ private:
   timespec last_voltages_temps_timestamp_;
 
   const std::chrono::milliseconds sdo_operation_timeout_ms_;
+
+  // Added to the SDO timeout when waiting for a write confirmation. lely confirms or times out
+  // within sdo_operation_timeout_ms_, so the margin only matters when the master is not running or
+  // is starved for longer than the margin, which then also reports the write as not sent.
+  static constexpr std::chrono::milliseconds kSdoConfirmationTimeoutMargin{1000};
 
   std::unordered_map<MotorNames, std::shared_ptr<MotorDriverInterface>> motor_drivers_;
 };

@@ -71,6 +71,9 @@ void RoboteqRobotDriver::Initialize()
 
 void RoboteqRobotDriver::Deinitialize()
 {
+  // Tasks posted to the master's executor point at the drivers, so the loop stops first. The
+  // drivers still deregister from the master, which goes last.
+  canopen_manager_.StopCommunication();
   drivers_.clear();
   data_.clear();
   canopen_manager_.Deinitialize();

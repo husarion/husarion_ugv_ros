@@ -19,6 +19,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <thread>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -216,6 +217,21 @@ public:
         usleep(wait_time_microseconds);
         return std::error_code();
       });
+  }
+
+  /**
+   * @brief Counts SDO downloads to the given CANopen object. Unlike the object's value, the count
+   * survives a node reset by the master.
+   */
+  template <typename T>
+  std::shared_ptr<std::atomic_int> CountWrites(const std::uint16_t idx, const std::uint8_t subidx)
+  {
+    auto count = std::make_shared<std::atomic_int>(0);
+    OnWrite<T>(idx, subidx, [count](std::uint16_t, std::uint8_t, T &, T) -> std::error_code {
+      ++(*count);
+      return std::error_code();
+    });
+    return count;
   }
 
   /**

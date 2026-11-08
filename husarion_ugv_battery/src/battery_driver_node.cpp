@@ -69,6 +69,11 @@ void BatteryDriverNode::Initialize()
                             << e.what()
                             << " Falling back to using Roboteq drivers to publish battery data.");
   }
+  if (params_.adc.dual_charge_shunt) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "adc.dual_charge_shunt is set, but Roboteq battery data is used. Ignoring it.");
+  }
   InitializeWithRoboteqBattery();
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
@@ -98,6 +103,11 @@ void BatteryDriverNode::InitializeWithADCBattery()
     std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 2, 0), battery_params);
 
   if (battery_2_->Present()) {
+    if (params_.adc.dual_charge_shunt) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "adc.dual_charge_shunt is set, but the robot has two batteries. Ignoring it.");
+    }
     battery_1_ = std::make_shared<ADCBattery>(
       std::bind(&ADCDataReader::GetADCMeasurement, *adc1_reader_, 0, 0),
       std::bind(&ADCDataReader::GetADCMeasurement, *adc1_reader_, 2, kADCCurrentOffset),
@@ -108,14 +118,24 @@ void BatteryDriverNode::InitializeWithADCBattery()
       battery_2_);
   } else {
     battery_2_.reset();
+
+    std::function<float()> read_charge = std::bind(
+      &ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0);
+    if (params_.adc.dual_charge_shunt) {
+      // With two charge shunts in parallel each channel carries part of the charge current.
+      read_charge = [this]() {
+        return adc0_reader_->GetADCMeasurement(3, 0) + adc0_reader_->GetADCMeasurement(2, 0);
+      };
+    }
+
     battery_1_ = std::make_shared<ADCBattery>(
       std::bind(&ADCDataReader::GetADCMeasurement, *adc1_reader_, 0, 0),
       [&]() {
         return adc1_reader_->GetADCMeasurement(2, kADCCurrentOffset) +
                adc1_reader_->GetADCMeasurement(1, kADCCurrentOffset);
       },
-      std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
-      std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
+      std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0), read_charge,
+      battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
   }

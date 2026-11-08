@@ -40,7 +40,9 @@ using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 class TestBatteryNode : public testing::Test
 {
 public:
-  TestBatteryNode(const bool use_adc_battery = true, const bool dual_battery = false);
+  TestBatteryNode(
+    const bool use_adc_battery = true, const bool dual_battery = false,
+    const bool dual_charge_shunt = false);
   ~TestBatteryNode();
 
 protected:
@@ -63,9 +65,11 @@ protected:
   rclcpp::Publisher<RobotDriverStateMsg>::SharedPtr driver_state_pub_;
 };
 
-TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_battery)
+TestBatteryNode::TestBatteryNode(
+  const bool use_adc_battery, const bool dual_battery, const bool dual_charge_shunt)
 {
   std::vector<rclcpp::Parameter> params;
+  params.push_back(rclcpp::Parameter("adc.dual_charge_shunt", dual_charge_shunt));
   // The timeout tests wait for 1 s, not for the 2 s default.
   params.push_back(rclcpp::Parameter("battery_timeout", 1.0));
 

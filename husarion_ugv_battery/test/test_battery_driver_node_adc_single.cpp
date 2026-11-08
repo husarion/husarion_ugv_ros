@@ -54,6 +54,25 @@ TEST_F(TestBatteryNodeADCSingle, BatteryValues)
   EXPECT_FLOAT_EQ(battery_1_state_->charge, battery_state_->charge);
 }
 
+class TestBatteryNodeADCSingleDualShunt : public TestBatteryNode
+{
+public:
+  TestBatteryNodeADCSingleDualShunt() : TestBatteryNode(true, false, true) {}
+};
+
+TEST_F(TestBatteryNodeADCSingleDualShunt, ChargeCurrentIsSumOfBothChannels)
+{
+  // With dual_charge_shunt the second charge channel (0.5 A) adds to the first (0.01 A).
+  WriteNumberToFile<int>(100, std::filesystem::path(device0_path_ / "in_voltage2_raw"));
+
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_state_, std::chrono::milliseconds(5000)));
+  ASSERT_TRUE(battery_1_state_);
+
+  EXPECT_FLOAT_EQ(2.51, battery_state_->current);
+  EXPECT_FLOAT_EQ(battery_state_->current, battery_1_state_->current);
+}
+
 TEST_F(TestBatteryNodeADCSingle, BatteryTimeout)
 {
   ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(

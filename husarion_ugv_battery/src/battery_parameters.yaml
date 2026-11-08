@@ -12,6 +12,12 @@ battery:
       description: "Internal ADC1 IIO device."
       validation: { not_empty<> }
 
+    dual_charge_shunt:
+      type: bool
+      default_value: false
+      read_only: true
+      description: "Single battery only: read the charge current as the sum of both charge channels, for a Lynx with two charge shunts in parallel."
+
     ma_window_len:
       charge:
         type: int

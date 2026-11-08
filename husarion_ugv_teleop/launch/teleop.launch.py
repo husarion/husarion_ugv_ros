@@ -24,6 +24,7 @@ from launch.substitutions import (
     PathJoinSubstitution,
     PythonExpression,
 )
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -74,16 +75,16 @@ def generate_launch_description():
     declare_joy_dev = DeclareLaunchArgument(
         "joy_dev",
         default_value="/dev/input/js0",
-        description="Path to the joystick device file used by the joy_linux node",
+        description="Path to the joystick device file used by the joy node",
     )
 
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
 
-    gamepad_launch = IncludeLaunchDescription(
+    # joy2twist's gamepad_controller.launch.py starts the stock joy_linux_node, so include
+    # joy2twist.launch.py and start our joy node next to it, as gamepad_controller.launch.py does.
+    joy2twist_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("joy2twist"), "launch", "gamepad_controller.launch.py"]
-            )
+            PathJoinSubstitution([FindPackageShare("joy2twist"), "launch", "joy2twist.launch.py"])
         ),
         launch_arguments={
             "log_level": log_level,
@@ -95,8 +96,18 @@ def generate_launch_description():
                     PythonExpression(["'joy2twist_", robot_model_name, ".yaml'"]),
                 ]
             ),
-            "joy_dev": joy_dev,
         }.items(),
+        condition=IfCondition(launch_gamepad),
+    )
+
+    joy_node = Node(
+        package="husarion_ugv_teleop",
+        executable="resilient_joy_linux_node",
+        name="joy_node",
+        emulate_tty=True,
+        namespace=namespace,
+        parameters=[{"dev": joy_dev}],
+        remappings=[("/diagnostics", "diagnostics")],
         condition=IfCondition(launch_gamepad),
     )
 
@@ -106,7 +117,8 @@ def generate_launch_description():
         declare_launch_gamepad_arg,
         declare_common_dir_path_arg,
         declare_joy_dev,
-        gamepad_launch,
+        joy2twist_launch,
+        joy_node,
     ]
 
     return LaunchDescription(actions)

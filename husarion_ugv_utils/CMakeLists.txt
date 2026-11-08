@@ -44,6 +44,13 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
 
+  ament_add_gtest(${PROJECT_NAME}_test_shutdown_signal_watcher
+                  test/test_shutdown_signal_watcher.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_shutdown_signal_watcher
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+
   ament_add_gtest(${PROJECT_NAME}_test_test_utils test/test_test_utils.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_test_utils

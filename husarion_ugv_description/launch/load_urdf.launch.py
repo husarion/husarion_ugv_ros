@@ -82,6 +82,83 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    configure_thread_priority = LaunchConfiguration("configure_thread_priority")
+    declare_configure_thread_priority_arg = DeclareLaunchArgument(
+        "configure_thread_priority",
+        default_value="0",
+        description=(
+            "SCHED_FIFO priority of the thread that configures the hardware. Threads it creates"
+            " afterwards inherit it. 0 leaves it unchanged, so only the four RT threads run RT"
+        ),
+    )
+
+    canopen_thread_priority = LaunchConfiguration("canopen_thread_priority")
+    declare_canopen_thread_priority_arg = DeclareLaunchArgument(
+        "canopen_thread_priority",
+        default_value="70",
+        description=(
+            "SCHED_FIFO priority of the CANopen communication thread, 1-98. Keep it above the"
+            " control loop"
+        ),
+    )
+
+    rpdo_dispatch_priority = LaunchConfiguration("rpdo_dispatch_priority")
+    declare_rpdo_dispatch_priority_arg = DeclareLaunchArgument(
+        "rpdo_dispatch_priority",
+        default_value="65",
+        description=(
+            "SCHED_FIFO priority of the RPDO dispatch threads. 0 sets none, so they keep the"
+            " priority they inherit"
+        ),
+    )
+
+    gpio_watchdog_priority = LaunchConfiguration("gpio_watchdog_priority")
+    declare_gpio_watchdog_priority_arg = DeclareLaunchArgument(
+        "gpio_watchdog_priority",
+        default_value="60",
+        description=(
+            "SCHED_FIFO priority of the safety watchdog thread, 1-98. Keep it above the control loop"
+        ),
+    )
+
+    gpio_monitor_priority = LaunchConfiguration("gpio_monitor_priority")
+    declare_gpio_monitor_priority_arg = DeclareLaunchArgument(
+        "gpio_monitor_priority",
+        default_value="60",
+        description=(
+            "SCHED_FIFO priority of the GPIO monitor thread. 0 sets none, so it keeps the priority"
+            " it inherits"
+        ),
+    )
+
+    canopen_thread_cpu = LaunchConfiguration("canopen_thread_cpu")
+    declare_canopen_thread_cpu_arg = DeclareLaunchArgument(
+        "canopen_thread_cpu",
+        default_value="-1",
+        description="CPU the CANopen communication thread pins itself to. -1 leaves it unpinned",
+    )
+
+    rpdo_dispatch_cpu = LaunchConfiguration("rpdo_dispatch_cpu")
+    declare_rpdo_dispatch_cpu_arg = DeclareLaunchArgument(
+        "rpdo_dispatch_cpu",
+        default_value="-1",
+        description="CPU the RPDO dispatch threads pin themselves to. -1 leaves them unpinned",
+    )
+
+    gpio_watchdog_cpu = LaunchConfiguration("gpio_watchdog_cpu")
+    declare_gpio_watchdog_cpu_arg = DeclareLaunchArgument(
+        "gpio_watchdog_cpu",
+        default_value="-1",
+        description="CPU the safety watchdog thread pins itself to. -1 leaves it unpinned",
+    )
+
+    gpio_monitor_cpu = LaunchConfiguration("gpio_monitor_cpu")
+    declare_gpio_monitor_cpu_arg = DeclareLaunchArgument(
+        "gpio_monitor_cpu",
+        default_value="-1",
+        description="CPU the GPIO monitor thread pins itself to. -1 leaves it unpinned",
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -204,6 +281,24 @@ def generate_launch_description():
             components_config_path,
             " use_madgwick_filter:=",
             use_madgwick_filter,
+            " configure_thread_priority:=",
+            configure_thread_priority,
+            " canopen_thread_priority:=",
+            canopen_thread_priority,
+            " rpdo_dispatch_priority:=",
+            rpdo_dispatch_priority,
+            " gpio_watchdog_priority:=",
+            gpio_watchdog_priority,
+            " gpio_monitor_priority:=",
+            gpio_monitor_priority,
+            " canopen_thread_cpu:=",
+            canopen_thread_cpu,
+            " rpdo_dispatch_cpu:=",
+            rpdo_dispatch_cpu,
+            " gpio_watchdog_cpu:=",
+            gpio_watchdog_cpu,
+            " gpio_monitor_cpu:=",
+            gpio_monitor_cpu,
         ]
     )
 
@@ -225,6 +320,15 @@ def generate_launch_description():
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_configure_thread_priority_arg,
+        declare_canopen_thread_priority_arg,
+        declare_rpdo_dispatch_priority_arg,
+        declare_gpio_watchdog_priority_arg,
+        declare_gpio_monitor_priority_arg,
+        declare_canopen_thread_cpu_arg,
+        declare_rpdo_dispatch_cpu_arg,
+        declare_gpio_watchdog_cpu_arg,
+        declare_gpio_monitor_cpu_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

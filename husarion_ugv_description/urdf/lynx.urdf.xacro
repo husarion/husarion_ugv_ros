@@ -12,6 +12,15 @@
     default="" />
   <xacro:arg name="namespace" default="" />
   <xacro:arg name="use_madgwick_filter" default="false" />
+  <xacro:arg name="configure_thread_priority" default="0" />
+  <xacro:arg name="canopen_thread_priority" default="70" />
+  <xacro:arg name="rpdo_dispatch_priority" default="65" />
+  <xacro:arg name="gpio_watchdog_priority" default="60" />
+  <xacro:arg name="gpio_monitor_priority" default="60" />
+  <xacro:arg name="canopen_thread_cpu" default="-1" />
+  <xacro:arg name="rpdo_dispatch_cpu" default="-1" />
+  <xacro:arg name="gpio_watchdog_cpu" default="-1" />
+  <xacro:arg name="gpio_monitor_cpu" default="-1" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/lynx/lynx_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.lynx_robot
@@ -22,7 +31,16 @@
     controller_config_file="$(arg controller_config_file)"
     battery_config_file="$(arg battery_config_file)"
     namespace="$(arg namespace)"
-    use_madgwick_filter="$(arg use_madgwick_filter)" />
+    use_madgwick_filter="$(arg use_madgwick_filter)"
+    configure_thread_priority="$(arg configure_thread_priority)"
+    canopen_thread_priority="$(arg canopen_thread_priority)"
+    rpdo_dispatch_priority="$(arg rpdo_dispatch_priority)"
+    gpio_watchdog_priority="$(arg gpio_watchdog_priority)"
+    gpio_monitor_priority="$(arg gpio_monitor_priority)"
+    canopen_thread_cpu="$(arg canopen_thread_cpu)"
+    rpdo_dispatch_cpu="$(arg rpdo_dispatch_cpu)"
+    gpio_watchdog_cpu="$(arg gpio_watchdog_cpu)"
+    gpio_monitor_cpu="$(arg gpio_monitor_cpu)" />
 
   <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />

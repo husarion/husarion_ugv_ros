@@ -12,8 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <functional>
+#include <future>
+#include <mutex>
+#include <set>
+#include <thread>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -29,7 +37,9 @@ class MockGPIODriver : public husarion_ugv_hardware_interfaces::GPIODriverInterf
 {
 public:
   MOCK_METHOD(
-    void, GPIOMonitorEnable, (const bool use_rt, const unsigned gpio_monit_thread_sched_priority),
+    void, GPIOMonitorEnable,
+    (const bool use_rt, const unsigned gpio_monit_thread_sched_priority,
+     const int gpio_monit_thread_cpu),
     (override));
   MOCK_METHOD(void, GPIOMonitorDisable, (), (override));
   MOCK_METHOD(
@@ -86,6 +96,10 @@ TestGPIOController::TestGPIOController()
   ON_CALL(*gpio_driver_, SetPinValue(GPIOPin::DRIVER_EN, true, testing::_))
     .WillByDefault(testing::Return(true));
   ON_CALL(*gpio_driver_, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  // The watchdog thread reads its pin as soon as a test turns it on, also while that test expects
+  // IsPinActive() for another pin, so reads are always allowed. A test's own expectations, set
+  // later, take precedence.
+  EXPECT_CALL(*gpio_driver_, IsPinActive(testing::_)).Times(testing::AnyNumber());
 
   gpio_controller_wrapper_ = std::make_unique<GPIOControllerWrapper>(gpio_driver_);
   gpio_controller_wrapper_->Start();
@@ -185,6 +199,24 @@ TEST_F(TestGPIOController, StopTurnsOffWatchdogAndMonitor)
   gpio_controller_wrapper_->Stop();
 
   EXPECT_FALSE(gpio_controller_wrapper_->IsWatchdogEnabled());
+
+  // For the rest of the teardown, a reset still in flight cannot release the e-stop.
+  ON_CALL(*gpio_driver_, IsPinActive(GPIOPin::E_STOP_RESET)).WillByDefault(testing::Return(false));
+  EXPECT_CALL(*gpio_driver_, SetPinValue(GPIOPin::E_STOP_RESET, testing::_, testing::_)).Times(0);
+  EXPECT_THROW(gpio_controller_wrapper_->EStopReset(), std::runtime_error);
+  EXPECT_FALSE(gpio_controller_wrapper_->IsWatchdogEnabled());
+}
+
+TEST(TestGPIOControllerInitialization, StartForwardsThreadSettings)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  ON_CALL(*gpio_driver, SetPinValue(testing::_, testing::_, testing::_))
+    .WillByDefault(testing::Return(true));
+
+  EXPECT_CALL(*gpio_driver, GPIOMonitorEnable(true, 55u, 2)).Times(1);
+  husarion_ugv_hardware_interfaces::GPIOController gpio_controller(gpio_driver, 70, 55, 1, 2);
+  gpio_controller.Start();
 }
 
 TEST_F(TestGPIOController, TestQueryControlInterfaceIOStates)
@@ -201,6 +233,300 @@ TEST_F(TestGPIOController, TestQueryControlInterfaceIOStates)
   for (const auto & [pin, state] : io_states) {
     EXPECT_TRUE(state);
   }
+}
+
+// Records every write to the watchdog pin: how many, the last value and which threads wrote.
+class WatchdogPinRecorder
+{
+public:
+  explicit WatchdogPinRecorder(MockGPIODriver & gpio_driver)
+  {
+    ON_CALL(gpio_driver, SetPinValue(GPIOPin::WATCHDOG, testing::_, testing::_))
+      .WillByDefault([this](const GPIOPin, const bool value, const std::chrono::milliseconds &) {
+        std::lock_guard<std::mutex> lck(mtx_);
+        ++writes_;
+        last_value_ = value;
+        writer_threads_.insert(std::this_thread::get_id());
+        return true;
+      });
+  }
+
+  int Writes()
+  {
+    std::lock_guard<std::mutex> lck(mtx_);
+    return writes_;
+  }
+
+  bool LastValue()
+  {
+    std::lock_guard<std::mutex> lck(mtx_);
+    return last_value_;
+  }
+
+  std::set<std::thread::id> WriterThreads()
+  {
+    std::lock_guard<std::mutex> lck(mtx_);
+    return writer_threads_;
+  }
+
+private:
+  std::mutex mtx_;
+  int writes_ = 0;
+  bool last_value_ = false;
+  std::set<std::thread::id> writer_threads_;
+};
+
+TEST_F(TestGPIOController, WatchdogKeepsOneThreadAcrossTurnOnTurnOff)
+{
+  WatchdogPinRecorder recorder(*gpio_driver_);
+
+  for (int cycle = 0; cycle < 3; ++cycle) {
+    const int writes_before = recorder.Writes();
+    gpio_controller_wrapper_->WatchdogEnable();
+    EXPECT_TRUE(gpio_controller_wrapper_->IsWatchdogEnabled());
+
+    // 10 ms period, so about ten toggles in 100 ms - allow a slow test machine.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_GE(recorder.Writes() - writes_before, watchdog_edges_per_100ms_ / 2);
+
+    gpio_controller_wrapper_->WatchdogDisable();
+    EXPECT_FALSE(gpio_controller_wrapper_->IsWatchdogEnabled());
+
+    // Off means stopped and low by the time TurnOff returns, not some time later.
+    const int writes_after_off = recorder.Writes();
+    EXPECT_FALSE(recorder.LastValue());
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT_EQ(recorder.Writes(), writes_after_off);
+  }
+
+  // Only the watchdog thread writes the pin, TurnOff waits for it.
+  auto writers = recorder.WriterThreads();
+  writers.erase(std::this_thread::get_id());
+  EXPECT_EQ(writers.size(), 1u);
+}
+
+TEST(TestWatchdog, TurnOffWhenOffAndTurnOnWhenOn)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+  EXPECT_FALSE(watchdog.IsWatchdogEnabled());
+  EXPECT_TRUE(watchdog.TurnOff());
+  EXPECT_EQ(recorder.Writes(), 0);
+
+  EXPECT_TRUE(watchdog.TurnOn());
+  EXPECT_TRUE(watchdog.TurnOn());
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  EXPECT_TRUE(watchdog.TurnOff());
+  EXPECT_FALSE(recorder.LastValue());
+}
+
+TEST(TestWatchdog, TurnOffDoesNotWaitOutThePeriod)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+
+  // With an hour between edges, a heartbeat that slept out its period would hold TurnOff for an
+  // hour. Waiting on the condition, it is woken at once.
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(
+    gpio_driver, husarion_ugv_hardware_interfaces::Watchdog::kWatchdogSchedPriority, -1,
+    std::chrono::hours(1));
+  watchdog.TurnOn();
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+  while (recorder.Writes() == 0 && std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::yield();
+  }
+  ASSERT_EQ(recorder.Writes(), 1);
+
+  auto turn_off = std::async(std::launch::async, [&]() { return watchdog.TurnOff(); });
+  ASSERT_EQ(turn_off.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+  EXPECT_TRUE(turn_off.get());
+  EXPECT_FALSE(recorder.LastValue());
+}
+
+TEST(TestWatchdog, TurnOffWaitsForTheHeartbeat)
+{
+  // A trigger must not return while the heartbeat can still raise the pin, so TurnOff waits for
+  // a heartbeat that is held off, as the join did.
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool heartbeat_blocked = false;
+  bool release = false;
+  bool last_value = true;
+  int writes = 0;
+  ON_CALL(*gpio_driver, SetPinValue(GPIOPin::WATCHDOG, testing::_, testing::_))
+    .WillByDefault([&](const GPIOPin, const bool value, const std::chrono::milliseconds &) {
+      std::unique_lock<std::mutex> lck(mtx);
+      if (!release) {
+        heartbeat_blocked = true;
+        cv.notify_all();
+        cv.wait(lck, [&]() { return release; });
+      }
+      last_value = value;
+      ++writes;
+      return true;
+    });
+
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+  watchdog.TurnOn();
+  {
+    std::unique_lock<std::mutex> lck(mtx);
+    ASSERT_TRUE(cv.wait_for(lck, std::chrono::seconds(1), [&]() { return heartbeat_blocked; }));
+  }
+
+  auto turn_off = std::async(std::launch::async, [&]() { return watchdog.TurnOff(); });
+  EXPECT_EQ(turn_off.wait_for(std::chrono::milliseconds(50)), std::future_status::timeout);
+  {
+    std::lock_guard<std::mutex> lck(mtx);
+    release = true;
+  }
+  cv.notify_all();
+
+  ASSERT_EQ(turn_off.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+  EXPECT_TRUE(turn_off.get());
+  std::lock_guard<std::mutex> lck(mtx);
+  EXPECT_FALSE(last_value);
+  // The blocked toggle and the final low write, nothing after TurnOff returned.
+  EXPECT_EQ(writes, 2);
+}
+
+TEST(TestWatchdog, CloseRefusesTurnOnForGood)
+{
+  // GPIOController::Stop() closes the watchdog without the e-stop mutex, so a reset still in
+  // flight can call TurnOn while Close waits for the heartbeat. It must not start it again.
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+
+  std::mutex mtx;
+  std::condition_variable cv;
+  bool heartbeat_blocked = false;
+  bool release = false;
+  bool last_value = true;
+  ON_CALL(*gpio_driver, SetPinValue(GPIOPin::WATCHDOG, testing::_, testing::_))
+    .WillByDefault([&](const GPIOPin, const bool value, const std::chrono::milliseconds &) {
+      std::unique_lock<std::mutex> lck(mtx);
+      if (!release) {
+        heartbeat_blocked = true;
+        cv.notify_all();
+        cv.wait(lck, [&]() { return release; });
+      }
+      last_value = value;
+      return true;
+    });
+
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+  watchdog.TurnOn();
+  {
+    std::unique_lock<std::mutex> lck(mtx);
+    ASSERT_TRUE(cv.wait_for(lck, std::chrono::seconds(1), [&]() { return heartbeat_blocked; }));
+  }
+
+  auto close = std::async(std::launch::async, [&]() { watchdog.Close(); });
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+  while (watchdog.IsWatchdogEnabled() && std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::yield();
+  }
+  EXPECT_FALSE(watchdog.TurnOn());
+  EXPECT_EQ(close.wait_for(std::chrono::milliseconds(50)), std::future_status::timeout);
+  {
+    std::lock_guard<std::mutex> lck(mtx);
+    release = true;
+  }
+  cv.notify_all();
+
+  ASSERT_EQ(close.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+  EXPECT_FALSE(watchdog.TurnOn());
+  EXPECT_FALSE(watchdog.IsWatchdogEnabled());
+  std::lock_guard<std::mutex> lck(mtx);
+  EXPECT_FALSE(last_value);
+}
+
+TEST(TestWatchdog, RapidTurnOffTurnOnLeavesThePinLow)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+  husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+
+  for (int i = 0; i < 300; ++i) {
+    EXPECT_TRUE(watchdog.TurnOn());
+    EXPECT_TRUE(watchdog.TurnOff());
+    EXPECT_FALSE(recorder.LastValue()) << "iteration " << i;
+  }
+  // Nothing writes the pin once TurnOff returned.
+  const int writes = recorder.Writes();
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  EXPECT_EQ(recorder.Writes(), writes);
+  auto writers = recorder.WriterThreads();
+  writers.erase(std::this_thread::get_id());
+  EXPECT_LE(writers.size(), 1u);
+}
+
+TEST(TestWatchdog, CloseWhileOffAndDestroy)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+  {
+    husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+    watchdog.Close();
+    EXPECT_FALSE(watchdog.TurnOn());
+    EXPECT_FALSE(watchdog.IsWatchdogEnabled());
+  }
+  EXPECT_EQ(recorder.Writes(), 0);
+}
+
+TEST(TestWatchdog, CloseWhileOnAndDestroy)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+  {
+    husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+    watchdog.TurnOn();
+    watchdog.Close();
+    EXPECT_FALSE(recorder.LastValue());
+  }
+  EXPECT_FALSE(recorder.LastValue());
+}
+
+TEST(TestWatchdog, DestructionJoinsWhileOn)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+
+  {
+    husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+    watchdog.TurnOn();
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  }
+
+  // The thread is gone and left the pin low.
+  const int writes = recorder.Writes();
+  EXPECT_GT(writes, 0);
+  EXPECT_FALSE(recorder.LastValue());
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  EXPECT_EQ(recorder.Writes(), writes);
+}
+
+TEST(TestWatchdog, DestructionJoinsWhileParked)
+{
+  auto gpio_driver = std::make_shared<MockGPIODriver::NiceMock>();
+  ON_CALL(*gpio_driver, IsPinAvailable(GPIOPin::WATCHDOG)).WillByDefault(testing::Return(true));
+  WatchdogPinRecorder recorder(*gpio_driver);
+
+  {
+    husarion_ugv_hardware_interfaces::Watchdog watchdog(gpio_driver);
+  }
+
+  EXPECT_EQ(recorder.Writes(), 0);
 }
 
 int main(int argc, char ** argv)

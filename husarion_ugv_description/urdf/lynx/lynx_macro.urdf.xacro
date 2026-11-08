@@ -10,7 +10,16 @@
             imu_xyz:='0.052 0.073 -0.006'
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''
-            use_madgwick_filter:=false">
+            use_madgwick_filter:=false
+            configure_thread_priority:=0
+            canopen_thread_priority:=70
+            rpdo_dispatch_priority:=65
+            gpio_watchdog_priority:=60
+            gpio_monitor_priority:=60
+            canopen_thread_cpu:=-1
+            rpdo_dispatch_cpu:=-1
+            gpio_watchdog_cpu:=-1
+            gpio_monitor_cpu:=-1">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="0.052 0.073 -0.006" />
@@ -100,6 +109,19 @@
           <param name="max_write_pdo_cmds_errors_count">2</param>
           <param name="max_read_pdo_motor_states_errors_count">2</param>
           <param name="max_read_pdo_driver_state_errors_count">2</param>
+
+          <!-- SCHED_FIFO priorities of the driver's real-time threads, 1-98. Which ones accept 0
+            is in the hardware interfaces README -->
+          <param name="configure_thread_priority">${configure_thread_priority}</param>
+          <param name="canopen_thread_priority">${canopen_thread_priority}</param>
+          <param name="rpdo_dispatch_priority">${rpdo_dispatch_priority}</param>
+          <param name="gpio_watchdog_priority">${gpio_watchdog_priority}</param>
+          <param name="gpio_monitor_priority">${gpio_monitor_priority}</param>
+          <!-- CPUs the same threads pin themselves to, -1 to not pin -->
+          <param name="canopen_thread_cpu">${canopen_thread_cpu}</param>
+          <param name="rpdo_dispatch_cpu">${rpdo_dispatch_cpu}</param>
+          <param name="gpio_watchdog_cpu">${gpio_watchdog_cpu}</param>
+          <param name="gpio_monitor_cpu">${gpio_monitor_cpu}</param>
         </xacro:unless>
       </hardware>
 

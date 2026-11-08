@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/ugv_system.hpp"
 
+#include <sys/sysinfo.h>
+
 #include <array>
 #include <chrono>
 #include <functional>
@@ -56,6 +58,7 @@ CallbackReturn UGVSystem::on_init(const hardware_interface::HardwareInfo & hardw
   try {
     ReadDrivetrainSettings();
     ReadCANopenSettings();
+    ReadRTThreadPriorities();
     ReadInitializationActivationAttempts();
     ReadParametersAndCreateRoboteqErrorFilter();
     ReadDriverStatesUpdateFrequency();
@@ -401,6 +404,70 @@ void UGVSystem::ReadCANopenSettings()
   ReadCANopenSettingsDriverCANIDs();
 }
 
+void UGVSystem::ReadRTThreadPriorities()
+{
+  canopen_settings_.configure_thread_sched_priority = ReadRTPriority(
+    "configure_thread_priority", CANopenSettings().configure_thread_sched_priority);
+  // These two must run above the control loop, so 0 is rejected for them.
+  canopen_settings_.canopen_thread_sched_priority = ReadRTPriority(
+    "canopen_thread_priority", CANopenSettings().canopen_thread_sched_priority, true);
+  canopen_settings_.rpdo_dispatch_sched_priority = ReadRTPriority(
+    "rpdo_dispatch_priority", CANopenSettings().rpdo_dispatch_sched_priority);
+  gpio_watchdog_sched_priority_ = ReadRTPriority(
+    "gpio_watchdog_priority", Watchdog::kWatchdogSchedPriority, true);
+  gpio_monitor_sched_priority_ = ReadRTPriority(
+    "gpio_monitor_priority", GPIOController::kMonitorSchedPriority);
+
+  canopen_settings_.canopen_thread_cpu = ReadRTCPU("canopen_thread_cpu", kDefaultRTCPU);
+  canopen_settings_.rpdo_dispatch_cpu = ReadRTCPU("rpdo_dispatch_cpu", kDefaultRTCPU);
+  gpio_watchdog_cpu_ = ReadRTCPU("gpio_watchdog_cpu", kDefaultRTCPU);
+  gpio_monitor_cpu_ = ReadRTCPU("gpio_monitor_cpu", kDefaultRTCPU);
+}
+
+unsigned UGVSystem::ReadRTPriority(
+  const std::string & name, const unsigned default_priority, const bool above_control_loop)
+{
+  // Optional, so a robot description written before these existed keeps the defaults.
+  const auto it = info_.hardware_parameters.find(name);
+  if (it == info_.hardware_parameters.end()) {
+    return default_priority;
+  }
+
+  const unsigned min_priority = above_control_loop ? 1 : 0;
+  const auto priority = ParseRTPriority(it->second);
+  if (!priority || *priority < min_priority) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << it->second << "', expected a whole number in ["
+                          << min_priority << ", " << kMaxRTPriority << "]. Using the default "
+                          << default_priority << ".");
+    return default_priority;
+  }
+  if (above_control_loop && *priority <= kDefaultControlLoopPriority) {
+    RCLCPP_WARN_STREAM(
+      logger_, name << " " << *priority << " is not above the control loop's default FIFO "
+                    << kDefaultControlLoopPriority
+                    << ". If the control loop runs there, it can wait on this thread.");
+  }
+  return *priority;
+}
+
+int UGVSystem::ReadRTCPU(const std::string & name, const int default_cpu)
+{
+  const auto it = info_.hardware_parameters.find(name);
+  const std::string text = it == info_.hardware_parameters.end() ? std::to_string(default_cpu)
+                                                                 : it->second;
+  const int cpu_count = get_nprocs_conf();
+
+  const auto cpu = ParseCPU(text, cpu_count);
+  if (!cpu) {
+    RCLCPP_WARN_STREAM(
+      logger_, "Invalid " << name << " '" << text << "', expected -1 or a CPU in [0, "
+                          << cpu_count - 1 << "]. Using the default.");
+    return default_cpu;
+  }
+  return *cpu;
+}
+
 void UGVSystem::ReadInitializationActivationAttempts()
 {
   max_roboteq_initialization_attempts_ =
@@ -433,7 +500,9 @@ void UGVSystem::ReadDriverStatesUpdateFrequency()
 
 void UGVSystem::ConfigureGPIOController()
 {
-  gpio_controller_ = GPIOControllerFactory::CreateGPIOController();
+  gpio_controller_ = GPIOControllerFactory::CreateGPIOController(
+    gpio_watchdog_sched_priority_, gpio_monitor_sched_priority_, gpio_watchdog_cpu_,
+    gpio_monitor_cpu_);
   gpio_controller_->Start();
 
   RCLCPP_INFO(logger_, "Successfully configured GPIO controller.");

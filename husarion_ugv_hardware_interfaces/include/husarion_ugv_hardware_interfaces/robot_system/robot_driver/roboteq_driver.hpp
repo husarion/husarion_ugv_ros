@@ -58,7 +58,8 @@ public:
    */
   RoboteqDriver(
     const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
-    const std::chrono::milliseconds & sdo_operation_timeout_ms);
+    const std::chrono::milliseconds & sdo_operation_timeout_ms,
+    const unsigned rpdo_dispatch_sched_priority = 65, const int rpdo_dispatch_cpu = -1);
 
   /**
    * @brief Triggers boot operations

@@ -17,6 +17,7 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <pthread.h>
 #include <sys/socket.h>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
@@ -79,6 +80,25 @@ TEST_F(TestCANopenManager, ActivateNoCommunication)
 {
   ASSERT_NO_THROW(canopen_manager_->Initialize());
   EXPECT_THROW(canopen_manager_->Activate(), std::runtime_error);
+}
+
+TEST_F(TestCANopenManager, ZeroConfigurePriorityLeavesTheCallingThreadAlone)
+{
+  can_socket_->Initialize();
+  auto settings = husarion_ugv_hardware_interfaces_test::kCANopenSettings;
+  settings.configure_thread_sched_priority = 0;
+  husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(settings);
+
+  sched_param param_before;
+  int policy_before = 0;
+  pthread_getschedparam(pthread_self(), &policy_before, &param_before);
+  ASSERT_NO_THROW(canopen_manager.Initialize());
+  sched_param param_after;
+  int policy_after = 0;
+  pthread_getschedparam(pthread_self(), &policy_after, &param_after);
+  EXPECT_EQ(policy_before, policy_after);
+  EXPECT_EQ(param_before.sched_priority, param_after.sched_priority);
+  ASSERT_NO_THROW(canopen_manager.Deinitialize());
 }
 
 TEST_F(TestCANopenManager, GetMaster)

@@ -75,6 +75,13 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    lights_controller_frequency = LaunchConfiguration("lights_controller_frequency")
+    declare_lights_controller_frequency_arg = DeclareLaunchArgument(
+        "lights_controller_frequency",
+        default_value="50.0",
+        description="Frequency in Hz at which the lights controller renders animation frames.",
+    )
+
     lights_frame_keepalive_period = LaunchConfiguration("lights_frame_keepalive_period")
     declare_lights_frame_keepalive_period_arg = DeclareLaunchArgument(
         "lights_frame_keepalive_period",
@@ -160,6 +167,11 @@ def generate_launch_description():
                     {"animations_config_path": animations_config_path},
                     {"user_led_animations_path": user_led_animations_path},
                     {
+                        "controller_frequency": ParameterValue(
+                            lights_controller_frequency, value_type=float
+                        )
+                    },
+                    {
                         "frame_keepalive_period": ParameterValue(
                             lights_frame_keepalive_period, value_type=float
                         )
@@ -187,6 +199,7 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
         declare_led_control_retry_forever_arg,
+        declare_lights_controller_frequency_arg,
         declare_lights_frame_keepalive_period_arg,
         declare_log_level_arg,
         declare_namespace_arg,

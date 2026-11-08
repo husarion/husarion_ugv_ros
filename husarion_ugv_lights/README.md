@@ -11,6 +11,7 @@ This package contains:
 ### Launch arguments
 
 - `led_control_retry_forever` [*bool*, default: **False**]: Passed to the `led_control_retry_forever` parameter of `LightsDriverNode`. `bringup.launch.py` forwards it.
+- `lights_controller_frequency` [*float*, default: **50.0**]: Passed to the `controller_frequency` parameter of `LightsControllerNode`. Animations are timed in seconds, so a lower rate drops frames and keeps their timing, but a pulse shorter than two frames can disappear.
 - `lights_frame_keepalive_period` [*float*, default: **0.0**]: Passed to the `frame_keepalive_period` parameter of `LightsControllerNode`.
 
 ## Configuration Files

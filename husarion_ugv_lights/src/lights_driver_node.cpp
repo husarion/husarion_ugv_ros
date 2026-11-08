@@ -51,8 +51,6 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
 
-  rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
-
   this->param_listener_ =
     std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
   this->params_ = this->param_listener_->get_params();
@@ -95,16 +93,34 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   diagnostic_updater_.setHardwareID("Bumper Lights");
   diagnostic_updater_.add("Lights driver status", this, &LightsDriverNode::DiagnoseLights);
 
+  // Registered last: if anything above throws, no destructor runs to remove the hook.
+  shutdown_callback_handle_ =
+    this->get_node_base_interface()->get_context()->add_on_shutdown_callback(
+      std::bind(&LightsDriverNode::OnShutdown, this));
+
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
+}
+
+LightsDriverNode::~LightsDriverNode()
+{
+  // The hook captures this, and the node can be unloaded from its container before shutdown.
+  this->get_node_base_interface()->get_context()->remove_on_shutdown_callback(
+    shutdown_callback_handle_);
 }
 
 void LightsDriverNode::OnShutdown()
 {
-  ClearLEDs();
-
-  if (led_control_granted_) {
-    ToggleLEDControl(false);
+  // An exception escaping a shutdown hook aborts the whole container.
+  try {
+    ClearLEDs();
+  } catch (const std::exception & e) {
+    RCLCPP_WARN_STREAM(this->get_logger(), "Clearing LEDs at shutdown failed: " << e.what());
   }
+
+  // LED control is not released here. on_shutdown hooks run after the context is shut down, when
+  // no request can be sent, and a request sent from a pre-shutdown hook was not delivered either,
+  // since the context goes down right after it. When the hardware interface stops it resets the
+  // LED control pin itself; when only the lights stop, control stays with this computer.
 }
 
 void LightsDriverNode::InitializationTimerCB()

@@ -48,6 +48,8 @@ public:
     APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
+  ~LightsDriverNode();
+
 protected:
   /**
    * @brief Clears all LEDs on both channels.
@@ -117,6 +119,7 @@ private:
 
   unsigned initialization_attempt_;
   rclcpp::Time led_control_call_time_;
+  rclcpp::OnShutdownCallbackHandle shutdown_callback_handle_;
 
   APA102Interface::SharedPtr channel_1_;
   APA102Interface::SharedPtr channel_2_;

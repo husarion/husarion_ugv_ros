@@ -57,6 +57,7 @@ std::int64_t EStopDiagnostics::SteadyNowNs()
 bool EStop::ReadEStopState()
 {
   const char * edge_message = nullptr;
+  std::string uvp_apply_error;
 
   if (e_stop_manipulation_mtx_.try_lock()) {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
@@ -98,6 +99,22 @@ bool EStop::ReadEStopState()
       software_e_stop_triggered_ = true;
       gpio_controller_->EStopTrigger();
     }
+
+    // A UVP trigger that found the mutex held is applied here at the latest, also when the
+    // protection cleared before it was tried again. A failed GPIO write leaves it pending, so the
+    // state stays latched, and every read tries again; the first failure of a streak is logged.
+    try {
+      ApplyUVPTriggersLocked();
+    } catch (const std::runtime_error & e) {
+      if (!uvp_apply_error_logged_.exchange(true)) {
+        uvp_apply_error = e.what();
+      }
+    }
+  }
+
+  if (!uvp_apply_error.empty()) {
+    std::cerr << "Applying the battery undervoltage E-stop trigger failed, retrying: "
+              << uvp_apply_error << std::endl;
   }
 
   // Written after the mutex is released, so a slow stderr never holds up a trigger or a reset.
@@ -106,7 +123,12 @@ bool EStop::ReadEStopState()
     std::cerr << edge_message << std::endl;
   }
 
-  return e_stop_triggered_ || software_e_stop_triggered_;
+  // A trigger that is requested but not applied yet, as a UVP trigger that found the mutex held,
+  // already counts: the next write sends no motion. Read before the flags: a trigger sets the
+  // software flag before it counts itself applied, so a read that no longer sees it pending sees
+  // the flag.
+  const bool pending = TriggerPending();
+  return pending || e_stop_triggered_ || software_e_stop_triggered_;
 }
 
 void EStop::TriggerEStop()
@@ -117,21 +139,15 @@ void EStop::TriggerEStop()
   bool newly_triggered = false;
   {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
-    // Counted as applied under the mutex, so a reset holding it sees a trigger still waiting.
-    triggers_applied_++;
+    // Counted as applied under the mutex, so a reset holding it sees a trigger still waiting, and
+    // only once the software flag is set, so a read never sees it neither pending nor latched.
     try {
-      newly_triggered = !software_e_stop_triggered_;
-      software_e_stop_triggered_ = true;
-      // Only a trigger on a released line causes the next edge.
-      if (!hardware_line_latched_) {
-        software_trigger_requested_ = true;
-      }
-      gpio_controller_->EStopTrigger();
-    } catch (const std::runtime_error & e) {
-      throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
+      newly_triggered = TriggerEStopLocked();
+    } catch (const std::runtime_error &) {
+      triggers_applied_++;
+      throw;
     }
-
-    e_stop_triggered_ = true;
+    triggers_applied_++;
 
     // A trigger on a robot that is already stopped keeps the first cause - an outside device that
     // stopped it stays the reason until someone resets it.
@@ -150,6 +166,76 @@ void EStop::Close()
 {
   closed_ = true;
   TriggerEStop();
+}
+
+bool EStop::TriggerEStopLocked()
+{
+  bool newly_triggered = false;
+  try {
+    newly_triggered = !software_e_stop_triggered_;
+    software_e_stop_triggered_ = true;
+    // Only a trigger on a released line causes the next edge.
+    if (!hardware_line_latched_) {
+      software_trigger_requested_ = true;
+    }
+    gpio_controller_->EStopTrigger();
+  } catch (const std::runtime_error & e) {
+    throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
+  }
+
+  e_stop_triggered_ = true;
+  return newly_triggered;
+}
+
+bool EStop::TriggerEStopFromUVP()
+{
+  // Requested and not applied until it is, so a reset refuses it and ReadEStopState() reports the
+  // e-stop latched from here on, also while a reset or a reader holds the mutex.
+  // Counted unapplied before requested, so a reset that sees the request finds it to apply.
+  uvp_triggers_unapplied_++;
+  triggers_requested_++;
+  gpio_controller_->InterruptEStopReset();
+
+  // A GPIO reset can hold the mutex for up to 200 ms, and an interrupt that lands between its two
+  // waits is not seen. The control loop must not wait for it: a reset that holds the mutex applies
+  // the trigger before it releases it, and otherwise the next cycle tries again.
+  std::unique_lock<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::try_to_lock);
+  if (!e_stop_lck.owns_lock()) {
+    return false;
+  }
+
+  const bool newly_triggered = ApplyUVPTriggersLocked();
+  e_stop_lck.unlock();
+
+  // The guard repeats the trigger while the battery stays low: log the one that latches it.
+  if (newly_triggered) {
+    std::cerr << "E-Stop triggered in software by the battery undervoltage protection."
+              << std::endl;
+  }
+  return true;
+}
+
+bool EStop::ApplyUVPTriggersLocked()
+{
+  const auto unapplied = uvp_triggers_unapplied_.exchange(0);
+  if (unapplied == 0) {
+    return false;
+  }
+
+  bool newly_triggered = false;
+  try {
+    newly_triggered = TriggerEStopLocked();
+  } catch (const std::runtime_error &) {
+    // Still pending: the software flag is set, and the next trigger tries the GPIO again.
+    uvp_triggers_unapplied_ += unapplied;
+    throw;
+  }
+  uvp_apply_error_logged_ = false;
+  // Unlike other triggers, this one replaces the first cause: the protection keeps the robot
+  // stopped for as long as the battery stays low, whatever latched it before.
+  diagnostics_->SetSource(EStopLatchSource::UVP);
+  triggers_applied_ += unapplied;
+  return newly_triggered;
 }
 
 void EStop::ResetEStop()
@@ -197,6 +283,11 @@ void EStop::ResetEStop()
   std::cerr << "E-Stop reset, hardware line released." << std::endl;
 }
 
+bool EStop::TriggerPending() const
+{
+  return triggers_requested_.load() != triggers_applied_.load();
+}
+
 bool EStop::TriggerSince(const std::uint64_t triggers_before) const
 {
   const auto requested = triggers_requested_.load();
@@ -212,33 +303,54 @@ void EStop::ResetEStopImpl(const std::uint64_t triggers_before)
   if (closed_) {
     throw std::runtime_error("E-stop reset refused: the hardware interface is shutting down.");
   }
-  if (TriggerSince(triggers_before)) {
-    throw std::runtime_error(
-      "E-stop reset refused: the E-stop was triggered while the reset was pending (trigger "
-      "request or motor controller communication error).");
-  }
-
-  if (!ZeroVelocityCheck()) {
-    throw std::runtime_error(
-      "Cannot reset the E-stop: the last velocity commands are not zero. Ensure that the "
-      "controller is sending zero velocity commands or not sending any velocity commands before "
-      "attempting to reset the E-stop.");
-  }
-
+  bool gpio_reset_ran = false;
   try {
-    gpio_controller_->EStopReset();
-  } catch (const EStopResetInterrupted & e) {
-    throw std::runtime_error(
-      "The E-stop reset operation was halted because the E-stop was triggered again.");
-  } catch (const std::runtime_error & e) {
-    throw std::runtime_error(
-      "Error when trying to reset E-stop using GPIO: " + std::string(e.what()));
-  }
+    if (TriggerSince(triggers_before)) {
+      throw std::runtime_error(
+        "E-stop reset refused: the E-stop was triggered while the reset was pending (trigger "
+        "request or motor controller communication error).");
+    }
 
-  // The GPIO reset left the line released with the watchdog running. The trigger that refuses it
-  // here waits for this mutex and turns the watchdog off again as soon as it is released.
-  if (TriggerSince(triggers_before)) {
-    throw std::runtime_error("E-stop reset refused: the E-stop was triggered during the reset.");
+    if (!ZeroVelocityCheck()) {
+      throw std::runtime_error(
+        "Cannot reset the E-stop: the last velocity commands are not zero. Ensure that the "
+        "controller is sending zero velocity commands or not sending any velocity commands before "
+        "attempting to reset the E-stop.");
+    }
+
+    try {
+      gpio_reset_ran = true;
+      gpio_controller_->EStopReset();
+    } catch (const EStopResetInterrupted & e) {
+      throw std::runtime_error(
+        "The E-stop reset operation was halted because the E-stop was triggered again.");
+    } catch (const std::runtime_error & e) {
+      throw std::runtime_error(
+        "Error when trying to reset E-stop using GPIO: " + std::string(e.what()));
+    }
+
+    // The GPIO reset left the line released with the watchdog running. A trigger that refuses it
+    // here waits for this mutex and turns the watchdog off again as soon as it is released, or is
+    // a UVP trigger, applied below.
+    if (TriggerSince(triggers_before)) {
+      throw std::runtime_error("E-stop reset refused: the E-stop was triggered during the reset.");
+    }
+  } catch (const std::exception & e) {
+    // A UVP trigger that found the mutex held is applied before the mutex is released, so the
+    // line the GPIO reset may have released is latched again at once.
+    std::string message = e.what();
+    if (gpio_reset_ran && TriggerSince(triggers_before)) {
+      // The GPIO reset may have released the line while hardware_line_latched_ still says latched.
+      // The edge of the trigger that refused the reset is ours, not an outside device's.
+      software_trigger_requested_ = true;
+    }
+    try {
+      ApplyUVPTriggersLocked();
+    } catch (const std::exception & trigger_error) {
+      message += " Applying the battery undervoltage trigger failed: " +
+                 std::string(trigger_error.what());
+    }
+    throw std::runtime_error(message);
   }
 
   roboteq_error_filter_->SetClearErrorsFlag();

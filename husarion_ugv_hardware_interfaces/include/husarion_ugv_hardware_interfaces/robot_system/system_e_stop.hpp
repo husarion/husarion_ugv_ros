@@ -38,6 +38,8 @@ enum class EStopLatchSource : std::uint8_t {
   // fault or the safety board watchdog. Seen only as an edge of a released line, so a button
   // pressed on a robot that is already latched keeps the earlier source.
   HARDWARE,
+  // Latched by the battery undervoltage protection.
+  UVP,
 };
 
 /**
@@ -95,6 +97,15 @@ public:
    * @brief Triggers the emergency stop and refuses every later reset, for the teardown.
    */
   virtual void Close() = 0;
+
+  /**
+   * @brief Triggers the emergency stop for the battery undervoltage protection, which then shows as
+   * its cause also when the e-stop was latched already. Called from the control loop, so it must
+   * not wait for a reset in progress.
+   *
+   * @return false when the trigger could not be applied yet, the caller tries again later.
+   */
+  virtual bool TriggerEStopFromUVP() = 0;
   virtual std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const = 0;
 };
 
@@ -174,12 +185,33 @@ public:
    * @throws std::runtime_error if triggering the E-stop using GPIO fails.
    */
   void Close() override;
+
+  /**
+   * @brief Triggers the emergency stop without waiting for the E-stop mutex.
+   *
+   * The trigger is requested and a GPIO reset in progress is interrupted first, as in TriggerEStop.
+   * When the mutex is held, false is returned instead of blocking the control loop. The trigger
+   * then stays pending: ReadEStopState() reports the E-stop latched, a reset that holds the mutex
+   * applies the trigger and is refused, and so is any later reset until the trigger is applied.
+   *
+   * @return true when the E-stop is triggered, false when the mutex is held.
+   * @throws std::runtime_error if triggering the E-stop using GPIO fails.
+   */
+  bool TriggerEStopFromUVP() override;
+
   std::shared_ptr<const EStopDiagnostics> GetDiagnostics() const override { return diagnostics_; }
 
 protected:
   void ResetEStopImpl(const std::uint64_t triggers_before);
   // True when a trigger was requested after triggers_before was read, or one is not applied yet.
   bool TriggerSince(const std::uint64_t triggers_before) const;
+  // True while a trigger is requested and not applied yet.
+  bool TriggerPending() const;
+  // The part of a trigger that runs with e_stop_manipulation_mtx_ held.
+  // Returns true when this trigger latched it.
+  bool TriggerEStopLocked();
+  // Applies the UVP triggers that are not applied yet. Returns true when that latched it.
+  bool ApplyUVPTriggersLocked();
 
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RoboteqErrorFilter> roboteq_error_filter_;
@@ -199,6 +231,10 @@ protected:
   std::atomic<std::uint64_t> triggers_requested_{0};
   std::atomic<std::uint64_t> triggers_applied_{0};
   std::atomic_bool closed_ = false;
+  // UVP triggers requested and not applied, counted in triggers_requested_ only.
+  std::atomic<std::uint64_t> uvp_triggers_unapplied_{0};
+  // The read path logs the first failed GPIO write of a streak of UVP applies.
+  std::atomic_bool uvp_apply_error_logged_{false};
   // Last state seen on the hardware line, guarded by e_stop_manipulation_mtx_ like the next one.
   bool hardware_line_latched_ = true;
   // Set by TriggerEStop until the line edge it causes is reported or the E-stop is reset, so that

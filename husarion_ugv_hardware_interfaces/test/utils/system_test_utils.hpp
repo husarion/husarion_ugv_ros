@@ -118,6 +118,7 @@ public:
   MOCK_METHOD(void, TriggerEStop, (), (override));
   MOCK_METHOD(void, ResetEStop, (), (override));
   MOCK_METHOD(void, Close, (), (override));
+  MOCK_METHOD(bool, TriggerEStopFromUVP, (), (override));
   MOCK_METHOD(
     std::shared_ptr<const husarion_ugv_hardware_interfaces::EStopDiagnostics>, GetDiagnostics, (),
     (const, override));

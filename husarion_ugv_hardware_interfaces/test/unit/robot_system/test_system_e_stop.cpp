@@ -21,6 +21,9 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -44,6 +47,39 @@ public:
 
   std::mutex & GetManipulationMutex() { return e_stop_manipulation_mtx_; }
   std::uint64_t GetTriggersRequested() const { return triggers_requested_.load(); }
+  using EStop::TriggerPending;
+};
+
+// Holds the e-stop mutex from another thread, as a state read on a service thread does. The
+// control loop thread must never try a mutex it holds itself.
+class MutexHolder
+{
+public:
+  explicit MutexHolder(std::mutex & mutex)
+  : thread_([this, &mutex]() {
+      std::lock_guard<std::mutex> lock(mutex);
+      locked_.set_value();
+      release_future_.wait();
+    })
+  {
+    locked_.get_future().wait();
+  }
+
+  ~MutexHolder() { Release(); }
+
+  void Release()
+  {
+    if (thread_.joinable()) {
+      release_.set_value();
+      thread_.join();
+    }
+  }
+
+private:
+  std::promise<void> locked_;
+  std::promise<void> release_;
+  std::shared_future<void> release_future_ = release_.get_future().share();
+  std::thread thread_;
 };
 
 class TestEStop : public testing::Test
@@ -384,6 +420,302 @@ TEST_F(TestEStop, LatchedRightAfterARefusalAtTheSecondCheck)
   EXPECT_NO_THROW(trigger.get());
 }
 
+TEST_F(TestEStop, UVPTriggerNamesUVPAsTheCause)
+{
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerReplacesAnEarlierCause)
+{
+  ReleaseLine();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  ASSERT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStopFromUVP();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerWhileAResetWaitsRefusesTheReset)
+{
+  // The drive window ending while an operator resets the e-stop: the reset must not undo the
+  // trigger, and the trigger must not wait for the reset, it runs in the control loop.
+  ReleaseLine();
+  // Latched again, so the reset has the motor controllers to release.
+  TriggerQuietly();
+
+  std::promise<void> reset_started;
+  EXPECT_CALL(*robot_driver_, TurnOffEStop()).WillOnce(Invoke([&]() {
+    reset_started.set_value();
+  }));
+  EXPECT_CALL(*gpio_controller_, EStopReset()).Times(0);
+
+  MutexHolder reader(e_stop_->GetManipulationMutex());
+  auto reset = std::async(std::launch::async, [&]() { e_stop_->ResetEStop(); });
+  reset_started.get_future().wait();
+
+  // Returns at once while the mutex is held. Pending, it already stops the motion.
+  EXPECT_FALSE(e_stop_->TriggerEStopFromUVP());
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+
+  reader.Release();
+  EXPECT_THROW(
+    {
+      try {
+        reset.get();
+      } catch (const std::runtime_error & e) {
+        EXPECT_THAT(e.what(), testing::HasSubstr("triggered while the reset was pending"));
+        throw;
+      }
+    },
+    std::runtime_error);
+
+  // The refused reset applied the trigger before it released the mutex.
+  EXPECT_FALSE(e_stop_->TriggerPending());
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // The guard's retry in the next cycle changes nothing.
+  testing::internal::CaptureStderr();
+  EXPECT_TRUE(e_stop_->TriggerEStopFromUVP());
+  testing::internal::GetCapturedStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerDuringAGPIOResetDoesNotWaitForIt)
+{
+  ReleaseLine();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  std::promise<void> reset_entered;
+  std::promise<void> release_reset;
+  auto release_reset_future = release_reset.get_future().share();
+  EXPECT_CALL(*gpio_controller_, EStopReset()).WillOnce(testing::Invoke([&]() {
+    reset_entered.set_value();
+    release_reset_future.wait();
+  }));
+
+  std::string reset_error;
+  std::thread reset([this, &reset_error]() {
+    try {
+      e_stop_->ResetEStop();
+    } catch (const std::runtime_error & e) {
+      reset_error = e.what();
+    }
+  });
+  reset_entered.get_future().wait();
+
+  const auto start = std::chrono::steady_clock::now();
+  EXPECT_FALSE(e_stop_->TriggerEStopFromUVP());
+  EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::milliseconds(200));
+
+  std::atomic_int triggers_after_reset{0};
+  ON_CALL(*gpio_controller_, EStopTrigger()).WillByDefault(Invoke([&]() {
+    ++triggers_after_reset;
+  }));
+  release_reset.set_value();
+  reset.join();
+  EXPECT_THAT(reset_error, testing::HasSubstr("triggered during the reset"));
+  // The line the GPIO reset released is latched again before the reset lets go of the mutex.
+  EXPECT_EQ(1, triggers_after_reset.load());
+  EXPECT_FALSE(e_stop_->TriggerPending());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  EXPECT_TRUE(e_stop_->TriggerEStopFromUVP());
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, ResetUnderUVPSucceedsAndTheGuardLatchesAgain)
+{
+  ReleaseLine();
+  testing::internal::CaptureStderr();
+  ASSERT_TRUE(e_stop_->TriggerEStopFromUVP());
+  testing::internal::GetCapturedStderr();
+
+  // No trigger since: the reset releases the e-stop, for the drive window.
+  testing::internal::CaptureStderr();
+  ASSERT_NO_THROW(e_stop_->ResetEStop());
+  testing::internal::GetCapturedStderr();
+  EXPECT_FALSE(e_stop_->ReadEStopState());
+
+  // The window ends: the next trigger latches it with UVP as the cause.
+  testing::internal::CaptureStderr();
+  EXPECT_TRUE(e_stop_->TriggerEStopFromUVP());
+  testing::internal::GetCapturedStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerAgainstAHolderThatIsNotAReset)
+{
+  ReleaseLine();
+  ASSERT_FALSE(e_stop_->ReadEStopState());
+
+  {
+    MutexHolder reader(e_stop_->GetManipulationMutex());
+    EXPECT_FALSE(e_stop_->TriggerEStopFromUVP());
+    // Not applied, but no motion until it is.
+    EXPECT_TRUE(e_stop_->TriggerPending());
+    EXPECT_TRUE(e_stop_->ReadEStopState());
+  }
+
+  // The protection cleared, so the guard never tries again. The next state read that gets the
+  // mutex applies the trigger.
+  int gpio_triggers = 0;
+  ON_CALL(*gpio_controller_, EStopTrigger()).WillByDefault(Invoke([&]() { ++gpio_triggers; }));
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_FALSE(e_stop_->TriggerPending());
+  EXPECT_EQ(1, gpio_triggers);
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // Applied once: the next reset is not refused because of it.
+  testing::internal::CaptureStderr();
+  EXPECT_NO_THROW(e_stop_->ResetEStop());
+  testing::internal::GetCapturedStderr();
+  EXPECT_FALSE(e_stop_->ReadEStopState());
+}
+
+TEST_F(TestEStop, RefusedResetKeepsUVPAsTheCauseOfTheNextLatch)
+{
+  ReleaseLine();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  std::promise<void> reset_entered;
+  std::promise<void> release_reset;
+  auto release_reset_future = release_reset.get_future().share();
+  EXPECT_CALL(*gpio_controller_, EStopReset()).WillOnce(testing::Invoke([&]() {
+    reset_entered.set_value();
+    release_reset_future.wait();
+  }));
+  std::thread reset([this]() { EXPECT_THROW(e_stop_->ResetEStop(), std::runtime_error); });
+  reset_entered.get_future().wait();
+  EXPECT_FALSE(e_stop_->TriggerEStopFromUVP());
+  release_reset.set_value();
+  reset.join();
+  ASSERT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // The GPIO reset released the line for a moment, then the trigger latches it again.
+  SetLineAsserted(false);
+  ReadAndCaptureLog();
+  SetLineAsserted(true);
+  const auto log = ReadAndCaptureLog();
+  EXPECT_THAT(log, testing::HasSubstr("after the software trigger"));
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, UVPTriggerWhoseGPIOWriteThrows)
+{
+  ReleaseLine();
+  ON_CALL(*gpio_controller_, EStopTrigger())
+    .WillByDefault(testing::Throw(std::runtime_error("GPIO write failed")));
+
+  EXPECT_THROW(e_stop_->TriggerEStopFromUVP(), std::runtime_error);
+  // The mutex is free again.
+  auto try_lock = std::async(std::launch::async, [this]() {
+    std::unique_lock<std::mutex> lock(e_stop_->GetManipulationMutex(), std::try_to_lock);
+    return lock.owns_lock();
+  });
+  EXPECT_TRUE(try_lock.get());
+  EXPECT_NE(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+  // The software flag stops the motion, and the trigger stays pending for the next try.
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_TRUE(e_stop_->TriggerPending());
+
+  ON_CALL(*gpio_controller_, EStopTrigger()).WillByDefault(testing::Return());
+  testing::internal::CaptureStderr();
+  EXPECT_TRUE(e_stop_->TriggerEStopFromUVP());
+  testing::internal::GetCapturedStderr();
+  EXPECT_FALSE(e_stop_->TriggerPending());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, PendingUVPTriggerStopsMotionWhileAResetHoldsTheMutex)
+{
+  // A reset of a released e-stop runs its checks with the flags clear, the state a UVP request
+  // finds after the reset's last check.
+  std::promise<void> in_check;
+  std::promise<void> leave_check;
+  auto leave_check_future = leave_check.get_future().share();
+  std::atomic_bool block_check{false};
+  auto e_stop = std::make_unique<EStopWrapper>(
+    gpio_controller_,
+    std::make_shared<husarion_ugv_hardware_interfaces::RoboteqErrorFilter>(2, 2, 2, 2),
+    robot_driver_, std::make_shared<std::mutex>(), [&]() {
+      if (block_check.exchange(false)) {
+        in_check.set_value();
+        leave_check_future.wait();
+      }
+      return true;
+    });
+  testing::internal::CaptureStderr();
+  ASSERT_NO_THROW(e_stop->ResetEStop());
+  testing::internal::GetCapturedStderr();
+  ASSERT_FALSE(e_stop->ReadEStopState());
+
+  block_check = true;
+  std::string reset_error;
+  std::thread reset([&]() {
+    try {
+      e_stop->ResetEStop();
+    } catch (const std::runtime_error & e) {
+      reset_error = e.what();
+    }
+  });
+  in_check.get_future().wait();
+
+  EXPECT_FALSE(e_stop->TriggerEStopFromUVP());
+  // What write() reads: no velocity command goes out in this cycle.
+  EXPECT_TRUE(e_stop->ReadEStopState());
+
+  leave_check.set_value();
+  reset.join();
+  EXPECT_THAT(reset_error, testing::HasSubstr("triggered during the reset"));
+  EXPECT_FALSE(e_stop->TriggerPending());
+  EXPECT_TRUE(e_stop->ReadEStopState());
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::UVP,
+    e_stop->GetDiagnostics()->Get().source);
+}
+
 TEST_F(TestEStop, TriggerWithAFailedGPIOWriteStaysLatched)
 {
   ReleaseEStop();
@@ -634,6 +966,176 @@ TEST_F(TestEStop, StartupWithTheLineReleasedStaysLatched)
   EXPECT_EQ(
     husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP,
     e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, ConcurrentResetTorqueUVPAndClose)
+{
+  // Resets, torque changes and UVP triggers run against each other and a control loop that reads
+  // the state, then the e-stop is closed, over many rounds. A reset's start is stamped when it
+  // sends the release, after it read the trigger count. Checked throughout:
+  // - a read that starts after a UVP trigger returned reads latched, unless a reset that started
+  //   after that trigger was called is in flight or succeeded: only such a reset may clear it;
+  // - a reset does not succeed when a UVP trigger was called and returned during its GPIO reset,
+  //   which is after the reset read the trigger count and before its last check;
+  // - no two motor controller writes overlap (the write mutex);
+  // - after Close() returns, every read is latched and no GPIO reset runs;
+  // - nothing deadlocks.
+  std::atomic<std::uint64_t> seq{0};
+  // Stamps of the reset in flight; only the reset thread sends a release from a reset.
+  static thread_local bool on_reset_thread = false;
+  std::atomic<std::uint64_t> reset_started{0};
+  std::atomic<std::uint64_t> gpio_reset_started{0};
+  std::atomic<std::uint64_t> gpio_reset_ended{0};
+  std::atomic_int driver_writes_in_flight{0};
+  std::atomic_bool driver_writes_overlapped{false};
+  const auto driver_write = [&]() {
+    if (++driver_writes_in_flight > 1) {
+      driver_writes_overlapped = true;
+    }
+    std::this_thread::yield();
+    --driver_writes_in_flight;
+  };
+  ON_CALL(*robot_driver_, TurnOnEStop()).WillByDefault(Invoke(driver_write));
+  ON_CALL(*robot_driver_, TurnOffEStop()).WillByDefault(Invoke([&]() {
+    if (on_reset_thread && reset_started == 0) {
+      reset_started = ++seq;
+    }
+    driver_write();
+  }));
+  std::atomic_int gpio_resets{0};
+  ON_CALL(*gpio_controller_, EStopReset()).WillByDefault(Invoke([&]() {
+    gpio_reset_started = ++seq;
+    ++gpio_resets;
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    gpio_reset_ended = ++seq;
+  }));
+  roboteq_e_stop_set_ = true;
+
+  for (int round = 0; round < 200; ++round) {
+    auto error_filter = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqErrorFilter>(
+      2, 2, 2, 2);
+    EStopWrapper e_stop(
+      gpio_controller_, error_filter, robot_driver_, robot_driver_write_mtx_, []() { return true; },
+      [this]() { return roboteq_e_stop_set_.load(); });
+    ASSERT_NO_THROW(e_stop.ResetEStop());
+
+    seq = 0;
+    reset_started = 0;
+    // Each UVP trigger: the sequence number before the call and after its return.
+    std::mutex uvp_mtx;
+    std::vector<std::pair<std::uint64_t, std::uint64_t>> uvp_calls;
+    // The start of the last reset that succeeded.
+    std::atomic<std::uint64_t> last_success_started{0};
+    std::atomic_bool closed{false};
+    std::atomic_bool stop{false};
+    std::mutex violation_mtx;
+    std::string first_violation;
+    std::atomic_int violations{0};
+    const auto report = [&](const std::string & what) {
+      std::lock_guard<std::mutex> lck(violation_mtx);
+      if (violations++ == 0) {
+        first_violation = what;
+      }
+    };
+
+    auto control_loop = std::async(std::launch::async, [&]() {
+      while (!stop) {
+        const bool closed_before = closed.load();
+        std::uint64_t called = 0;
+        std::uint64_t returned = 0;
+        {
+          std::lock_guard<std::mutex> lck(uvp_mtx);
+          if (!uvp_calls.empty()) {
+            std::tie(called, returned) = uvp_calls.back();
+          }
+        }
+        const auto start = ++seq;
+        const bool latched = e_stop.ReadEStopState();
+        // In this order: a reset records its success before the next one clears its start.
+        const auto in_flight_started = reset_started.load();
+        const auto success_started = last_success_started.load();
+        if (!latched && closed_before) {
+          report("released after Close() returned, read " + std::to_string(start));
+        }
+        if (
+          !latched && returned != 0 && returned < start && in_flight_started < called &&
+          success_started < called) {
+          report(
+            "released after the UVP trigger called at " + std::to_string(called) + " returned at " +
+            std::to_string(returned) + ", read " + std::to_string(start) +
+            ", reset in flight started at " + std::to_string(in_flight_started) +
+            ", last successful reset started at " + std::to_string(success_started));
+        }
+      }
+    });
+    auto resets = std::async(std::launch::async, [&]() {
+      on_reset_thread = true;
+      while (!stop) {
+        reset_started = 0;
+        gpio_reset_started = 0;
+        gpio_reset_ended = 0;
+        bool succeeded = false;
+        try {
+          e_stop.ResetEStop();
+          succeeded = true;
+        } catch (const std::runtime_error &) {
+        }
+        if (!succeeded) {
+          continue;
+        }
+        last_success_started = reset_started.load();
+        const auto gpio_started = gpio_reset_started.load();
+        const auto gpio_ended = gpio_reset_ended.load();
+        std::lock_guard<std::mutex> lck(uvp_mtx);
+        for (const auto & [called, returned] : uvp_calls) {
+          if (called > gpio_started && returned < gpio_ended) {
+            report(
+              "reset succeeded over the UVP trigger called at " + std::to_string(called) +
+              " returned at " + std::to_string(returned) + ", during its GPIO reset " +
+              std::to_string(gpio_started) + "-" + std::to_string(gpio_ended));
+          }
+        }
+      }
+    });
+    auto torque = std::async(std::launch::async, [&]() {
+      bool enable = false;
+      while (!stop) {
+        std::lock_guard<std::mutex> lck(*robot_driver_write_mtx_);
+        if (e_stop.ReadEStopState()) {
+          enable ? robot_driver_->TurnOffEStop() : robot_driver_->TurnOnEStop();
+          enable = !enable;
+        }
+      }
+    });
+    auto uvp = std::async(std::launch::async, [&]() {
+      for (int i = 0; i < 100; ++i) {
+        const auto called = ++seq;
+        e_stop.TriggerEStopFromUVP();
+        const auto returned = ++seq;
+        {
+          std::lock_guard<std::mutex> lck(uvp_mtx);
+          uvp_calls.emplace_back(called, returned);
+        }
+        std::this_thread::yield();
+      }
+    });
+
+    ASSERT_EQ(uvp.wait_for(std::chrono::seconds(30)), std::future_status::ready);
+    e_stop.Close();
+    const int gpio_resets_at_close = gpio_resets.load();
+    closed = true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    stop = true;
+
+    for (auto * future : {&control_loop, &resets, &torque}) {
+      ASSERT_EQ(future->wait_for(std::chrono::seconds(10)), std::future_status::ready);
+      future->get();
+    }
+    ASSERT_EQ(violations.load(), 0) << "round " << round << ": " << first_violation;
+    ASSERT_FALSE(driver_writes_overlapped.load()) << "round " << round;
+    ASSERT_EQ(gpio_resets.load(), gpio_resets_at_close) << "round " << round;
+    ASSERT_TRUE(e_stop.ReadEStopState()) << "round " << round;
+  }
 }
 
 int main(int argc, char ** argv)

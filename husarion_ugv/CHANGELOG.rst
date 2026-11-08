@@ -8,6 +8,8 @@ Forthcoming
   symlinked, so a file bind-mounted over ``/ros2_ws/src`` is ignored. Mount it over
   ``/ros2_ws/install/<pkg>/share/<pkg>/`` instead. The C toolchain and the build-only dependencies
   are gone too
+* hardware image: without a terminal, PID 1 is the entrypoint shell, which runs the command as a
+  child and forwards a SIGTERM stop to it as SIGINT
 
 2.3.2 (2026-06-25)
 ------------------

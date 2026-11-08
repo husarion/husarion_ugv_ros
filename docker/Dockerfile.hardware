@@ -112,6 +112,19 @@ walk = sys.argv[1].startswith("husarion_ugv"); \
 
 COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
 COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
+COPY docker/utils/supervise_command.sh /usr/local/sbin/supervise_command
 
-# Setup envs from eeprom
-RUN sed -i "/# <additional-user-commands>/i set -e -a && source setup_environment" /*_entrypoint.sh
+# Setup envs from eeprom, and forward a SIGTERM stop to the command of every exec after the
+# marker. The marker stays usable for derived images. Fail when the entrypoint layout differs.
+RUN entrypoint=$(ls /*_entrypoint.sh) && \
+    test "$(echo "${entrypoint}" | wc -l)" -eq 1 && \
+    grep -q '# <additional-user-commands>' "${entrypoint}" && \
+    sed -i \
+        -e '/# <additional-user-commands>/i set -e -a && source setup_environment' \
+        -e '/# <additional-user-commands>/,$ s/^\([[:space:]]*\)exec \(.*\)$/\1source supervise_command \2\n\1exec \2/' \
+        "${entrypoint}" && \
+    grep -qx '[[:space:]]*source supervise_command "\$@"' "${entrypoint}" && \
+    awk '/# <additional-user-commands>/ { marker = 1 } \
+        marker && /^[[:space:]]*exec / { if (previous !~ /^[[:space:]]*source supervise_command /) bad = 1 } \
+        { previous = $0 } \
+        END { exit !marker || bad }' "${entrypoint}"

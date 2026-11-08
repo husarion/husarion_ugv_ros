@@ -105,7 +105,7 @@ void BatteryDriverNode::InitializeWithADCBattery()
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
     battery_publisher_ = std::make_shared<DualBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_,
-      battery_2_);
+      battery_2_, params_.low_battery_percentage);
   } else {
     battery_2_.reset();
     battery_1_ = std::make_shared<ADCBattery>(
@@ -117,7 +117,8 @@ void BatteryDriverNode::InitializeWithADCBattery()
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
-      this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
+      this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_,
+      params_.low_battery_percentage);
   }
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using ADC data.");
@@ -140,7 +141,8 @@ void BatteryDriverNode::InitializeWithRoboteqBattery()
   battery_1_ = std::make_shared<RoboteqBattery>([&]() { return driver_state_; }, battery_params);
 
   battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
-    this->shared_from_this(), diagnostic_updater_, this->params_.battery_timeout, battery_1_);
+    this->shared_from_this(), diagnostic_updater_, this->params_.battery_timeout, battery_1_,
+    this->params_.low_battery_percentage);
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using motor controllers data.");
 }

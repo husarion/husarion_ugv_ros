@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -31,6 +32,32 @@
 
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
 using ChargingStatusMsg = husarion_ugv_msgs::msg::ChargingStatus;
+
+// A battery whose messages the test sets directly.
+class FakeBattery : public husarion_ugv_battery::Battery
+{
+public:
+  bool Present() override { return true; }
+  void Update(const rclcpp::Time &, const bool) override {}
+  void Reset(const rclcpp::Time &) override {}
+  float GetLoadCurrent() override { return load_current; }
+
+  BatteryStateMsg & State() { return battery_state_; }
+  ChargingStatusMsg & ChargingStatus() { return charging_status_; }
+
+  float load_current = 0.0f;
+};
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
 
 class DualBatteryPublisherWrapper : public husarion_ugv_battery::DualBatteryPublisher
 {
@@ -62,6 +89,15 @@ public:
   {
     return DualBatteryPublisher::MergeBatteryPowerSupplyHealth(
       battery_msg, battery_msg_1, battery_msg_2);
+  }
+
+  void DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    DualBatteryPublisher::DiagnoseErrors(status);
+  }
+  void DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    DualBatteryPublisher::DiagnoseStatus(status);
   }
 
   ChargingStatusMsg MergeChargingStatusMsgs(
@@ -395,6 +431,87 @@ TEST_F(TestDualBatteryPublisher, MergeChargingStatusMsgsChargerTypeMismatch)
     charging_status_1, charging_status_2);
 
   EXPECT_EQ(ChargingStatusMsg::UNKNOWN, merged_charging_status.charger_type);
+}
+
+class TestDualBatteryPublisherDiagnostics : public testing::Test
+{
+public:
+  TestDualBatteryPublisherDiagnostics()
+  {
+    node_ = std::make_shared<rclcpp::Node>("node");
+    diagnostic_updater_ = std::make_shared<diagnostic_updater::Updater>(node_);
+    fake_battery_1_ = std::make_shared<FakeBattery>();
+    fake_battery_2_ = std::make_shared<FakeBattery>();
+    for (const auto & battery : {fake_battery_1_, fake_battery_2_}) {
+      battery->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING;
+      battery->State().percentage = 0.8f;
+    }
+    fake_battery_1_->ChargingStatus().current = 1.5f;
+    fake_battery_2_->ChargingStatus().current = 0.5f;
+    battery_1_ = fake_battery_1_;
+    battery_2_ = fake_battery_2_;
+    battery_publisher_ = std::make_shared<DualBatteryPublisherWrapper>(
+      node_, diagnostic_updater_, battery_1_, battery_2_);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseStatus()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    battery_publisher_->DiagnoseStatus(status);
+    return status;
+  }
+
+protected:
+  rclcpp::Node::SharedPtr node_;
+  std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  std::shared_ptr<FakeBattery> fake_battery_1_;
+  std::shared_ptr<FakeBattery> fake_battery_2_;
+  std::shared_ptr<husarion_ugv_battery::Battery> battery_1_;
+  std::shared_ptr<husarion_ugv_battery::Battery> battery_2_;
+  std::shared_ptr<DualBatteryPublisherWrapper> battery_publisher_;
+};
+
+TEST_F(TestDualBatteryPublisherDiagnostics, ChargeCurrent)
+{
+  const auto status = DiagnoseStatus();
+  EXPECT_FLOAT_EQ(2.0f, std::stof(GetDiagnosticValue(status, "Charge current total (A)")));
+  EXPECT_FLOAT_EQ(1.5f, std::stof(GetDiagnosticValue(status, "Charge current battery 1 (A)")));
+  EXPECT_FLOAT_EQ(0.5f, std::stof(GetDiagnosticValue(status, "Charge current battery 2 (A)")));
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, PerPackValues)
+{
+  fake_battery_1_->State().voltage = 38.0f;
+  fake_battery_2_->State().voltage = 39.0f;
+  fake_battery_2_->State().power_supply_health = BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD;
+
+  const auto status = DiagnoseStatus();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_FLOAT_EQ(38.0f, std::stof(GetDiagnosticValue(status, "Battery 1 voltage (V)")));
+  EXPECT_FLOAT_EQ(39.0f, std::stof(GetDiagnosticValue(status, "Battery 2 voltage (V)")));
+  EXPECT_FLOAT_EQ(80.0f, std::stof(GetDiagnosticValue(status, "Battery 1 percentage (%)")));
+  EXPECT_EQ("Cold", GetDiagnosticValue(status, "Battery 2 health"));
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, StatusMismatchWarns)
+{
+  fake_battery_2_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, OnePackFullWhileTheOtherChargesIsOK)
+{
+  fake_battery_2_->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_FULL;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, DiagnoseStatus().level);
+}
+
+TEST_F(TestDualBatteryPublisherDiagnostics, OneLowPackWarns)
+{
+  for (const auto & battery : {fake_battery_1_, fake_battery_2_}) {
+    battery->State().power_supply_status = BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING;
+  }
+  fake_battery_2_->State().percentage = 0.1f;
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, DiagnoseStatus().level);
 }
 
 int main(int argc, char ** argv)

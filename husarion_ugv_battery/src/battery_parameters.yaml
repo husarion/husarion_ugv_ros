@@ -50,3 +50,9 @@ battery:
     default_value: 1.0
     description: "Timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state."
     validation: { gt<>: 0.0 }
+
+  low_battery_percentage:
+    type: double
+    default_value: 0.4
+    description: "Battery percentage, from 0 to 1, below which the battery status diagnostic warns. The default matches the low battery threshold of the manager."
+    validation: { bounds<>: [0.0, 1.0] }

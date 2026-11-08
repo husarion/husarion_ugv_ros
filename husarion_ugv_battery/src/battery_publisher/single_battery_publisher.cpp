@@ -32,8 +32,10 @@ namespace husarion_ugv_battery
 SingleBatteryPublisher::SingleBatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
   const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
-  const double battery_timeout, const std::shared_ptr<Battery> & battery)
-: BatteryPublisher(std::move(node), std::move(diagnostic_updater), battery_timeout),
+  const double battery_timeout, const std::shared_ptr<Battery> & battery,
+  const float low_battery_percentage)
+: BatteryPublisher(
+    std::move(node), std::move(diagnostic_updater), battery_timeout, low_battery_percentage),
   battery_(std::move(battery))
 {
   battery_pub_ = node->create_publisher<BatteryStateMsg>("battery/battery_status", 5);
@@ -77,10 +79,18 @@ void SingleBatteryPublisher::LogErrors()
     RCLCPP_ERROR_STREAM_THROTTLE(
       GetLogger(), *GetClock(), 10000, "Battery error: " << battery_->GetErrorMsg());
   }
+  if (battery_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery warning: " << battery_->GetWarningMsg());
+  }
 }
 
 void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  if (DiagnoseMissingData(status)) {
+    return;
+  }
+
   unsigned char error_level{diagnostic_updater::DiagnosticStatusWrapper::OK};
   std::string message{"Battery has no errors"};
 
@@ -89,22 +99,32 @@ void SingleBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatus
     message = "Battery has error";
 
     status.add("Error message", battery_->GetErrorMsg());
+  } else if (battery_->HasWarningMsg()) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery has warning";
+
+    status.add("Warning message", battery_->GetWarningMsg());
   }
 
   status.summary(error_level, message);
+  WarnOnReadFailures(status);
 }
 
 void SingleBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "Battery status monitoring";
+
   const auto battery_msg = battery_->GetBatteryMsg();
 
-  auto charging_status = MapPowerSupplyStatusToString(battery_msg.power_supply_status);
-  status.add("Power supply status", charging_status);
+  status.add("Source", battery_->GetSourceName());
+  status.add("Power supply status", MapPowerSupplyStatusToString(battery_msg.power_supply_status));
+  AddBatteryState(status, battery_msg);
+  AddMeasurement(status, "Load current (A)", battery_->GetLoadCurrent());
+  AddMeasurement(status, "Charge current (A)", battery_->GetChargingStatus().current);
 
-  const auto load_current = battery_->GetLoadCurrent();
-  status.add("Load current (A)", load_current);
-
-  status.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Battery status monitoring");
+  WarnOnBatteryState(battery_msg, level, message);
+  status.summary(level, message);
 }
 
 }  // namespace husarion_ugv_battery

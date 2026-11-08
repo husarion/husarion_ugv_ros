@@ -251,7 +251,16 @@ TEST_F(TestADCBattery, BatteryMsgHealthCold)
   UpdateBattery(1.5, 0.01, 2.81, 0.5, false);
 
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD, battery_state_.power_supply_health);
-  EXPECT_TRUE(battery_->HasErrorMsg());
+  // A cold battery only works less well, it is a warning, not an error.
+  EXPECT_FALSE(battery_->HasErrorMsg());
+  EXPECT_TRUE(battery_->HasWarningMsg());
+
+  // The warning clears once the battery warms up and the moving average follows.
+  for (int i = 0; i < 10; ++i) {
+    UpdateBattery(1.5, 0.01, 1.6, 0.5, false);
+  }
+  EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD, battery_state_.power_supply_health);
+  EXPECT_FALSE(battery_->HasWarningMsg());
 }
 
 TEST_F(TestADCBattery, BatteryMsgStatusFull)

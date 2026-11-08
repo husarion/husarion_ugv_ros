@@ -26,6 +26,9 @@ set(PACKAGE_DEPENDENCIES
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
 endforeach()
+# Only the safety manager uses it, not in PACKAGE_DEPENDENCIES, which every BT
+# plugin links.
+find_package(diagnostic_updater REQUIRED)
 
 include_directories(include)
 
@@ -75,17 +78,20 @@ foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${PACKAGE_DEPENDENCIES})
 endforeach()
 
-add_executable(safety_manager_node src/safety_manager_node_main.cpp
-                                   src/safety_manager_node.cpp)
+add_executable(
+  safety_manager_node src/safety_manager_node_main.cpp
+                      src/safety_manager_node.cpp src/uvp_reaction.cpp)
 ament_target_dependencies(
   safety_manager_node
   behaviortree_ros2
+  diagnostic_updater
   geometry_msgs
   husarion_ugv_msgs
   husarion_ugv_utils
   rclcpp
   sensor_msgs
   std_msgs
+  std_srvs
   tf2_geometry_msgs)
 
 generate_parameter_library(safety_manager_parameters
@@ -272,8 +278,9 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_lights_behavior_tree
                         lights_manager_parameters)
 
-  ament_add_gtest(${PROJECT_NAME}_test_safety_manager_node
-                  test/test_safety_manager_node.cpp src/safety_manager_node.cpp)
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_safety_manager_node test/test_safety_manager_node.cpp
+    src/safety_manager_node.cpp src/uvp_reaction.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_safety_manager_node
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -282,19 +289,22 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_manager_node
     behaviortree_cpp
     behaviortree_ros2
+    diagnostic_updater
     geometry_msgs
     husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp
     sensor_msgs
     std_msgs
+    std_srvs
     tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_manager_node
                         safety_manager_parameters OpenSSL::SSL)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_safety_behavior_tree
-    test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp)
+    test/test_safety_behavior_tree.cpp src/safety_manager_node.cpp
+    src/uvp_reaction.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_safety_behavior_tree
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -303,6 +313,7 @@ if(BUILD_TESTING)
     ${PROJECT_NAME}_test_safety_behavior_tree
     behaviortree_cpp
     behaviortree_ros2
+    diagnostic_updater
     geometry_msgs
     husarion_ugv_msgs
     husarion_ugv_utils
@@ -312,6 +323,38 @@ if(BUILD_TESTING)
     std_srvs
     tf2_geometry_msgs)
   target_link_libraries(${PROJECT_NAME}_test_safety_behavior_tree
+                        safety_manager_parameters OpenSSL::SSL)
+
+  ament_add_gtest(${PROJECT_NAME}_test_uvp_reaction test/test_uvp_reaction.cpp
+                  src/uvp_reaction.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_uvp_reaction
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_safety_manager_uvp test/test_safety_manager_uvp.cpp
+    src/safety_manager_node.cpp src/uvp_reaction.cpp)
+  set_tests_properties(${PROJECT_NAME}_test_safety_manager_uvp
+                       PROPERTIES TIMEOUT 120)
+  target_include_directories(
+    ${PROJECT_NAME}_test_safety_manager_uvp
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_safety_manager_uvp
+    behaviortree_cpp
+    behaviortree_ros2
+    diagnostic_updater
+    geometry_msgs
+    husarion_ugv_msgs
+    husarion_ugv_utils
+    rclcpp
+    sensor_msgs
+    std_msgs
+    std_srvs
+    tf2_geometry_msgs)
+  target_link_libraries(${PROJECT_NAME}_test_safety_manager_uvp
                         safety_manager_parameters OpenSSL::SSL)
 endif()
 

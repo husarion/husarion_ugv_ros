@@ -92,6 +92,11 @@ safety_manager:
     default_value: ""
     description: Path to a YAML file containing a list of hosts to request shutdown. To correctly format the YAML file, consult the README.
 
+  uvp_enable:
+    type: bool
+    default_value: false
+    description: Act on the battery undervoltage protection published by the battery driver on battery/protection.
+
   timer_frequency:
     type: double
     default_value: 10.0

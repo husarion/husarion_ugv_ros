@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
 #include <cstdint>
+#include <future>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -94,6 +97,10 @@ public:
   {
     return mock_e_stop_;
   }
+
+  bool HasSystemROSInterface() const { return system_ros_interface_ != nullptr; }
+  bool HasEStop() const { return e_stop_ != nullptr; }
+  bool HasGPIOController() const { return gpio_controller_ != nullptr; }
 
   using NiceMock = testing::NiceMock<MockUGVSystem>;
 
@@ -209,6 +216,169 @@ TEST_F(TestUGVSystem, OnShutdown)
   EXPECT_EQ(callback_return, hardware_interface::CallbackReturn::SUCCESS);
 
   rclcpp::shutdown();
+}
+
+void ExpectTeardownOrder(MockUGVSystem & ugv_system)
+{
+  // The driver is deinitialized once nothing can call into it, and the GPIO controller, which cuts
+  // motor power when destroyed, goes after the driver.
+  testing::InSequence sequence;
+  // The e-stop refuses resets before the watchdog stops, so none can turn it on again. The ROS
+  // interface goes before the GPIO monitor, so no service callback reads a stopped monitor.
+  EXPECT_CALL(*ugv_system.GetMockEStop(), Close()).WillOnce(testing::Invoke([&]() {
+    EXPECT_TRUE(ugv_system.HasSystemROSInterface());
+  }));
+  EXPECT_CALL(ugv_system.GetMockGPIOController()->GetMockGPIODriver(), GPIOMonitorDisable())
+    .WillOnce(testing::Invoke([&]() { EXPECT_FALSE(ugv_system.HasSystemROSInterface()); }));
+  EXPECT_CALL(*ugv_system.GetMockRobotDriver(), Deinitialize()).WillOnce(testing::Invoke([&]() {
+    EXPECT_FALSE(ugv_system.HasSystemROSInterface());
+    EXPECT_FALSE(ugv_system.HasEStop());
+    EXPECT_TRUE(ugv_system.HasGPIOController());
+  }));
+}
+
+TEST_F(TestUGVSystem, OnShutdownTearsDownCallersBeforeCallees)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop());
+  ExpectTeardownOrder(*ugv_system_);
+  EXPECT_EQ(
+    ugv_system_->on_shutdown(rclcpp_lifecycle::State()),
+    hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_FALSE(ugv_system_->HasGPIOController());
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, OnCleanupTearsDownCallersBeforeCallees)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  ExpectTeardownOrder(*ugv_system_);
+  EXPECT_EQ(
+    ugv_system_->on_cleanup(rclcpp_lifecycle::State()),
+    hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_FALSE(ugv_system_->HasGPIOController());
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, OnErrorTearsDownCallersBeforeCallees)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop());
+  ExpectTeardownOrder(*ugv_system_);
+  EXPECT_EQ(
+    ugv_system_->on_error(rclcpp_lifecycle::State()), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_FALSE(ugv_system_->HasGPIOController());
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, OnErrorAndShutdownAfterConfigureFailedEarly)
+{
+  // The driver fails to initialize, so configure returns before the e-stop exists.
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ON_CALL(*ugv_system_->GetMockRobotDriver(), Initialize())
+    .WillByDefault(::testing::Throw(std::runtime_error("CAN bus not available")));
+  ASSERT_EQ(
+    ugv_system_->on_configure(rclcpp_lifecycle::State()),
+    hardware_interface::CallbackReturn::ERROR);
+  ASSERT_FALSE(ugv_system_->HasEStop());
+
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop()).Times(0);
+  EXPECT_EQ(
+    ugv_system_->on_error(rclcpp_lifecycle::State()), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_EQ(
+    ugv_system_->on_shutdown(rclcpp_lifecycle::State()),
+    hardware_interface::CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestUGVSystem, OnErrorTearsDownWhenTheTriggerFails)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  EXPECT_CALL(*ugv_system_->GetMockEStop(), TriggerEStop())
+    .WillOnce(::testing::Throw(std::runtime_error("GPIO write failed")));
+  ExpectTeardownOrder(*ugv_system_);
+  EXPECT_EQ(
+    ugv_system_->on_error(rclcpp_lifecycle::State()), hardware_interface::CallbackReturn::ERROR);
+  EXPECT_FALSE(ugv_system_->HasGPIOController());
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, GPIOEdgeCallbackDuringTeardown)
+{
+  rclcpp::init(0, nullptr);
+
+  // The edge callback runs on the GPIO monitor thread and on any SetPinValue() caller. One that
+  // keeps firing while the component tears down must neither crash nor publish afterwards.
+  std::function<void(const husarion_ugv_hardware_interfaces::GPIOInfo &)> edge_callback;
+  ON_CALL(
+    ugv_system_->GetMockGPIOController()->GetMockGPIODriver(),
+    ConfigureEdgeEventCallback(testing::_))
+    .WillByDefault(testing::SaveArg<0>(&edge_callback));
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_TRUE(edge_callback);
+
+  std::atomic_bool stop{false};
+  auto firing = std::async(std::launch::async, [&]() {
+    const husarion_ugv_hardware_interfaces::GPIOInfo info{
+      husarion_ugv_hardware_interfaces::GPIOPin::FAN_SW, gpiod::line::direction::OUTPUT};
+    while (!stop) {
+      edge_callback(info);
+    }
+  });
+  EXPECT_EQ(
+    ugv_system_->on_shutdown(rclcpp_lifecycle::State()),
+    hardware_interface::CallbackReturn::SUCCESS);
+  stop = true;
+  firing.get();
+  EXPECT_FALSE(ugv_system_->HasSystemROSInterface());
+
+  rclcpp::shutdown();
+}
+
+TEST(TestSystemROSInterfaceDiagnostics, ThrowingTaskReportsStale)
+{
+  auto task = husarion_ugv_hardware_interfaces::SystemROSInterface::ReportStaleOnException(
+    [](diagnostic_updater::DiagnosticStatusWrapper &) {
+      throw std::runtime_error("driver deinitialized");
+    });
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  EXPECT_NO_THROW(task(status));
+  EXPECT_EQ(status.level, diagnostic_updater::DiagnosticStatusWrapper::STALE);
+  EXPECT_EQ(status.message, "Diagnostic task failed: driver deinitialized");
+}
+
+TEST(TestSystemROSInterfaceDiagnostics, TaskThatSucceedsIsUnchanged)
+{
+  auto task = husarion_ugv_hardware_interfaces::SystemROSInterface::ReportStaleOnException(
+    [](diagnostic_updater::DiagnosticStatusWrapper & status) {
+      status.summary(diagnostic_updater::DiagnosticStatusWrapper::WARN, "warn");
+    });
+
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  task(status);
+  EXPECT_EQ(status.level, diagnostic_updater::DiagnosticStatusWrapper::WARN);
+  EXPECT_EQ(status.message, "warn");
 }
 
 TEST_F(TestUGVSystem, OnError)

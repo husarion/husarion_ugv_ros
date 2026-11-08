@@ -40,6 +40,7 @@ public:
   virtual ~GPIODriverInterface() = default;
   virtual void GPIOMonitorEnable(
     const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60) = 0;
+  virtual void GPIOMonitorDisable() = 0;
   virtual void ConfigureEdgeEventCallback(
     const std::function<void(const GPIOInfo &)> & callback) = 0;
   virtual void ChangePinDirection(const GPIOPin pin, const gpiod::line::direction direction) = 0;
@@ -109,6 +110,12 @@ public:
    */
   void GPIOMonitorEnable(
     const bool use_rt = false, const unsigned gpio_monit_thread_sched_priority = 60) override;
+
+  /**
+   * @brief Stops the GPIO monitor thread and waits for it to exit. No edge event callback runs
+   * after this returns.
+   */
+  void GPIOMonitorDisable() override;
 
   /**
    * @brief This method sets the provided callback function to be executed upon GPIO edge events.

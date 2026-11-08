@@ -99,6 +99,12 @@ public:
 
   virtual void Start() = 0;
 
+  /**
+   * @brief Stops the GPIO monitor thread, so no GPIO event callback runs from it after this
+   * returns. SetPinValue() still runs the callback on the caller's thread.
+   */
+  virtual void Stop();
+
   virtual void EStopTrigger() = 0;
   virtual void EStopReset() = 0;
 
@@ -160,6 +166,12 @@ public:
    * @brief Initializes the GPIODriver, Watchdog, and powers on the motors.
    */
   void Start() override;
+
+  /**
+   * @brief Turns off the Watchdog, which reads pins through the monitor, then stops the GPIO
+   * monitor thread.
+   */
+  void Stop() override;
 
   /**
    * @brief Disables the Watchdog thread for E-stop mechanism trigger.

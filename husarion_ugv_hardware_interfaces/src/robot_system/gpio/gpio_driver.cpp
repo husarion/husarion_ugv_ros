@@ -66,6 +66,8 @@ void GPIODriver::GPIOMonitorEnable(
   GPIOMonitorOn();
 }
 
+void GPIODriver::GPIOMonitorDisable() { GPIOMonitorOff(); }
+
 void GPIODriver::ConfigureEdgeEventCallback(const std::function<void(const GPIOInfo &)> & callback)
 {
   if (!IsGPIOMonitorThreadRunning()) {

@@ -15,6 +15,7 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
@@ -94,6 +95,7 @@ protected:
   void ConfigureRobotDriver();
   virtual void DefineRobotDriver() = 0;
   virtual void ConfigureEStop();  // virtual for mocking
+  void DestroyComponents();
   void TriggerEStopServiceCall();
   void ResetEStop();
 
@@ -104,6 +106,8 @@ protected:
   virtual void UpdateHwStates() = 0;
   virtual void UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
   bool AreVelocityCommandsNearZero();
+  // Whether a motor controller of this robot reports its emergency stop fault.
+  bool IsRoboteqEStopSet();
 
   virtual void UpdateDriverStateMsg() = 0;
   virtual void UpdateFlagErrors() = 0;               // possible but needs changes in robot driver
@@ -143,6 +147,9 @@ protected:
   CANopenSettings canopen_settings_;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
+  // What the GPIO edge callback publishes through, cleared before system_ros_interface_ is reset.
+  std::mutex ros_interface_for_callbacks_mtx_;
+  SystemROSInterface * ros_interface_for_callbacks_ = nullptr;
 
   // Sometimes SDO errors can happen during initialization and activation of Roboteq drivers,
   // in these cases it is better to retry

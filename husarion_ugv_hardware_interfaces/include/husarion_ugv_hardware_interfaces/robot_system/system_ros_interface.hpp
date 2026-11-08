@@ -16,9 +16,11 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_SYSTEM_ROS_INTERFACE_HPP_
 
 #include <any>
+#include <exception>
 #include <functional>
 #include <map>
 #include <memory>
+#include <string>
 #include <thread>
 #include <unordered_map>
 
@@ -193,7 +195,8 @@ public:
   }
 
   /**
-   * @brief Adds a new diagnostic task.
+   * @brief Adds a new diagnostic task. A task that throws reports STALE with the error message,
+   * because an exception escaping the diagnostic updater timer terminates the process.
    *
    * @param name The name of the diagnostic task.
    * @param task_owner A pointer to the object that posses the diagnostic task member function.
@@ -204,7 +207,28 @@ public:
     const std::string & name, T * task_owner,
     void (T::*task_fcn)(diagnostic_updater::DiagnosticStatusWrapper &))
   {
-    diagnostic_updater_.add(name, task_owner, task_fcn);
+    diagnostic_updater_.add(
+      name, ReportStaleOnException(
+              [task_owner, task_fcn](diagnostic_updater::DiagnosticStatusWrapper & status) {
+                (task_owner->*task_fcn)(status);
+              }));
+  }
+
+  /**
+   * @brief Wraps a diagnostic task so that an exception it throws becomes a STALE status.
+   */
+  static diagnostic_updater::TaskFunction ReportStaleOnException(
+    diagnostic_updater::TaskFunction task)
+  {
+    return [task](diagnostic_updater::DiagnosticStatusWrapper & status) {
+      try {
+        task(status);
+      } catch (const std::exception & e) {
+        status.summary(
+          diagnostic_updater::DiagnosticStatusWrapper::STALE,
+          "Diagnostic task failed: " + std::string(e.what()));
+      }
+    };
   }
 
   /**

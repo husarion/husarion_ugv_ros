@@ -132,8 +132,19 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
   system_ros_interface_->AddDiagnosticTask(
     std::string("system status"), this, &UGVSystem::DiagnoseStatus);
 
-  gpio_controller_->RegisterGPIOEventCallback(
-    [this](const auto & state) { system_ros_interface_->PublishIOState(state); });
+  // The callback runs on the GPIO monitor thread and on the thread of any SetPinValue() caller,
+  // also while the teardown resets the ROS interface. It publishes under a mutex the teardown
+  // takes to clear the pointer, so a call in flight finishes before the interface goes.
+  {
+    std::lock_guard<std::mutex> lck(ros_interface_for_callbacks_mtx_);
+    ros_interface_for_callbacks_ = system_ros_interface_.get();
+  }
+  gpio_controller_->RegisterGPIOEventCallback([this](const auto & state) {
+    std::lock_guard<std::mutex> lck(ros_interface_for_callbacks_mtx_);
+    if (ros_interface_for_callbacks_) {
+      ros_interface_for_callbacks_->PublishIOState(state);
+    }
+  });
 
   const auto io_state = gpio_controller_->QueryControlInterfaceIOStates();
   system_ros_interface_->InitializeAndPublishIOStateMsg(io_state);
@@ -145,13 +156,7 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_cleanup(const rclcpp_lifecycle::State &)
 {
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
-
-  gpio_controller_.reset();
-
-  system_ros_interface_.reset();
-  e_stop_.reset();
+  DestroyComponents();
 
   return CallbackReturn::SUCCESS;
 }
@@ -176,50 +181,48 @@ CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
 {
-  try {
-    RCLCPP_INFO(logger_, "Triggering E-Stop due to shutdown.");
-    e_stop_->TriggerEStop();
-  } catch (const std::runtime_error & e) {
-    RCLCPP_ERROR_STREAM(logger_, "Shutdown failed: " << e.what());
-    return CallbackReturn::ERROR;
+  // e_stop_ is null when configure failed before it was created. A failed trigger still tears
+  // down, which latches the e-stop through the watchdog anyway.
+  bool trigger_failed = false;
+  if (e_stop_) {
+    try {
+      RCLCPP_INFO(logger_, "Triggering E-Stop due to shutdown.");
+      e_stop_->TriggerEStop();
+    } catch (const std::runtime_error & e) {
+      RCLCPP_ERROR_STREAM(logger_, "Shutdown failed: " << e.what());
+      trigger_failed = true;
+    }
   }
 
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
+  DestroyComponents();
 
-  gpio_controller_.reset();
-
-  system_ros_interface_.reset();
-  e_stop_.reset();
-
-  return CallbackReturn::SUCCESS;
+  return trigger_failed ? CallbackReturn::ERROR : CallbackReturn::SUCCESS;
 }
 
 CallbackReturn UGVSystem::on_error(const rclcpp_lifecycle::State &)
 {
-  try {
-    RCLCPP_WARN(logger_, "Triggering E-Stop due to error.");
-    e_stop_->TriggerEStop();
-  } catch (const std::runtime_error & e) {
-    RCLCPP_ERROR_STREAM(logger_, "Handling error failed: " << e.what());
-    return CallbackReturn::ERROR;
+  // e_stop_ is null when configure failed before it was created. A failed trigger still tears
+  // down, which latches the e-stop through the watchdog anyway.
+  bool trigger_failed = false;
+  if (e_stop_) {
+    try {
+      RCLCPP_WARN(logger_, "Triggering E-Stop due to error.");
+      e_stop_->TriggerEStop();
+    } catch (const std::runtime_error & e) {
+      RCLCPP_ERROR_STREAM(logger_, "Handling error failed: " << e.what());
+      trigger_failed = true;
+    }
   }
 
   if (system_ros_interface_) {
     system_ros_interface_->BroadcastOnDiagnosticTasks(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
       "An error has occurred during a node state transition.");
-
-    system_ros_interface_.reset();
   }
 
-  robot_driver_->Deinitialize();
-  robot_driver_.reset();
+  DestroyComponents();
 
-  gpio_controller_.reset();
-  e_stop_.reset();
-
-  return CallbackReturn::SUCCESS;
+  return trigger_failed ? CallbackReturn::ERROR : CallbackReturn::SUCCESS;
 }
 
 std::vector<StateInterface> UGVSystem::export_state_interfaces()
@@ -455,9 +458,55 @@ void UGVSystem::ConfigureEStop()
 
   e_stop_ = std::make_shared<EStop>(
     gpio_controller_, roboteq_error_filter_, robot_driver_, robot_driver_write_mtx_,
-    std::bind(&UGVSystem::AreVelocityCommandsNearZero, this));
+    std::bind(&UGVSystem::AreVelocityCommandsNearZero, this),
+    std::bind(&UGVSystem::IsRoboteqEStopSet, this));
 
   RCLCPP_INFO(logger_, "Successfully configured E-Stop");
+}
+
+bool UGVSystem::IsRoboteqEStopSet()
+{
+  for (const auto & [name, can_id] : canopen_settings_.driver_can_ids) {
+    try {
+      if (robot_driver_->GetData(name).GetFaultFlag().IsEmergencyStopSet()) {
+        return true;
+      }
+    } catch (const std::exception &) {
+      // Not a driver of this robot.
+    }
+  }
+  return false;
+}
+
+void UGVSystem::DestroyComponents()
+{
+  // Order matters: close the e-stop (no reset after it) -> ROS interface (joins its executor, so
+  // no service callback runs into a stopped GPIO monitor) -> GPIO monitor and watchdog -> e-stop
+  // -> driver -> GPIO controller, whose destruction drives VMOT_ON and DRIVER_EN to their init
+  // values, so it must outlive the CANopen master.
+  if (e_stop_) {
+    try {
+      e_stop_->Close();
+    } catch (const std::runtime_error & e) {
+      RCLCPP_ERROR_STREAM(logger_, "Closing the E-stop failed: " << e.what());
+    }
+  }
+  {
+    std::lock_guard<std::mutex> lck(ros_interface_for_callbacks_mtx_);
+    ros_interface_for_callbacks_ = nullptr;
+  }
+  system_ros_interface_.reset();
+  if (gpio_controller_) {
+    gpio_controller_->Stop();
+  }
+  e_stop_.reset();
+
+  if (robot_driver_) {
+    robot_driver_->Deinitialize();
+    robot_driver_.reset();
+  }
+
+  gpio_controller_.reset();
 }
 
 void UGVSystem::TriggerEStopServiceCall()
@@ -554,14 +603,14 @@ bool UGVSystem::AreVelocityCommandsNearZero()
 
 void UGVSystem::MotorTorqueEnable(const bool enable)
 {
-  const bool e_stop = e_stop_->ReadEStopState();
-  if (!e_stop) {
-    throw std::runtime_error("Can't enable/disable torque when E-Stop is not triggered.");
-  }
-
   try {
     {
+      // Checked under the write mutex, which a reset takes for its release, so the check and the
+      // write are not split by one.
       std::lock_guard<std::mutex> lck_g(*robot_driver_write_mtx_);
+      if (!e_stop_->ReadEStopState()) {
+        throw std::invalid_argument("Can't enable/disable torque when E-Stop is not triggered.");
+      }
 
       if (!enable) {
         robot_driver_->TurnOnEStop();
@@ -577,6 +626,8 @@ void UGVSystem::MotorTorqueEnable(const bool enable)
                 std::string(e.what());
     RCLCPP_WARN_STREAM(logger_, warn);
     throw std::runtime_error(warn);
+  } catch (const std::invalid_argument & e) {
+    throw std::runtime_error(e.what());
   }
 }
 

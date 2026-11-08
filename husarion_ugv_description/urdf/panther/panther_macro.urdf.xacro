@@ -19,7 +19,8 @@
             canopen_thread_cpu:=-1
             rpdo_dispatch_cpu:=-1
             gpio_watchdog_cpu:=-1
-            gpio_monitor_cpu:=-1">
+            gpio_monitor_cpu:=-1
+            uvp_enable:=false">
 
     <xacro:if value="${use_sim}">
       <xacro:property name="imu_xyz" value="-0.195 0.010 0.085" />
@@ -123,6 +124,9 @@
           <param name="rpdo_dispatch_cpu">${rpdo_dispatch_cpu}</param>
           <param name="gpio_watchdog_cpu">${gpio_watchdog_cpu}</param>
           <param name="gpio_monitor_cpu">${gpio_monitor_cpu}</param>
+          <xacro:if value="${uvp_enable}">
+            <param name="uvp_enable">true</param>
+          </xacro:if>
         </xacro:unless>
       </hardware>
 

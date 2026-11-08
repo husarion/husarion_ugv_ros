@@ -17,6 +17,10 @@
 
 import os
 
+from husarion_ugv_utils.battery_protection import (
+    declare_uvp_arguments,
+    uvp_launch_arguments,
+)
 from husarion_ugv_utils.messages import (
     ErrorMessages,
     error_msg,
@@ -93,6 +97,10 @@ def generate_launch_description():
         description="Add namespace to all launched nodes.",
     )
 
+    # The battery undervoltage protection, off unless uvp_enable is set. The battery driver gets
+    # every setting, the other parts only the switch.
+    uvp_enable = LaunchConfiguration("uvp_enable")
+
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
     robot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="----")
     robot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
@@ -108,6 +116,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -143,7 +152,11 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_battery"), "launch", "battery.launch.py"]
             ),
         ),
-        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
+        launch_arguments={
+            "log_level": log_level,
+            "namespace": namespace,
+            **uvp_launch_arguments(),
+        }.items(),
     )
 
     ekf_launch = IncludeLaunchDescription(
@@ -171,6 +184,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -241,6 +255,7 @@ def generate_launch_description():
         declare_ekf_print_diagnostics_arg,
         declare_log_level_arg,
         declare_namespace_arg,
+        *declare_uvp_arguments(),
         welcome_info,
         incorrect_hw_config_action,
         incorrect_os_version_action,

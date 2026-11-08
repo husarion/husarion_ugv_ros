@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from husarion_ugv_utils.battery_protection import declare_uvp_arguments, uvp_parameters
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
@@ -51,27 +52,32 @@ def generate_launch_description():
         description="Specify the path to the system monitor configuration file.",
     )
 
-    battery_driver_node = Node(
-        package="husarion_ugv_battery",
-        executable="battery_driver_node",
-        name="battery_driver",
-        parameters=[battery_config_path],
-        namespace=namespace,
-        remappings=[("/diagnostics", "diagnostics")],
-        arguments=[
-            "--ros-args",
-            "--log-level",
-            log_level,
-            "--log-level",
-            limit_log_level_to_info("rcl", log_level),
-        ],
-    )
+    def battery_driver_node(context):
+        # The uvp arguments that are set override the battery YAML, the others leave it alone.
+        return [
+            Node(
+                package="husarion_ugv_battery",
+                executable="battery_driver_node",
+                name="battery_driver",
+                parameters=[battery_config_path, uvp_parameters(context)],
+                namespace=namespace,
+                remappings=[("/diagnostics", "diagnostics")],
+                arguments=[
+                    "--ros-args",
+                    "--log-level",
+                    log_level,
+                    "--log-level",
+                    limit_log_level_to_info("rcl", log_level),
+                ],
+            )
+        ]
 
     actions = [
         declare_log_level_arg,
         declare_namespace_arg,
         declare_battery_config_path_arg,
-        battery_driver_node,
+        *declare_uvp_arguments(),
+        OpaqueFunction(function=battery_driver_node),
     ]
 
     return LaunchDescription(actions)

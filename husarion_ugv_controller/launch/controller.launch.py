@@ -143,6 +143,17 @@ def generate_launch_description():
         description="CPU the GPIO monitor thread pins itself to. -1 leaves it unpinned",
     )
 
+    uvp_enable = LaunchConfiguration("uvp_enable")
+    declare_uvp_enable_arg = DeclareLaunchArgument(
+        "uvp_enable",
+        default_value="False",
+        description=(
+            "Enable the battery undervoltage protection. The hardware system then latches the"
+            " e-stop when the battery driver reports a UVP trip."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -216,6 +227,7 @@ def generate_launch_description():
             "rpdo_dispatch_cpu": rpdo_dispatch_cpu,
             "gpio_watchdog_cpu": gpio_watchdog_cpu,
             "gpio_monitor_cpu": gpio_monitor_cpu,
+            "uvp_enable": uvp_enable,
         }.items(),
     )
 
@@ -334,6 +346,7 @@ def generate_launch_description():
         declare_rpdo_dispatch_cpu_arg,
         declare_gpio_watchdog_cpu_arg,
         declare_gpio_monitor_cpu_arg,
+        declare_uvp_enable_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

@@ -25,6 +25,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -103,6 +104,17 @@ def generate_launch_description():
         description="Whether simulation is used",
     )
 
+    uvp_enable = LaunchConfiguration("uvp_enable")
+    declare_uvp_enable_arg = DeclareLaunchArgument(
+        "uvp_enable",
+        default_value="False",
+        description=(
+            "Enable the battery undervoltage protection reactions: the UVP shutdown in the safety"
+            " manager and the charge ASAP animation in the lights manager."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     lights_manager_node = Node(
         package="husarion_ugv_manager",
         executable="lights_manager_node",
@@ -111,6 +123,7 @@ def generate_launch_description():
             PathJoinSubstitution([husarion_ugv_manager_pkg, "config", "lights_manager.yaml"]),
             {
                 "bt_project_path": lights_bt_project_path,
+                "uvp_enable": ParameterValue(uvp_enable, value_type=bool),
             },
         ],
         namespace=namespace,
@@ -132,9 +145,11 @@ def generate_launch_description():
             {
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,
+                "uvp_enable": ParameterValue(uvp_enable, value_type=bool),
             },
         ],
         namespace=namespace,
+        remappings=[("/diagnostics", "diagnostics")],
         arguments=[
             "--ros-args",
             "--log-level",
@@ -153,6 +168,7 @@ def generate_launch_description():
         declare_namespace_arg,
         declare_shutdown_hosts_config_path_arg,
         declare_use_sim_arg,
+        declare_uvp_enable_arg,
         lights_manager_node,
         safety_manager_node,
     ]

@@ -14,6 +14,11 @@ Forthcoming
   after a process dies, delivers large samples whole and no longer splits after a cold boot
 * hardware image: the controller_manager statistics threads no longer poll at 2 kHz while nobody
   subscribes to the statistics topics
+* hardware image: every start copies the driver config files that are missing from ``/config``
+  and never overwrites one, so a deleted driver file comes back on the next start. Changed
+  defaults of files that already exist still need ``update_config_directory``
+* ``update_config_directory`` re-owns only what it writes and ``/config`` itself, no longer all
+  of ``/config``, and refuses unknown arguments
 
 2.3.2 (2026-06-25)
 ------------------

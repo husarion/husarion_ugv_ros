@@ -18,10 +18,17 @@ from launch.some_substitutions_type import SomeSubstitutionsType
 from launch.substitutions import PythonExpression
 
 
-def limit_log_level_to_info(unit: SomeSubstitutionsType, log_level: SomeSubstitutionsType):
-    log_level = PythonExpression(["'", log_level, "'.upper()'"])
+def normalize_log_level(log_level: SomeSubstitutionsType):
+    """Return a substitution that turns the WARNING alias into WARN.
 
-    if PythonExpression(["'", log_level, "' == 'DEBUG'"]):
-        return PythonExpression(["'", unit, "' + ':=' + 'INFO'"])
-    else:
-        return PythonExpression(["'", unit, "' + ':=' + ", log_level])
+    rcl parses only WARN, and a node given "--log-level WARNING" exits on argument parsing.
+    """
+    return PythonExpression(["'WARN' if '", log_level, "' == 'WARNING' else '", log_level, "'"])
+
+
+def limit_log_level_to_info(unit: SomeSubstitutionsType, log_level: SomeSubstitutionsType):
+    # The level is only known at launch time, so the DEBUG check runs inside the substitution.
+    log_level = normalize_log_level(log_level)
+    return PythonExpression(
+        ["'", unit, ":=' + ('INFO' if '", log_level, "' == 'DEBUG' else '", log_level, "')"]
+    )

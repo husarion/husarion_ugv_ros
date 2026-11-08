@@ -41,13 +41,15 @@ cd docker/demo
 
 ### 🤖 Robot
 
+On every start, the container copies the driver configuration files that are missing from `/config`, for example on the first run, after the robot model changed, or when a driver update added a file. This start-up copy never overwrites a file that exists, so a file you deleted from `/config` comes back on the next start, while your edits stay.
+
 1. (Optional) Updating configuration files.
 
    > [!NOTE]
-   > This may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
+   > The command below refreshes every file and may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
 
    ```bash
-   docker run --rm -v /home/husarion/config:/config husarion/panther:jazzy-<newest_tag> update_config_directory
+   docker run --rm -v /home/husarion/config:/config husarion/husarion-ugv:jazzy-<newest_tag> update_config_directory
    ```
 
 2. Activate Panther

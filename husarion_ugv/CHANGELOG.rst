@@ -10,6 +10,11 @@ Forthcoming
   are gone too
 * hardware image: without a terminal, PID 1 is the entrypoint shell, which runs the command as a
   child and forwards a SIGTERM stop to it as SIGINT
+* hardware image: every start copies the driver config files that are missing from ``/config``
+  and never overwrites one, so a deleted driver file comes back on the next start. Changed
+  defaults of files that already exist still need ``update_config_directory``
+* ``update_config_directory`` re-owns only what it writes and ``/config`` itself, no longer all
+  of ``/config``, and refuses unknown arguments
 
 2.3.2 (2026-06-25)
 ------------------

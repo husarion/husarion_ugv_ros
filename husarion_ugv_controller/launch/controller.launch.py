@@ -17,7 +17,12 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    Shutdown,
+)
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -245,7 +250,8 @@ def generate_launch_description():
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        load_urdf,
+        # Scoped so load_urdf's argument defaults do not leak into launches that include this file.
+        GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,
     ]

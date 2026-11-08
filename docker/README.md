@@ -58,6 +58,14 @@ On every start, the container copies the driver configuration files that are mis
    docker compose -f compose.hardware.yaml up
    ```
 
+   Extra bringup launch arguments can be passed in the `BRINGUP_EXTRA_ARGS` variable. They are appended to the default arguments, and the last value given for an argument wins, so they can also override a default such as `launch_gamepad:=false`:
+
+   ```bash
+   BRINGUP_EXTRA_ARGS="log_level:=WARN wheel_type:=WH05" docker compose -f compose.hardware.yaml up
+   ```
+
+   Compose reads the variable from the shell or from a `.env` file next to the compose file (a line `BRINGUP_EXTRA_ARGS=log_level:=WARN wheel_type:=WH05`), not from the service's `env_file`.
+
 3. Launch Visualization on PC
 
    ```bash

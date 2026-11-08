@@ -69,6 +69,7 @@ For a BehaviorTree project to work correctly, it must contain a tree with correc
   - `service_name` [*input*, *string*, default: **None**]: ROS service name.
 - `ShutdownHostsFromFile` - allows to shutdown devices based on a YAML file. Returns `SUCCESS` only when a YAML file is valid and the shutdown of all defined hosts was successful. Nodes are processed in a semi-parallel fashion. Every tick of the tree updates the state of a host. This allows some hosts to wait for a HTTP server response, while others are already pinged and awaiting a full shutdown. If a host is shutdown, it is no longer processed. In the case of a long timeout is used for a given host, other hosts will be processed simultaneously. The provided ports are:
   - `shutdown_host_file` [*input*, *string*, default: **None**]: global path to YAML file with hosts to shutdown.
+  - `timeout_override` [*input*, *float*, default: **None**]: optional upper bound in **[s]** of each host's `timeout` from the file. Unset, zero or negative keeps the timeouts from the file.
 - `ExecuteCommand` - allows to execute system command. Will return `SUCCESS` if command was executed successfully. The provided ports are:
   - `command` [*input*, *string*, default: **None**]: command to execute.
   - `timeout` [*input*, *string*, default: **None**]: time in **[s]** to wait for command execution. If this timeout is reached the process executing the command will be killed.

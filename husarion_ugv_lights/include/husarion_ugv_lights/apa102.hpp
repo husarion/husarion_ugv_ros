@@ -20,6 +20,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -159,6 +161,16 @@ private:
   static constexpr std::uint16_t kCorrGreen = 255;
   static constexpr std::uint16_t kCorrBlue = 240;
   static constexpr float kCorrectionGamma = 2.2;
+
+  struct GammaLUTs
+  {
+    std::array<std::uint8_t, 256> red;
+    std::array<std::uint8_t, 256> green;
+    std::array<std::uint8_t, 256> blue;
+  };
+
+  // Gamma and color correction per channel value, computed once instead of a pow() per byte.
+  static const GammaLUTs & GetGammaLUTs();
 
   SPIDeviceInterface::SharedPtr spi_device_;
   const std::string device_name_;

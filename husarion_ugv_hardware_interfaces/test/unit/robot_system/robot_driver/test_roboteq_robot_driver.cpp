@@ -497,6 +497,16 @@ TEST_F(TestRoboteqRobotDriver, TurnOnEStopError)
   EXPECT_THROW(robot_driver_->TurnOnEStop(), std::runtime_error);
 }
 
+TEST_F(TestRoboteqRobotDriver, TurnOnEStopLatchesEveryDriver)
+{
+  // A failed front latch must not leave the rear controller released.
+  EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOnEStop())
+    .WillOnce(::testing::Throw(std::runtime_error("SDO write not sent")));
+  EXPECT_CALL(*robot_driver_->mock_rear_driver, TurnOnEStop()).Times(1);
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
+    [&]() { robot_driver_->TurnOnEStop(); }, "Failed to turn on E-stop on front"));
+}
+
 TEST_F(TestRoboteqRobotDriver, TurnOffEStopError)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, TurnOffEStop())

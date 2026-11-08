@@ -80,12 +80,14 @@ class MockGPIOController : public husarion_ugv_hardware_interfaces::GPIOControll
 public:
   MockGPIOController() : GPIOControllerInterface()
   {
-    gpio_driver_ = std::make_shared<::testing::NiceMock<MockGPIODriver>>();
+    mock_gpio_driver_ = std::make_shared<::testing::NiceMock<MockGPIODriver>>();
+    gpio_driver_ = mock_gpio_driver_;
   }
 
   MOCK_METHOD(void, Start, (), (override));
   MOCK_METHOD(void, EStopTrigger, (), (override));
   MOCK_METHOD(void, EStopReset, (), (override));
+  MOCK_METHOD(void, InterruptEStopReset, (), (override));
   MOCK_METHOD(bool, MotorPowerEnable, (const bool), (override));
   MOCK_METHOD(bool, FanEnable, (const bool), (override));
   MOCK_METHOD(bool, AUXPowerEnable, (const bool), (override));
@@ -96,7 +98,12 @@ public:
     (std::unordered_map<husarion_ugv_hardware_interfaces::GPIOPin, bool>),
     QueryControlInterfaceIOStates, (), (const, override));
 
+  ::testing::NiceMock<MockGPIODriver> & GetMockGPIODriver() { return *mock_gpio_driver_; }
+
   using NiceMock = testing::NiceMock<MockGPIOController>;
+
+private:
+  std::shared_ptr<::testing::NiceMock<MockGPIODriver>> mock_gpio_driver_;
 };
 
 class MockEStop : public husarion_ugv_hardware_interfaces::EStopInterface
@@ -107,6 +114,7 @@ public:
   MOCK_METHOD(bool, ReadEStopState, (), (override));
   MOCK_METHOD(void, TriggerEStop, (), (override));
   MOCK_METHOD(void, ResetEStop, (), (override));
+  MOCK_METHOD(void, Close, (), (override));
 
   using NiceMock = testing::NiceMock<MockEStop>;
 };

@@ -16,6 +16,7 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_SYSTEM_E_STOP_HPP_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 
@@ -40,6 +41,10 @@ public:
   virtual bool ReadEStopState() = 0;
   virtual void TriggerEStop() = 0;
   virtual void ResetEStop() = 0;
+  /**
+   * @brief Triggers the emergency stop and refuses every later reset, for the teardown.
+   */
+  virtual void Close() = 0;
 };
 
 /**
@@ -53,13 +58,15 @@ public:
     std::shared_ptr<GPIOControllerInterface> gpio_controller,
     std::shared_ptr<RoboteqErrorFilter> roboteq_error_filter,
     std::shared_ptr<RobotDriverInterface> robot_driver,
-    std::shared_ptr<std::mutex> robot_driver_write_mtx, std::function<bool()> zero_velocity_check)
+    std::shared_ptr<std::mutex> robot_driver_write_mtx, std::function<bool()> zero_velocity_check,
+    std::function<bool()> roboteq_e_stop_set = {})
   : EStopInterface(),
     gpio_controller_(gpio_controller),
     roboteq_error_filter_(roboteq_error_filter),
     robot_driver_(robot_driver),
     robot_driver_write_mtx_(robot_driver_write_mtx),
-    ZeroVelocityCheck(zero_velocity_check) {};
+    ZeroVelocityCheck(zero_velocity_check),
+    RoboteqEStopSet(roboteq_e_stop_set) {};
 
   virtual ~EStop() override = default;
 
@@ -90,28 +97,52 @@ public:
   /**
    * @brief Resets the emergency stop.
    *
-   *   1. Verify that the last velocity commands are zero to prevent an uncontrolled robot movement
+   *   1. Release the E-stop of the motor controllers.
+   *   2. Wait for any trigger or state read in progress, and refuse if a trigger was requested
+   *      meanwhile or has not latched the line yet.
+   *   3. Verify that the last velocity commands are zero to prevent an uncontrolled robot movement
    *      after an E-stop state change.
-   *   2. Attempt to reset the E-Stop using GPIO by manipulating the ESTOP GPIO pin. This operation
+   *   4. Attempt to reset the E-Stop using GPIO by manipulating the ESTOP GPIO pin. This operation
    *      may take some time and can be interrupted by the E-Stop trigger process.
-   *   3. Set the clear_error flag to allow for clearing of Roboteq errors.
-   *   4. Confirm the E-Stop reset was successful with the ReadEStopState method.
+   *   5. Refuse if a trigger happened during the GPIO reset.
+   *   6. Set the clear_error flag to allow for clearing of Roboteq errors.
    *
-   * @throws EStopResetInterrupted if the E-stop reset operation was halted because the E-stop was
-   *         triggered again.
-   * @throws std::runtime_error if an error occurs when trying to reset the E-stop using GPIO.
+   * A refused reset of a latched E-stop latches the E-stop of the motor controllers again, so it
+   * leaves their torque disabled until the next successful reset.
+   *
+   * @throws std::runtime_error if the reset is refused, was halted because the E-stop was
+   *         triggered again, or an error occurs when trying to reset the E-stop using GPIO.
    */
   void ResetEStop() override;
 
+  /**
+   * @brief Triggers the E-stop and refuses every reset from then on. The teardown calls it before
+   * it stops the GPIO controller, so a reset still in flight cannot turn the watchdog on again.
+   *
+   * @throws std::runtime_error if triggering the E-stop using GPIO fails.
+   */
+  void Close() override;
+
 protected:
+  void ResetEStopImpl(const std::uint64_t triggers_before);
+  // True when a trigger was requested after triggers_before was read, or one is not applied yet.
+  bool TriggerSince(const std::uint64_t triggers_before) const;
+
   std::shared_ptr<GPIOControllerInterface> gpio_controller_;
   std::shared_ptr<RoboteqErrorFilter> roboteq_error_filter_;
   std::shared_ptr<RobotDriverInterface> robot_driver_;
   std::shared_ptr<std::mutex> robot_driver_write_mtx_;
 
   std::function<bool()> ZeroVelocityCheck;
+  // Whether a motor controller reports its emergency stop fault, read from its driver state.
+  std::function<bool()> RoboteqEStopSet;
 
   std::mutex e_stop_manipulation_mtx_;
+  // Software triggers, counted when requested and again once they hold the mutex, so a reset can
+  // tell that one came after it started or is still waiting to latch the line.
+  std::atomic<std::uint64_t> triggers_requested_{0};
+  std::atomic<std::uint64_t> triggers_applied_{0};
+  std::atomic_bool closed_ = false;
   std::atomic_bool e_stop_triggered_ = true;
   std::atomic_bool software_e_stop_triggered_ = true;
 };

@@ -176,14 +176,18 @@ const DriverData & RoboteqRobotDriver::GetData(const DriverNames name)
 
 void RoboteqRobotDriver::TurnOnEStop()
 {
+  // Every driver is latched even when an earlier one fails.
+  std::string errors;
   for (auto & [name, driver] : drivers_) {
     try {
       driver->TurnOnEStop();
     } catch (const std::runtime_error & e) {
-      throw std::runtime_error(
-        "Failed to turn on E-stop on " + DriverNamesToString(name) +
-        " driver: " + std::string(e.what()));
+      errors += (errors.empty() ? "" : " ") + std::string("Failed to turn on E-stop on ") +
+                DriverNamesToString(name) + " driver: " + std::string(e.what());
     }
+  }
+  if (!errors.empty()) {
+    throw std::runtime_error(errors);
   }
 }
 

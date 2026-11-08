@@ -6,7 +6,7 @@ The package is responsible for activating mods responsible for fusion of data re
 
 This package contains:
 
-- `localization.launch.py`: Responsible for activating EKF filtration along with the necessary dependencies needed to operate GPS.
+- `localization.launch.py`: Responsible for activating EKF filtration along with the necessary dependencies needed to operate GPS. The `ekf_print_diagnostics` launch argument (default **False**) sets `print_diagnostics` of the EKF unless the configuration file sets it, which robot_localization needs to count `odometry/filtered` messages for its frequency diagnostic. `bringup.launch.py` declares it too and passes it on.
 - `nmea_navsat.launch.py`: Responsible for launching the NMEA NavSat driver node.
 
 ## Configuration Files

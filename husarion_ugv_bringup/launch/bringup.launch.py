@@ -78,6 +78,14 @@ def generate_launch_description():
         description="Logging level",
     )
 
+    ekf_print_diagnostics = LaunchConfiguration("ekf_print_diagnostics")
+    declare_ekf_print_diagnostics_arg = DeclareLaunchArgument(
+        "ekf_print_diagnostics",
+        default_value="False",
+        description="Set print_diagnostics of the EKF, see the localization launch file.",
+        choices=["True", "true", "False", "false"],
+    )
+
     namespace = LaunchConfiguration("namespace")
     declare_namespace_arg = DeclareLaunchArgument(
         "namespace",
@@ -148,6 +156,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "ekf_print_diagnostics": ekf_print_diagnostics,
         }.items(),
     )
 
@@ -229,6 +238,7 @@ def generate_launch_description():
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_ekf_print_diagnostics_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,

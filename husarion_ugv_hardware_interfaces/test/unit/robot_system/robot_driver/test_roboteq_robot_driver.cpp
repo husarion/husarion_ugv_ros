@@ -149,10 +149,10 @@ TEST_F(TestRoboteqRobotDriverInitialization, Activate)
 {
   EXPECT_CALL(*robot_driver_->mock_front_driver, ResetScript()).Times(1);
   EXPECT_CALL(*robot_driver_->mock_rear_driver, ResetScript()).Times(1);
-  EXPECT_CALL(*robot_driver_->mock_fl_motor_driver, SendCmdVel(::testing::Eq(0))).Times(1);
-  EXPECT_CALL(*robot_driver_->mock_fr_motor_driver, SendCmdVel(::testing::Eq(0))).Times(1);
-  EXPECT_CALL(*robot_driver_->mock_rl_motor_driver, SendCmdVel(::testing::Eq(0))).Times(1);
-  EXPECT_CALL(*robot_driver_->mock_rr_motor_driver, SendCmdVel(::testing::Eq(0))).Times(1);
+  EXPECT_CALL(*robot_driver_->mock_fl_motor_driver, SendCmdVel(::testing::Eq(0))).Times(2);
+  EXPECT_CALL(*robot_driver_->mock_fr_motor_driver, SendCmdVel(::testing::Eq(0))).Times(2);
+  EXPECT_CALL(*robot_driver_->mock_rl_motor_driver, SendCmdVel(::testing::Eq(0))).Times(2);
+  EXPECT_CALL(*robot_driver_->mock_rr_motor_driver, SendCmdVel(::testing::Eq(0))).Times(2);
 
   ASSERT_NO_THROW(robot_driver_->Initialize());
   ASSERT_NO_THROW(robot_driver_->Activate());

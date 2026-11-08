@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdexcept>
+
 #include <gtest/gtest.h>
 
+#include <husarion_ugv_hardware_interfaces/robot_system/robot_driver/cmd_write_status.hpp>
 #include <husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_error_filter.hpp>
 
 TEST(TestRoboteqErrorFilter, InitialState)
@@ -210,6 +213,62 @@ TEST(TestRoboteqErrorFilter, ClearErrorsCounters)
   EXPECT_FALSE(roboteq_error_filter.IsError(ErrorsFilterIds::READ_PDO_MOTOR_STATES));
   EXPECT_FALSE(roboteq_error_filter.IsError(ErrorsFilterIds::READ_PDO_DRIVER_STATE));
   EXPECT_FALSE(roboteq_error_filter.IsError(ErrorsFilterIds::ROBOTEQ_DRIVER));
+}
+
+TEST(TestCmdWriteStatus, FailureStaysUntilAWriteSucceeds)
+{
+  husarion_ugv_hardware_interfaces::CmdWriteStatus status;
+  EXPECT_NO_THROW(status.ThrowIfFailed(0));
+
+  status.RecordFailure(0, "channel 1: write failed");
+  EXPECT_THROW(status.ThrowIfFailed(0), std::runtime_error);
+  // No write completed since, so the failure is still the newest result.
+  EXPECT_THROW(status.ThrowIfFailed(0), std::runtime_error);
+
+  status.RecordSuccess(0);
+  EXPECT_NO_THROW(status.ThrowIfFailed(0));
+}
+
+TEST(TestCmdWriteStatus, ChannelsAreIndependent)
+{
+  husarion_ugv_hardware_interfaces::CmdWriteStatus status;
+  status.RecordFailure(1, "channel 2: write failed");
+
+  EXPECT_NO_THROW(status.ThrowIfFailed(0));
+  try {
+    status.ThrowIfFailed(1);
+    FAIL() << "The failure of channel 2 was not reported.";
+  } catch (const std::runtime_error & e) {
+    EXPECT_STREQ(e.what(), "Velocity command write failed, channel 2: write failed");
+  }
+}
+
+TEST(TestCmdWriteStatus, LaggingFailedWritesReachTheFilter)
+{
+  using husarion_ugv_hardware_interfaces::ErrorsFilterIds;
+
+  // Count every control cycle the way UGVSystem::HandleRobotDriverWriteOperation does.
+  husarion_ugv_hardware_interfaces::RoboteqErrorFilter roboteq_error_filter(3, 2, 1, 1);
+  husarion_ugv_hardware_interfaces::CmdWriteStatus status;
+  const auto control_cycle = [&]() {
+    try {
+      status.ThrowIfFailed(0);
+      roboteq_error_filter.UpdateError(ErrorsFilterIds::WRITE_PDO_CMDS, false);
+    } catch (const std::runtime_error &) {
+      roboteq_error_filter.UpdateError(ErrorsFilterIds::WRITE_PDO_CMDS, true);
+    }
+  };
+
+  // The master runs the command task only every other cycle, and every write fails. A cycle
+  // whose task has not run yet must not reset the consecutive error count.
+  for (int cycle = 0; cycle < 4; ++cycle) {
+    if (cycle % 2 == 0) {
+      status.RecordFailure(0, "channel 1: write failed");
+    }
+    control_cycle();
+  }
+
+  EXPECT_TRUE(roboteq_error_filter.IsError(ErrorsFilterIds::WRITE_PDO_CMDS));
 }
 
 int main(int argc, char ** argv)

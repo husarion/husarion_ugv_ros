@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_manager/safety_manager_node.hpp"
 
+#include <syslog.h>
+
 #include <algorithm>
 #include <any>
 #include <chrono>
@@ -271,6 +273,8 @@ bool SafetyManagerNode::SystemReady()
 void SafetyManagerNode::ShutdownRobot(const std::string & reason)
 {
   RCLCPP_WARN(this->get_logger(), "Soft shutdown initialized. %s", reason.c_str());
+  // Also log to syslog, so a host-side syslog daemon keeps the reason.
+  syslog(LOG_DAEMON | LOG_WARNING, "Soft shutdown initialized. %s", reason.c_str());
   safety_tree_timer_->cancel();
   safety_tree_manager_->HaltTree();
 

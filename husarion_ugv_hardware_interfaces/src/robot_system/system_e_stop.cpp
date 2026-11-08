@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -23,9 +24,31 @@ namespace husarion_ugv_hardware_interfaces
 
 bool EStop::ReadEStopState()
 {
+  const char * edge_message = nullptr;
+
   if (e_stop_manipulation_mtx_.try_lock()) {
     std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_, std::adopt_lock);
     e_stop_triggered_ = !gpio_controller_->IsPinActive(GPIOPin::E_STOP_RESET);
+
+    // The hardware line is the only trace of a stop by something outside this driver. Report each
+    // edge once, the read runs at the control loop rate.
+    if (e_stop_triggered_ != hardware_line_latched_) {
+      hardware_line_latched_ = e_stop_triggered_;
+      // A software trigger stops the watchdog, and the safety board drops the line some tens of
+      // milliseconds later. That edge is ours.
+      if (hardware_line_latched_ && software_trigger_requested_) {
+        software_trigger_requested_ = false;
+        edge_message =
+          "E-Stop ASSERTED on the hardware line after the software trigger requested by this "
+          "driver.";
+      } else if (hardware_line_latched_) {
+        edge_message =
+          "E-Stop ASSERTED on the hardware line - stopped by a device outside this driver (e-stop "
+          "button, Roboteq fault or the safety board watchdog). No software trigger was requested.";
+      } else {
+        edge_message = "E-Stop hardware line released.";
+      }
+    }
 
     // In the case where E-Stop is triggered by another device within the robot's system (e.g.,
     // Roboteq or Safety Board), disabling the software Watchdog is necessary to prevent an
@@ -36,6 +59,11 @@ bool EStop::ReadEStopState()
     }
   }
 
+  // Written after the mutex is released, so a slow stderr never holds up a trigger or a reset.
+  if (edge_message) {
+    std::cerr << edge_message << std::endl;
+  }
+
   return e_stop_triggered_ || software_e_stop_triggered_;
 }
 
@@ -44,17 +72,27 @@ void EStop::TriggerEStop()
   triggers_requested_++;
   gpio_controller_->InterruptEStopReset();
 
-  std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
-  // Counted as applied under the mutex, so a reset holding it sees a trigger still waiting for it.
-  triggers_applied_++;
-  try {
-    software_e_stop_triggered_ = true;
-    gpio_controller_->EStopTrigger();
-  } catch (const std::runtime_error & e) {
-    throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
+  bool newly_triggered = false;
+  {
+    std::lock_guard<std::mutex> e_stop_lck(e_stop_manipulation_mtx_);
+    // Counted as applied under the mutex, so a reset holding it sees a trigger still waiting.
+    triggers_applied_++;
+    try {
+      newly_triggered = !software_e_stop_triggered_;
+      software_e_stop_triggered_ = true;
+      software_trigger_requested_ = true;
+      gpio_controller_->EStopTrigger();
+    } catch (const std::runtime_error & e) {
+      throw std::runtime_error("Setting E-stop failed: " + std::string(e.what()));
+    }
+
+    e_stop_triggered_ = true;
   }
 
-  e_stop_triggered_ = true;
+  // Only the trigger that latches it is logged: a communication error triggers on every cycle.
+  if (newly_triggered) {
+    std::cerr << "E-Stop triggered in software by this driver." << std::endl;
+  }
 }
 
 void EStop::Close()
@@ -99,6 +137,9 @@ void EStop::ResetEStop()
     }
     throw std::runtime_error(message);
   }
+
+  // The reset marks the line released itself, so the read path sees no edge for it.
+  std::cerr << "E-Stop reset, hardware line released." << std::endl;
 }
 
 bool EStop::TriggerSince(const std::uint64_t triggers_before) const
@@ -149,6 +190,9 @@ void EStop::ResetEStopImpl(const std::uint64_t triggers_before)
 
   e_stop_triggered_ = false;
   software_e_stop_triggered_ = false;
+  software_trigger_requested_ = false;
+  // EStopReset() saw the line released, so a latch right after this is a new edge.
+  hardware_line_latched_ = false;
 }
 
 }  // namespace husarion_ugv_hardware_interfaces

@@ -143,6 +143,11 @@ protected:
   std::atomic<std::uint64_t> triggers_requested_{0};
   std::atomic<std::uint64_t> triggers_applied_{0};
   std::atomic_bool closed_ = false;
+  // Last state seen on the hardware line, guarded by e_stop_manipulation_mtx_ like the next one.
+  bool hardware_line_latched_ = true;
+  // Set by TriggerEStop until the line edge it causes is reported or the E-stop is reset, so that
+  // edge is not blamed on an outside device.
+  bool software_trigger_requested_ = false;
   std::atomic_bool e_stop_triggered_ = true;
   std::atomic_bool software_e_stop_triggered_ = true;
 };

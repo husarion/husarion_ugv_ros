@@ -73,6 +73,11 @@ lights_manager:
     default_value: []
     description: A list with names of ROS plugins that are used in a BehaviorTree project.
 
+  uvp_enable:
+    type: bool
+    default_value: false
+    description: Show the CHARGE_ASAP animation while the battery undervoltage protection on battery/protection asks to charge.
+
   timer_frequency:
     type: double
     default_value: 10.0

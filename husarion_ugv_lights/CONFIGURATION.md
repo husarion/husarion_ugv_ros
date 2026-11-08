@@ -24,6 +24,9 @@ Basic led configuration is loaded from [`{robot_model}_animations.yaml`](config)
 |  15   | BLINKER_RIGHT     |    1     | ![BLINKER_RIGHT](.docs/blinker_right.webp)         |
 |  16   | GOAL_FAILED       |    1     | ![GOAL_FAILED](.docs/goal_failed.webp)             |
 |  17   | FLOOD_LIGHT       |    3     | ![FLOOD_LIGHT](.docs/flood_light.webp)             |
+|  18   | CHARGE_ASAP       |    1     | ![CHARGE_ASAP](.docs/charge_asap.webp)             |
+
+CHARGE_ASAP is shown by the lights manager only while the battery undervoltage protection is enabled and asks to charge the robot as soon as possible: two short orange flashes of the whole lights every 5 s. It plays on the alert layer, above the battery animations and below ERROR, and is sent again every 5 s because that layer plays an animation once. The alert layer is a queue that every priority-1 animation shares, a user's own included: the flash waits behind an animation that is playing, and an animation requested during the flash waits for at most 0.7 s. The layer plays nothing in a loop, so no repeating animation is cut off, but with the queue full (10 animations) a request is dropped with a "Queue is full" warning.
 
 The animations work on multiple layers (priorities) and can blend with each other. On a given layer, there can be only one animation at a time. Animations with a lower priority cover those with higher priority, while respecting transparency.
 

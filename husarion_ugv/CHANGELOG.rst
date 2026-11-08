@@ -2,6 +2,13 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* hardware image: ``/ros2_ws/src`` and ``build/`` are gone and the install space is no longer
+  symlinked, so a file bind-mounted over ``/ros2_ws/src`` is ignored. Mount it over
+  ``/ros2_ws/install/<pkg>/share/<pkg>/`` instead. The C toolchain and the build-only dependencies
+  are gone too
+
 2.3.2 (2026-06-25)
 ------------------
 * bump dependencies (`#656 <https://github.com/husarion/husarion_ugv_ros/issues/656>`_)

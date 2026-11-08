@@ -20,6 +20,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -46,6 +47,15 @@ BatteryDriverNode::BatteryDriverNode(
   this->param_listener_ =
     std::make_shared<battery::ParamListener>(this->get_node_parameters_interface());
   this->params_ = this->param_listener_->get_params();
+  uvp_params_ = DeclareUvpParameters(*this);
+  // Logged also with the protection off: a rejected uvp.enable is what turned it off.
+  for (const auto & note : uvp_params_.notes) {
+    if (note.level == UvpNoteLevel::ERROR) {
+      RCLCPP_ERROR_STREAM(this->get_logger(), note.text);
+    } else if (note.level == UvpNoteLevel::WARN) {
+      RCLCPP_WARN_STREAM(this->get_logger(), note.text);
+    }
+  }
 
   // Running at 10 Hz
   battery_pub_timer_ = this->create_wall_timer(
@@ -60,18 +70,31 @@ void BatteryDriverNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
 
+  bool adc_battery = false;
   try {
     InitializeWithADCBattery();
-    return;
+    adc_battery = true;
   } catch (const std::runtime_error & e) {
     RCLCPP_WARN_STREAM(
       this->get_logger(), "An exception occurred while initializing with ADC: "
                             << e.what()
                             << " Falling back to using Roboteq drivers to publish battery data.");
   }
-  InitializeWithRoboteqBattery();
+  if (!adc_battery) {
+    InitializeWithRoboteqBattery();
+    RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
+  }
 
-  RCLCPP_INFO(this->get_logger(), "Initialized successfully.");
+  // After the battery source is chosen, so a protection that fails to start cannot switch it.
+  std::vector<std::shared_ptr<Battery>> batteries{battery_1_};
+  if (battery_2_) {
+    batteries.push_back(battery_2_);
+  }
+  try {
+    InitializeProtection(batteries, adc_battery);
+  } catch (const std::runtime_error & e) {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "The battery protection could not start: " << e.what());
+  }
 }
 
 void BatteryDriverNode::InitializeWithADCBattery()
@@ -139,12 +162,35 @@ void BatteryDriverNode::InitializeWithRoboteqBattery()
     [&](const RobotDriverStateMsg::SharedPtr msg) { driver_state_ = msg; });
 
   battery_1_ = std::make_shared<RoboteqBattery>([&]() { return driver_state_; }, battery_params);
+  // A second battery left by a failed ADC initialization is not used.
+  battery_2_.reset();
 
   battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
     this->shared_from_this(), diagnostic_updater_, this->params_.battery_timeout, battery_1_,
     this->params_.low_battery_percentage);
 
   RCLCPP_INFO(this->get_logger(), "Initialized battery driver using motor controllers data.");
+}
+
+void BatteryDriverNode::InitializeProtection(
+  const std::vector<std::shared_ptr<Battery>> & batteries, const bool charging_detectable)
+{
+  if (!uvp_params_.enable) {
+    return;
+  }
+
+  ProtectionPublisher::Config config;
+  config.params = uvp_params_;
+  config.threshold = ResolveUvpThreshold(
+    uvp_params_.threshold, uvp_params_.hat_eeprom_path, &ReadTextFile);
+  config.charging_detectable = charging_detectable;
+  config.battery_timeout = params_.battery_timeout;
+  config.boot_id = ProtectionPublisher::ReadBootId();
+
+  battery_publisher_->SetUpdateEveryBattery(true);
+  protection_publisher_ = std::make_unique<ProtectionPublisher>(
+    this->shared_from_this(), diagnostic_updater_, batteries, config,
+    ProtectionPublisher::SystemClocks(this->get_clock()));
 }
 
 void BatteryDriverNode::BatteryPubTimerCB()
@@ -154,6 +200,9 @@ void BatteryDriverNode::BatteryPubTimerCB()
     return;
   }
   battery_publisher_->Publish();
+  if (protection_publisher_) {
+    protection_publisher_->Update();
+  }
 }
 
 }  // namespace husarion_ugv_battery

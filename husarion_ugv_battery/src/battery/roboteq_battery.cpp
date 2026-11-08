@@ -58,6 +58,13 @@ void RoboteqBattery::Update(const rclcpp::Time & header_stamp, const bool /* cha
 
   voltage_raw_ = voltage / driver_state_->driver_states.size();
   current_raw_ = current;
+  // The motor controllers have no thermistor, the voltage range is the only plausibility check.
+  if (voltage_observer_) {
+    voltage_observer_(voltage_raw_, true);
+  }
+  if (current_observer_) {
+    current_observer_(current_raw_);
+  }
   voltage_ma_->Roll(voltage_raw_);
   current_ma_->Roll(current_raw_);
 

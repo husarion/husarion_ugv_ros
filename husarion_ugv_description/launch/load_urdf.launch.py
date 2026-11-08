@@ -159,6 +159,32 @@ def generate_launch_description():
         description="CPU the GPIO monitor thread pins itself to. -1 leaves it unpinned",
     )
 
+    pdo_motor_states_timeout_ms = LaunchConfiguration("pdo_motor_states_timeout_ms")
+    declare_pdo_motor_states_timeout_ms_arg = DeclareLaunchArgument(
+        "pdo_motor_states_timeout_ms",
+        default_value="15",
+        description="Allowed age of the motor state PDOs in ms",
+    )
+
+    pdo_driver_state_timeout_ms = LaunchConfiguration("pdo_driver_state_timeout_ms")
+    declare_pdo_driver_state_timeout_ms_arg = DeclareLaunchArgument(
+        "pdo_driver_state_timeout_ms",
+        default_value="75",
+        description="Allowed age of the driver state PDOs in ms",
+    )
+
+    limit_tpdo_rates = LaunchConfiguration("limit_tpdo_rates")
+    declare_limit_tpdo_rates_arg = DeclareLaunchArgument(
+        "limit_tpdo_rates",
+        default_value="False",
+        description=(
+            "Write TPDO inhibit and event timers into the motor controllers at boot. It caps the"
+            " battery and temperature TPDO at about 25 Hz and gives the motor state TPDOs a 5 ms"
+            " timer"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -299,6 +325,14 @@ def generate_launch_description():
             gpio_watchdog_cpu,
             " gpio_monitor_cpu:=",
             gpio_monitor_cpu,
+            " pdo_motor_states_timeout_ms:=",
+            pdo_motor_states_timeout_ms,
+            " pdo_driver_state_timeout_ms:=",
+            pdo_driver_state_timeout_ms,
+            " limit_tpdo_rates:=",
+            PythonExpression(
+                ["'true' if '", limit_tpdo_rates, "' in ['True', 'true'] else 'false'"]
+            ),
         ]
     )
 
@@ -329,6 +363,9 @@ def generate_launch_description():
         declare_rpdo_dispatch_cpu_arg,
         declare_gpio_watchdog_cpu_arg,
         declare_gpio_monitor_cpu_arg,
+        declare_pdo_motor_states_timeout_ms_arg,
+        declare_pdo_driver_state_timeout_ms_arg,
+        declare_limit_tpdo_rates_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

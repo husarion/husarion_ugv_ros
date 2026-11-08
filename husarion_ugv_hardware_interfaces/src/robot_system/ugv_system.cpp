@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <diagnostic_updater/diagnostic_status_wrapper.hpp>
+#include <hardware_interface/lexical_casts.hpp>
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
 #include <rclcpp/logging.hpp>
 
@@ -400,6 +401,11 @@ void UGVSystem::ReadCANopenSettings()
     std::chrono::milliseconds(std::stoi(info_.hardware_parameters["pdo_driver_state_timeout_ms"]));
   canopen_settings_.sdo_operation_timeout_ms =
     std::chrono::milliseconds(std::stoi(info_.hardware_parameters["sdo_operation_timeout_ms"]));
+
+  // Optional, a robot description written before it existed keeps the stock TPDO rates.
+  const auto limit_tpdo_rates = info_.hardware_parameters.find("limit_tpdo_rates");
+  canopen_settings_.limit_tpdo_rates = limit_tpdo_rates != info_.hardware_parameters.end() &&
+                                       hardware_interface::parse_bool(limit_tpdo_rates->second);
 
   ReadCANopenSettingsDriverCANIDs();
 }

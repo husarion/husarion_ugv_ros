@@ -21,6 +21,9 @@
   <xacro:arg name="rpdo_dispatch_cpu" default="-1" />
   <xacro:arg name="gpio_watchdog_cpu" default="-1" />
   <xacro:arg name="gpio_monitor_cpu" default="-1" />
+  <xacro:arg name="pdo_motor_states_timeout_ms" default="15" />
+  <xacro:arg name="pdo_driver_state_timeout_ms" default="75" />
+  <xacro:arg name="limit_tpdo_rates" default="false" />
 
   <xacro:include filename="$(find husarion_ugv_description)/urdf/lynx/lynx_macro.urdf.xacro" ns="husarion" />
   <xacro:husarion.lynx_robot
@@ -40,7 +43,10 @@
     canopen_thread_cpu="$(arg canopen_thread_cpu)"
     rpdo_dispatch_cpu="$(arg rpdo_dispatch_cpu)"
     gpio_watchdog_cpu="$(arg gpio_watchdog_cpu)"
-    gpio_monitor_cpu="$(arg gpio_monitor_cpu)" />
+    gpio_monitor_cpu="$(arg gpio_monitor_cpu)"
+    pdo_motor_states_timeout_ms="$(arg pdo_motor_states_timeout_ms)"
+    pdo_driver_state_timeout_ms="$(arg pdo_driver_state_timeout_ms)"
+    limit_tpdo_rates="$(arg limit_tpdo_rates)" />
 
   <xacro:arg name="components_config_path" default="$(find husarion_ugv_description)/config/components.yaml" />
   <xacro:property name="components_config_path_property" value="$(arg components_config_path)" />

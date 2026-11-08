@@ -98,6 +98,12 @@ if(BUILD_TESTING)
 
   ament_add_gmock(${PROJECT_NAME}_test_utils test/test_utils.cpp src/utils.cpp)
 
+  ament_add_gtest(${PROJECT_NAME}_test_limited_tpdo_rates_dcf
+                  test/test_limited_tpdo_rates_dcf.cpp)
+  target_compile_definitions(
+    ${PROJECT_NAME}_test_limited_tpdo_rates_dcf
+    PRIVATE DCF_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
+
   ament_add_gmock(
     ${PROJECT_NAME}_test_roboteq_error_filter
     test/unit/robot_system/robot_driver/test_roboteq_error_filter.cpp

@@ -71,6 +71,10 @@ struct CANopenSettings
   // inherits it, among them the lely driver threads and the ROS interface executor. 0, the default,
   // leaves the calling thread as it is.
   unsigned configure_thread_sched_priority = 0;
+
+  // Use the master dcf from config/limited_tpdo_rates, which writes TPDO inhibit and event timers
+  // into the motor controllers on every slave boot.
+  bool limit_tpdo_rates = false;
 };
 
 /**

@@ -11,6 +11,12 @@ lights_driver:
     description: LED global brightness. The range should be between [0.0, 1.0].
     validation: { bounds<>: [0.0, 1.0] }
 
+  led_output_enabled:
+    type: bool
+    default_value: true
+    description: Startup state of the physical LED output. When false frames are still received
+      but not written to the strips. Switched at runtime with the lights/enable service.
+
   led_control_retry_forever:
     type: bool
     default_value: false

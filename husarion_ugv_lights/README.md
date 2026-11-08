@@ -47,6 +47,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 #### Publishers
 
 - `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: Lights diagnostic messages.
+- `lights/output_state` [*husarion_ugv_msgs/LEDOutputState*, latched]: State of the physical LED output: the `lights/enable` switch, whether LED control is granted and the global brightness. Published on every change.
 
 #### Subscribers
 
@@ -55,6 +56,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 #### Service Servers
 
+- `lights/enable` [*std_srvs/SetBool*]: Switches the physical LED output. While off, frames are still received and checked, nothing is written to the strips, and the strips are blanked once so they do not keep the last frame. Switching it on writes the latest frame again. The LED control grant also writes the latest frame after clearing the strips, so a frame that arrived before the grant is shown.
 - `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
 
 #### Service Clients
@@ -65,6 +67,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 - `frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
+- `led_output_enabled` [*bool*, default: **true**]: Startup state of the physical LED output, see the `lights/enable` service.
 - `led_control_retry_forever` [*bool*, default: **false**]: Keep asking for LED control at startup until the hardware grants it. With **false** the driver gives up after three attempts and the lights container exits, which stops the launch. It covers startup only: control lost later, for example when the hardware interface restarts, is not asked for again.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

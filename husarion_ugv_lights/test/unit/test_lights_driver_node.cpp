@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -31,6 +32,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -40,6 +42,7 @@
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
 using SetLEDBrightnessSrv = husarion_ugv_msgs::srv::SetLEDBrightness;
+using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;
 
 class MockAPA102 : public husarion_ugv_lights::APA102Interface
 {
@@ -66,6 +69,12 @@ public:
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
 
   void InitializationTimerCB() { return LightsDriverNode::InitializationTimerCB(); }
+
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::EnableLEDOutputCB(req, res);
+  }
 
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
@@ -322,6 +331,211 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+bool CallEnableLEDOutput(DriverNodeWrapper & node, const bool enable)
+{
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+  req->data = enable;
+  node.EnableLEDOutputCB(req, res);
+  return res->success;
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)
+{
+  auto listener = std::make_shared<rclcpp::Node>("output_state_listener");
+  LEDOutputStateMsg::SharedPtr last_state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&last_state](const LEDOutputStateMsg::SharedPtr msg) { last_state = msg; });
+
+  auto wait_for_state = [&](bool enabled) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(listener);
+      if (last_state && last_state->enabled == enabled) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  };
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  ASSERT_TRUE(wait_for_state(false));
+  EXPECT_FALSE(last_state->control_granted);
+  EXPECT_FLOAT_EQ(1.0f, last_state->brightness);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+  EXPECT_TRUE(wait_for_state(true));
+}
+
+TEST_F(TestLightsDriverNode, DisableClearsOnceWhenGranted)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(zero_frame)).Times(1);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  // Already disabled, nothing is written again.
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+}
+
+TEST_F(TestLightsDriverNode, DisableWithoutControlWritesNothing)
+{
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameCBCachesWhileDisabled)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+
+  // Nothing reaches the strip while the output is off.
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // Turning it on writes the frame that arrived while it was off. Channel 2 never got one.
+  EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameBeforeGrantWrittenOnGrant)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // The grant clears the strips, then shows the frame that arrived before it.
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  {
+    testing::InSequence sequence;
+    EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+    EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  }
+  EXPECT_CALL(*channel_2_, SetPanel(zero_frame)).Times(1);
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+}
+
+TEST_F(TestLightsDriverNode, InvalidFrameBeforeGrantNotCached)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->encoding = sensor_msgs::image_encodings::RGB8;
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameWithWrongDataSizeBeforeGrantNotCached)
+{
+  // Width and step match, but the data is one byte short and could not be converted on the grant.
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->data.pop_back();
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
+  EXPECT_NO_THROW(lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true)));
+}
+
+TEST_F(TestLightsDriverNode, GrantSurvivesFailedWrite)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::runtime_error("SPI write failed")));
+  EXPECT_NO_THROW(lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true)));
+  EXPECT_TRUE(lights_driver_node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNode, OutputDisabledAtStartup)
+{
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.parameter_overrides({rclcpp::Parameter("led_output_enabled", false)});
+  DriverNodeWrapper node(channel_1, channel_2, options);
+
+  // The grant still clears the strips, but no frame is written until the output is switched on.
+  std::vector<std::uint8_t> zero_frame(node.GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1, SetPanel(zero_frame)).Times(1);
+  node.ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+  node.FrameCB(msg, channel_1, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1.get());
+
+  EXPECT_CALL(*channel_1, SetPanel(frame)).Times(1);
+  EXPECT_TRUE(CallEnableLEDOutput(node, true));
+}
+
+TEST_F(TestLightsDriverNode, EnableBeforeAnyFrameWritesNothing)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBReportsWriteFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+
+  EXPECT_FALSE(CallEnableLEDOutput(*lights_driver_node_, false));
+  // The output stays on, so a retry writes the black frame again.
+  testing::Mock::VerifyAndClear(channel_1_.get());
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBBlanksAfterPartialFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg_1 = CreateValidImageMsg("channel_1");
+  const auto frame_1 = msg_1->data;
+  lights_driver_node_->FrameCB(msg_1, channel_1_, msg_1->header.stamp, "channel_1");
+  auto msg_2 = CreateValidImageMsg("channel_2");
+  lights_driver_node_->FrameCB(msg_2, channel_2_, msg_2->header.stamp, "channel_2");
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // Channel 1 is written, channel 2 fails: channel 1 must not keep the frame while the output
+  // reports disabled.
+  ON_CALL(*channel_2_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  {
+    testing::InSequence sequence;
+    EXPECT_CALL(*channel_1_, SetPanel(frame_1)).Times(1);
+    EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  }
+  EXPECT_FALSE(CallEnableLEDOutput(*lights_driver_node_, true));
 }
 
 TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)

@@ -29,6 +29,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -51,6 +52,8 @@ LightsDriverNode::LightsDriverNode(
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
+  led_output_enabled_(true),
+  global_brightness_(1.0f),
   initialization_attempt_(0),
   channel_1_(
     channel_1 ? channel_1
@@ -70,9 +73,11 @@ LightsDriverNode::LightsDriverNode(
   channel_1_num_led_ = this->params_.channel_1_num_led;
   channel_2_num_led_ = this->params_.channel_2_num_led;
 
-  const float global_brightness = this->params_.global_brightness;
-  channel_1_->SetGlobalBrightness(global_brightness);
-  channel_2_->SetGlobalBrightness(global_brightness);
+  led_output_enabled_ = this->params_.led_output_enabled;
+
+  global_brightness_ = static_cast<float>(this->params_.global_brightness);
+  channel_1_->SetGlobalBrightness(global_brightness_);
+  channel_2_->SetGlobalBrightness(global_brightness_);
 
   client_callback_group_ =
     this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -82,6 +87,13 @@ LightsDriverNode::LightsDriverNode(
 
   set_brightness_server_ = this->create_service<SetLEDBrightnessSrv>(
     "lights/set_brightness", std::bind(&LightsDriverNode::SetBrightnessCB, this, _1, _2));
+
+  enable_led_output_server_ = this->create_service<SetBoolSrv>(
+    "lights/enable", std::bind(&LightsDriverNode::EnableLEDOutputCB, this, _1, _2));
+
+  output_state_pub_ = this->create_publisher<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local());
+  PublishOutputState();
 
   // running at 10 Hz
   initialization_timer_ = this->create_wall_timer(
@@ -260,7 +272,17 @@ void LightsDriverNode::ToggleLEDControlCB(
 
   if (request->data == true) {
     led_control_granted_ = true;
-    ClearLEDs();
+    // Every valid frame updates the cache, before the grant too, so even after a late grant it
+    // holds the controller's latest frame. An exception escaping this callback would end the
+    // container.
+    try {
+      ClearLEDs();
+      if (led_output_enabled_) {
+        RewriteLastFrames();
+      }
+    } catch (const std::exception & e) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "Writing the LED strips failed: " << e.what());
+    }
     RCLCPP_INFO(this->get_logger(), "LED control granted.");
   } else {
     led_control_granted_ = false;
@@ -268,18 +290,13 @@ void LightsDriverNode::ToggleLEDControlCB(
   }
 
   led_control_pending_ = false;
+  PublishOutputState();
 }
 
 void LightsDriverNode::FrameCB(
   const ImageMsg::UniquePtr & msg, const APA102Interface::SharedPtr & panel,
   const rclcpp::Time & last_time, const std::string & panel_name)
 {
-  if (!led_control_granted_) {
-    PanelThrottleWarnLog(
-      panel_name, "Waiting for LED control to be granted. Ignoring frame for " + panel_name + "!");
-    return;
-  }
-
   std::string message;
   if (
     (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
@@ -295,12 +312,33 @@ void LightsDriverNode::FrameCB(
     msg->width != static_cast<std::uint32_t>(
                     panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
     message = "Incorrect image width " + std::to_string(msg->width);
+  } else if (msg->data.size() != static_cast<std::size_t>(msg->width) * 4) {
+    // Checked here, because a cached frame is written later from callbacks that must not throw.
+    message = "Incorrect image data size " + std::to_string(msg->data.size());
+  }
+
+  // A valid frame is cached before the grant too: the controller may publish a static animation
+  // only once, and the grant writes the cached frame after clearing the strips.
+  if (!led_control_granted_) {
+    if (message.empty()) {
+      CacheFrame(msg->data, panel_name);
+    }
+    PanelThrottleWarnLog(
+      panel_name, "Waiting for LED control to be granted. Ignoring frame for " + panel_name + "!");
+    return;
   }
 
   if (!message.empty()) {
     auto warn_msg = message + " on " + panel_name + "!";
     PanelThrottleWarnLog(panel_name, warn_msg);
     diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+    return;
+  }
+
+  // Cached even while the output is off, so turning it back on shows the current frame.
+  CacheFrame(msg->data, panel_name);
+
+  if (!led_output_enabled_) {
     return;
   }
 
@@ -321,12 +359,84 @@ void LightsDriverNode::SetBrightnessCB(
     return;
   }
 
+  global_brightness_ = brightness;
+  PublishOutputState();
+
   auto str_bright = std::to_string(brightness);
 
   // Round string to two decimal points
   str_bright = str_bright.substr(0, str_bright.find(".") + 3);
   res->success = true;
   res->message = "Changed brightness to " + str_bright;
+}
+
+void LightsDriverNode::CacheFrame(
+  const std::vector<std::uint8_t> & frame, const std::string & panel_name)
+{
+  (panel_name == "channel_1" ? channel_1_frame_ : channel_2_frame_) = frame;
+}
+
+void LightsDriverNode::RewriteLastFrames()
+{
+  if (!channel_1_frame_.empty()) {
+    channel_1_->SetPanel(channel_1_frame_);
+  }
+  if (!channel_2_frame_.empty()) {
+    channel_2_->SetPanel(channel_2_frame_);
+  }
+}
+
+void LightsDriverNode::PublishOutputState()
+{
+  LEDOutputStateMsg msg;
+  msg.enabled = led_output_enabled_;
+  msg.control_granted = led_control_granted_;
+  msg.brightness = global_brightness_;
+  output_state_pub_->publish(msg);
+}
+
+void LightsDriverNode::EnableLEDOutputCB(
+  const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+{
+  const bool enable = req->data;
+
+  if (enable == led_output_enabled_) {
+    res->success = true;
+    res->message = std::string("LED output already ") + (enable ? "enabled" : "disabled");
+    return;
+  }
+
+  // An APA102 strip keeps showing the last frame it was sent, so turning the output off writes one
+  // black frame, and turning it on writes the cached frames. Without LED control nothing may be
+  // written; the grant clears the strips anyway.
+  if (led_control_granted_) {
+    try {
+      if (enable) {
+        RewriteLastFrames();
+      } else {
+        ClearLEDs();
+      }
+    } catch (const std::exception & e) {
+      // A failed enable may have lit one channel already. The output stays off, so blank the
+      // strips again rather than leave a frame that FrameCB would never replace.
+      if (enable) {
+        try {
+          ClearLEDs();
+        } catch (const std::exception &) {
+        }
+      }
+      res->success = false;
+      res->message = "Failed to write the LED strips: " + std::string(e.what());
+      return;
+    }
+  }
+
+  led_output_enabled_ = enable;
+  PublishOutputState();
+
+  RCLCPP_INFO(this->get_logger(), "LED output %s.", enable ? "enabled" : "disabled");
+  res->success = true;
+  res->message = std::string("LED output ") + (enable ? "enabled" : "disabled");
 }
 
 void LightsDriverNode::PanelThrottleWarnLog(const std::string panel_name, const std::string message)

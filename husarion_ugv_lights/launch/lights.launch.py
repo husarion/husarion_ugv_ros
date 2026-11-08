@@ -75,6 +75,17 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    lights_frame_keepalive_period = LaunchConfiguration("lights_frame_keepalive_period")
+    declare_lights_frame_keepalive_period_arg = DeclareLaunchArgument(
+        "lights_frame_keepalive_period",
+        default_value="0.0",
+        description=(
+            "Time in seconds after which the lights controller publishes an unchanged frame again."
+            " Above 0 frames are otherwise published only when they change, 0 publishes every"
+            " frame."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -148,6 +159,11 @@ def generate_launch_description():
                 parameters=[
                     {"animations_config_path": animations_config_path},
                     {"user_led_animations_path": user_led_animations_path},
+                    {
+                        "frame_keepalive_period": ParameterValue(
+                            lights_frame_keepalive_period, value_type=float
+                        )
+                    },
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
@@ -171,6 +187,7 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
         declare_led_control_retry_forever_arg,
+        declare_lights_frame_keepalive_period_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,

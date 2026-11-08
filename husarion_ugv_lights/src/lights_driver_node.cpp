@@ -362,6 +362,20 @@ void LightsDriverNode::SetBrightnessCB(
   global_brightness_ = brightness;
   PublishOutputState();
 
+  // With a frame keep-alive the controller may not send the next frame for up to its period, so
+  // write the current one with the new brightness now. The brightness applies from here on, so a
+  // failed write does not fail the call.
+  if (led_control_granted_ && led_output_enabled_) {
+    try {
+      RewriteLastFrames();
+    } catch (const std::exception & e) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "Writing the LED strips failed: " << e.what());
+      res->success = true;
+      res->message = "Brightness set, but writing the LED strips failed: " + std::string(e.what());
+      return;
+    }
+  }
+
   auto str_bright = std::to_string(brightness);
 
   // Round string to two decimal points

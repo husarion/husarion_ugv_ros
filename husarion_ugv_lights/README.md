@@ -11,6 +11,7 @@ This package contains:
 ### Launch arguments
 
 - `led_control_retry_forever` [*bool*, default: **False**]: Passed to the `led_control_retry_forever` parameter of `LightsDriverNode`. `bringup.launch.py` forwards it.
+- `lights_frame_keepalive_period` [*float*, default: **0.0**]: Passed to the `frame_keepalive_period` parameter of `LightsControllerNode`.
 
 ## Configuration Files
 
@@ -30,6 +31,8 @@ This node is of type rclcpp_components is responsible for processing animations 
 - `lights/channel_1_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Front Bumper Lights.
 - `lights/channel_2_frame` [*sensor_msgs/Image*, encoding: **RGBA8**, height: **1**, width: **num_led**]: An animation frame to be displayed on robot Rear Bumper Lights.
 
+With `frame_keepalive_period` above 0 a frame is published when it changes and at least once per period. The topics are not latched, so a subscriber that joins late, such as `ros2 topic echo` or a simulation bridge, sees nothing until the next change or keep-alive. A frame the driver dropped, for example one that arrived after `frame_timeout`, is not repeated until the period expires, so the strip can stay one frame behind for up to that long. The period is capped at 5 s for that reason.
+
 #### Service Servers
 
 - `lights/set_animation` [*husarion_ugv_msgs/SetLEDAnimation*]: Allows setting animation on Bumper Lights based on animation ID.
@@ -38,6 +41,7 @@ This node is of type rclcpp_components is responsible for processing animations 
 
 - `animations_config_path` [*string*, default: **$(find husarion_ugv_lights)/husarion_ugv_lights/config/{robot_model}_animations.yaml**]: Path to a YAML file with a description of led configuration. This file includes definition of robot panels, virtual segments and default animations.
 - `controller_frequency` [*float*, default: **50.0**]: Frequency [Hz] at which the lights controller node will process animations.
+- `frame_keepalive_period` [*float*, default: **0.0**]: Time [s] after which an unchanged frame is published again, between **0.0** and **5.0**. Above 0 frames are otherwise published only when they change. **0** publishes every frame.
 - `user_led_animations_path` [*string*, default: **None**]: Path to a YAML file with a description of the user defined animations.
 
 ### LightsDriverNode
@@ -57,7 +61,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 #### Service Servers
 
 - `lights/enable` [*std_srvs/SetBool*]: Switches the physical LED output. While off, frames are still received and checked, nothing is written to the strips, and the strips are blanked once so they do not keep the last frame. Switching it on writes the latest frame again. The LED control grant also writes the latest frame after clearing the strips, so a frame that arrived before the grant is shown.
-- `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**.
+- `lights/set_brightness` [*husarion_ugv_msgs/SetLEDBrightness*]: Allows setting global LED brightness, value ranges from **0.0** to **1.0**. With LED control granted and the output on, the latest frame is written again with the new brightness. If that write fails, the call still returns `success = true`, since the brightness is applied to the next frame, and `message` says that the write failed.
 
 #### Service Clients
 

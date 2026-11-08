@@ -76,6 +76,13 @@ public:
     return LightsDriverNode::EnableLEDOutputCB(req, res);
   }
 
+  void SetBrightnessCB(
+    const SetLEDBrightnessSrv::Request::SharedPtr & req,
+    SetLEDBrightnessSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::SetBrightnessCB(req, res);
+  }
+
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
     return LightsDriverNode::ToggleLEDControlCB(future);
@@ -536,6 +543,74 @@ TEST_F(TestLightsDriverNode, EnableLEDOutputCBBlanksAfterPartialFailure)
     EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
   }
   EXPECT_FALSE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBRewritesLastFrame)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  EXPECT_CALL(*channel_1_, SetGlobalBrightness(testing::TypedEq<float>(0.5f))).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = 0.5f;
+  lights_driver_node_->SetBrightnessCB(req, res);
+  EXPECT_TRUE(res->success);
+}
+
+bool CallSetBrightness(DriverNodeWrapper & node, const float brightness)
+{
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = brightness;
+  node.SetBrightnessCB(req, res);
+  return res->success;
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBWritesNothingWithoutControl)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallSetBrightness(*lights_driver_node_, 0.5f));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBWritesNothingWhileOutputOff)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallSetBrightness(*lights_driver_node_, 0.5f));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBReportsWriteFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = 0.5f;
+  lights_driver_node_->SetBrightnessCB(req, res);
+
+  // The brightness is applied, only the write failed.
+  EXPECT_TRUE(res->success);
+  EXPECT_NE(std::string::npos, res->message.find("writing the LED strips failed"));
 }
 
 TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)

@@ -125,6 +125,10 @@ protected:
    */
   void RegisterShutdownHook();
 
+  void SetBrightnessCB(
+    const SetLEDBrightnessSrv::Request::SharedPtr & request,
+    SetLEDBrightnessSrv::Response::SharedPtr response);
+
   int channel_1_num_led_;
   int channel_2_num_led_;
   double frame_timeout_;
@@ -165,10 +169,6 @@ private:
    * @brief Sends the LED control request without checking that the service is available.
    */
   void SendLEDControlRequest(const bool enable);
-
-  void SetBrightnessCB(
-    const SetLEDBrightnessSrv::Request::SharedPtr & request,
-    SetLEDBrightnessSrv::Response::SharedPtr response);
 
   void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
 

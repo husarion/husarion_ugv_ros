@@ -204,8 +204,8 @@ private:
   std::mutex boot_mtx_;
   std::promise<void> boot_promise_;
 
-  std::atomic_bool can_error_;
-  std::atomic_bool heartbeat_timeout_;
+  std::atomic_bool can_error_{false};
+  std::atomic_bool heartbeat_timeout_{false};
 
   // Written by OnRpdoWrite on this driver's loop thread and read by the control loop without the
   // master lock that rpdo_mapped takes. Indexed by channel - kChannel1.

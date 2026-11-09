@@ -11,6 +11,13 @@ lights_driver:
     description: LED global brightness. The range should be between [0.0, 1.0].
     validation: { bounds<>: [0.0, 1.0] }
 
+  led_control_retry_forever:
+    type: bool
+    default_value: false
+    description: Keep asking the hardware for LED control at startup until it is granted. When
+      false the driver gives up after three attempts and exits. Control lost later, for example
+      when the hardware interface restarts, is not asked for again.
+
   channel_1_num_led:
     type: int
     default_value: 46

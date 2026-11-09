@@ -8,6 +8,10 @@ This package contains:
 
 - `lights.launch.py`: Responsible for launching the nodes required to control the robot's lights.
 
+### Launch arguments
+
+- `led_control_retry_forever` [*bool*, default: **False**]: Passed to the `led_control_retry_forever` parameter of `LightsDriverNode`. `bringup.launch.py` forwards it.
+
 ## Configuration Files
 
 - [`{robot_model}_animations.yaml`](./config): Defines and describes the appearance and parameters of the animations for specific robot.
@@ -61,5 +65,6 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 - `frame_timeout` [*float*, default: **0.1**]: Time in **[s]** after which an incoming frame will be considered too old.
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
+- `led_control_retry_forever` [*bool*, default: **false**]: Keep asking for LED control at startup until the hardware grants it. With **false** the driver gives up after three attempts and the lights container exits, which stops the launch. It covers startup only: control lost later, for example when the hardware interface restarts, is not asked for again.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.

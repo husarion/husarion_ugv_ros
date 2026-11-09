@@ -86,6 +86,16 @@ protected:
    */
   void PanelThrottleWarnLog(const std::string panel_name, const std::string message);
 
+  /**
+   * @brief Asks the hardware for LED control until it is granted, then cancels its timer.
+   */
+  void InitializationTimerCB();
+
+  /**
+   * @brief Registers the hook that clears the LEDs at shutdown.
+   */
+  void RegisterShutdownHook();
+
   int channel_1_num_led_;
   int channel_2_num_led_;
   double frame_timeout_;
@@ -95,10 +105,19 @@ protected:
   rclcpp::Time channel_1_ts_;
   rclcpp::Time channel_2_ts_;
 
+  unsigned initialization_attempt_;
+  rclcpp::Time led_control_call_time_;
+
+  rclcpp::Client<SetBoolSrv>::SharedPtr enable_led_control_client_;
+
 private:
   void OnShutdown();
 
-  void InitializationTimerCB();
+  /**
+   * @brief Asks for LED control once the service is available, without blocking the executor.
+   * Used instead of the bounded attempts when led_control_retry_forever is set.
+   */
+  void RetryLEDControl();
 
   /**
    * @brief Toggles LED control ON or OFF.
@@ -106,6 +125,11 @@ private:
    * @param enable True to enable LED control, false to disable.
    */
   void ToggleLEDControl(const bool enable);
+
+  /**
+   * @brief Sends the LED control request without checking that the service is available.
+   */
+  void SendLEDControlRequest(const bool enable);
 
   void SetBrightnessCB(
     const SetLEDBrightnessSrv::Request::SharedPtr & request,
@@ -117,8 +141,6 @@ private:
   static constexpr unsigned kServiceResponseTimeout = 3;
   static constexpr unsigned kWaitForServiceTimeout = 3;
 
-  unsigned initialization_attempt_;
-  rclcpp::Time led_control_call_time_;
   rclcpp::OnShutdownCallbackHandle shutdown_callback_handle_;
 
   APA102Interface::SharedPtr channel_1_;
@@ -129,7 +151,6 @@ private:
 
   rclcpp::TimerBase::SharedPtr initialization_timer_;
 
-  rclcpp::Client<SetBoolSrv>::SharedPtr enable_led_control_client_;
   rclcpp::Service<SetLEDBrightnessSrv>::SharedPtr set_brightness_server_;
 
   rclcpp::CallbackGroup::SharedPtr client_callback_group_;

@@ -28,6 +28,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -61,6 +62,17 @@ def generate_launch_description():
             [husarion_ugv_lights_common_dir, "config", animations_config]
         ),
         description="Path to a YAML file with a description of led configuration.",
+    )
+
+    led_control_retry_forever = LaunchConfiguration("led_control_retry_forever")
+    declare_led_control_retry_forever_arg = DeclareLaunchArgument(
+        "led_control_retry_forever",
+        default_value="False",
+        description=(
+            "Keep asking the hardware for LED control until it is granted, instead of exiting"
+            " after three attempts."
+        ),
+        choices=["True", "true", "False", "false"],
     )
 
     log_level = LaunchConfiguration("log_level")
@@ -115,7 +127,14 @@ def generate_launch_description():
                 name="lights_driver",
                 namespace=namespace,
                 remappings=[("/diagnostics", "diagnostics")],
-                parameters=[driver_config_path],
+                parameters=[
+                    driver_config_path,
+                    {
+                        "led_control_retry_forever": ParameterValue(
+                            led_control_retry_forever, value_type=bool
+                        )
+                    },
+                ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
                 ],
@@ -151,6 +170,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
+        declare_led_control_retry_forever_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,

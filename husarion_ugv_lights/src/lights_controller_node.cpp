@@ -256,16 +256,35 @@ void LightsControllerNode::PublishPanelFrame(const std::size_t channel)
 {
   auto panel = led_panels_.at(channel);
   const auto number_of_leds = panel->GetNumberOfLeds();
+  auto frame = panel->GetFrame();
+  const auto now = this->get_clock()->now();
+
+  // Most animations hold a frame for many ticks, and every published frame costs the driver an SPI
+  // write per channel. With a keep-alive period an unchanged frame is repeated only at that period.
+  if (this->params_.frame_keepalive_period > 0.0) {
+    auto last_frame = last_published_frames_.find(channel);
+    // A negative age (the clock jumped back, e.g. a sim time reset) counts as expired.
+    const auto age = last_frame != last_published_frames_.end()
+                       ? (now - last_publish_times_.at(channel)).seconds()
+                       : -1.0;
+    if (
+      last_frame != last_published_frames_.end() && last_frame->second == frame && age >= 0.0 &&
+      age < this->params_.frame_keepalive_period) {
+      return;
+    }
+    last_published_frames_[channel] = frame;
+    last_publish_times_.insert_or_assign(channel, now);
+  }
 
   ImageMsg::UniquePtr image(new ImageMsg);
   image->header.frame_id = husarion_ugv_utils::ros::AddNamespaceToFrameID(
     "lights_channel_" + std::to_string(channel) + "_link", std::string(this->get_namespace()));
-  image->header.stamp = this->get_clock()->now();
+  image->header.stamp = now;
   image->encoding = "rgba8";
   image->height = 1;
   image->width = number_of_leds;
   image->step = number_of_leds * 4;
-  image->data = panel->GetFrame();
+  image->data = std::move(frame);
 
   panel_publishers_.at(channel)->publish(std::move(image));
 }

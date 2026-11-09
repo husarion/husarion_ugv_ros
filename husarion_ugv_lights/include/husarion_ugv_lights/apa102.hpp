@@ -20,6 +20,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -94,14 +96,29 @@ public:
  * @param device_name name of the device
  * @param speed Speed of the SPI communication
  * @param cs_high Chip select high flag
+ * @param max_transfer_bytes Largest single SPI transfer. A longer frame is sent as several
+ * transfers of one SPI message. 0 sends every frame as one transfer.
  */
 class APA102 : public APA102Interface
 {
 public:
   APA102(
     SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
-    const std::uint32_t speed = 800000, const bool cs_high = false);
+    const std::uint32_t speed = kDefaultSPISpeedHz, const bool cs_high = false,
+    const std::size_t max_transfer_bytes = 0);
   ~APA102();
+
+  // The SPI clock the strips run with unless configured otherwise.
+  static constexpr std::uint32_t kDefaultSPISpeedHz = 800000;
+
+  // spidev accepts at most this many transfers in one SPI message.
+  static constexpr std::size_t kMaxSPITransfers = 511;
+
+  /**
+   * @brief Number of SPI transfers a frame of num_led LEDs is sent in
+   */
+  static std::size_t NumberOfTransfers(
+    const std::size_t num_led, const std::size_t max_transfer_bytes);
 
   /**
    * @brief Set APA102 LED global brightness
@@ -160,11 +177,38 @@ private:
   static constexpr std::uint16_t kCorrBlue = 240;
   static constexpr float kCorrectionGamma = 2.2;
 
+  struct GammaLUTs
+  {
+    std::array<std::uint8_t, 256> red;
+    std::array<std::uint8_t, 256> green;
+    std::array<std::uint8_t, 256> blue;
+  };
+
+  // Gamma and color correction per channel value, computed once instead of a pow() per byte.
+  static const GammaLUTs & GetGammaLUTs();
+
+  static std::size_t NumberOfTransfersForBuffer(
+    const std::size_t buffer_size, const std::size_t max_transfer_bytes);
+
   SPIDeviceInterface::SharedPtr spi_device_;
   const std::string device_name_;
   const std::uint32_t speed_;
+  const std::size_t max_transfer_bytes_;
   const int file_descriptor_;
 };
+
+/**
+ * @brief SPI clock the Raspberry Pi controller (spi-bcm2835) really runs for a requested clock
+ *
+ * The controller divides its core clock by an even divider, rounded up so the clock never exceeds
+ * the request.
+ *
+ * @param core_clock_hz Clock feeding the SPI controller
+ * @param requested_hz Requested SPI clock
+ * @return The effective SPI clock in Hz
+ */
+std::uint32_t EffectiveSPISpeed(
+  const std::uint64_t core_clock_hz, const std::uint32_t requested_hz);
 
 }  // namespace husarion_ugv_lights
 

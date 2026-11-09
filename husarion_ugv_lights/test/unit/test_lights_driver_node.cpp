@@ -12,26 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
+
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <stdexcept>
+#include <string>
 #include <thread>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
 #include "husarion_ugv_lights/lights_driver_node.hpp"
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
+#include "husarion_ugv_utils/test/test_utils.hpp"
 
 using ImageMsg = sensor_msgs::msg::Image;
 using SetBoolSrv = std_srvs::srv::SetBool;
 using SetLEDBrightnessSrv = husarion_ugv_msgs::srv::SetLEDBrightness;
+using LEDOutputStateMsg = husarion_ugv_msgs::msg::LEDOutputState;
 
 class MockAPA102 : public husarion_ugv_lights::APA102Interface
 {
@@ -43,23 +57,6 @@ public:
   using NiceMock = testing::NiceMock<MockAPA102>;
 };
 
-// LightsDriverNode constructor implemented for testing purposes
-husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
-  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
-  const rclcpp::NodeOptions & options)
-: Node("lights_driver", options),
-  led_control_granted_(false),
-  led_control_pending_(false),
-  initialization_attempt_(0),
-  channel_1_(channel_1),
-  channel_2_(channel_2),
-  diagnostic_updater_(this)
-{
-  channel_1_num_led_ = 46;
-  channel_2_num_led_ = 46;
-  frame_timeout_ = 0.1;
-};
-
 class DriverNodeWrapper : public husarion_ugv_lights::LightsDriverNode
 {
 public:
@@ -68,9 +65,33 @@ public:
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions().use_intra_process_comms(true))
   : LightsDriverNode(channel_1, channel_2, options)
   {
+    // The tests call InitializationTimerCB themselves.
+    initialization_timer_->cancel();
   }
 
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
+
+  void InitializationTimerCB() { return LightsDriverNode::InitializationTimerCB(); }
+
+  void EnableLEDOutputCB(
+    const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::EnableLEDOutputCB(req, res);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseLights()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    LightsDriverNode::DiagnoseLights(status);
+    return status;
+  }
+
+  void SetBrightnessCB(
+    const SetLEDBrightnessSrv::Request::SharedPtr & req,
+    SetLEDBrightnessSrv::Response::SharedPtr res)
+  {
+    return LightsDriverNode::SetBrightnessCB(req, res);
+  }
 
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
@@ -91,10 +112,34 @@ public:
   double GetTimeout() const { return frame_timeout_; }
   bool GetLedControlGranted() const { return led_control_granted_; }
   bool GetLedControlPending() const { return led_control_pending_; }
+  unsigned GetInitializationAttempt() const { return initialization_attempt_; }
+  std::size_t PruneLEDControlRequests()
+  {
+    return enable_led_control_client_->prune_pending_requests();
+  }
+  void BackdateLedControlCall(const std::chrono::seconds age)
+  {
+    led_control_call_time_ = this->now() - rclcpp::Duration(age);
+  }
 
   rclcpp::Time SetChannel1Ts(const rclcpp::Time & ts) { return channel_1_ts_ = ts; }
   rclcpp::Time SetChannel2Ts(const rclcpp::Time & ts) { return channel_2_ts_ = ts; }
 };
+
+// A namespace of its own, so the LED control service of another test running in parallel on the
+// same ROS domain is not seen here.
+std::string UniqueNamespace(const std::string & name)
+{
+  return "/" + name + "_" + std::to_string(getpid());
+}
+
+rclcpp::NodeOptions IsolatedOptions(const std::string & name)
+{
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.arguments({"--ros-args", "-r", "__ns:=" + UniqueNamespace(name)});
+  return options;
+}
 
 class TestLightsDriverNode : public testing::Test
 {
@@ -158,6 +203,38 @@ TEST_F(TestLightsDriverNode, TestInitialization)
   auto lights_driver_node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2);
 
   EXPECT_TRUE(lights_driver_node != nullptr);
+}
+
+TEST_F(TestLightsDriverNode, ConstructorAdvertisesOutputControl)
+{
+  auto listener = std::make_shared<rclcpp::Node>("output_control_listener");
+  LEDOutputStateMsg::SharedPtr state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&state](const LEDOutputStateMsg::SharedPtr msg) { state = msg; });
+  auto client = listener->create_client<SetBoolSrv>("lights/enable");
+
+  // Latched by the constructor, before any service call.
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (!state && std::chrono::steady_clock::now() < deadline) {
+    rclcpp::spin_some(listener);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  ASSERT_TRUE(state);
+  EXPECT_TRUE(state->enabled);
+  EXPECT_FALSE(state->control_granted);
+  EXPECT_FLOAT_EQ(1.0f, state->brightness);
+  EXPECT_TRUE(client->wait_for_service(std::chrono::seconds(5)));
+}
+
+TEST_F(TestLightsDriverNode, ConstructorRefusesInvalidSPIClock)
+{
+  rclcpp::NodeOptions options;
+  options.parameter_overrides({rclcpp::Parameter("spi_speed_hz", 8000)});
+  EXPECT_THROW(
+    std::make_shared<DriverNodeWrapper>(
+      std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options),
+    std::invalid_argument);
 }
 
 TEST_F(TestLightsDriverNode, ClearLEDs)
@@ -303,6 +380,637 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+bool CallEnableLEDOutput(DriverNodeWrapper & node, const bool enable)
+{
+  auto req = std::make_shared<SetBoolSrv::Request>();
+  auto res = std::make_shared<SetBoolSrv::Response>();
+  req->data = enable;
+  node.EnableLEDOutputCB(req, res);
+  return res->success;
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBPublishesState)
+{
+  auto listener = std::make_shared<rclcpp::Node>("output_state_listener");
+  LEDOutputStateMsg::SharedPtr last_state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&last_state](const LEDOutputStateMsg::SharedPtr msg) { last_state = msg; });
+
+  auto wait_for_state = [&](bool enabled) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(listener);
+      if (last_state && last_state->enabled == enabled) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  };
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  ASSERT_TRUE(wait_for_state(false));
+  EXPECT_FALSE(last_state->control_granted);
+  EXPECT_FLOAT_EQ(1.0f, last_state->brightness);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+  EXPECT_TRUE(wait_for_state(true));
+}
+
+TEST_F(TestLightsDriverNode, DisableClearsOnceWhenGranted)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(zero_frame)).Times(1);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  // Already disabled, nothing is written again.
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+}
+
+TEST_F(TestLightsDriverNode, DisableWithoutControlWritesNothing)
+{
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameCBCachesWhileDisabled)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+
+  // Nothing reaches the strip while the output is off.
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // Turning it on writes the frame that arrived while it was off. Channel 2 never got one.
+  EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameBeforeGrantWrittenOnGrant)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // The grant clears the strips, then shows the frame that arrived before it.
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  {
+    testing::InSequence sequence;
+    EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+    EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  }
+  EXPECT_CALL(*channel_2_, SetPanel(zero_frame)).Times(1);
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+}
+
+TEST_F(TestLightsDriverNode, InvalidFrameBeforeGrantNotCached)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->encoding = sensor_msgs::image_encodings::RGB8;
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+}
+
+TEST_F(TestLightsDriverNode, FrameWithWrongDataSizeBeforeGrantNotCached)
+{
+  // Width and step match, but the data is one byte short and could not be converted on the grant.
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->data.pop_back();
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
+  EXPECT_NO_THROW(lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true)));
+}
+
+TEST_F(TestLightsDriverNode, GrantSurvivesFailedWrite)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::runtime_error("SPI write failed")));
+  EXPECT_NO_THROW(lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true)));
+  EXPECT_TRUE(lights_driver_node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNode, OutputDisabledAtStartup)
+{
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.parameter_overrides({rclcpp::Parameter("led_output_enabled", false)});
+  DriverNodeWrapper node(channel_1, channel_2, options);
+
+  // The grant still clears the strips, but no frame is written until the output is switched on.
+  std::vector<std::uint8_t> zero_frame(node.GetNumLed("channel_1") * 4, 0);
+  EXPECT_CALL(*channel_1, SetPanel(zero_frame)).Times(1);
+  node.ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+  node.FrameCB(msg, channel_1, msg->header.stamp, "channel_1");
+  testing::Mock::VerifyAndClearExpectations(channel_1.get());
+
+  EXPECT_CALL(*channel_1, SetPanel(frame)).Times(1);
+  EXPECT_TRUE(CallEnableLEDOutput(node, true));
+}
+
+TEST_F(TestLightsDriverNode, EnableBeforeAnyFrameWritesNothing)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBReportsWriteFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+
+  EXPECT_FALSE(CallEnableLEDOutput(*lights_driver_node_, false));
+  // The output stays on, so a retry writes the black frame again.
+  testing::Mock::VerifyAndClear(channel_1_.get());
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+}
+
+TEST_F(TestLightsDriverNode, EnableLEDOutputCBBlanksAfterPartialFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg_1 = CreateValidImageMsg("channel_1");
+  const auto frame_1 = msg_1->data;
+  lights_driver_node_->FrameCB(msg_1, channel_1_, msg_1->header.stamp, "channel_1");
+  auto msg_2 = CreateValidImageMsg("channel_2");
+  lights_driver_node_->FrameCB(msg_2, channel_2_, msg_2->header.stamp, "channel_2");
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  // Channel 1 is written, channel 2 fails: channel 1 must not keep the frame while the output
+  // reports disabled.
+  ON_CALL(*channel_2_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  std::vector<std::uint8_t> zero_frame(lights_driver_node_->GetNumLed("channel_1") * 4, 0);
+  {
+    testing::InSequence sequence;
+    EXPECT_CALL(*channel_1_, SetPanel(frame_1)).Times(1);
+    EXPECT_CALL(*channel_1_, SetPanel(zero_frame)).Times(1);
+  }
+  EXPECT_FALSE(CallEnableLEDOutput(*lights_driver_node_, true));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBRewritesLastFrame)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  const auto frame = msg->data;
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  EXPECT_CALL(*channel_1_, SetGlobalBrightness(testing::TypedEq<float>(0.5f))).Times(1);
+  EXPECT_CALL(*channel_1_, SetPanel(frame)).Times(1);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = 0.5f;
+  lights_driver_node_->SetBrightnessCB(req, res);
+  EXPECT_TRUE(res->success);
+}
+
+bool CallSetBrightness(DriverNodeWrapper & node, const float brightness)
+{
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = brightness;
+  node.SetBrightnessCB(req, res);
+  return res->success;
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBWritesNothingWithoutControl)
+{
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallSetBrightness(*lights_driver_node_, 0.5f));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBWritesNothingWhileOutputOff)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  testing::Mock::VerifyAndClearExpectations(channel_1_.get());
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  EXPECT_CALL(*channel_2_, SetPanel(testing::_)).Times(0);
+  EXPECT_TRUE(CallSetBrightness(*lights_driver_node_, 0.5f));
+}
+
+TEST_F(TestLightsDriverNode, SetBrightnessCBReportsWriteFailure)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  auto req = std::make_shared<SetLEDBrightnessSrv::Request>();
+  auto res = std::make_shared<SetLEDBrightnessSrv::Response>();
+  req->data = 0.5f;
+  lights_driver_node_->SetBrightnessCB(req, res);
+
+  // The brightness is applied, only the write failed.
+  EXPECT_TRUE(res->success);
+  EXPECT_NE(std::string::npos, res->message.find("writing the LED strips failed"));
+}
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+TEST_F(TestLightsDriverNode, FrameCBDataSize)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->data.pop_back();
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  const auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("1", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image data size", GetDiagnosticValue(status, "Last drop reason"));
+}
+
+TEST_F(TestLightsDriverNode, FrameCBWriteFailureRaisesError)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  EXPECT_NO_THROW(lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1"));
+
+  // With the default report_frame_drops_periodically false, the failed write still raises ERROR.
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("1", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("SPI write failed", GetDiagnosticValue(status, "Last drop reason"));
+
+  // Per report: a report without a failed write is OK again.
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsCountsDroppedFrames)
+{
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.parameter_overrides({rclcpp::Parameter("report_frame_drops_periodically", true)});
+  DriverNodeWrapper node(channel_1, channel_2, options);
+  node.ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  auto status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("none", GetDiagnosticValue(status, "Last drop reason"));
+
+  auto drop_frames = [&](const int count) {
+    for (int i = 0; i < count; ++i) {
+      auto msg = CreateValidImageMsg("channel_1");
+      msg->width = node.GetNumLed("channel_1") + 1;
+      node.FrameCB(msg, channel_1, msg->header.stamp, "channel_1");
+    }
+  };
+
+  // Up to the threshold the drops are reported, but the task stays OK.
+  drop_frames(2);
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "Frames dropped since the last report"));
+
+  drop_frames(3);
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image width", GetDiagnosticValue(status, "Last drop reason"));
+
+  // The count is per report.
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("none", GetDiagnosticValue(status, "Last drop reason"));
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsDefaultKeepsTaskLevel)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  // By default each drop is broadcast on its own, as before, and the periodic task only counts.
+  for (int i = 0; i < 3; ++i) {
+    auto msg = CreateValidImageMsg("channel_1");
+    msg->width = lights_driver_node_->GetNumLed("channel_1") + 1;
+    lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  }
+  const auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsShowsOutputState)
+{
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("enabled", GetDiagnosticValue(status, "LED output"));
+  EXPECT_FLOAT_EQ(1.0f, std::stof(GetDiagnosticValue(status, "Brightness")));
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("disabled", GetDiagnosticValue(status, "LED output"));
+}
+
+TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)
+{
+  auto options = IsolatedOptions("retry_forever_without_service");
+  options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", true)});
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  auto node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2, options);
+
+  // No LED control service exists, so every tick only polls it. The bounded default would throw
+  // after three attempts.
+  const auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_NO_THROW(node->InitializationTimerCB());
+  }
+  EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(1));
+  EXPECT_FALSE(node->GetLedControlPending());
+  EXPECT_FALSE(node->GetLedControlGranted());
+}
+
+// A hardware LED control service that counts requests and answers each with `success`, or never
+// answers when `respond` is false.
+class LEDControlServer
+{
+public:
+  LEDControlServer(const bool success, const bool respond, const std::string & ns)
+  : node_(std::make_shared<rclcpp::Node>("led_control_server", ns)),
+    success_(success),
+    respond_(respond)
+  {
+    service_ = node_->create_service<SetBoolSrv>(
+      "hardware/led_control_enable", [this](
+                                       const std::shared_ptr<rmw_request_id_t> header,
+                                       const std::shared_ptr<SetBoolSrv::Request>) {
+        calls_++;
+        if (respond_) {
+          SetBoolSrv::Response response;
+          response.success = success_;
+          service_->send_response(*header, response);
+        }
+      });
+  }
+
+  rclcpp::Node::SharedPtr GetNode() const { return node_; }
+  int GetCalls() const { return calls_.load(); }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Service<SetBoolSrv>::SharedPtr service_;
+  const bool success_;
+  const bool respond_;
+  std::atomic<int> calls_{0};
+};
+
+class TestLightsDriverNodeLEDControl : public testing::Test
+{
+protected:
+  void CreateNodes(const bool retry_forever, const bool success, const bool respond)
+  {
+    auto options = IsolatedOptions("led_control");
+    options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", retry_forever)});
+    channel_1_ = std::make_shared<MockAPA102::NiceMock>();
+    channel_2_ = std::make_shared<MockAPA102::NiceMock>();
+    node_ = std::make_shared<DriverNodeWrapper>(channel_1_, channel_2_, options);
+    server_ = std::make_unique<LEDControlServer>(success, respond, UniqueNamespace("led_control"));
+    executor_.add_node(node_);
+    executor_.add_node(server_->GetNode());
+  }
+
+  // Calls the timer callback (when tick is set) and spins until the condition holds.
+  bool SpinUntil(
+    const std::function<bool()> & condition, const bool tick,
+    const std::chrono::milliseconds timeout = std::chrono::milliseconds(5000))
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline) {
+      if (tick) {
+        node_->InitializationTimerCB();
+      }
+      executor_.spin_some();
+      if (condition()) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  }
+
+  rclcpp::executors::SingleThreadedExecutor executor_;
+  std::shared_ptr<MockAPA102> channel_1_;
+  std::shared_ptr<MockAPA102> channel_2_;
+  std::shared_ptr<DriverNodeWrapper> node_;
+  std::unique_ptr<LEDControlServer> server_;
+};
+
+TEST_F(TestLightsDriverNodeLEDControl, DefaultThrowsAfterThreeRefusals)
+{
+  CreateNodes(false, false, true);
+
+  for (int attempt = 1; attempt <= 3; ++attempt) {
+    ASSERT_NO_THROW(node_->InitializationTimerCB());
+    ASSERT_TRUE(SpinUntil(
+      [this, attempt]() {
+        return server_->GetCalls() == attempt && !node_->GetLedControlPending();
+      },
+      false));
+  }
+
+  EXPECT_THROW(node_->InitializationTimerCB(), std::runtime_error);
+  EXPECT_EQ(3, server_->GetCalls());
+  EXPECT_FALSE(node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverResendsRefusalOnlyAfterResponseTimeout)
+{
+  CreateNodes(true, false, true);
+
+  ASSERT_TRUE(SpinUntil(
+    [this]() { return server_->GetCalls() == 1 && !node_->GetLedControlPending(); }, true));
+
+  // The default path would send the next request on the next tick.
+  EXPECT_FALSE(
+    SpinUntil([this]() { return server_->GetCalls() > 1; }, true, std::chrono::milliseconds(500)));
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 2; }, true));
+  EXPECT_FALSE(node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverResendsAfterResponseTimeout)
+{
+  CreateNodes(true, false, false);
+
+  ASSERT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 1; }, true));
+  EXPECT_TRUE(node_->GetLedControlPending());
+
+  EXPECT_FALSE(
+    SpinUntil([this]() { return server_->GetCalls() > 1; }, true, std::chrono::milliseconds(500)));
+  EXPECT_TRUE(node_->GetLedControlPending());
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 2; }, true));
+  EXPECT_TRUE(node_->GetLedControlPending());
+  EXPECT_EQ(2u, node_->GetInitializationAttempt());
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 3; }, true));
+
+  // Each timed-out request was dropped from the client, only the last one is still pending.
+  EXPECT_EQ(1u, node_->PruneLEDControlRequests());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverStopsOnGrant)
+{
+  CreateNodes(true, true, true);
+
+  ASSERT_TRUE(SpinUntil([this]() { return node_->GetLedControlGranted(); }, true));
+  EXPECT_NO_THROW(node_->InitializationTimerCB());
+  EXPECT_EQ(1, server_->GetCalls());
+}
+
+TEST(TestLightsDriverNodeShutdownHook, DestroyedNodeLeavesNoHook)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  const auto hooks_before = context->get_on_shutdown_callbacks().size();
+
+  {
+    rclcpp::NodeOptions options;
+    options.context(context);
+    auto node = std::make_shared<DriverNodeWrapper>(
+      std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options);
+    EXPECT_EQ(hooks_before + 1, context->get_on_shutdown_callbacks().size());
+  }
+
+  EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
+  EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ThrowingConstructorLeavesNoHook)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  const auto hooks_before = context->get_on_shutdown_callbacks().size();
+
+  // Rejected by the parameter listener in the constructor body, after the point where the hook used
+  // to be registered.
+  rclcpp::NodeOptions options;
+  options.context(context);
+  options.parameter_overrides({rclcpp::Parameter("global_brightness", 2.0)});
+  EXPECT_ANY_THROW(std::make_shared<DriverNodeWrapper>(
+    std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options));
+
+  EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
+  EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ShutdownClearsLEDs)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  rclcpp::NodeOptions options;
+  options.context(context);
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  auto node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2, options);
+
+  EXPECT_CALL(*channel_1, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_1") * 4, 0)))
+    .Times(1);
+  EXPECT_CALL(*channel_2, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_2") * 4, 0)))
+    .Times(1);
+  context->shutdown("test");
+}
+
+TEST(TestLightsDriverNodeSPIParams, DefaultsAccepted)
+{
+  EXPECT_NO_THROW(
+    husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(lights_driver::Params()));
+}
+
+TEST(TestLightsDriverNodeSPIParams, ClockBelowLowerLimitRefused)
+{
+  lights_driver::Params params;
+  params.spi_speed_hz = 8000;
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::invalid_argument>(
+    [&]() { husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params); }, "spi_speed_hz"));
+
+  params.spi_speed_hz = 100000;
+  EXPECT_NO_THROW(husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params));
+}
+
+TEST(TestLightsDriverNodeSPIParams, TransferSizeTooSmallRefused)
+{
+  // 600 LEDs make a 2408-byte frame: 602 transfers of 4 bytes, more than one message holds, or 301
+  // of 8 bytes.
+  lights_driver::Params params;
+  params.channel_2_num_led = 600;
+  params.spi_max_transfer_bytes = 4;
+  EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::invalid_argument>(
+    [&]() { husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params); },
+    "spi_max_transfer_bytes"));
+
+  params.spi_max_transfer_bytes = 8;
+  EXPECT_NO_THROW(husarion_ugv_lights::LightsDriverNode::ValidateSPIParams(params));
 }
 
 int main(int argc, char ** argv)

@@ -14,10 +14,12 @@
 
 #include "husarion_ugv_lights/lights_driver_node.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -29,6 +31,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
+#include "husarion_ugv_msgs/msg/led_output_state.hpp"
 #include "husarion_ugv_msgs/srv/set_led_brightness.hpp"
 
 #include "husarion_ugv_lights/apa102.hpp"
@@ -41,17 +44,24 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
+: LightsDriverNode(nullptr, nullptr, options)
+{
+}
+
+LightsDriverNode::LightsDriverNode(
+  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
+  const rclcpp::NodeOptions & options)
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
+  led_output_enabled_(true),
+  global_brightness_(1.0f),
   initialization_attempt_(0),
-  channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
-  channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
+  channel_1_(channel_1),
+  channel_2_(channel_2),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
-
-  rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
 
   this->param_listener_ =
     std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
@@ -61,9 +71,34 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   channel_1_num_led_ = this->params_.channel_1_num_led;
   channel_2_num_led_ = this->params_.channel_2_num_led;
 
-  const float global_brightness = this->params_.global_brightness;
-  channel_1_->SetGlobalBrightness(global_brightness);
-  channel_2_->SetGlobalBrightness(global_brightness);
+  ValidateSPIParams(this->params_);
+
+  const auto spi_speed = this->params_.spi_speed_hz > 0
+                           ? static_cast<std::uint32_t>(this->params_.spi_speed_hz)
+                           : APA102::kDefaultSPISpeedHz;
+  const auto spi_max_transfer = static_cast<std::size_t>(this->params_.spi_max_transfer_bytes);
+
+  // The controller silently runs the next clock its divider reaches. Its core clock is only
+  // readable through debugfs, and the firmware may scale it, so this assumes a fixed value.
+  RCLCPP_INFO(
+    this->get_logger(), "LED SPI clock %u Hz requested, %u Hz at a %lu MHz SPI core clock.",
+    spi_speed, EffectiveSPISpeed(kDefaultSPICoreClockHz, spi_speed),
+    static_cast<unsigned long>(kDefaultSPICoreClockHz / 1000000));
+
+  if (!channel_1_) {
+    channel_1_ = std::make_shared<APA102>(
+      std::make_shared<SPIDevice>(), "/dev/spiled-channel1", spi_speed, false, spi_max_transfer);
+  }
+  if (!channel_2_) {
+    channel_2_ = std::make_shared<APA102>(
+      std::make_shared<SPIDevice>(), "/dev/spiled-channel2", spi_speed, false, spi_max_transfer);
+  }
+
+  led_output_enabled_ = this->params_.led_output_enabled;
+
+  global_brightness_ = static_cast<float>(this->params_.global_brightness);
+  channel_1_->SetGlobalBrightness(global_brightness_);
+  channel_2_->SetGlobalBrightness(global_brightness_);
 
   client_callback_group_ =
     this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -73,6 +108,13 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
 
   set_brightness_server_ = this->create_service<SetLEDBrightnessSrv>(
     "lights/set_brightness", std::bind(&LightsDriverNode::SetBrightnessCB, this, _1, _2));
+
+  enable_led_output_server_ = this->create_service<SetBoolSrv>(
+    "lights/enable", std::bind(&LightsDriverNode::EnableLEDOutputCB, this, _1, _2));
+
+  output_state_pub_ = this->create_publisher<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local());
+  PublishOutputState();
 
   // running at 10 Hz
   initialization_timer_ = this->create_wall_timer(
@@ -95,16 +137,59 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   diagnostic_updater_.setHardwareID("Bumper Lights");
   diagnostic_updater_.add("Lights driver status", this, &LightsDriverNode::DiagnoseLights);
 
+  // Last, because a constructor that throws runs no destructor to remove the hook.
+  RegisterShutdownHook();
+
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
+}
+
+LightsDriverNode::~LightsDriverNode()
+{
+  // The hook captures this, and the node can be unloaded from its container before shutdown.
+  this->get_node_base_interface()->get_context()->remove_on_shutdown_callback(
+    shutdown_callback_handle_);
+}
+
+void LightsDriverNode::RegisterShutdownHook()
+{
+  shutdown_callback_handle_ =
+    this->get_node_base_interface()->get_context()->add_on_shutdown_callback(
+      std::bind(&LightsDriverNode::OnShutdown, this));
+}
+
+void LightsDriverNode::ValidateSPIParams(const lights_driver::Params & params)
+{
+  // The bounds have to admit 0, the "use the default" value, so the lower limit of a real clock is
+  // checked here. A clock below 100 kHz is a typo, not a setting.
+  if (params.spi_speed_hz != 0 && params.spi_speed_hz < kMinSPISpeedHz) {
+    throw std::invalid_argument(
+      "spi_speed_hz must be 0 or between " + std::to_string(kMinSPISpeedHz) + " and " +
+      std::to_string(kMaxSPISpeedHz) + ", got " + std::to_string(params.spi_speed_hz) + ".");
+  }
+
+  // A frame that needs more transfers than one SPI message holds would fail on every write, so
+  // refuse it here, where the error names the parameter.
+  const auto longest_channel =
+    static_cast<std::size_t>(std::max(params.channel_1_num_led, params.channel_2_num_led));
+  const auto max_transfer = static_cast<std::size_t>(params.spi_max_transfer_bytes);
+  if (APA102::NumberOfTransfers(longest_channel, max_transfer) > APA102::kMaxSPITransfers) {
+    throw std::invalid_argument("spi_max_transfer_bytes is too small for the LED count.");
+  }
 }
 
 void LightsDriverNode::OnShutdown()
 {
-  ClearLEDs();
-
-  if (led_control_granted_) {
-    ToggleLEDControl(false);
+  // An exception escaping a shutdown hook aborts the whole container.
+  try {
+    ClearLEDs();
+  } catch (const std::exception & e) {
+    RCLCPP_WARN_STREAM(this->get_logger(), "Clearing LEDs at shutdown failed: " << e.what());
   }
+
+  // LED control is not released here. on_shutdown hooks run after the context is shut down, when
+  // no request can be sent, and a request sent from a pre-shutdown hook was not delivered either,
+  // since the context goes down right after it. When the hardware interface stops it resets the
+  // LED control pin itself; when only the lights stop, control stays with this computer.
 }
 
 void LightsDriverNode::InitializationTimerCB()
@@ -121,8 +206,20 @@ void LightsDriverNode::InitializationTimerCB()
       return;
     }
 
-    RCLCPP_WARN(this->get_logger(), "LED control service response timeout.");
+    if (this->params_.led_control_retry_forever) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 10000, "LED control service response timeout.");
+      // The unanswered request would otherwise stay in the client for good, one per resend.
+      enable_led_control_client_->prune_pending_requests();
+    } else {
+      RCLCPP_WARN(this->get_logger(), "LED control service response timeout.");
+    }
     led_control_pending_ = false;
+  }
+
+  if (this->params_.led_control_retry_forever) {
+    RetryLEDControl();
+    return;
   }
 
   if (initialization_attempt_ >= kMaxInitializationAttempts) {
@@ -130,6 +227,30 @@ void LightsDriverNode::InitializationTimerCB()
   }
 
   ToggleLEDControl(true);
+  initialization_attempt_++;
+}
+
+void LightsDriverNode::RetryLEDControl()
+{
+  // Poll instead of calling the blocking wait_for_service: this timer shares the executor with the
+  // lights controller and the lights services.
+  if (!enable_led_control_client_->service_is_ready()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 10000,
+      "Waiting for service '%s' to grant LED control.",
+      enable_led_control_client_->get_service_name());
+    return;
+  }
+
+  // A refused request is sent again only after the response timeout, not on every tick.
+  if (
+    initialization_attempt_ > 0 &&
+    this->now() - led_control_call_time_ <=
+      rclcpp::Duration(std::chrono::seconds(kServiceResponseTimeout))) {
+    return;
+  }
+
+  SendLEDControlRequest(true);
   initialization_attempt_++;
 }
 
@@ -145,15 +266,20 @@ void LightsDriverNode::ToggleLEDControl(const bool enable)
     this->get_logger(), "Calling service to toggle LED control to '%s'.",
     enable ? "true" : "false");
 
-  auto request = std::make_shared<SetBoolSrv::Request>();
-  request->data = enable;
-
   if (!enable_led_control_client_->wait_for_service(std::chrono::seconds(kWaitForServiceTimeout))) {
     RCLCPP_WARN_STREAM(
       this->get_logger(), "Timeout occurred while waiting for service '"
                             << enable_led_control_client_->get_service_name() << "'!");
     return;
   }
+
+  SendLEDControlRequest(enable);
+}
+
+void LightsDriverNode::SendLEDControlRequest(const bool enable)
+{
+  auto request = std::make_shared<SetBoolSrv::Request>();
+  request->data = enable;
 
   enable_led_control_client_->async_send_request(
     request, std::bind(&LightsDriverNode::ToggleLEDControlCB, this, std::placeholders::_1));
@@ -175,14 +301,29 @@ void LightsDriverNode::ToggleLEDControlCB(
   const auto response = result.second;
 
   if (!response->success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to toggle LED control.");
+    if (this->params_.led_control_retry_forever) {
+      RCLCPP_ERROR_THROTTLE(
+        this->get_logger(), *this->get_clock(), 10000, "Failed to toggle LED control.");
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to toggle LED control.");
+    }
     led_control_pending_ = false;
     return;
   }
 
   if (request->data == true) {
     led_control_granted_ = true;
-    ClearLEDs();
+    // Every valid frame updates the cache, before the grant too, so even after a late grant it
+    // holds the controller's latest frame. An exception escaping this callback would end the
+    // container.
+    try {
+      ClearLEDs();
+      if (led_output_enabled_) {
+        RewriteLastFrames();
+      }
+    } catch (const std::exception & e) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "Writing the LED strips failed: " << e.what());
+    }
     RCLCPP_INFO(this->get_logger(), "LED control granted.");
   } else {
     led_control_granted_ = false;
@@ -190,43 +331,79 @@ void LightsDriverNode::ToggleLEDControlCB(
   }
 
   led_control_pending_ = false;
+  PublishOutputState();
 }
 
 void LightsDriverNode::FrameCB(
   const ImageMsg::UniquePtr & msg, const APA102Interface::SharedPtr & panel,
   const rclcpp::Time & last_time, const std::string & panel_name)
 {
+  std::string message;
+  auto reason = FrameDropReason::NONE;
+  if (
+    (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
+    rclcpp::Duration::from_seconds(frame_timeout_)) {
+    reason = FrameDropReason::TIMEOUT;
+    message = "Timeout exceeded, ignoring frame";
+  } else if (rclcpp::Time(msg->header.stamp) < last_time) {
+    reason = FrameDropReason::PAST;
+    message = "Dropping message from past";
+  } else if (msg->encoding != sensor_msgs::image_encodings::RGBA8) {
+    reason = FrameDropReason::ENCODING;
+    message = "Incorrect image encoding ('" + msg->encoding + "')";
+  } else if (msg->height != 1) {
+    reason = FrameDropReason::HEIGHT;
+    message = "Incorrect image height " + std::to_string(msg->height);
+  } else if (
+    msg->width != static_cast<std::uint32_t>(
+                    panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
+    reason = FrameDropReason::WIDTH;
+    message = "Incorrect image width " + std::to_string(msg->width);
+  } else if (msg->data.size() != static_cast<std::size_t>(msg->width) * 4) {
+    // Checked here, because a cached frame is written later from callbacks that must not throw.
+    reason = FrameDropReason::DATA_SIZE;
+    message = "Incorrect image data size " + std::to_string(msg->data.size());
+  }
+
+  // A valid frame is cached before the grant too: the controller may publish a static animation
+  // only once, and the grant writes the cached frame after clearing the strips.
   if (!led_control_granted_) {
+    if (reason == FrameDropReason::NONE) {
+      CacheFrame(msg->data, panel_name);
+    }
     PanelThrottleWarnLog(
       panel_name, "Waiting for LED control to be granted. Ignoring frame for " + panel_name + "!");
     return;
   }
 
-  std::string message;
-  if (
-    (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
-    rclcpp::Duration::from_seconds(frame_timeout_)) {
-    message = "Timeout exceeded, ignoring frame";
-  } else if (rclcpp::Time(msg->header.stamp) < last_time) {
-    message = "Dropping message from past";
-  } else if (msg->encoding != sensor_msgs::image_encodings::RGBA8) {
-    message = "Incorrect image encoding ('" + msg->encoding + "')";
-  } else if (msg->height != 1) {
-    message = "Incorrect image height " + std::to_string(msg->height);
-  } else if (
-    msg->width != static_cast<std::uint32_t>(
-                    panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
-    message = "Incorrect image width " + std::to_string(msg->width);
-  }
-
-  if (!message.empty()) {
-    auto warn_msg = message + " on " + panel_name + "!";
+  if (reason != FrameDropReason::NONE) {
+    const auto warn_msg = message + " on " + panel_name + "!";
     PanelThrottleWarnLog(panel_name, warn_msg);
-    diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+    if (!this->params_.report_frame_drops_periodically) {
+      diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+    }
+    frames_dropped_++;
+    last_frame_drop_reason_ = reason;
     return;
   }
 
-  panel->SetPanel(msg->data);
+  // Cached even while the output is off, so turning it back on shows the current frame.
+  CacheFrame(msg->data, panel_name);
+
+  if (!led_output_enabled_) {
+    return;
+  }
+
+  // A failed SPI write is counted like a dropped frame instead of ending the container.
+  try {
+    panel->SetPanel(msg->data);
+  } catch (const std::exception & e) {
+    PanelThrottleWarnLog(
+      panel_name, "Writing frame on " + panel_name + " failed: " + std::string(e.what()));
+    frames_dropped_++;
+    last_frame_drop_reason_ = FrameDropReason::WRITE;
+    write_failed_ = true;
+  }
 }
 
 void LightsDriverNode::SetBrightnessCB(
@@ -243,12 +420,98 @@ void LightsDriverNode::SetBrightnessCB(
     return;
   }
 
+  global_brightness_ = brightness;
+  PublishOutputState();
+
+  // With a frame keep-alive the controller may not send the next frame for up to its period, so
+  // write the current one with the new brightness now. The brightness applies from here on, so a
+  // failed write does not fail the call.
+  if (led_control_granted_ && led_output_enabled_) {
+    try {
+      RewriteLastFrames();
+    } catch (const std::exception & e) {
+      RCLCPP_WARN_STREAM(this->get_logger(), "Writing the LED strips failed: " << e.what());
+      res->success = true;
+      res->message = "Brightness set, but writing the LED strips failed: " + std::string(e.what());
+      return;
+    }
+  }
+
   auto str_bright = std::to_string(brightness);
 
   // Round string to two decimal points
   str_bright = str_bright.substr(0, str_bright.find(".") + 3);
   res->success = true;
   res->message = "Changed brightness to " + str_bright;
+}
+
+void LightsDriverNode::CacheFrame(
+  const std::vector<std::uint8_t> & frame, const std::string & panel_name)
+{
+  (panel_name == "channel_1" ? channel_1_frame_ : channel_2_frame_) = frame;
+}
+
+void LightsDriverNode::RewriteLastFrames()
+{
+  if (!channel_1_frame_.empty()) {
+    channel_1_->SetPanel(channel_1_frame_);
+  }
+  if (!channel_2_frame_.empty()) {
+    channel_2_->SetPanel(channel_2_frame_);
+  }
+}
+
+void LightsDriverNode::PublishOutputState()
+{
+  LEDOutputStateMsg msg;
+  msg.enabled = led_output_enabled_;
+  msg.control_granted = led_control_granted_;
+  msg.brightness = global_brightness_;
+  output_state_pub_->publish(msg);
+}
+
+void LightsDriverNode::EnableLEDOutputCB(
+  const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
+{
+  const bool enable = req->data;
+
+  if (enable == led_output_enabled_) {
+    res->success = true;
+    res->message = std::string("LED output already ") + (enable ? "enabled" : "disabled");
+    return;
+  }
+
+  // An APA102 strip keeps showing the last frame it was sent, so turning the output off writes one
+  // black frame, and turning it on writes the cached frames. Without LED control nothing may be
+  // written; the grant clears the strips anyway.
+  if (led_control_granted_) {
+    try {
+      if (enable) {
+        RewriteLastFrames();
+      } else {
+        ClearLEDs();
+      }
+    } catch (const std::exception & e) {
+      // A failed enable may have lit one channel already. The output stays off, so blank the
+      // strips again rather than leave a frame that FrameCB would never replace.
+      if (enable) {
+        try {
+          ClearLEDs();
+        } catch (const std::exception &) {
+        }
+      }
+      res->success = false;
+      res->message = "Failed to write the LED strips: " + std::string(e.what());
+      return;
+    }
+  }
+
+  led_output_enabled_ = enable;
+  PublishOutputState();
+
+  RCLCPP_INFO(this->get_logger(), "LED output %s.", enable ? "enabled" : "disabled");
+  res->success = true;
+  res->message = std::string("LED output ") + (enable ? "enabled" : "disabled");
 }
 
 void LightsDriverNode::PanelThrottleWarnLog(const std::string panel_name, const std::string message)
@@ -277,7 +540,53 @@ void LightsDriverNode::DiagnoseLights(diagnostic_updater::DiagnosticStatusWrappe
   }
 
   status.add("LED control status", led_control_status);
+  // Switching the output off is not a fault, but without these keys dark LEDs look like one.
+  status.add("LED output", led_output_enabled_ ? std::string("enabled") : std::string("disabled"));
+  status.add("Brightness", global_brightness_);
+
+  // Always present, so dashboards see a 0 instead of a key that comes and goes.
+  status.add("Frames dropped since the last report", frames_dropped_);
+  status.add("Last drop reason", FrameDropReasonToString(last_frame_drop_reason_));
+  if (
+    this->params_.report_frame_drops_periodically &&
+    frames_dropped_ > kFramesDroppedWarnThreshold &&
+    error_level == diagnostic_updater::DiagnosticStatusWrapper::OK) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Animation frames were dropped.";
+  }
+  // A failed SPI write is a device fault, not drop-count noise, so it is reported whatever
+  // report_frame_drops_periodically says.
+  if (write_failed_) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    message = "Writing to the LED strips failed!";
+  }
+  write_failed_ = false;
+  frames_dropped_ = 0;
+  last_frame_drop_reason_ = FrameDropReason::NONE;
+
   status.summary(error_level, message);
+}
+
+std::string LightsDriverNode::FrameDropReasonToString(const FrameDropReason reason)
+{
+  switch (reason) {
+    case FrameDropReason::TIMEOUT:
+      return "frame older than the frame timeout";
+    case FrameDropReason::PAST:
+      return "frame older than the previous one";
+    case FrameDropReason::ENCODING:
+      return "wrong image encoding";
+    case FrameDropReason::HEIGHT:
+      return "wrong image height";
+    case FrameDropReason::WIDTH:
+      return "wrong image width";
+    case FrameDropReason::DATA_SIZE:
+      return "wrong image data size";
+    case FrameDropReason::WRITE:
+      return "SPI write failed";
+    default:
+      return "none";
+  }
 }
 
 }  // namespace husarion_ugv_lights

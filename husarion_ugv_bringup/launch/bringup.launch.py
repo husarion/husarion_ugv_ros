@@ -74,6 +74,55 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    led_control_retry_forever = LaunchConfiguration("led_control_retry_forever")
+    declare_led_control_retry_forever_arg = DeclareLaunchArgument(
+        "led_control_retry_forever",
+        default_value="False",
+        description=(
+            "Keep asking the hardware for LED control until it is granted, instead of exiting"
+            " after three attempts."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="0",
+        description=(
+            "SPI clock of the LED strips in Hz. 0 keeps the driver default of 800000, the"
+            " certified clock. Any other value must be between 100000 and 20000000. Changing it"
+            " affects EMC."
+        ),
+    )
+
+    led_spi_max_transfer_bytes = LaunchConfiguration("led_spi_max_transfer_bytes")
+    declare_led_spi_max_transfer_bytes_arg = DeclareLaunchArgument(
+        "led_spi_max_transfer_bytes",
+        default_value="0",
+        description=(
+            "Largest single SPI transfer of a LED frame in bytes. 0 sends each frame as one"
+            " transfer."
+        ),
+    )
+
+    lights_controller_frequency = LaunchConfiguration("lights_controller_frequency")
+    declare_lights_controller_frequency_arg = DeclareLaunchArgument(
+        "lights_controller_frequency",
+        default_value="50.0",
+        description="Frequency in Hz at which the lights controller renders animation frames.",
+    )
+
+    lights_frame_keepalive_period = LaunchConfiguration("lights_frame_keepalive_period")
+    declare_lights_frame_keepalive_period_arg = DeclareLaunchArgument(
+        "lights_frame_keepalive_period",
+        default_value="0.0",
+        description=(
+            "Time in seconds after which the lights controller publishes an unchanged frame again."
+            " 0 publishes every frame."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -140,6 +189,11 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
+            "led_control_retry_forever": led_control_retry_forever,
+            "led_spi_speed_hz": led_spi_speed_hz,
+            "led_spi_max_transfer_bytes": led_spi_max_transfer_bytes,
+            "lights_controller_frequency": lights_controller_frequency,
+            "lights_frame_keepalive_period": lights_frame_keepalive_period,
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
@@ -253,6 +307,11 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_ekf_print_diagnostics_arg,
+        declare_led_control_retry_forever_arg,
+        declare_led_spi_speed_hz_arg,
+        declare_led_spi_max_transfer_bytes_arg,
+        declare_lights_controller_frequency_arg,
+        declare_lights_frame_keepalive_period_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         *declare_uvp_arguments(),

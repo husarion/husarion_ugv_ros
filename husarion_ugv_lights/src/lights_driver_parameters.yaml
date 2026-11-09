@@ -11,6 +11,43 @@ lights_driver:
     description: LED global brightness. The range should be between [0.0, 1.0].
     validation: { bounds<>: [0.0, 1.0] }
 
+  led_output_enabled:
+    type: bool
+    default_value: true
+    description: Startup state of the physical LED output. When false frames are still received
+      but not written to the strips. Switched at runtime with the lights/enable service.
+
+  led_control_retry_forever:
+    type: bool
+    default_value: false
+    description: Keep asking the hardware for LED control at startup until it is granted. When
+      false the driver gives up after three attempts and exits. Control lost later, for example
+      when the hardware interface restarts, is not asked for again.
+
+  report_frame_drops_periodically:
+    type: bool
+    default_value: false
+    description: When false every rejected frame broadcasts a WARN diagnostic of its own. When true
+      the drops are only counted, and the lights task warns once per report when more than 2 were
+      dropped since the last one.
+
+  spi_speed_hz:
+    type: int
+    default_value: 0
+    description: SPI clock of both LED channels in Hz. 0 keeps the default of 800000, the clock the
+      robots are certified with. Any other value must be between 100000 and 20000000; the node checks
+      the lower limit at start. A different clock changes the emissions of the strip cables.
+    validation: { bounds<>: [0, 20000000] }
+
+  spi_max_transfer_bytes:
+    type: int
+    default_value: 0
+    description: Largest single SPI transfer in bytes. A longer frame is sent as several transfers
+      of one SPI message, with chip select held for the whole frame. On a Raspberry Pi a transfer
+      below 96 bytes is sent interrupt driven instead of by DMA. 0 sends each frame as one
+      transfer.
+    validation: { bounds<>: [0, 4096] }
+
   channel_1_num_led:
     type: int
     default_value: 46

@@ -61,6 +61,15 @@ Node responsible for managing Bumper Lights animation scheduling.
 
 Node responsible for managing safety features, and software shutdown of components.
 
+On soft shutdown the node also logs the reason with `syslog(3)` at `daemon.warning`, tagged with the program name (`safety_manager_node`). In a container this needs the host's `/dev/log` socket mounted, for example in the compose file:
+
+```yaml
+volumes:
+  - /dev/log:/dev/log
+```
+
+Otherwise the line is dropped.
+
 #### Subscribers
 
 - `battery/battery_status` [*sensor_msgs/BatteryState*]: State of the internal Battery.

@@ -41,12 +41,23 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
+: LightsDriverNode(nullptr, nullptr, options)
+{
+}
+
+LightsDriverNode::LightsDriverNode(
+  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
+  const rclcpp::NodeOptions & options)
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
   initialization_attempt_(0),
-  channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
-  channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
+  channel_1_(
+    channel_1 ? channel_1
+              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
+  channel_2_(
+    channel_2 ? channel_2
+              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");

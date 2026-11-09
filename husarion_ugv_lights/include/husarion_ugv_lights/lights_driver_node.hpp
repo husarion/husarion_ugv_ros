@@ -44,6 +44,10 @@ class LightsDriverNode : public rclcpp::Node
 public:
   LightsDriverNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
+  /**
+   * @brief Constructs the node on the given LED channels, which tests use to pass mocks. A null
+   * channel opens its SPI device, as the default constructor does.
+   */
   LightsDriverNode(
     APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -109,6 +113,7 @@ protected:
   rclcpp::Time led_control_call_time_;
 
   rclcpp::Client<SetBoolSrv>::SharedPtr enable_led_control_client_;
+  rclcpp::TimerBase::SharedPtr initialization_timer_;
 
 private:
   void OnShutdown();
@@ -148,8 +153,6 @@ private:
 
   std::shared_ptr<lights_driver::ParamListener> param_listener_;
   lights_driver::Params params_;
-
-  rclcpp::TimerBase::SharedPtr initialization_timer_;
 
   rclcpp::Service<SetLEDBrightnessSrv>::SharedPtr set_brightness_server_;
 

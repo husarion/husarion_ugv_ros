@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -48,34 +51,6 @@ public:
   using NiceMock = testing::NiceMock<MockAPA102>;
 };
 
-// LightsDriverNode constructor implemented for testing purposes
-husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
-  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
-  const rclcpp::NodeOptions & options)
-: Node("lights_driver", options),
-  led_control_granted_(false),
-  led_control_pending_(false),
-  initialization_attempt_(0),
-  channel_1_(channel_1),
-  channel_2_(channel_2),
-  diagnostic_updater_(this)
-{
-  channel_1_num_led_ = 46;
-  channel_2_num_led_ = 46;
-  frame_timeout_ = 0.1;
-
-  param_listener_ =
-    std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
-  params_ = param_listener_->get_params();
-  enable_led_control_client_ = this->create_client<SetBoolSrv>("hardware/led_control_enable");
-
-  // The tests call InitializationTimerCB directly; the granted branch cancels this timer.
-  initialization_timer_ = this->create_wall_timer(std::chrono::milliseconds(100), []() {});
-  initialization_timer_->cancel();
-
-  RegisterShutdownHook();
-};
-
 class DriverNodeWrapper : public husarion_ugv_lights::LightsDriverNode
 {
 public:
@@ -84,6 +59,8 @@ public:
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions().use_intra_process_comms(true))
   : LightsDriverNode(channel_1, channel_2, options)
   {
+    // The tests call InitializationTimerCB themselves.
+    initialization_timer_->cancel();
   }
 
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
@@ -122,6 +99,21 @@ public:
   rclcpp::Time SetChannel1Ts(const rclcpp::Time & ts) { return channel_1_ts_ = ts; }
   rclcpp::Time SetChannel2Ts(const rclcpp::Time & ts) { return channel_2_ts_ = ts; }
 };
+
+// A namespace of its own, so the LED control service of another test running in parallel on the
+// same ROS domain is not seen here.
+std::string UniqueNamespace(const std::string & name)
+{
+  return "/" + name + "_" + std::to_string(getpid());
+}
+
+rclcpp::NodeOptions IsolatedOptions(const std::string & name)
+{
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.arguments({"--ros-args", "-r", "__ns:=" + UniqueNamespace(name)});
+  return options;
+}
 
 class TestLightsDriverNode : public testing::Test
 {
@@ -334,8 +326,7 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
 
 TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)
 {
-  rclcpp::NodeOptions options;
-  options.use_intra_process_comms(true);
+  auto options = IsolatedOptions("retry_forever_without_service");
   options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", true)});
   auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
   auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
@@ -357,8 +348,8 @@ TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)
 class LEDControlServer
 {
 public:
-  LEDControlServer(const bool success, const bool respond)
-  : node_(std::make_shared<rclcpp::Node>("led_control_server")),
+  LEDControlServer(const bool success, const bool respond, const std::string & ns)
+  : node_(std::make_shared<rclcpp::Node>("led_control_server", ns)),
     success_(success),
     respond_(respond)
   {
@@ -391,13 +382,12 @@ class TestLightsDriverNodeLEDControl : public testing::Test
 protected:
   void CreateNodes(const bool retry_forever, const bool success, const bool respond)
   {
-    rclcpp::NodeOptions options;
-    options.use_intra_process_comms(true);
+    auto options = IsolatedOptions("led_control");
     options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", retry_forever)});
     channel_1_ = std::make_shared<MockAPA102::NiceMock>();
     channel_2_ = std::make_shared<MockAPA102::NiceMock>();
     node_ = std::make_shared<DriverNodeWrapper>(channel_1_, channel_2_, options);
-    server_ = std::make_unique<LEDControlServer>(success, respond);
+    server_ = std::make_unique<LEDControlServer>(success, respond, UniqueNamespace("led_control"));
     executor_.add_node(node_);
     executor_.add_node(server_->GetNode());
   }
@@ -510,6 +500,41 @@ TEST(TestLightsDriverNodeShutdownHook, DestroyedNodeLeavesNoHook)
 
   EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
   EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ThrowingConstructorLeavesNoHook)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  const auto hooks_before = context->get_on_shutdown_callbacks().size();
+
+  // Rejected by the parameter listener in the constructor body, after the point where the hook used
+  // to be registered.
+  rclcpp::NodeOptions options;
+  options.context(context);
+  options.parameter_overrides({rclcpp::Parameter("global_brightness", 2.0)});
+  EXPECT_ANY_THROW(std::make_shared<DriverNodeWrapper>(
+    std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options));
+
+  EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
+  EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ShutdownClearsLEDs)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  rclcpp::NodeOptions options;
+  options.context(context);
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  auto node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2, options);
+
+  EXPECT_CALL(*channel_1, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_1") * 4, 0)))
+    .Times(1);
+  EXPECT_CALL(*channel_2, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_2") * 4, 0)))
+    .Times(1);
+  context->shutdown("test");
 }
 
 int main(int argc, char ** argv)

@@ -26,6 +26,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_updater/diagnostic_updater.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <sensor_msgs/image_encodings.hpp>
@@ -75,6 +77,13 @@ public:
     const SetBoolSrv::Request::SharedPtr & req, SetBoolSrv::Response::SharedPtr res)
   {
     return LightsDriverNode::EnableLEDOutputCB(req, res);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseLights()
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    LightsDriverNode::DiagnoseLights(status);
+    return status;
   }
 
   void SetBrightnessCB(
@@ -612,6 +621,119 @@ TEST_F(TestLightsDriverNode, SetBrightnessCBReportsWriteFailure)
   // The brightness is applied, only the write failed.
   EXPECT_TRUE(res->success);
   EXPECT_NE(std::string::npos, res->message.find("writing the LED strips failed"));
+}
+
+std::string GetDiagnosticValue(
+  const diagnostic_msgs::msg::DiagnosticStatus & status, const std::string & key)
+{
+  for (const auto & kv : status.values) {
+    if (kv.key == key) {
+      return kv.value;
+    }
+  }
+  return "<missing>";
+}
+
+TEST_F(TestLightsDriverNode, FrameCBDataSize)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+  msg->data.pop_back();
+
+  EXPECT_CALL(*channel_1_, SetPanel(testing::_)).Times(0);
+  lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+
+  const auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("1", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image data size", GetDiagnosticValue(status, "Last drop reason"));
+}
+
+TEST_F(TestLightsDriverNode, FrameCBWriteFailureRaisesError)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+  auto msg = CreateValidImageMsg("channel_1");
+
+  ON_CALL(*channel_1_, SetPanel(testing::_))
+    .WillByDefault(testing::Throw(std::ios_base::failure("SPI write failed")));
+  EXPECT_NO_THROW(lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1"));
+
+  // With the default report_frame_drops_periodically false, the failed write still raises ERROR.
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
+  EXPECT_EQ("1", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("SPI write failed", GetDiagnosticValue(status, "Last drop reason"));
+
+  // Per report: a report without a failed write is OK again.
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsCountsDroppedFrames)
+{
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.parameter_overrides({rclcpp::Parameter("report_frame_drops_periodically", true)});
+  DriverNodeWrapper node(channel_1, channel_2, options);
+  node.ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  auto status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("none", GetDiagnosticValue(status, "Last drop reason"));
+
+  auto drop_frames = [&](const int count) {
+    for (int i = 0; i < count; ++i) {
+      auto msg = CreateValidImageMsg("channel_1");
+      msg->width = node.GetNumLed("channel_1") + 1;
+      node.FrameCB(msg, channel_1, msg->header.stamp, "channel_1");
+    }
+  };
+
+  // Up to the threshold the drops are reported, but the task stays OK.
+  drop_frames(2);
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("2", GetDiagnosticValue(status, "Frames dropped since the last report"));
+
+  drop_frames(3);
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("wrong image width", GetDiagnosticValue(status, "Last drop reason"));
+
+  // The count is per report.
+  status = node.DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("0", GetDiagnosticValue(status, "Frames dropped since the last report"));
+  EXPECT_EQ("none", GetDiagnosticValue(status, "Last drop reason"));
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsDefaultKeepsTaskLevel)
+{
+  lights_driver_node_->ToggleLEDControlCB(CreateSetBoolSrvFuture(true, true));
+
+  // By default each drop is broadcast on its own, as before, and the periodic task only counts.
+  for (int i = 0; i < 3; ++i) {
+    auto msg = CreateValidImageMsg("channel_1");
+    msg->width = lights_driver_node_->GetNumLed("channel_1") + 1;
+    lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+  }
+  const auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("3", GetDiagnosticValue(status, "Frames dropped since the last report"));
+}
+
+TEST_F(TestLightsDriverNode, DiagnoseLightsShowsOutputState)
+{
+  auto status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("enabled", GetDiagnosticValue(status, "LED output"));
+  EXPECT_FLOAT_EQ(1.0f, std::stof(GetDiagnosticValue(status, "Brightness")));
+
+  EXPECT_TRUE(CallEnableLEDOutput(*lights_driver_node_, false));
+  status = lights_driver_node_->DiagnoseLights();
+  EXPECT_EQ("disabled", GetDiagnosticValue(status, "LED output"));
 }
 
 TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)

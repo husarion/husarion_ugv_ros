@@ -339,29 +339,36 @@ void LightsDriverNode::FrameCB(
   const rclcpp::Time & last_time, const std::string & panel_name)
 {
   std::string message;
+  auto reason = FrameDropReason::NONE;
   if (
     (this->get_clock()->now() - rclcpp::Time(msg->header.stamp)) >
     rclcpp::Duration::from_seconds(frame_timeout_)) {
+    reason = FrameDropReason::TIMEOUT;
     message = "Timeout exceeded, ignoring frame";
   } else if (rclcpp::Time(msg->header.stamp) < last_time) {
+    reason = FrameDropReason::PAST;
     message = "Dropping message from past";
   } else if (msg->encoding != sensor_msgs::image_encodings::RGBA8) {
+    reason = FrameDropReason::ENCODING;
     message = "Incorrect image encoding ('" + msg->encoding + "')";
   } else if (msg->height != 1) {
+    reason = FrameDropReason::HEIGHT;
     message = "Incorrect image height " + std::to_string(msg->height);
   } else if (
     msg->width != static_cast<std::uint32_t>(
                     panel_name == "channel_1" ? channel_1_num_led_ : channel_2_num_led_)) {
+    reason = FrameDropReason::WIDTH;
     message = "Incorrect image width " + std::to_string(msg->width);
   } else if (msg->data.size() != static_cast<std::size_t>(msg->width) * 4) {
     // Checked here, because a cached frame is written later from callbacks that must not throw.
+    reason = FrameDropReason::DATA_SIZE;
     message = "Incorrect image data size " + std::to_string(msg->data.size());
   }
 
   // A valid frame is cached before the grant too: the controller may publish a static animation
   // only once, and the grant writes the cached frame after clearing the strips.
   if (!led_control_granted_) {
-    if (message.empty()) {
+    if (reason == FrameDropReason::NONE) {
       CacheFrame(msg->data, panel_name);
     }
     PanelThrottleWarnLog(
@@ -369,10 +376,14 @@ void LightsDriverNode::FrameCB(
     return;
   }
 
-  if (!message.empty()) {
-    auto warn_msg = message + " on " + panel_name + "!";
+  if (reason != FrameDropReason::NONE) {
+    const auto warn_msg = message + " on " + panel_name + "!";
     PanelThrottleWarnLog(panel_name, warn_msg);
-    diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+    if (!this->params_.report_frame_drops_periodically) {
+      diagnostic_updater_.broadcast(diagnostic_msgs::msg::DiagnosticStatus::WARN, warn_msg);
+    }
+    frames_dropped_++;
+    last_frame_drop_reason_ = reason;
     return;
   }
 
@@ -383,7 +394,16 @@ void LightsDriverNode::FrameCB(
     return;
   }
 
-  panel->SetPanel(msg->data);
+  // A failed SPI write is counted like a dropped frame instead of ending the container.
+  try {
+    panel->SetPanel(msg->data);
+  } catch (const std::exception & e) {
+    PanelThrottleWarnLog(
+      panel_name, "Writing frame on " + panel_name + " failed: " + std::string(e.what()));
+    frames_dropped_++;
+    last_frame_drop_reason_ = FrameDropReason::WRITE;
+    write_failed_ = true;
+  }
 }
 
 void LightsDriverNode::SetBrightnessCB(
@@ -520,7 +540,53 @@ void LightsDriverNode::DiagnoseLights(diagnostic_updater::DiagnosticStatusWrappe
   }
 
   status.add("LED control status", led_control_status);
+  // Switching the output off is not a fault, but without these keys dark LEDs look like one.
+  status.add("LED output", led_output_enabled_ ? std::string("enabled") : std::string("disabled"));
+  status.add("Brightness", global_brightness_);
+
+  // Always present, so dashboards see a 0 instead of a key that comes and goes.
+  status.add("Frames dropped since the last report", frames_dropped_);
+  status.add("Last drop reason", FrameDropReasonToString(last_frame_drop_reason_));
+  if (
+    this->params_.report_frame_drops_periodically &&
+    frames_dropped_ > kFramesDroppedWarnThreshold &&
+    error_level == diagnostic_updater::DiagnosticStatusWrapper::OK) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Animation frames were dropped.";
+  }
+  // A failed SPI write is a device fault, not drop-count noise, so it is reported whatever
+  // report_frame_drops_periodically says.
+  if (write_failed_) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    message = "Writing to the LED strips failed!";
+  }
+  write_failed_ = false;
+  frames_dropped_ = 0;
+  last_frame_drop_reason_ = FrameDropReason::NONE;
+
   status.summary(error_level, message);
+}
+
+std::string LightsDriverNode::FrameDropReasonToString(const FrameDropReason reason)
+{
+  switch (reason) {
+    case FrameDropReason::TIMEOUT:
+      return "frame older than the frame timeout";
+    case FrameDropReason::PAST:
+      return "frame older than the previous one";
+    case FrameDropReason::ENCODING:
+      return "wrong image encoding";
+    case FrameDropReason::HEIGHT:
+      return "wrong image height";
+    case FrameDropReason::WIDTH:
+      return "wrong image width";
+    case FrameDropReason::DATA_SIZE:
+      return "wrong image data size";
+    case FrameDropReason::WRITE:
+      return "SPI write failed";
+    default:
+      return "none";
+  }
 }
 
 }  // namespace husarion_ugv_lights

@@ -131,6 +131,25 @@ protected:
    */
   void RegisterShutdownHook();
 
+  void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
+
+  enum class FrameDropReason : std::uint8_t {
+    NONE = 0,
+    TIMEOUT,
+    PAST,
+    ENCODING,
+    HEIGHT,
+    WIDTH,
+    DATA_SIZE,
+    WRITE,
+  };
+
+  static std::string FrameDropReasonToString(const FrameDropReason reason);
+
+  // A few late frames right after start or under load are normal, so the task warns only above
+  // this many dropped frames per report.
+  static constexpr std::uint32_t kFramesDroppedWarnThreshold = 2;
+
   void SetBrightnessCB(
     const SetLEDBrightnessSrv::Request::SharedPtr & request,
     SetLEDBrightnessSrv::Response::SharedPtr response);
@@ -155,6 +174,12 @@ protected:
   std::vector<std::uint8_t> channel_1_frame_;
   std::vector<std::uint8_t> channel_2_frame_;
 
+  // Counted per dropped frame and reported by the diagnostic task, instead of a diagnostic
+  // broadcast per frame.
+  std::uint32_t frames_dropped_{0};
+  FrameDropReason last_frame_drop_reason_{FrameDropReason::NONE};
+  bool write_failed_{false};
+
 private:
   void OnShutdown();
 
@@ -175,8 +200,6 @@ private:
    * @brief Sends the LED control request without checking that the service is available.
    */
   void SendLEDControlRequest(const bool enable);
-
-  void DiagnoseLights(diagnostic_updater::DiagnosticStatusWrapper & status);
 
   static constexpr unsigned kMaxInitializationAttempts = 3;
   static constexpr unsigned kServiceResponseTimeout = 3;

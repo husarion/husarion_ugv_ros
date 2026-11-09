@@ -53,7 +53,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 
 #### Publishers
 
-- `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: Lights diagnostic messages.
+- `diagnostics` [*diagnostic_msgs/DiagnosticArray*]: Lights diagnostic messages. The `Lights driver status` task shows the LED control state, the `lights/enable` output state and the brightness. It reports the frames dropped since its last report and the last reason; frames rejected while LED control is not granted yet are not counted. By default every dropped frame also broadcasts a WARN of its own; with `report_frame_drops_periodically` the task warns instead when more than 2 were dropped in one report, that is above 2 per second with the default `diagnostic_updater.period` of 1 s.
 - `lights/output_state` [*husarion_ugv_msgs/LEDOutputState*, latched]: State of the physical LED output: the `lights/enable` switch, whether LED control is granted and the global brightness. Published on every change.
 
 #### Subscribers
@@ -76,6 +76,7 @@ This node is of type rclcpp_components is responsible for displaying frames on t
 - `global_brightness` [*float*, default: **1.0**]: LED global brightness. The range between **[0.0, 1.0]**.
 - `led_output_enabled` [*bool*, default: **true**]: Startup state of the physical LED output, see the `lights/enable` service.
 - `led_control_retry_forever` [*bool*, default: **false**]: Keep asking for LED control at startup until the hardware grants it. With **false** the driver gives up after three attempts and the lights container exits, which stops the launch. It covers startup only: control lost later, for example when the hardware interface restarts, is not asked for again.
+- `report_frame_drops_periodically` [*bool*, default: **false**]: With **false** every rejected frame broadcasts a WARN diagnostic, as before. With **true** rejected frames are only counted, and the `Lights driver status` task warns when more than 2 were dropped since its last report.
 - `channel_1_num_led` [*int*, default: **46**]: Number of LEDs in the first bumper.
 - `channel_2_num_led` [*int*, default: **46**]: Number of LEDs in the second bumper.
 - `spi_speed_hz` [*int*, default: **0**]: SPI clock of both LED channels in **[Hz]**. **0** keeps the default of 800000, the clock the robots are certified with. Any other value must be between **100000** and **20000000**. Otherwise the driver fails to load with an error naming the parameter: the container and the controller keep running, and the strips stay dark, as with a missing SPI device. Changing it affects EMC. `lights.launch.py` sets it from the `led_spi_speed_hz` launch argument, so it is not read from `{robot_model}_driver.yaml`. The Raspberry Pi runs the next lower clock its even divider of the core clock can reach, and at start the driver logs the requested clock and the clock that divider gives at the default core clock.

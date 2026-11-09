@@ -24,6 +24,13 @@ lights_driver:
       false the driver gives up after three attempts and exits. Control lost later, for example
       when the hardware interface restarts, is not asked for again.
 
+  report_frame_drops_periodically:
+    type: bool
+    default_value: false
+    description: When false every rejected frame broadcasts a WARN diagnostic of its own. When true
+      the drops are only counted, and the lights task warns once per report when more than 2 were
+      dropped since the last one.
+
   spi_speed_hz:
     type: int
     default_value: 0

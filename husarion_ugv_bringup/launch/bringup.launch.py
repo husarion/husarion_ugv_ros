@@ -66,6 +66,14 @@ def generate_launch_description():
         description="Path to the common configuration directory.",
     )
 
+    launch_gamepad = LaunchConfiguration("launch_gamepad")
+    declare_launch_gamepad_arg = DeclareLaunchArgument(
+        "launch_gamepad",
+        default_value="True",
+        description="Launch gamepad node.",
+        choices=["True", "true", "False", "false"],
+    )
+
     disable_manager = LaunchConfiguration("disable_manager")
     declare_disable_manager_arg = DeclareLaunchArgument(
         "disable_manager",
@@ -248,7 +256,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_teleop"), "launch", "teleop.launch.py"]
             )
         ),
-        launch_arguments={"launch_gamepad": "True"}.items(),
+        launch_arguments={"launch_gamepad": launch_gamepad}.items(),
     )
 
     hw_config_correct = EnvironmentVariable(name="ROBOT_HW_CONFIG_CORRECT", default_value="false")
@@ -305,6 +313,7 @@ def generate_launch_description():
         SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
+        declare_launch_gamepad_arg,
         declare_disable_manager_arg,
         declare_ekf_print_diagnostics_arg,
         declare_led_control_retry_forever_arg,

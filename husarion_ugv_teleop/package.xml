@@ -6,6 +6,7 @@
   <description>Package enabling robot teleoperation via gamepad.</description>
   <maintainer email="support@husarion.com">Husarion</maintainer>
   <license>Apache License 2.0</license>
+  <license>BSD-3-Clause</license>
 
   <url type="website">https://husarion.com</url>
   <url type="repository">https://github.com/husarion/husarion_ugv_ros</url>
@@ -15,7 +16,18 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>diagnostic_msgs</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>husarion_ugv_utils</depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+
   <exec_depend>joy2twist</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>ros_testing</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

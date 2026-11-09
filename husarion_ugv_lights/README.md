@@ -12,9 +12,9 @@ This package contains:
 
 - `led_control_retry_forever` [*bool*, default: **False**]: Passed to the `led_control_retry_forever` parameter of `LightsDriverNode`. `bringup.launch.py` forwards it.
 - `led_spi_speed_hz` [*int*, default: **0**]: Passed to the `spi_speed_hz` parameter of `LightsDriverNode`: **0** or a clock between **100000** and **20000000** Hz. Also a `husarion_ugv_bringup` argument.
-- `led_spi_max_transfer_bytes` [*int*, default: **0**]: Passed to the `spi_max_transfer_bytes` parameter of `LightsDriverNode`. Opt-in and meant to save CPU; its effect has not been measured, so leave it at **0** unless you measure it.
-- `lights_controller_frequency` [*float*, default: **50.0**]: Passed to the `controller_frequency` parameter of `LightsControllerNode`. Animations are timed in seconds, so a lower rate drops frames and keeps their timing, but a pulse shorter than two frames can disappear.
-- `lights_frame_keepalive_period` [*float*, default: **0.0**]: Passed to the `frame_keepalive_period` parameter of `LightsControllerNode`.
+- `led_spi_max_transfer_bytes` [*int*, default: **0**]: Passed to the `spi_max_transfer_bytes` parameter of `LightsDriverNode`. Opt-in and meant to save CPU; its effect has not been measured, so leave it at **0** unless you measure it. `bringup.launch.py` forwards it.
+- `lights_controller_frequency` [*float*, default: **50.0**]: Passed to the `controller_frequency` parameter of `LightsControllerNode`. Animations are timed in seconds, so a lower rate drops frames and keeps their timing, but a pulse shorter than two frames can disappear. `bringup.launch.py` forwards it.
+- `lights_frame_keepalive_period` [*float*, default: **0.0**]: Passed to the `frame_keepalive_period` parameter of `LightsControllerNode`. Opt-in and meant to save CPU; its effect has not been measured. `bringup.launch.py` forwards it.
 
 ## Configuration Files
 

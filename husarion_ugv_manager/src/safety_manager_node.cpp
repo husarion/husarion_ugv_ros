@@ -59,7 +59,7 @@ SafetyManagerNode::SafetyManagerNode(
 
   const auto safety_initial_blackboard = CreateSafetyInitialBlackboard();
   safety_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Safety", safety_initial_blackboard, 6666);
+    "Safety", safety_initial_blackboard, 6666, this->params_.groot_enabled);
 
   const auto shutdown_hosts_path = this->params_.shutdown_hosts_path;
   const std::map<std::string, std::any> shutdown_initial_blackboard = {
@@ -67,7 +67,7 @@ SafetyManagerNode::SafetyManagerNode(
     {"SHUTDOWN_LOCALHOST_COMMAND", kShutdownLocalhostCommand},
   };
   shutdown_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Shutdown", shutdown_initial_blackboard, 7777);
+    "Shutdown", shutdown_initial_blackboard, 7777, this->params_.groot_enabled);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -77,8 +77,26 @@ void SafetyManagerNode::Initialize()
   RCLCPP_INFO(this->get_logger(), "Initializing.");
 
   RegisterBehaviorTree();
-  safety_tree_manager_->Initialize(factory_);
   shutdown_tree_manager_->Initialize(factory_);
+
+  const auto startup_timeout = this->params_.ros_communication_timeout.startup;
+  if (startup_timeout > 0.0 && !this->params_.startup_services.empty()) {
+    // The shutdown tree does not wait: a power button press during the wait still shuts down.
+    auto io_state_sub = this->create_subscription<IOStateMsg>(
+      "hardware/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+      std::bind(&SafetyManagerNode::CheckPowerButton, this, std::placeholders::_1));
+    // The hardware interface creates e_stop_trigger after aux_power_enable and fan_enable, so the
+    // default service list normally covers every service of the default safety tree.
+    behavior_tree_utils::WaitForServices(
+      this->shared_from_this(), this->params_.startup_services,
+      std::chrono::duration<double>(startup_timeout));
+    // A power button press or a signal during the wait has shut the context down.
+    if (!this->get_node_base_interface()->get_context()->is_valid()) {
+      return;
+    }
+  }
+
+  safety_tree_manager_->Initialize(factory_);
 
   if (this->params_.uvp_enable) {
     InitializeUVP();
@@ -125,7 +143,7 @@ void SafetyManagerNode::InitializeUVP()
        UvpReaction::ShutdownHostsTimeoutS(uvp_input_.shutdown_hosts_timeout_s)},
     };
     uvp_shutdown_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-      "UVPShutdown", uvp_shutdown_initial_blackboard, 8888);
+      "UVPShutdown", uvp_shutdown_initial_blackboard, 8888, this->params_.groot_enabled);
     uvp_shutdown_tree_manager_->Initialize(factory_);
   } catch (const std::exception & e) {
     // The plugins it needs come from the plugin_libs parameter, which a user can change.
@@ -266,11 +284,16 @@ void SafetyManagerNode::EStopCB(const BoolMsg::SharedPtr e_stop)
   safety_tree_manager_->GetBlackboard()->set<bool>("e_stop_state", e_stop->data);
 }
 
-void SafetyManagerNode::IOStateCB(const IOStateMsg::SharedPtr io_state)
+void SafetyManagerNode::CheckPowerButton(const IOStateMsg::SharedPtr io_state)
 {
   if (io_state->power_button) {
     ShutdownRobot("Power button pressed");
   }
+}
+
+void SafetyManagerNode::IOStateCB(const IOStateMsg::SharedPtr io_state)
+{
+  CheckPowerButton(io_state);
 
   safety_tree_manager_->GetBlackboard()->set<bool>("aux_state", io_state->aux_power);
   safety_tree_manager_->GetBlackboard()->set<bool>("fan_state", io_state->fan);
@@ -485,11 +508,14 @@ void SafetyManagerNode::ShutdownRobot(const std::string & reason, const bool uvp
   RCLCPP_WARN(
     this->get_logger(), "Soft shutdown initialized. %s%s", reason.c_str(), sequence.c_str());
 
-  safety_tree_timer_->cancel();
+  // The safety tree does not exist yet when the shutdown comes during the startup wait.
+  if (safety_tree_timer_) {
+    safety_tree_timer_->cancel();
+    safety_tree_manager_->HaltTree();
+  }
   if (uvp_timer_) {
     uvp_timer_->cancel();
   }
-  safety_tree_manager_->HaltTree();
 
   // The UVP part runs in front of the Shutdown tree, which then runs as always, a user's own
   // included: the user computers get a capped wait and the AUX power goes off first.

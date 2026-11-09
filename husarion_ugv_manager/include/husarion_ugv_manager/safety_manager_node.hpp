@@ -128,6 +128,8 @@ private:
   // T runs on the steady clock, so simulation time cannot stretch it.
   static std::int64_t SteadyNowNs();
 
+  void CheckPowerButton(const IOStateMsg::SharedPtr io_state);
+
   static constexpr float kCriticalBatteryTemp = 55.0;
   static constexpr float kFatalBatteryTemp = 62.0;
   static constexpr char kShutdownLocalhostCommand[] =

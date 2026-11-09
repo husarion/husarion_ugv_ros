@@ -11,6 +11,7 @@
             imu_rpy:='0.0 0.0 -1.57'
             namespace:=''
             use_madgwick_filter:=false
+            use_mag:=true
             configure_thread_priority:=0
             canopen_thread_priority:=70
             rpdo_dispatch_priority:=65
@@ -201,7 +202,7 @@
           <param name="mag_bias_x">0.0</param>
           <param name="mag_bias_y">0.0</param>
           <param name="mag_bias_z">0.0</param>
-          <param name="use_mag">true</param>
+          <param name="use_mag">${'true' if use_mag else 'false'}</param>
           <param name="stateless">false</param>
           <param name="remove_gravity_vector">false</param>
           <param name="world_frame">enu</param>

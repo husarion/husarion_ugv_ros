@@ -27,7 +27,10 @@ int main(int argc, char ** argv)
   safety_manager_node->Initialize();
 
   try {
-    rclcpp::spin(safety_manager_node);
+    // A power button press during the startup wait has already shut the robot down.
+    if (rclcpp::ok()) {
+      rclcpp::spin(safety_manager_node);
+    }
   } catch (const std::runtime_error & err) {
     std::cerr << "[safety_manager] Caught exception: " << err.what() << std::endl;
   }

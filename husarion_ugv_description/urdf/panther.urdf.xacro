@@ -12,6 +12,7 @@
     default="" />
   <xacro:arg name="namespace" default="" />
   <xacro:arg name="use_madgwick_filter" default="false" />
+  <xacro:arg name="use_mag" default="true" />
   <xacro:arg name="configure_thread_priority" default="0" />
   <xacro:arg name="canopen_thread_priority" default="70" />
   <xacro:arg name="rpdo_dispatch_priority" default="65" />
@@ -38,6 +39,7 @@
     battery_config_file="$(arg battery_config_file)"
     namespace="$(arg namespace)"
     use_madgwick_filter="$(arg use_madgwick_filter)"
+    use_mag="$(arg use_mag)"
     configure_thread_priority="$(arg configure_thread_priority)"
     canopen_thread_priority="$(arg canopen_thread_priority)"
     rpdo_dispatch_priority="$(arg rpdo_dispatch_priority)"

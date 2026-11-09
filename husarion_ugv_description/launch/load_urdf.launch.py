@@ -82,6 +82,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="True",
+        description="Use the IMU magnetometer in the Madgwick filter.",
+        choices=["True", "true", "False", "false"],
+    )
+
     configure_thread_priority = LaunchConfiguration("configure_thread_priority")
     declare_configure_thread_priority_arg = DeclareLaunchArgument(
         "configure_thread_priority",
@@ -337,6 +345,8 @@ def generate_launch_description():
             components_config_path,
             " use_madgwick_filter:=",
             use_madgwick_filter,
+            " use_mag:=",
+            use_mag,
             " configure_thread_priority:=",
             configure_thread_priority,
             " canopen_thread_priority:=",
@@ -392,6 +402,7 @@ def generate_launch_description():
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         declare_configure_thread_priority_arg,
         declare_canopen_thread_priority_arg,
         declare_rpdo_dispatch_priority_arg,

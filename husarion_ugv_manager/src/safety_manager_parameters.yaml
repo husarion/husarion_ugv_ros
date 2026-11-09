@@ -12,6 +12,11 @@ safety_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
+  groot_enabled:
+    type: bool
+    default_value: true
+    description: Start the Groot2 publisher for the behavior trees. Turn it off when nothing attaches Groot2.
+
   bt_server_port:
     type: int
     default_value: 6666
@@ -81,6 +86,17 @@ safety_manager:
       default_value: 1.0
       description: Timeout seconds to receive a service/action response after call.
       validation: { gt<>: 0.0 }
+
+    startup:
+      type: double
+      default_value: 10.0
+      description: Timeout in seconds to wait once at startup for the services in startup_services, before the tree is built. 0 skips the wait.
+      validation: { gt_eq<>: 0.0 }
+
+  startup_services:
+    type: string_array
+    default_value: ["hardware/e_stop_trigger"]
+    description: Services to wait for once at startup, before the tree is built. The default is the one the default tree calls on the hardware driver. An empty list skips the wait.
 
   ros_plugin_libs:
     type: string_array

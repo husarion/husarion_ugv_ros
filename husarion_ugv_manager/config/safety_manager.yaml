@@ -20,6 +20,7 @@
       ros_communication_timeout:
         availability: 1.0
         response: 1.0
+        startup: 10.0
       plugin_libs:
         - execute_command_bt_node
         - shutdown_hosts_from_file_bt_node

@@ -225,8 +225,14 @@ if(BUILD_TESTING)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include>)
   ament_target_dependencies(
-    ${PROJECT_NAME}_test_behavior_tree_utils behaviortree_cpp behaviortree_ros2
-    husarion_ugv_utils geometry_msgs tf2_geometry_msgs)
+    ${PROJECT_NAME}_test_behavior_tree_utils
+    behaviortree_cpp
+    behaviortree_ros2
+    husarion_ugv_utils
+    geometry_msgs
+    rclcpp
+    std_srvs
+    tf2_geometry_msgs)
 
   ament_add_gtest(${PROJECT_NAME}_test_behavior_tree_manager
                   test/test_behavior_tree_manager.cpp)

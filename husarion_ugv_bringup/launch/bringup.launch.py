@@ -131,6 +131,14 @@ def generate_launch_description():
         ),
     )
 
+    groot_enabled = LaunchConfiguration("groot_enabled")
+    declare_groot_enabled_arg = DeclareLaunchArgument(
+        "groot_enabled",
+        default_value="True",
+        description="Start the Groot2 publishers of the manager behavior trees.",
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -158,6 +166,22 @@ def generate_launch_description():
     # every setting, the other parts only the switch.
     uvp_enable = LaunchConfiguration("uvp_enable")
 
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="True",
+        description="Use the IMU magnetometer in the Madgwick filter.",
+        choices=["True", "true", "False", "false"],
+    )
+
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
     robot_serial_no = EnvironmentVariable(name="ROBOT_SERIAL_NO", default_value="----")
     robot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
@@ -174,6 +198,8 @@ def generate_launch_description():
             "namespace": namespace,
             "common_dir_path": common_dir_path,
             "uvp_enable": uvp_enable,
+            "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
         }.items(),
     )
 
@@ -247,6 +273,7 @@ def generate_launch_description():
             "namespace": namespace,
             "common_dir_path": common_dir_path,
             "uvp_enable": uvp_enable,
+            "groot_enabled": groot_enabled,
         }.items(),
     )
 
@@ -321,8 +348,11 @@ def generate_launch_description():
         declare_led_spi_max_transfer_bytes_arg,
         declare_lights_controller_frequency_arg,
         declare_lights_frame_keepalive_period_arg,
+        declare_groot_enabled_arg,
         declare_log_level_arg,
         declare_namespace_arg,
+        declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         *declare_uvp_arguments(),
         welcome_info,
         incorrect_hw_config_action,

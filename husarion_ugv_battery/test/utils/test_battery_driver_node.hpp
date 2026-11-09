@@ -66,6 +66,8 @@ protected:
 TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_battery)
 {
   std::vector<rclcpp::Parameter> params;
+  // The timeout tests wait for 1 s, not for the 2 s default.
+  params.push_back(rclcpp::Parameter("battery_timeout", 1.0));
 
   if (use_adc_battery) {
     device0_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice0;

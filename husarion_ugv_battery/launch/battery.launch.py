@@ -48,7 +48,7 @@ def generate_launch_description():
         default_value=PathJoinSubstitution(
             [FindPackageShare("husarion_ugv_battery"), "config", "battery.yaml"]
         ),
-        description="Specify the path to the system monitor configuration file.",
+        description="Path to the battery driver configuration file.",
     )
 
     battery_driver_node = Node(

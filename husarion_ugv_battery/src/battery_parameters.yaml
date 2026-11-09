@@ -47,6 +47,6 @@ battery:
 
   battery_timeout:
     type: double
-    default_value: 1.0
+    default_value: 2.0
     description: "Timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state."
     validation: { gt<>: 0.0 }

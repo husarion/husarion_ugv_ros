@@ -70,6 +70,14 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    groot_enabled = LaunchConfiguration("groot_enabled")
+    declare_groot_enabled_arg = DeclareLaunchArgument(
+        "groot_enabled",
+        default_value="True",
+        description="Start the Groot2 publishers of the manager behavior trees.",
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -83,6 +91,22 @@ def generate_launch_description():
         "namespace",
         default_value=EnvironmentVariable("ROBOT_NAMESPACE", default_value=""),
         description="Add namespace to all launched nodes.",
+    )
+
+    use_madgwick_filter = LaunchConfiguration("use_madgwick_filter")
+    declare_use_madgwick_filter_arg = DeclareLaunchArgument(
+        "use_madgwick_filter",
+        default_value="False",
+        description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="True",
+        description="Use the IMU magnetometer in the Madgwick filter.",
+        choices=["True", "true", "False", "false"],
     )
 
     robot_model_name = EnvironmentVariable(name="ROBOT_MODEL_NAME", default_value="panther")
@@ -100,6 +124,8 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
         }.items(),
     )
 
@@ -162,6 +188,7 @@ def generate_launch_description():
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
+            "groot_enabled": groot_enabled,
         }.items(),
     )
 
@@ -229,8 +256,11 @@ def generate_launch_description():
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_groot_enabled_arg,
         declare_log_level_arg,
         declare_namespace_arg,
+        declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         welcome_info,
         incorrect_hw_config_action,
         incorrect_os_version_action,

@@ -105,7 +105,7 @@ phidgets_spatial:
   use_mag: {
     type: bool,
     default_value: false,
-    description: "Use magnitude to calculate orientation."
+    description: "Use the magnetometer to calculate orientation."
   }
   gain: {
     type: double,

@@ -102,7 +102,7 @@ Additional parameters
 
 Madgwick filter settings
 
-- `use_mag` [*bool*, default: **false**]: Use magnitude to calculate orientation.
+- `use_mag` [*bool*, default: **false**]: Use the magnetometer to calculate orientation. Set from the `use_mag` launch argument (default **true** in the URDF).
 - `gain` [*double*, default: **0.1**]: Gain of the filter. Higher values lead to faster convergence but more noise. Lower values lead to slower convergence but smoother signal.
 - `zeta` [*double*, default: **0.1**]: Gyro drift gain (approx. rad/s).
 - `mag_bias_x` [*double*, default: **0.0**]: Magnetometer bias (hard iron correction), x component.

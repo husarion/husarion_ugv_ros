@@ -52,7 +52,7 @@ LightsManagerNode::LightsManagerNode(
   const auto bt_server_port = this->get_parameter("bt_server_port").as_int();
   const auto initial_blackboard = CreateLightsInitialBlackboard();
   lights_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Lights", initial_blackboard, bt_server_port);
+    "Lights", initial_blackboard, bt_server_port, this->params_.groot_enabled);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }
@@ -60,6 +60,18 @@ LightsManagerNode::LightsManagerNode(
 void LightsManagerNode::Initialize()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing.");
+
+  // lights_controller_node, which serves lights/set_animation, starts together with this node.
+  const auto startup_timeout = this->params_.ros_communication_timeout.startup;
+  if (startup_timeout > 0.0 && !this->params_.startup_services.empty()) {
+    behavior_tree_utils::WaitForServices(
+      this->shared_from_this(), this->params_.startup_services,
+      std::chrono::duration<double>(startup_timeout));
+    // A signal during the wait has shut the context down, and nothing more can be created.
+    if (!this->get_node_base_interface()->get_context()->is_valid()) {
+      return;
+    }
+  }
 
   RegisterBehaviorTree();
   lights_tree_manager_->Initialize(factory_);

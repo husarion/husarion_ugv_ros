@@ -27,7 +27,10 @@ int main(int argc, char ** argv)
   lights_manager_node->Initialize();
 
   try {
-    rclcpp::spin(lights_manager_node);
+    // A signal during the startup wait has already shut the context down.
+    if (rclcpp::ok()) {
+      rclcpp::spin(lights_manager_node);
+    }
   } catch (const std::runtime_error & err) {
     std::cerr << "[lights_manager] Caught exception: " << err.what() << std::endl;
   }

@@ -82,6 +82,8 @@ private:
   void SystemStatusCB(const SystemStatusMsg::SharedPtr system_status);
   void SafetyTreeTimerCB();
 
+  void CheckPowerButton(const IOStateMsg::SharedPtr io_state);
+
   void ShutdownRobot(const std::string & reason);
 
   static constexpr float kCriticalBatteryTemp = 55.0;

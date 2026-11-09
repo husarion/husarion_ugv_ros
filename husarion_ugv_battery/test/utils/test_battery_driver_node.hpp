@@ -43,7 +43,13 @@ class TestBatteryNode : public testing::Test
 public:
   TestBatteryNode(
     const bool use_adc_battery = true, const bool dual_battery = false,
-    const std::vector<rclcpp::Parameter> & extra_params = {});
+    const bool dual_charge_shunt = false, const std::vector<rclcpp::Parameter> & extra_params = {});
+  TestBatteryNode(
+    const bool use_adc_battery, const bool dual_battery,
+    const std::vector<rclcpp::Parameter> & extra_params)
+  : TestBatteryNode(use_adc_battery, dual_battery, false, extra_params)
+  {
+  }
   ~TestBatteryNode();
 
 protected:
@@ -67,10 +73,13 @@ protected:
 };
 
 TestBatteryNode::TestBatteryNode(
-  const bool use_adc_battery, const bool dual_battery,
+  const bool use_adc_battery, const bool dual_battery, const bool dual_charge_shunt,
   const std::vector<rclcpp::Parameter> & extra_params)
 {
   std::vector<rclcpp::Parameter> params = extra_params;
+  params.push_back(rclcpp::Parameter("adc.dual_charge_shunt", dual_charge_shunt));
+  // The timeout tests wait for 1 s, not for the 2 s default.
+  params.push_back(rclcpp::Parameter("battery_timeout", 1.0));
 
   if (use_adc_battery) {
     device0_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice0;

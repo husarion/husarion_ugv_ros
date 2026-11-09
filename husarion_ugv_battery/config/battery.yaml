@@ -4,6 +4,9 @@
       adc:
         device0: "/sys/bus/iio/devices/iio:device0"
         device1: "/sys/bus/iio/devices/iio:device1"
+        # Lynx only, single battery: true when the charge current flows through two parallel shunts
+        # (otherwise about half of the charge current is reported).
+        dual_charge_shunt: false
         ma_window_len:
           charge: 10
           temp: 10

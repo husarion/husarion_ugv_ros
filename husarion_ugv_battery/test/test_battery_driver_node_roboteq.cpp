@@ -117,6 +117,34 @@ TEST_F(TestBatteryNodeRoboteq, BatteryTimeout)
   EXPECT_EQ(BatteryStateMsg::POWER_SUPPLY_HEALTH_UNKNOWN, battery_state_->power_supply_health);
 }
 
+class TestBatteryNodeRoboteqDualShunt : public TestBatteryNode
+{
+public:
+  TestBatteryNodeRoboteqDualShunt() : TestBatteryNode(false, false, true) {}
+};
+
+TEST_F(TestBatteryNodeRoboteqDualShunt, RoboteqPathUnaffectedByDualChargeShunt)
+{
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_state_, std::chrono::milliseconds(5000)));
+
+  husarion_ugv_msgs::msg::DriverStateNamed motor_controller;
+  motor_controller.state.voltage = 35.0f;
+  motor_controller.state.current = 0.1f;
+
+  RobotDriverStateMsg driver_state;
+  driver_state.header.stamp = battery_driver_node_->get_clock()->now();
+  driver_state.driver_states.push_back(motor_controller);
+  driver_state.driver_states.push_back(motor_controller);
+  driver_state_pub_->publish(driver_state);
+
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_state_, std::chrono::milliseconds(1000)));
+
+  EXPECT_FLOAT_EQ(35.0, battery_state_->voltage);
+  EXPECT_FLOAT_EQ(0.2, battery_state_->current);
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

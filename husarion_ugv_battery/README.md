@@ -36,9 +36,10 @@ Publishes battery state read from ADC unit.
 
 - `adc.device0` [*string*, default: **/sys/bus/iio/devices/iio:device0**]: ADC number 0 IIO device.
 - `adc.device1` [*string*, default: **/sys/bus/iio/devices/iio:device1**]: ADC number 1 IIO device.
+- `adc.dual_charge_shunt` [*bool*, default: **false**]: Read the charge current of a single battery as the sum of both charge channels, for a Lynx whose charge current flows through two shunts in parallel. Ignored, with a warning, with two batteries or with Roboteq battery data.
 - `adc.ma_window_len.charge` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery charge readings.
 - `adc.ma_window_len.temp` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery temperature readings.
-- `battery_timeout` [*float*, default: **1.0**]: Specifies the timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state.
+- `battery_timeout` [*float*, default: **2.0**]: Specifies the timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state.
 - `ma_window_len.voltage` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery voltage readings.
 - `ma_window_len.current` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery current readings.
 - `roboteq.driver_state_timeout` [*float*, default: **0.2**]: Specifies timeout in seconds after which driver state messages will be considered old (deprecated).

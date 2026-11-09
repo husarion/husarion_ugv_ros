@@ -15,10 +15,18 @@
 #ifndef HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
 #define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_ADC_DATA_READER_HPP_
 
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <array>
+#include <cerrno>
+#include <cstring>
 #include <filesystem>
-#include <fstream>
+#include <functional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace husarion_ugv_battery
 {
@@ -26,7 +34,11 @@ namespace husarion_ugv_battery
 class ADCDataReader
 {
 public:
-  ADCDataReader(const std::string & device_path) : device_path_(device_path)
+  using ReadFunction = std::function<ssize_t(int, void *, std::size_t)>;
+
+  // read_function exists so that tests can inject read errors.
+  ADCDataReader(const std::string & device_path, ReadFunction read_function = ::read)
+  : device_path_(device_path), read_function_(std::move(read_function))
   {
     if (!std::filesystem::exists(device_path_)) {
       throw std::runtime_error(
@@ -42,6 +54,10 @@ public:
   }
 
 private:
+  // Only EIO is retried, once. Any other error, a timeout included, fails at once. The error text
+  // goes into the exception, so the log shows which errors really occur.
+  static constexpr int kReadAttempts = 2;
+
   template <typename T>
   T ReadChannel(const int channel, const std::string & data_type) const
   {
@@ -58,21 +74,38 @@ private:
   template <typename T>
   T ReadFile(const std::filesystem::path & file_path) const
   {
-    std::ifstream file(file_path, std::ios_base::in);
-    if (!file) {
-      throw std::runtime_error("Failed to open file: " + std::string(file_path));
-    }
+    std::array<char, 64> buffer{};
+    std::string error;
+    for (int attempt = 1;; ++attempt) {
+      const int fd = ::open(file_path.c_str(), O_RDONLY | O_CLOEXEC);
+      if (fd < 0) {
+        throw std::runtime_error(
+          "Failed to open file: " + std::string(file_path) + ": " + std::strerror(errno));
+      }
+      const ssize_t length = read_function_(fd, buffer.data(), buffer.size() - 1);
+      const int read_errno = errno;
+      ::close(fd);
 
-    T data;
-    file >> data;
-    if (!file) {
-      throw std::runtime_error("Failed to read from file: " + std::string(file_path));
+      if (length >= 0) {
+        std::istringstream stream(std::string(buffer.data(), static_cast<std::size_t>(length)));
+        T data;
+        stream >> data;
+        if (stream) {
+          return data;
+        }
+        error = "invalid value";
+        break;
+      }
+      error = std::strerror(read_errno);
+      if (read_errno != EIO || attempt >= kReadAttempts) {
+        break;
+      }
     }
-
-    return data;
+    throw std::runtime_error("Failed to read from file: " + std::string(file_path) + ": " + error);
   }
 
   const std::filesystem::path device_path_;
+  const ReadFunction read_function_;
 };
 
 }  // namespace husarion_ugv_battery

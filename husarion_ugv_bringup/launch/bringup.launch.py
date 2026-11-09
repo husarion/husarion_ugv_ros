@@ -59,6 +59,21 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    # battery_config_path is also the simulation's battery plugin config, which load_urdf declares
+    # with an empty default. It is read here, before that default applies, so a value given on the
+    # command line still reaches the battery driver.
+    battery_driver_config_path = LaunchConfiguration("battery_driver_config_path")
+    declare_battery_driver_config_path_arg = DeclareLaunchArgument(
+        "battery_driver_config_path",
+        default_value=LaunchConfiguration(
+            "battery_config_path",
+            default=PathJoinSubstitution(
+                [FindPackageShare("husarion_ugv_battery"), "config", "battery.yaml"]
+            ),
+        ),
+        description="Path to the battery driver configuration file.",
+    )
+
     common_dir_path = LaunchConfiguration("common_dir_path")
     declare_common_dir_path_arg = DeclareLaunchArgument(
         "common_dir_path",
@@ -241,6 +256,7 @@ def generate_launch_description():
             ),
         ),
         launch_arguments={
+            "battery_config_path": battery_driver_config_path,
             "log_level": log_level,
             "namespace": namespace,
             **uvp_launch_arguments(),
@@ -339,6 +355,7 @@ def generate_launch_description():
     actions = [
         SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_exit_on_wrong_hw_arg,
+        declare_battery_driver_config_path_arg,
         declare_common_dir_path_arg,
         declare_launch_gamepad_arg,
         declare_disable_manager_arg,

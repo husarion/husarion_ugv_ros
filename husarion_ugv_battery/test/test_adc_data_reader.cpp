@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
+
+#include <cerrno>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #include "gtest/gtest.h"
 
@@ -85,6 +91,121 @@ TEST_F(TestADCDataReader, TestGetADCMeasurement)
   WriteNumberToFile<float>(0.5, scale_file_path_);
   data = data_reader_->GetADCMeasurement(0, 0);
   EXPECT_FLOAT_EQ(0.1, data);
+}
+
+// The battery publisher's warning shows these messages.
+std::string GetADCMeasurementError(const husarion_ugv_battery::ADCDataReader & reader)
+{
+  try {
+    reader.GetADCMeasurement(0, 0);
+  } catch (const std::runtime_error & e) {
+    return e.what();
+  }
+  return "";
+}
+
+TEST_F(TestADCDataReader, MissingFileThrowsOpenError)
+{
+  std::filesystem::remove(data_file_path_);
+
+  const auto error = GetADCMeasurementError(*data_reader_);
+  EXPECT_NE(std::string::npos, error.find("Failed to open file")) << error;
+}
+
+TEST_F(TestADCDataReader, UnreadableValueThrowsReadError)
+{
+  std::ofstream(data_file_path_) << "not a number";
+
+  const auto error = GetADCMeasurementError(*data_reader_);
+  EXPECT_NE(std::string::npos, error.find("Failed to read from file")) << error;
+}
+
+// Fails `failures` reads with `error`, starting at call `first_failing_call`, and reads the file
+// otherwise.
+class FailingRead
+{
+public:
+  FailingRead(const int failures, const int error, const int first_failing_call = 1)
+  : failures_(failures), error_(error), first_failing_call_(first_failing_call)
+  {
+  }
+
+  husarion_ugv_battery::ADCDataReader::ReadFunction Function()
+  {
+    return [this](int fd, void * buf, std::size_t count) -> ssize_t {
+      ++calls;
+      if (calls >= first_failing_call_ && failures_ > 0) {
+        --failures_;
+        errno = error_;
+        return -1;
+      }
+      return ::read(fd, buf, count);
+    };
+  }
+
+  int calls = 0;
+
+private:
+  int failures_;
+  const int error_;
+  const int first_failing_call_;
+};
+
+TEST_F(TestADCDataReader, ReadRetriedOnceOnEIO)
+{
+  WriteNumberToFile<int>(1420, data_file_path_);
+  FailingRead read(1, EIO);
+  husarion_ugv_battery::ADCDataReader reader(testing::TempDir(), read.Function());
+
+  EXPECT_FLOAT_EQ(1.42, reader.GetADCMeasurement(0, 0));
+  // The scale read and the raw read, plus the one retry.
+  EXPECT_EQ(3, read.calls);
+}
+
+TEST_F(TestADCDataReader, RawReadRetriedOnceOnEIO)
+{
+  WriteNumberToFile<int>(1420, data_file_path_);
+  // GetADCMeasurement reads the scale first, so call 2 is the raw read.
+  FailingRead read(1, EIO, 2);
+  husarion_ugv_battery::ADCDataReader reader(testing::TempDir(), read.Function());
+
+  EXPECT_FLOAT_EQ(1.42, reader.GetADCMeasurement(0, 0));
+  EXPECT_EQ(3, read.calls);
+}
+
+TEST_F(TestADCDataReader, UnreadableValueAfterEIOReportsInvalidValue)
+{
+  std::ofstream(data_file_path_) << "not a number";
+  FailingRead read(1, EIO);
+  husarion_ugv_battery::ADCDataReader reader(testing::TempDir(), read.Function());
+
+  // The error of the last attempt is reported, not the EIO of the first one.
+  const auto error = GetADCMeasurementError(reader);
+  EXPECT_NE(std::string::npos, error.find("invalid value")) << error;
+  EXPECT_EQ(std::string::npos, error.find(std::strerror(EIO))) << error;
+}
+
+TEST_F(TestADCDataReader, ReadNotRetriedOnOtherErrors)
+{
+  WriteNumberToFile<int>(1420, data_file_path_);
+  FailingRead read(1, ETIMEDOUT);
+  husarion_ugv_battery::ADCDataReader reader(testing::TempDir(), read.Function());
+
+  const auto error = GetADCMeasurementError(reader);
+  EXPECT_NE(std::string::npos, error.find("Failed to read from file")) << error;
+  EXPECT_NE(std::string::npos, error.find(std::strerror(ETIMEDOUT))) << error;
+  EXPECT_EQ(1, read.calls);
+}
+
+TEST_F(TestADCDataReader, ReadRetriedOnlyOnce)
+{
+  WriteNumberToFile<int>(1420, data_file_path_);
+  FailingRead read(2, EIO);
+  husarion_ugv_battery::ADCDataReader reader(testing::TempDir(), read.Function());
+
+  const auto error = GetADCMeasurementError(reader);
+  EXPECT_NE(std::string::npos, error.find("Failed to read from file")) << error;
+  EXPECT_EQ(2, read.calls);
 }
 
 int main(int argc, char ** argv)

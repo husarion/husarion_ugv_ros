@@ -127,6 +127,39 @@ TEST_F(TestBatteryNodeADCDual, BatteryCharging)
   EXPECT_NE(battery_state_->power_supply_status, BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING);
 }
 
+class TestBatteryNodeADCDualWithDualShunt : public TestBatteryNode
+{
+public:
+  TestBatteryNodeADCDualWithDualShunt() : TestBatteryNode(true, true, true) {}
+};
+
+TEST_F(TestBatteryNodeADCDualWithDualShunt, DualChargeShuntIgnored)
+{
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_1_state_, std::chrono::milliseconds(5000)));
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_2_state_, std::chrono::milliseconds(5000)));
+  const float battery_1_current = battery_1_state_->current;
+  const float battery_2_current = battery_2_state_->current;
+
+  // Channel 2 of ADC0 is the charge channel of battery 2: it must reach battery 2 and not
+  // battery 1.
+  WriteNumberToFile<int>(100, std::filesystem::path(device0_path_ / "in_voltage2_raw"));
+
+  // A message published before the write may still be in flight, so wait for the change.
+  bool battery_2_changed = false;
+  for (int i = 0; i < 3 && !battery_2_changed; ++i) {
+    ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+      battery_driver_node_, battery_2_state_, std::chrono::milliseconds(1000)));
+    battery_2_changed = battery_2_state_->current > battery_2_current;
+  }
+  EXPECT_TRUE(battery_2_changed);
+
+  ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
+    battery_driver_node_, battery_1_state_, std::chrono::milliseconds(1000)));
+  EXPECT_FLOAT_EQ(battery_1_current, battery_1_state_->current);
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

@@ -12,6 +12,12 @@ battery:
       description: "Internal ADC1 IIO device."
       validation: { not_empty<> }
 
+    dual_charge_shunt:
+      type: bool
+      default_value: false
+      read_only: true
+      description: "Single battery only: read the charge current as the sum of both charge channels, for a Lynx with two charge shunts in parallel."
+
     ma_window_len:
       charge:
         type: int
@@ -47,7 +53,7 @@ battery:
 
   battery_timeout:
     type: double
-    default_value: 1.0
+    default_value: 2.0
     description: "Timeout in seconds. If the node fails to read battery data exceeding this duration, the node will publish an unknown battery state."
     validation: { gt<>: 0.0 }
 

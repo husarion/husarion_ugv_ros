@@ -2,6 +2,20 @@
 Changelog for package husarion_ugv
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* hardware image: ``/ros2_ws/src`` and ``build/`` are gone and the install space is no longer
+  symlinked, so a file bind-mounted over ``/ros2_ws/src`` is ignored. Mount it over
+  ``/ros2_ws/install/<pkg>/share/<pkg>/`` instead. The C toolchain and the build-only dependencies
+  are gone too
+* hardware image: without a terminal, PID 1 is the entrypoint shell, which runs the command as a
+  child and forwards a SIGTERM stop to it as SIGINT
+* hardware image: every start copies the driver config files that are missing from ``/config``
+  and never overwrites one, so a deleted driver file comes back on the next start. Changed
+  defaults of files that already exist still need ``update_config_directory``
+* ``update_config_directory`` re-owns only what it writes and ``/config`` itself, no longer all
+  of ``/config``, and refuses unknown arguments
+
 2.3.2 (2026-06-25)
 ------------------
 * bump dependencies (`#656 <https://github.com/husarion/husarion_ugv_ros/issues/656>`_)

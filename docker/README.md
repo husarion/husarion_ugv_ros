@@ -10,6 +10,16 @@ Below, you can find a list of available Docker images. To access the latest tag,
 - [husarion/panther](https://hub.docker.com/r/husarion/panther) - ROS packages for Panther robot,
 - [husarion/panther-gazebo](https://hub.docker.com/r/husarion/panther-gazebo) - Simulation for Panther robot in Gazebo-classic.
 
+### Hardware image layout
+
+The hardware image (`husarion/husarion-ugv`) holds the built install space in `/ros2_ws/install` and its runtime dependencies. It has no `/ros2_ws/src`, no `/ros2_ws/build`, no C toolchain and no build-only dependencies, and the install space is not symlinked into the sources.
+
+To change a launch or config file of the driver without rebuilding, bind-mount it over its copy in `/ros2_ws/install/<package>/share/<package>/`. A mount over `/ros2_ws/src` has no effect.
+
+To build your own packages against the driver, use the `builder` stage of [Dockerfile.hardware](./Dockerfile.hardware) (`docker build --target builder -f docker/Dockerfile.hardware .` from the repository root) or the simulation image. The `builder` stage is a build environment only: it lacks the entrypoint setup of the robot environment, so run the driver from the full image.
+
+A local build keeps the dependency layer, including its `apt-get upgrade`, cached as long as the package manifests do not change. Pass a new `--build-arg APT_CACHE_BUST=<value>` (for example the date) to rebuild it with current packages.
+
 ## Updating Panther Software
 
 > [!Note]
@@ -31,13 +41,15 @@ cd docker/demo
 
 ### 🤖 Robot
 
+On every start, the container copies the driver configuration files that are missing from `/config`, for example on the first run, after the robot model changed, or when a driver update added a file. This start-up copy never overwrites a file that exists, so a file you deleted from `/config` comes back on the next start, while your edits stay.
+
 1. (Optional) Updating configuration files.
 
    > [!NOTE]
-   > This may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
+   > The command below refreshes every file and may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
 
    ```bash
-   docker run --rm -v /home/husarion/config:/config husarion/panther:jazzy-<newest_tag> update_config_directory
+   docker run --rm -v /home/husarion/config:/config husarion/husarion-ugv:jazzy-<newest_tag> update_config_directory
    ```
 
 2. Activate Panther
@@ -45,6 +57,14 @@ cd docker/demo
    ```bash
    docker compose -f compose.hardware.yaml up
    ```
+
+   Extra bringup launch arguments can be passed in the `BRINGUP_EXTRA_ARGS` variable. They are appended to the default arguments, and the last value given for an argument wins, so they can also override a default such as `launch_gamepad:=false`:
+
+   ```bash
+   BRINGUP_EXTRA_ARGS="log_level:=WARN wheel_type:=WH05" docker compose -f compose.hardware.yaml up
+   ```
+
+   Compose reads the variable from the shell or from a `.env` file next to the compose file (a line `BRINGUP_EXTRA_ARGS=log_level:=WARN wheel_type:=WH05`), not from the service's `env_file`.
 
 3. Launch Visualization on PC
 

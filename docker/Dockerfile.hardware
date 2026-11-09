@@ -1,41 +1,130 @@
 ARG ROS_DISTRO=jazzy
 
-FROM husarnet/ros:${ROS_DISTRO}-ros-core
-
-ARG BUILD_TEST=OFF
+# BuildKit is needed for the RUN --mount below (buildx, or Docker 23 and newer).
+FROM husarnet/ros:${ROS_DISTRO}-ros-core AS base
 
 ENV HUSARION_ROS_BUILD_TYPE=hardware
 
-STOPSIGNAL SIGINT
-
 WORKDIR /ros2_ws
+
+# rosdep calls plain apt-get, so retries have to come from the apt config.
+RUN printf 'Acquire::Retries "8";\nAcquire::http::Timeout "60";\n' > /etc/apt/apt.conf.d/80-retries
+
+FROM base AS sources
+
 COPY . src/husarion_ugv_ros
 
-RUN apt-get update  && \
-    apt-get upgrade -y && \
+RUN apt-get update && \
     apt-get install -y \
         ros-dev-tools && \
-    # Setup workspace
     vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
-    # Install dependencies
+    echo $(cat /ros2_ws/src/husarion_ugv_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
+    mkdir /manifests && \
+    find src \( -name package.xml -o -name COLCON_IGNORE -o -name AMENT_IGNORE -o -name CATKIN_IGNORE \) \
+        -exec cp --parents {} /manifests/ \;
+
+# The base of both the build stage and the shipped image, so the build uses the packages that ship.
+FROM base AS runtime-deps
+
+# Cached as long as the manifests do not change. A new value (for example the date) rebuilds the
+# layer against the current apt index after a ROS sync.
+ARG APT_CACHE_BUST=
+
+# Only the manifests are mounted, so a code change keeps this layer cached.
+RUN --mount=type=bind,from=sources,source=/manifests,target=/tmp/src \
+    apt-get update && \
+    apt-get upgrade -y && \
+    # The RMW implementation is chosen at runtime, so no package depends on one.
+    apt-get install -y --no-install-recommends \
+        python3-rosdep \
+        ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+        ros-${ROS_DISTRO}-rmw-fastrtps-cpp \
+        ros-${ROS_DISTRO}-rmw-zenoh-cpp && \
     rosdep init && \
     rosdep update --rosdistro $ROS_DISTRO && \
-    rosdep install --from-paths src -y -i && \
-    # Build
-    source /opt/ros/$ROS_DISTRO/setup.bash && \
-    colcon build --symlink-install --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST && \
-    # Get version
-    echo $(cat /ros2_ws/src/husarion_ugv_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
-    # Size optimization
-    export SUDO_FORCE_REMOVE=yes && \
-    apt-get remove -y \
-        ros-dev-tools && \
-    apt-get autoremove -y && \
+    rosdep install --from-paths /tmp/src -y -i --dependency-types=exec && \
+    # docker/demo/compose.rviz.yaml runs rviz from this image, and no hardware package needs it.
+    apt-get install -y ros-${ROS_DISTRO}-rviz2 && \
+    # The RMWs are no rosdep key and are loaded with dlopen, so neither rosdep nor ldd sees
+    # them. Check that each library landed.
+    for rmw in cyclonedds fastrtps zenoh; do \
+        test -f /opt/ros/${ROS_DISTRO}/lib/librmw_${rmw}_cpp.so || exit 1; \
+    done && \
+    # rosdep is needed only for the step above. dpkg fails if anything installed depends on it.
+    rm -rf /etc/ros/rosdep /root/.ros/rosdep && \
+    dpkg --purge python3-rosdep python3-rosdep-modules && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+FROM runtime-deps AS builder
+
+ARG BUILD_TEST=OFF
+
+COPY --from=sources /ros2_ws/src src
+
+RUN dpkg-query -W -f '${binary:Package} ${Version}\n' | LC_ALL=C sort > /tmp/runtime-packages && \
+    apt-get update && \
+    apt-get install -y \
+        ros-dev-tools && \
+    rosdep init && \
+    rosdep update --rosdistro $ROS_DISTRO && \
+    rosdep install --from-paths src -y -i && \
+    # The build may add packages, but must not change one that ships. A cached runtime-deps layer
+    # older than the apt index fails here: rebuild it with a new APT_CACHE_BUST.
+    dpkg-query -W -f '${binary:Package} ${Version}\n' | LC_ALL=C sort > /tmp/builder-packages && \
+    changed=$(LC_ALL=C comm -23 /tmp/runtime-packages /tmp/builder-packages) && \
+    if [ -n "${changed}" ]; then \
+        echo "The build changed packages of the runtime stage, rebuild it with a new APT_CACHE_BUST:" >&2; \
+        echo "${changed}" >&2; \
+        exit 1; \
+    fi && \
+    # Without --symlink-install, so the install space does not point into build/ or src/.
+    source /opt/ros/$ROS_DISTRO/setup.bash && \
+    colcon build --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST
+
+FROM runtime-deps
+
+STOPSIGNAL SIGINT
+
+COPY --from=builder /ros2_ws/install /ros2_ws/install
+COPY --from=sources /version.txt /version.txt
+
+# Fail the build when something built needs a package that only the build stage had.
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
+    source /ros2_ws/install/setup.bash && \
+    if find /ros2_ws/install -type f \( -name '*.so*' -o -perm -u+x \) -print0 | \
+        xargs -0 -r -n1 sh -c 'ldd "$0" 2>/dev/null | sed "s|^|$0: |"' | grep 'not found'; then \
+        exit 1; \
+    fi && \
+    # Every module of our Python packages (husarion_ugv_utils.messages needs click), the top level of
+    # the others.
+    for module in /ros2_ws/install/*/lib/python3*/site-packages/*/__init__.py; do \
+        [ -e "${module}" ] || continue; \
+        python3 -c 'import importlib, pkgutil, sys; \
+package = importlib.import_module(sys.argv[1]); \
+walk = sys.argv[1].startswith("husarion_ugv"); \
+[importlib.import_module(m.name) for m in pkgutil.walk_packages(package.__path__, sys.argv[1] + ".")] if walk else None' \
+            "$(basename "$(dirname "${module}")")" || exit 1; \
+    done && \
+    # Loads only the top-level launch file, not the included ones or the plugins.
+    ros2 launch husarion_ugv_bringup bringup.launch.py --show-args > /dev/null && \
+    rm -rf /root/.ros
+
 COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
 COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
+COPY docker/utils/supervise_command.sh /usr/local/sbin/supervise_command
 
-# Setup envs from eeprom
-RUN sed -i "/# <additional-user-commands>/i set -e -a && source setup_environment" /*_entrypoint.sh
+# Setup envs from eeprom, and forward a SIGTERM stop to the command of every exec after the
+# marker. The marker stays usable for derived images. Fail when the entrypoint layout differs.
+RUN entrypoint=$(ls /*_entrypoint.sh) && \
+    test "$(echo "${entrypoint}" | wc -l)" -eq 1 && \
+    grep -q '# <additional-user-commands>' "${entrypoint}" && \
+    sed -i \
+        -e '/# <additional-user-commands>/i set -e -a && source setup_environment' \
+        -e '/# <additional-user-commands>/,$ s/^\([[:space:]]*\)exec \(.*\)$/\1source supervise_command \2\n\1exec \2/' \
+        "${entrypoint}" && \
+    grep -qx '[[:space:]]*source supervise_command "\$@"' "${entrypoint}" && \
+    awk '/# <additional-user-commands>/ { marker = 1 } \
+        marker && /^[[:space:]]*exec / { if (previous !~ /^[[:space:]]*source supervise_command /) bad = 1 } \
+        { previous = $0 } \
+        END { exit !marker || bad }' "${entrypoint}"

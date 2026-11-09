@@ -90,6 +90,14 @@ def test_non_ascii_junk_does_not_raise(driver):
     assert driver.split_sentences(data) == [("", GGA)]
 
 
+def test_non_ascii_byte_inside_a_sentence_drops_it(driver):
+    # Two equal characters cancel out in the XOR checksum, so losing both
+    # would leave a wrong latitude with a valid checksum.
+    bad = GGA.replace("5002.588836", "5002.5\xb8\xb836").encode("latin-1")
+    data = bad + b"\r\n" + RMC.encode("ascii") + b"\r\n"
+    assert driver.split_sentences(data) == [("", RMC)]
+
+
 def test_prefix_is_reported_once(driver):
     warnings = []
     reporter = driver.PrefixReporter(warnings.append)

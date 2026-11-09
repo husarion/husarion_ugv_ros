@@ -27,17 +27,22 @@ def split_sentences(data):
     """Split one datagram into NMEA sentences, each cut down to start at '$'.
 
     Returns a list of (prefix, sentence) pairs. prefix is whatever came before
-    the first '$' on that line. Lines without a '$' are dropped.
+    the first '$' on that line. Lines without a '$' are dropped, and so are
+    sentences that are not plain ASCII.
     """
-    # A junk byte that is not ASCII must not kill the receive loop. It is
-    # dropped here, and if it sat inside a sentence the checksum rejects it.
-    text = data.decode("ascii", errors="ignore")
     sentences = []
-    for line in text.splitlines():
-        start = line.find("$")
+    for line in data.splitlines():
+        start = line.find(b"$")
         if start < 0:
             continue
-        sentences.append((line[:start], line[start:].strip()))
+        # Junk in front of the '$' may be anything. A sentence must decode
+        # strictly: dropping a bad byte from it is not safe, because the XOR
+        # checksum still matches when two equal characters disappear.
+        try:
+            sentence = line[start:].decode("ascii").strip()
+        except UnicodeDecodeError:
+            continue
+        sentences.append((line[:start].decode("ascii", errors="ignore"), sentence))
     return sentences
 
 

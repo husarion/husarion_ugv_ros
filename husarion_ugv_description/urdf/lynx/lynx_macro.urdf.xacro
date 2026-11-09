@@ -118,6 +118,7 @@
           <!-- It will be rounded to the closest value taking into account current controller frequency -->
           <param name="driver_states_update_frequency">20.0</param>
 
+          <!-- The spawner timeout in controller.launch.py must stay above the worst-case time of these retries. -->
           <param name="max_roboteq_initialization_attempts">5</param>
           <param name="max_roboteq_activation_attempts">5</param>
 

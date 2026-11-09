@@ -374,8 +374,11 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # The controller_manager services appear only after UGVSystem::on_configure, so this must
+        # exceed the worst case of max_roboteq_initialization_attempts and
+        # max_roboteq_activation_attempts.
         "--controller-manager-timeout",
-        "10",
+        "90",
         "--ros-args",
         "--log-level",
         normalize_log_level(log_level),

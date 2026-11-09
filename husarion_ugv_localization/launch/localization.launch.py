@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from husarion_ugv_utils.logging import limit_log_level_to_info
+from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
@@ -63,7 +63,7 @@ def generate_launch_description():
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
         default_value="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        choices=["DEBUG", "INFO", "WARN", "WARNING", "ERROR", "FATAL"],
         description="Logging level",
     )
 
@@ -156,7 +156,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
         ],
@@ -187,7 +187,7 @@ def generate_launch_description():
         arguments=[
             "--ros-args",
             "--log-level",
-            log_level,
+            normalize_log_level(log_level),
             "--log-level",
             limit_log_level_to_info("rcl", log_level),
         ],

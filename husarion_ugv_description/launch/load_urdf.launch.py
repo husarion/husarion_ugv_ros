@@ -159,6 +159,51 @@ def generate_launch_description():
         description="CPU the GPIO monitor thread pins itself to. -1 leaves it unpinned",
     )
 
+    pdo_motor_states_timeout_ms = LaunchConfiguration("pdo_motor_states_timeout_ms")
+    declare_pdo_motor_states_timeout_ms_arg = DeclareLaunchArgument(
+        "pdo_motor_states_timeout_ms",
+        default_value="15",
+        description="Allowed age of the motor state PDOs in ms",
+    )
+
+    pdo_driver_state_timeout_ms = LaunchConfiguration("pdo_driver_state_timeout_ms")
+    declare_pdo_driver_state_timeout_ms_arg = DeclareLaunchArgument(
+        "pdo_driver_state_timeout_ms",
+        default_value="75",
+        description="Allowed age of the driver state PDOs in ms",
+    )
+
+    limit_tpdo_rates = LaunchConfiguration("limit_tpdo_rates")
+    declare_limit_tpdo_rates_arg = DeclareLaunchArgument(
+        "limit_tpdo_rates",
+        default_value="False",
+        description=(
+            "Write TPDO inhibit and event timers into the motor controllers at boot. It caps the"
+            " battery and temperature TPDO at about 25 Hz and gives the motor state TPDOs a 5 ms"
+            " timer"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
+    canopen_resync_watchdog = LaunchConfiguration("canopen_resync_watchdog")
+    declare_canopen_resync_watchdog_arg = DeclareLaunchArgument(
+        "canopen_resync_watchdog",
+        default_value="False",
+        description=(
+            "Exit the driver with code 74 after canopen_resync_watchdog_timeout_s of continuous"
+            " PDO timeout or 3 lost SDO confirmations within a minute, so that a restart policy"
+            " initializes the CANopen master again"
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
+    canopen_resync_watchdog_timeout_s = LaunchConfiguration("canopen_resync_watchdog_timeout_s")
+    declare_canopen_resync_watchdog_timeout_s_arg = DeclareLaunchArgument(
+        "canopen_resync_watchdog_timeout_s",
+        default_value="30",
+        description="Seconds of continuous PDO timeout after which canopen_resync_watchdog exits",
+    )
+
     uvp_enable = LaunchConfiguration("uvp_enable")
     declare_uvp_enable_arg = DeclareLaunchArgument(
         "uvp_enable",
@@ -310,6 +355,20 @@ def generate_launch_description():
             gpio_watchdog_cpu,
             " gpio_monitor_cpu:=",
             gpio_monitor_cpu,
+            " pdo_motor_states_timeout_ms:=",
+            pdo_motor_states_timeout_ms,
+            " pdo_driver_state_timeout_ms:=",
+            pdo_driver_state_timeout_ms,
+            " limit_tpdo_rates:=",
+            PythonExpression(
+                ["'true' if '", limit_tpdo_rates, "' in ['True', 'true'] else 'false'"]
+            ),
+            " canopen_resync_watchdog:=",
+            PythonExpression(
+                ["'true' if '", canopen_resync_watchdog, "' in ['True', 'true'] else 'false'"]
+            ),
+            " canopen_resync_watchdog_timeout_s:=",
+            canopen_resync_watchdog_timeout_s,
             " uvp_enable:=",
             PythonExpression(["'true' if '", uvp_enable, "' in ['True', 'true'] else 'false'"]),
         ]
@@ -342,6 +401,11 @@ def generate_launch_description():
         declare_rpdo_dispatch_cpu_arg,
         declare_gpio_watchdog_cpu_arg,
         declare_gpio_monitor_cpu_arg,
+        declare_pdo_motor_states_timeout_ms_arg,
+        declare_pdo_driver_state_timeout_ms_arg,
+        declare_limit_tpdo_rates_arg,
+        declare_canopen_resync_watchdog_arg,
+        declare_canopen_resync_watchdog_timeout_s_arg,
         declare_uvp_enable_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,

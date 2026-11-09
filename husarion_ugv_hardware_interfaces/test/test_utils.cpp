@@ -134,6 +134,24 @@ TEST(TestUtils, ParseCPU)
   EXPECT_FALSE(ParseCPU("99999999999", 4));
 }
 
+TEST(TestUtils, MakeDCFUploadFilesAbsolute)
+{
+  const std::string dcf =
+    "[1F22sub1]\nUploadFile=slave_1.bin\nUploadFile=/opt/slave_2.bin\nParameterName=x\n";
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::MakeDCFUploadFilesAbsolute(dcf, "/share/config"),
+    "[1F22sub1]\nUploadFile=/share/config/slave_1.bin\nUploadFile=/opt/slave_2.bin\n"
+    "ParameterName=x\n");
+}
+
+TEST(TestUtils, MakeDCFUploadFilesAbsoluteDropsCR)
+{
+  const std::string dcf = "[1F22sub1]\r\nUploadFile=slave_1.bin\r\nLast=1";
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::MakeDCFUploadFilesAbsolute(dcf, "/share/config"),
+    "[1F22sub1]\nUploadFile=/share/config/slave_1.bin\nLast=1\n");
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

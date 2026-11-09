@@ -65,7 +65,7 @@ public:
   MOCK_METHOD(void, DefineRobotDriver, (), (override));
 
   MOCK_METHOD(void, UpdateHwStates, (), (override));
-  MOCK_METHOD(void, UpdateMotorsStateDataTimedOut, (), (override));
+  MOCK_METHOD(bool, UpdateMotorsStateDataTimedOut, (), (override));
   MOCK_METHOD(void, UpdateDriverStateMsg, (), (override));
   MOCK_METHOD(void, UpdateFlagErrors, (), (override));
   MOCK_METHOD(void, UpdateDriverStateDataTimedOut, (), (override));
@@ -111,6 +111,29 @@ public:
   bool HasSystemROSInterface() const { return system_ros_interface_ != nullptr; }
   bool HasEStop() const { return e_stop_ != nullptr; }
   bool HasGPIOController() const { return gpio_controller_ != nullptr; }
+
+  void TickCANopenResyncWatchdog(const bool data_timed_out)
+  {
+    UpdateCANopenResyncWatchdog(data_timed_out);
+  }
+
+  void EnableCANopenResyncWatchdog() { canopen_settings_.canopen_resync_watchdog = true; }
+
+  const husarion_ugv_hardware_interfaces::CANopenSettings & GetCANopenSettings() const
+  {
+    return canopen_settings_;
+  }
+
+  std::chrono::seconds GetCANopenResyncWatchdogTimeout() const
+  {
+    return canopen_resync_watchdog_timeout_;
+  }
+
+  void SetPDOTimeoutOngoingSince(const std::chrono::steady_clock::time_point time_point)
+  {
+    pdo_timeout_ongoing_ = true;
+    pdo_timeout_since_ = time_point;
+  }
 
   using NiceMock = testing::NiceMock<MockUGVSystem>;
 
@@ -900,9 +923,159 @@ TEST_F(TestUGVSystem, DiagnoseEStopLatchedByUVP)
   rclcpp::shutdown();
 }
 
+TEST_F(TestUGVSystem, CANopenOptInsOffByDefault)
+{
+  for (const auto & value : {"", "false"}) {
+    auto ugv_system =
+      std::make_shared<MockUGVSystem::NiceMock>(std::vector<std::string>{"fl", "fr", "rl", "rr"});
+    auto hardware_info = hardware_info_;
+    if (std::string(value) != "") {
+      hardware_info.hardware_parameters["canopen_resync_watchdog"] = value;
+      hardware_info.hardware_parameters["limit_tpdo_rates"] = value;
+    }
+    ASSERT_EQ(ugv_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+    EXPECT_FALSE(ugv_system->GetCANopenSettings().canopen_resync_watchdog) << value;
+    EXPECT_FALSE(ugv_system->GetCANopenSettings().limit_tpdo_rates) << value;
+
+    // Without the watchdog a long timeout keeps the process running.
+    ugv_system->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+    ugv_system->TickCANopenResyncWatchdog(true);
+  }
+}
+
+TEST_F(TestUGVSystem, CANopenOptInsOn)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+  hardware_info.hardware_parameters["limit_tpdo_rates"] = "True";
+  ASSERT_EQ(ugv_system_->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_TRUE(ugv_system_->GetCANopenSettings().canopen_resync_watchdog);
+  EXPECT_TRUE(ugv_system_->GetCANopenSettings().limit_tpdo_rates);
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogRestartsOnActivate)
+{
+  rclcpp::init(0, nullptr);
+
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  // A timeout that was ongoing an hour ago, before a deactivate and a new activation, does not
+  // count: the first timed out read after the activation starts a new count.
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+  ugv_system_->TickCANopenResyncWatchdog(true);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+
+  rclcpp::shutdown();
+}
+
+void ReconfigureAndTick(MockUGVSystem & ugv_system)
+{
+  ugv_system.SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system.on_cleanup(rclcpp_lifecycle::State());
+  ugv_system.on_configure(rclcpp_lifecycle::State());
+  // read() runs while INACTIVE: the first timed out read on the fresh master starts a new count.
+  ugv_system.TickCANopenResyncWatchdog(true);
+  ugv_system.TickCANopenResyncWatchdog(true);
+  // _Exit skips the leaked mock check that exit() would fail on in the forked process.
+  std::_Exit(0);
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogRestartsOnReconfigure)
+{
+  rclcpp::init(0, nullptr);
+
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  EXPECT_EXIT(ReconfigureAndTick(*ugv_system_), ::testing::ExitedWithCode(0), "");
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdog)
+{
+  ugv_system_->EnableCANopenResyncWatchdog();
+
+  // A timeout that clears resets the watchdog - the next one starts counting from zero
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system_->TickCANopenResyncWatchdog(false);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+  ugv_system_->TickCANopenResyncWatchdog(true);
+
+  // A continuous timeout past the threshold exits the process
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(
+    ugv_system_->TickCANopenResyncWatchdog(true),
+    ::testing::ExitedWithCode(husarion_ugv_hardware_interfaces::kCANopenResyncWatchdogExitCode),
+    "");
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogTimeoutParameter)
+{
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+  hardware_info.hardware_parameters["canopen_resync_watchdog_timeout_s"] = "7200";
+  ASSERT_EQ(ugv_system_->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_EQ(ugv_system_->GetCANopenResyncWatchdogTimeout(), std::chrono::seconds(7200));
+
+  // An hour of timeout is still below the configured two hours
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  ugv_system_->TickCANopenResyncWatchdog(true);
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogTimeoutInvalid)
+{
+  for (const auto & value : {"0", "-5", "45s", "soon", "99999999999"}) {
+    auto ugv_system =
+      std::make_shared<MockUGVSystem::NiceMock>(std::vector<std::string>{"fl", "fr", "rl", "rr"});
+    auto hardware_info = hardware_info_;
+    hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+    hardware_info.hardware_parameters["canopen_resync_watchdog_timeout_s"] = value;
+    ASSERT_EQ(ugv_system->on_init(hardware_info), hardware_interface::CallbackReturn::SUCCESS);
+    EXPECT_EQ(ugv_system->GetCANopenResyncWatchdogTimeout(), std::chrono::seconds(30)) << value;
+  }
+}
+
+void ReadWithHeartbeatTimeoutAndExit(MockUGVSystem & ugv_system)
+{
+  ugv_system.read(rclcpp::Time(0, 0, RCL_STEADY_TIME), rclcpp::Duration(0, 0));
+  // The count was ended, so a timed out read right after it starts a new one.
+  ugv_system.TickCANopenResyncWatchdog(true);
+  // _Exit skips the leaked mock check that exit() would fail on in the forked process.
+  std::_Exit(0);
+}
+
+TEST_F(TestUGVSystem, CANopenResyncWatchdogIgnoresHeartbeatTimeouts)
+{
+  rclcpp::init(0, nullptr);
+
+  auto hardware_info = hardware_info_;
+  hardware_info.hardware_parameters["canopen_resync_watchdog"] = "true";
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  // Motor controllers without power stop their heartbeats. A restart cannot heal that, so it
+  // must not end in a restart loop.
+  ON_CALL(*ugv_system_->GetMockRobotDriver(), UpdateMotorsState())
+    .WillByDefault(::testing::Throw(std::runtime_error("Motor controller heartbeat timeout.")));
+
+  ugv_system_->SetPDOTimeoutOngoingSince(std::chrono::steady_clock::now() - std::chrono::hours(1));
+  EXPECT_EXIT(ReadWithHeartbeatTimeoutAndExit(*ugv_system_), ::testing::ExitedWithCode(0), "");
+
+  rclcpp::shutdown();
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
+  // The death tests run after rclcpp and the mocks started threads
+  GTEST_FLAG_SET(death_test_style, "threadsafe");
   const auto result = RUN_ALL_TESTS();
   return result;
 }

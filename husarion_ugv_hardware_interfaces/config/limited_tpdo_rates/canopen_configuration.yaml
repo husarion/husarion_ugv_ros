@@ -1,0 +1,54 @@
+# Same as ../canopen_configuration.yaml, plus TPDO timers that the master writes into the
+# Roboteq on every slave boot. Selected with the limit_tpdo_rates hardware parameter.
+#
+# TPDO1/2 (motor states) free-run on ADC noise with the Roboteq defaults, 300-430 Hz at
+# standstill. Event timer 5 ms with inhibit 4 ms keeps them at 200-250 Hz. TPDO3 (flags) gets
+# inhibit 9 ms. TPDO4 (battery voltage and temperatures) is event driven with no inhibit and
+# reached ~2000 Hz while driving. Inhibit 40 ms with event timer 50 ms keeps it at 20-25 Hz.
+#
+# inhibit_time is in units of 100 us and event_timer in ms.
+#
+# master.dcf, slave_1.bin and slave_2.bin are generated with dcfgen from lely dcf-tools 2.4.2:
+# `dcfgen canopen_configuration.yaml -r` in this directory. That dcfgen also writes objects the
+# stock ../master.dcf (an older dcfgen) does not have, which do not change behaviour here:
+# 0x1F81 is 0x305 instead of 0x5, a node guarding retry factor of 3 that is unused because the
+# guard time is 0 and heartbeats are used, 0x1012 is the TIME COB-ID 0x100 with neither the
+# producer nor the consumer bit set, and 0x1013 is a local time stamp object nothing maps.
+options:
+  heartbeat_multiplier: 3.0
+
+master:
+  node_id: 3
+  sync_period: 1000000 # us
+
+slave_1:
+  dcf: ../roboteq_motor_controllers_v80_21a.eds
+  node_id: 1
+  tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
+    4:
+      inhibit_time: 400
+      event_timer: 50
+
+slave_2:
+  dcf: ../roboteq_motor_controllers_v80_21a.eds
+  node_id: 2
+  tpdo:
+    1:
+      inhibit_time: 40
+      event_timer: 5
+    2:
+      inhibit_time: 40
+      event_timer: 5
+    3:
+      inhibit_time: 90
+    4:
+      inhibit_time: 400
+      event_timer: 50

@@ -126,6 +126,12 @@ public:
   std::uint8_t GetTurnOffEStop() { return (*this)[0x200D][0]; }
   std::uint8_t GetTurnOnSafetyStop() { return (*this)[0x202C][0]; }
 
+  template <typename T>
+  T GetObjectValue(const std::uint16_t idx, const std::uint8_t subidx)
+  {
+    return (*this)[idx][subidx];
+  }
+
   /**
    * @brief Sets 0 to all flags
    */

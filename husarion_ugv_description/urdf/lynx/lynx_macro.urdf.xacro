@@ -20,6 +20,11 @@
             rpdo_dispatch_cpu:=-1
             gpio_watchdog_cpu:=-1
             gpio_monitor_cpu:=-1
+            pdo_motor_states_timeout_ms:=15
+            pdo_driver_state_timeout_ms:=75
+            limit_tpdo_rates:=false
+            canopen_resync_watchdog:=false
+            canopen_resync_watchdog_timeout_s:=30
             uvp_enable:=false">
 
     <xacro:if value="${use_sim}">
@@ -95,10 +100,19 @@
           <param name="sdo_operation_timeout_ms">100</param>
 
           <!-- Depends on frequency of the controller, more critical motors state are sent with
-            higher frequency, other parameters are sent with lower, here allowed time is set
-            to be expected period +50% margin -->
-          <param name="pdo_motor_states_timeout_ms">15</param>
-          <param name="pdo_driver_state_timeout_ms">75</param>
+            higher frequency, other parameters are sent with lower, the defaults allow the stock
+            TPDO period +50% margin -->
+          <param name="pdo_motor_states_timeout_ms">${pdo_motor_states_timeout_ms}</param>
+          <param name="pdo_driver_state_timeout_ms">${pdo_driver_state_timeout_ms}</param>
+
+          <!-- Write TPDO inhibit and event timers into the Roboteq at boot, see
+            config/limited_tpdo_rates/canopen_configuration.yaml -->
+          <param name="limit_tpdo_rates">${'true' if limit_tpdo_rates else 'false'}</param>
+
+          <!-- Exit with code 74 when the CANopen master stops receiving, so that a restart
+            policy initializes it again -->
+          <param name="canopen_resync_watchdog">${'true' if canopen_resync_watchdog else 'false'}</param>
+          <param name="canopen_resync_watchdog_timeout_s">${canopen_resync_watchdog_timeout_s}</param>
 
           <!-- It will be rounded to the closest value taking into account current controller frequency -->
           <param name="driver_states_update_frequency">20.0</param>

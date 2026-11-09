@@ -205,6 +205,38 @@ TEST_F(TestLightsDriverNode, TestInitialization)
   EXPECT_TRUE(lights_driver_node != nullptr);
 }
 
+TEST_F(TestLightsDriverNode, ConstructorAdvertisesOutputControl)
+{
+  auto listener = std::make_shared<rclcpp::Node>("output_control_listener");
+  LEDOutputStateMsg::SharedPtr state;
+  auto sub = listener->create_subscription<LEDOutputStateMsg>(
+    "lights/output_state", rclcpp::QoS(1).transient_local(),
+    [&state](const LEDOutputStateMsg::SharedPtr msg) { state = msg; });
+  auto client = listener->create_client<SetBoolSrv>("lights/enable");
+
+  // Latched by the constructor, before any service call.
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (!state && std::chrono::steady_clock::now() < deadline) {
+    rclcpp::spin_some(listener);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  ASSERT_TRUE(state);
+  EXPECT_TRUE(state->enabled);
+  EXPECT_FALSE(state->control_granted);
+  EXPECT_FLOAT_EQ(1.0f, state->brightness);
+  EXPECT_TRUE(client->wait_for_service(std::chrono::seconds(5)));
+}
+
+TEST_F(TestLightsDriverNode, ConstructorRefusesInvalidSPIClock)
+{
+  rclcpp::NodeOptions options;
+  options.parameter_overrides({rclcpp::Parameter("spi_speed_hz", 8000)});
+  EXPECT_THROW(
+    std::make_shared<DriverNodeWrapper>(
+      std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options),
+    std::invalid_argument);
+}
+
 TEST_F(TestLightsDriverNode, ClearLEDs)
 {
   auto num_led_1 = lights_driver_node_->GetNumLed("channel_1");

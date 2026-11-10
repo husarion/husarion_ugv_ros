@@ -5,6 +5,7 @@ Changelog for package husarion_ugv_controller
 Forthcoming
 -----------
 * battery_driver loads battery.yaml again when started by bringup, it ran on built-in defaults since launch 3.4.5
+* new controller_params_overlay_path launch argument (default empty): a parameter file that ros2_control_node loads after the controller configuration file
 
 2.3.2 (2026-06-25)
 ------------------

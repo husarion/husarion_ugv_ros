@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <pthread.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include <atomic>
@@ -747,16 +748,24 @@ void WriteToAnAbsentSlaveWithResyncWatchdog()
 {
   using husarion_ugv_hardware_interfaces_test::kCANopenSettings;
 
+  // Each lely Poll restores the SIGUSR1 handler it found when it is destroyed, and the master
+  // wakes its thread with SIGUSR1. With the default action in place, stopping the slave would
+  // leave the default behind and the next wake-up would kill the process. A handler that does
+  // nothing, like lely's own, survives any restore order.
+  struct sigaction wake_up = {};
+  wake_up.sa_handler = [](int) {};
+  sigemptyset(&wake_up.sa_mask);
+  sigaction(SIGUSR1, &wake_up, nullptr);
+
+  // The slave starts before the master opens its channel, as in the other tests. A master that
+  // hears the slave's boot-up message boots it by itself, and Boot() then fails.
   husarion_ugv_hardware_interfaces_test::FakeCANSocket can_socket(
     kCANopenSettings.can_interface_name);
   can_socket.Initialize();
   husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(kCANopenSettings);
-  // Each lely Poll restores the SIGUSR1 handler it found when it is destroyed, and the master
-  // wakes its thread with SIGUSR1. Creating the slave's Poll after the master's makes stopping
-  // the slave restore lely's handler instead of the default action, which kills the process.
-  canopen_manager.Initialize();
   husarion_ugv_hardware_interfaces_test::MockRoboteq mock_roboteq;
   mock_roboteq.Start(std::chrono::milliseconds(10), std::chrono::milliseconds(50));
+  canopen_manager.Initialize();
   auto driver = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
     canopen_manager.GetMaster(), 1, std::chrono::milliseconds(100),
     kCANopenSettings.rpdo_dispatch_sched_priority, -1, true);

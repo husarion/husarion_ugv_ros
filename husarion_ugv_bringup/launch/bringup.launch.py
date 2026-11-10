@@ -202,6 +202,16 @@ def generate_launch_description():
     robot_version = EnvironmentVariable(name="ROBOT_VERSION", default_value="1.0")
     welcome_info = welcome_msg(robot_model_name, robot_serial_no, robot_version)
 
+    controller_params_overlay_path = LaunchConfiguration("controller_params_overlay_path")
+    declare_controller_params_overlay_path_arg = DeclareLaunchArgument(
+        "controller_params_overlay_path",
+        default_value="",
+        description=(
+            "Path to a parameter file loaded after the controller configuration file, see the"
+            " controller launch file. Empty loads none."
+        ),
+    )
+
     controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -210,6 +220,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "log_level": log_level,
+            "controller_params_overlay_path": controller_params_overlay_path,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
             "uvp_enable": uvp_enable,
@@ -354,6 +365,7 @@ def generate_launch_description():
 
     actions = [
         SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
+        declare_controller_params_overlay_path_arg,
         declare_exit_on_wrong_hw_arg,
         declare_battery_driver_config_path_arg,
         declare_common_dir_path_arg,

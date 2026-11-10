@@ -10,6 +10,10 @@ Forthcoming
   are gone too
 * hardware image: without a terminal, PID 1 is the entrypoint shell, which runs the command as a
   child and forwards a SIGTERM stop to it as SIGINT
+* hardware image: a patched Fast DDS 2.14.7 keeps the shared memory ROS network open to new nodes
+  after a process dies, delivers large samples whole and no longer splits after a cold boot
+* hardware image: the controller_manager statistics threads no longer poll at 2 kHz while nobody
+  subscribes to the statistics topics
 * hardware image: every start copies the driver config files that are missing from ``/config``
   and never overwrites one, so a deleted driver file comes back on the next start. Changed
   defaults of files that already exist still need ``update_config_directory``

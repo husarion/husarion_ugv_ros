@@ -18,6 +18,12 @@ RUN apt-get update && \
     apt-get install -y \
         ros-dev-tools && \
     vcs import src < src/husarion_ugv_ros/husarion_ugv/${HUSARION_ROS_BUILD_TYPE}_deps.repos && \
+    # controller_manager starts two pal_statistics publisher threads that poll at 2 kHz whether
+    # anyone listens. The patched library is built into the workspace, where it shadows the apt
+    # one. The messages stay the apt ones.
+    git -C src/pal_statistics apply \
+        /ros2_ws/src/husarion_ugv_ros/husarion_ugv/patches/pal_statistics-idle-poll.patch && \
+    touch src/pal_statistics/pal_statistics_msgs/COLCON_IGNORE && \
     echo $(cat /ros2_ws/src/husarion_ugv_ros/husarion_ugv/package.xml | grep '<version>' | sed -r 's/.*<version>([0-9]+.[0-9]+.[0-9]+)<\/version>/\1/g') >> /version.txt && \
     mkdir /manifests && \
     find src \( -name package.xml -o -name COLCON_IGNORE -o -name AMENT_IGNORE -o -name CATKIN_IGNORE \) \
@@ -56,6 +62,28 @@ RUN --mount=type=bind,from=sources,source=/manifests,target=/tmp/src \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Stock Fast DDS 2.14 loses a shared memory listener when a participant dies uncleanly, and after
+# two such deaths the ROS network stops accepting new nodes. It also cuts about one large sample
+# in 256 sent over shared memory, and after a cold boot the shared memory network can split into
+# groups that do not see each other. Swap in a patched build of the same version and hold it, so
+# no later apt run brings the stock one back. It comes after every RUN that installs ROS
+# packages, so the build stage compiles against it too, and the find fails the build if another
+# copy of the library could shadow it. One unpatched process is enough to keep the bugs alive.
+ARG FASTDDS_PATCHED=v5
+ARG FASTDDS_SHA256_AMD64=322b33f4a9a8437c5794dd927c282814cd15ed7c4a75389a156a5212379866ca
+ARG FASTDDS_SHA256_ARM64=12dbcaf214115950bd5d7dcbb9f7e6ca66f0c8c00419f664a498174b77bf6bdd
+RUN set -eu; arch=$(dpkg --print-architecture); \
+    case "$arch" in amd64) sum=$FASTDDS_SHA256_AMD64 ;; arm64) sum=$FASTDDS_SHA256_ARM64 ;; *) exit 1 ;; esac; \
+    curl -fsSL --retry 5 -o /tmp/fastdds.deb \
+      "https://github.com/husarion/fastdds-patched/releases/download/${FASTDDS_PATCHED}/fastrtps-${ROS_DISTRO}-${arch}.deb"; \
+    echo "${sum}  /tmp/fastdds.deb" | sha256sum -c -; \
+    apt-get update && apt-get install -y --no-install-recommends /tmp/fastdds.deb; \
+    pkg=$(dpkg-deb -f /tmp/fastdds.deb Package); apt-mark hold "$pkg"; rm -f /tmp/fastdds.deb; \
+    dpkg-query -W -f='${Version}' "$pkg" | grep -q '+husarion'; \
+    dpkg --verify "$pkg"; \
+    test "$(find / -xdev \( -name 'libfastrtps.so*' -o -name 'libfastdds.so*' \) -type f -not -path "/opt/ros/${ROS_DISTRO}/lib/*" | wc -l)" = 0; \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 FROM runtime-deps AS builder
 
 ARG BUILD_TEST=OFF
@@ -80,7 +108,7 @@ RUN dpkg-query -W -f '${binary:Package} ${Version}\n' | LC_ALL=C sort > /tmp/run
     fi && \
     # Without --symlink-install, so the install space does not point into build/ or src/.
     source /opt/ros/$ROS_DISTRO/setup.bash && \
-    colcon build --packages-up-to husarion_ugv --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST
+    colcon build --packages-up-to husarion_ugv pal_statistics --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=$BUILD_TEST
 
 FROM runtime-deps
 
@@ -96,6 +124,9 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
         xargs -0 -r -n1 sh -c 'ldd "$0" 2>/dev/null | sed "s|^|$0: |"' | grep 'not found'; then \
         exit 1; \
     fi && \
+    # The controller manager must load the patched pal_statistics from the workspace.
+    ldd /opt/ros/$ROS_DISTRO/lib/controller_manager/ros2_control_node | \
+        grep -q ' => /ros2_ws/install/pal_statistics/lib/libpal_statistics\.so ' && \
     # Every module of our Python packages (husarion_ugv_utils.messages needs click), the top level of
     # the others.
     for module in /ros2_ws/install/*/lib/python3*/site-packages/*/__init__.py; do \

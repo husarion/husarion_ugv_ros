@@ -21,6 +21,8 @@ repos:
       - id: name-tests-test
       - id: mixed-line-ending
       - id: trailing-whitespace
+        # blank context lines in a patch are a single space
+        exclude: \.patch$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2

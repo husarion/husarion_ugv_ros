@@ -31,6 +31,9 @@
   <exec_depend>twist_mux_controller</exec_depend>
   <exec_depend>xacro</exec_depend>
 
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">ament_cmake_pytest</test_depend>
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">python3-pytest</test_depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>

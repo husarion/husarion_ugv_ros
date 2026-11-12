@@ -2,6 +2,10 @@
 Changelog for package husarion_ugv_utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* the log_level choice WARNING is replaced by WARN. WARNING never worked, rcl rejected it and every node exited. log_level:=ERROR or FATAL now also applies to rcl and the controller_manager units, which stayed at INFO before
+
 2.3.2 (2026-06-25)
 ------------------
 * Fix headers guards (`#598 <https://github.com/husarion/husarion_ugv_ros/issues/598>`_)

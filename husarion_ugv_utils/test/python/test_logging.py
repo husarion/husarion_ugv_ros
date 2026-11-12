@@ -14,23 +14,8 @@
 
 
 import pytest
-from husarion_ugv_utils.logging import limit_log_level_to_info, normalize_log_level
+from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchContext
-
-
-@pytest.mark.parametrize(
-    "log_level, expected",
-    [
-        ("DEBUG", "DEBUG"),
-        ("INFO", "INFO"),
-        ("WARN", "WARN"),
-        ("WARNING", "WARN"),
-        ("ERROR", "ERROR"),
-        ("FATAL", "FATAL"),
-    ],
-)
-def test_normalize_log_level(log_level, expected):
-    assert normalize_log_level(log_level).perform(LaunchContext()) == expected
 
 
 @pytest.mark.parametrize(
@@ -39,7 +24,6 @@ def test_normalize_log_level(log_level, expected):
         ("DEBUG", "rcl:=INFO"),
         ("INFO", "rcl:=INFO"),
         ("WARN", "rcl:=WARN"),
-        ("WARNING", "rcl:=WARN"),
         ("ERROR", "rcl:=ERROR"),
         ("FATAL", "rcl:=FATAL"),
     ],

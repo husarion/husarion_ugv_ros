@@ -119,12 +119,9 @@ def test_key_nodes_are_recorded(commands):
         find_node(commands, name)
 
 
-def test_log_level_warning_reaches_nodes_as_warn():
-    commands = run_bringup({"log_level": "WARNING"})
+def test_log_level_warn_reaches_nodes():
+    commands = run_bringup({"log_level": "WARN"})
     find_node(commands, "safety_manager")
-    for cmd in commands:
-        for level in option_values(cmd, "--log-level"):
-            assert level != "WARNING" and not level.endswith(":=WARNING"), cmd
     cmd = find_node(commands, "ros2_control_node")
     levels = option_values(cmd, "--log-level")
     assert "WARN" in levels, cmd

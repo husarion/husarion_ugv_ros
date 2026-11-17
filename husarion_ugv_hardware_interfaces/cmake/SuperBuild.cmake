@@ -39,7 +39,7 @@ ExternalProject_Add(
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/ep_libgpiod/include)
 ExternalProject_Add(
   ep_libgpiod
-  GIT_REPOSITORY git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
+  GIT_REPOSITORY https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
   GIT_TAG v2.0.2
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ep_libgpiod
   INSTALL_DIR ${CMAKE_INSTALL_PREFIX}

@@ -13,20 +13,27 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
+#include <future>
 #include <memory>
+#include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include <rclcpp/rclcpp.hpp>
+#include <realtime_tools/realtime_publisher.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/system_ros_interface.hpp"
 
 #include "utils/test_constants.hpp"
 
+using BoolMsg = std_msgs::msg::Bool;
 using RobotDriverStateMsg = husarion_ugv_msgs::msg::RobotDriverState;
 
 class SystemROSInterfaceWrapper : public husarion_ugv_hardware_interfaces::SystemROSInterface
@@ -35,6 +42,11 @@ public:
   SystemROSInterfaceWrapper(const std::string & node_name) : SystemROSInterface(node_name) {}
 
   RobotDriverStateMsg & GetRobotDriverStateMsg() { return realtime_driver_state_publisher_->msg_; }
+
+  realtime_tools::RealtimePublisher<BoolMsg> & GetEStopStatePublisher()
+  {
+    return *realtime_e_stop_state_publisher_;
+  }
 };
 
 class TestSystemROSInterface : public ::testing::Test
@@ -204,6 +216,84 @@ TEST_F(TestSystemROSInterface, CreateDriverStateEntryInMsg)
   EXPECT_EQ(
     driver_state_msg.driver_states.at(2).name,
     husarion_ugv_hardware_interfaces::DriverNamesToString(driver_3_name));
+}
+
+class TestSystemROSInterfaceEStop : public TestSystemROSInterface
+{
+public:
+  TestSystemROSInterfaceEStop()
+  {
+    test_node_ = std::make_shared<rclcpp::Node>("test_e_stop_node");
+    e_stop_sub_ = test_node_->create_subscription<BoolMsg>(
+      "hardware/e_stop", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+      [this](const BoolMsg::SharedPtr msg) { received_e_stop_ = msg->data; });
+  }
+
+protected:
+  // Calls PublishEStopStateIfChanged once per "cycle", like UGVSystem::read() does, until the
+  // subscriber receives the expected value or the timeout passes.
+  bool PublishEStopUntilReceived(const bool e_stop)
+  {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      system_ros_interface_->PublishEStopStateIfChanged(e_stop);
+      rclcpp::spin_some(test_node_);
+      if (received_e_stop_.has_value() && received_e_stop_.value() == e_stop) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  }
+
+  // Runs the given call while another thread holds the e-stop publisher's lock, so that its
+  // trylock() fails. The lock must be held from a different thread: try_lock() on a std::mutex
+  // already owned by the calling thread is undefined behaviour.
+  template <typename Call>
+  void CallWithEStopPublisherLocked(Call call)
+  {
+    std::promise<void> locked;
+    std::promise<void> release;
+    auto & publisher = system_ros_interface_->GetEStopStatePublisher();
+
+    std::thread holder([&]() {
+      publisher.lock();
+      locked.set_value();
+      release.get_future().wait();
+      publisher.unlock();
+    });
+
+    locked.get_future().wait();
+    call();
+    release.set_value();
+    holder.join();
+  }
+
+  rclcpp::Node::SharedPtr test_node_;
+  rclcpp::Subscription<BoolMsg>::SharedPtr e_stop_sub_;
+  std::optional<bool> received_e_stop_;
+};
+
+TEST_F(TestSystemROSInterfaceEStop, EStopChangeRetriedAfterFailedTrylock)
+{
+  ASSERT_TRUE(PublishEStopUntilReceived(false));
+
+  CallWithEStopPublisherLocked([this]() {
+    system_ros_interface_->PublishEStopStateIfChanged(true);
+    // The change was not published, so it must not be stored as the published value
+    EXPECT_FALSE(system_ros_interface_->GetEStopStatePublisher().msg_.data);
+  });
+
+  EXPECT_TRUE(PublishEStopUntilReceived(true));
+}
+
+TEST_F(TestSystemROSInterfaceEStop, InitialEStopStateRetriedAfterFailedTrylock)
+{
+  // A failed first publish of the default value (false) must still be retried by the
+  // on-change path, as the latched topic would otherwise never carry an e-stop state
+  CallWithEStopPublisherLocked([this]() { system_ros_interface_->PublishEStopStateMsg(false); });
+
+  EXPECT_TRUE(PublishEStopUntilReceived(false));
 }
 
 int main(int argc, char ** argv)

@@ -276,6 +276,9 @@ protected:
 
 TEST_F(TestSystemROSInterfaceEStop, EStopChangeRetriedAfterFailedTrylock)
 {
+  // Publish the initial state directly, as on_activate does, so the setup does not depend
+  // on the on-change path this test is about
+  system_ros_interface_->PublishEStopStateMsg(false);
   ASSERT_TRUE(PublishEStopUntilReceived(false));
 
   CallWithEStopPublisherLocked([this]() {

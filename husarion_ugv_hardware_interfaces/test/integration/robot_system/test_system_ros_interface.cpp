@@ -230,8 +230,6 @@ public:
   }
 
 protected:
-  // Calls PublishEStopStateIfChanged once per "cycle", like UGVSystem::read() does, until the
-  // subscriber receives the expected value or the timeout passes.
   bool PublishEStopUntilReceived(const bool e_stop)
   {
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
@@ -246,9 +244,7 @@ protected:
     return false;
   }
 
-  // Runs the given call while another thread holds the e-stop publisher's lock, so that its
-  // trylock() fails. The lock must be held from a different thread: try_lock() on a std::mutex
-  // already owned by the calling thread is undefined behaviour.
+  // try_lock() on a std::mutex the calling thread already owns is undefined behaviour.
   template <typename Call>
   void CallWithEStopPublisherLocked(Call call)
   {

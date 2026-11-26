@@ -14,6 +14,7 @@
 
 #include "husarion_ugv_lights/apa102.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -28,10 +29,11 @@ namespace husarion_ugv_lights
 
 APA102::APA102(
   SPIDeviceInterface::SharedPtr spi_device, const std::string & device_name,
-  const std::uint32_t speed, const bool cs_high)
+  const std::uint32_t speed, const bool cs_high, const std::size_t max_transfer_bytes)
 : spi_device_(spi_device),
   device_name_(device_name),
   speed_(speed),
+  max_transfer_bytes_(max_transfer_bytes),
   file_descriptor_(spi_device->Open(device_name))
 {
   if (file_descriptor_ < 0) {
@@ -127,22 +129,73 @@ const APA102::GammaLUTs & APA102::GetGammaLUTs()
   return luts;
 }
 
+std::size_t APA102::NumberOfTransfers(
+  const std::size_t num_led, const std::size_t max_transfer_bytes)
+{
+  // Start frame, four bytes per LED, end frame - the buffer RGBAFrameToBGRBuffer builds.
+  return NumberOfTransfersForBuffer(4 + 4 * num_led + 4, max_transfer_bytes);
+}
+
+std::size_t APA102::NumberOfTransfersForBuffer(
+  const std::size_t buffer_size, const std::size_t max_transfer_bytes)
+{
+  if (max_transfer_bytes == 0) {
+    return 1;
+  }
+  return std::max<std::size_t>(1, (buffer_size + max_transfer_bytes - 1) / max_transfer_bytes);
+}
+
 void APA102::SPISendBuffer(const std::vector<std::uint8_t> & buffer) const
 {
-  struct spi_ioc_transfer tr;
-  memset(&tr, 0, sizeof(tr));
-  tr.tx_buf = reinterpret_cast<std::uint64_t>(buffer.data());
-  tr.rx_buf = 0;
-  tr.len = static_cast<std::uint32_t>(buffer.size());
-  tr.speed_hz = speed_;
-  tr.delay_usecs = 0;
-  tr.bits_per_word = kBits;
+  // spi-bcm2835 sends a transfer of 96 bytes or more by DMA, and its DMA completion busy-waits in
+  // the IRQ thread until the FIFO drains, up to 0.64 ms per frame at 800 kHz. Shorter transfers go
+  // out interrupt driven, or busy-polled in this thread when the driver expects them to take less
+  // than its polling limit (30 us by default), which a high clock can reach. An APA102 strip has no
+  // chip select and only follows the clock, so a pause in the clock between the transfers of one
+  // message does not split the frame.
+  const std::size_t chunk = max_transfer_bytes_ > 0 ? max_transfer_bytes_ : buffer.size();
+  const std::size_t num_transfers = NumberOfTransfersForBuffer(buffer.size(), max_transfer_bytes_);
+  if (num_transfers > kMaxSPITransfers) {
+    throw std::ios_base::failure("Too many SPI transfers for one frame on " + device_name_ + ".");
+  }
 
-  const int ret = spi_device_->IOControl(file_descriptor_, SPI_IOC_MESSAGE(1), &tr);
+  std::vector<struct spi_ioc_transfer> transfers(num_transfers);
+  for (std::size_t i = 0; i < num_transfers; i++) {
+    auto & tr = transfers[i];
+    memset(&tr, 0, sizeof(tr));
+    const std::size_t offset = i * chunk;
+    tr.tx_buf = reinterpret_cast<std::uint64_t>(buffer.data() + offset);
+    tr.rx_buf = 0;
+    tr.len = static_cast<std::uint32_t>(std::min(chunk, buffer.size() - offset));
+    tr.speed_hz = speed_;
+    tr.delay_usecs = 0;
+    tr.bits_per_word = kBits;
+  }
+
+  // SPI_IOC_MESSAGE() with a runtime count would be a variable length array, so spell it out.
+  const unsigned long request = _IOC(_IOC_WRITE, SPI_IOC_MAGIC, 0, SPI_MSGSIZE(num_transfers));
+  const int ret = spi_device_->IOControl(file_descriptor_, request, transfers.data());
 
   if (ret < 1) {
     throw std::ios_base::failure("Failed to send data over SPI " + device_name_ + ".");
   }
+}
+
+std::uint32_t EffectiveSPISpeed(const std::uint64_t core_clock_hz, const std::uint32_t requested_hz)
+{
+  // Mirrors bcm2835_spi_transfer_one(): an even divider of at least 2, or 65536 when the request
+  // is too slow for any divider the register holds.
+  std::uint64_t divider = 65536;
+  if (requested_hz >= core_clock_hz / 2) {
+    divider = 2;
+  } else if (requested_hz > 0) {
+    divider = (core_clock_hz + requested_hz - 1) / requested_hz;
+    divider += divider % 2;
+    if (divider >= 65536) {
+      divider = 65536;
+    }
+  }
+  return static_cast<std::uint32_t>(core_clock_hz / divider);
 }
 
 }  // namespace husarion_ugv_lights

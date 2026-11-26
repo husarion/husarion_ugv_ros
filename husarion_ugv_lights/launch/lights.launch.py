@@ -75,6 +75,45 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    led_spi_speed_hz = LaunchConfiguration("led_spi_speed_hz")
+    declare_led_spi_speed_hz_arg = DeclareLaunchArgument(
+        "led_spi_speed_hz",
+        default_value="0",
+        description=(
+            "SPI clock of the LED strips in Hz. 0 keeps the driver default of 800000, the"
+            " certified clock. Any other value must be between 100000 and 20000000. Changing it"
+            " affects EMC."
+        ),
+    )
+
+    led_spi_max_transfer_bytes = LaunchConfiguration("led_spi_max_transfer_bytes")
+    declare_led_spi_max_transfer_bytes_arg = DeclareLaunchArgument(
+        "led_spi_max_transfer_bytes",
+        default_value="0",
+        description=(
+            "Largest single SPI transfer of a LED frame in bytes. 0 sends each frame as one"
+            " transfer. On a Raspberry Pi a transfer below 96 bytes is sent without DMA."
+        ),
+    )
+
+    lights_controller_frequency = LaunchConfiguration("lights_controller_frequency")
+    declare_lights_controller_frequency_arg = DeclareLaunchArgument(
+        "lights_controller_frequency",
+        default_value="50.0",
+        description="Frequency in Hz at which the lights controller renders animation frames.",
+    )
+
+    lights_frame_keepalive_period = LaunchConfiguration("lights_frame_keepalive_period")
+    declare_lights_frame_keepalive_period_arg = DeclareLaunchArgument(
+        "lights_frame_keepalive_period",
+        default_value="0.0",
+        description=(
+            "Time in seconds after which the lights controller publishes an unchanged frame again."
+            " Above 0 frames are otherwise published only when they change, 0 publishes every"
+            " frame."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -134,6 +173,12 @@ def generate_launch_description():
                             led_control_retry_forever, value_type=bool
                         )
                     },
+                    {"spi_speed_hz": ParameterValue(led_spi_speed_hz, value_type=int)},
+                    {
+                        "spi_max_transfer_bytes": ParameterValue(
+                            led_spi_max_transfer_bytes, value_type=int
+                        )
+                    },
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
@@ -148,6 +193,16 @@ def generate_launch_description():
                 parameters=[
                     {"animations_config_path": animations_config_path},
                     {"user_led_animations_path": user_led_animations_path},
+                    {
+                        "controller_frequency": ParameterValue(
+                            lights_controller_frequency, value_type=float
+                        )
+                    },
+                    {
+                        "frame_keepalive_period": ParameterValue(
+                            lights_frame_keepalive_period, value_type=float
+                        )
+                    },
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": True},
@@ -171,6 +226,10 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by animations_config_path
         declare_animations_config_path_arg,
         declare_led_control_retry_forever_arg,
+        declare_led_spi_speed_hz_arg,
+        declare_led_spi_max_transfer_bytes_arg,
+        declare_lights_controller_frequency_arg,
+        declare_lights_frame_keepalive_period_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         declare_use_sim_arg,

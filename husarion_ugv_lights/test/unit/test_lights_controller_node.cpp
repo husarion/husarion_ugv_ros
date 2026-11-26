@@ -25,6 +25,7 @@
 #include "yaml-cpp/yaml.h"
 
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 #include "husarion_ugv_lights/lights_controller_node.hpp"
 #include "husarion_ugv_utils/test/test_utils.hpp"
@@ -54,6 +55,8 @@ public:
   {
     return LightsControllerNode::AddAnimationToLayer(animation_id, repeating, param);
   }
+
+  void UpdateAndPublishAnimation() { return LightsControllerNode::UpdateAndPublishAnimation(); }
 };
 
 class TestLightsControllerNode : public testing::Test
@@ -64,6 +67,7 @@ public:
 
 protected:
   void CreateLEDConfig(const std::filesystem::path file_path);
+  void CreateNode(const std::vector<rclcpp::Parameter> & extra_params = {});
 
   static constexpr std::size_t kTestNumberOfLeds = 10;
   static constexpr std::size_t kTestChannel = 1;
@@ -79,13 +83,18 @@ TestLightsControllerNode::TestLightsControllerNode()
   animations_config_path_ = testing::TempDir() + "/animations.yaml";
 
   CreateLEDConfig(animations_config_path_);
+  CreateNode();
+}
 
-  std::vector<rclcpp::Parameter> params;
+void TestLightsControllerNode::CreateNode(const std::vector<rclcpp::Parameter> & extra_params)
+{
+  std::vector<rclcpp::Parameter> params = extra_params;
   params.push_back(rclcpp::Parameter("animations_config_path", animations_config_path_));
 
   rclcpp::NodeOptions options;
   options.parameter_overrides(params);
 
+  lights_controller_node_.reset();
   lights_controller_node_ = std::make_shared<ControllerNodeWrapper>(options);
 }
 
@@ -227,6 +236,98 @@ TEST_F(TestLightsControllerNode, AddAnimationToQueueThrowBadAnimationID)
 {
   EXPECT_TRUE(husarion_ugv_utils::test_utils::IsMessageThrown<std::runtime_error>(
     [&]() { lights_controller_node_->AddAnimationToQueue(99, false); }, "No animation with ID:"));
+}
+
+class FrameListener
+{
+public:
+  explicit FrameListener(const rclcpp::Node::SharedPtr & publisher_node)
+  : node_(std::make_shared<rclcpp::Node>("frame_listener"))
+  {
+    sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
+      "lights/channel_1_frame", 10,
+      [this](const sensor_msgs::msg::Image::SharedPtr msg) { frames.push_back(*msg); });
+
+    // Wait for discovery, so the first frame is not lost.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (publisher_node->count_subscribers("lights/channel_1_frame") == 0 &&
+           std::chrono::steady_clock::now() < deadline) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  }
+
+  // Spins until the expected number of frames arrived, or a timeout.
+  void SpinUntil(
+    const std::size_t expected,
+    const std::chrono::milliseconds timeout = std::chrono::milliseconds(2000))
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (frames.size() < expected && std::chrono::steady_clock::now() < deadline) {
+      rclcpp::spin_some(node_);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  }
+
+  std::vector<sensor_msgs::msg::Image> frames;
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_;
+};
+
+TEST_F(TestLightsControllerNode, UnchangedFramePublishedEveryTickByDefault)
+{
+  FrameListener listener(lights_controller_node_);
+
+  for (int i = 0; i < 5; ++i) {
+    lights_controller_node_->UpdateAndPublishAnimation();
+  }
+  listener.SpinUntil(5);
+  EXPECT_EQ(5u, listener.frames.size());
+}
+
+TEST_F(TestLightsControllerNode, UnchangedFrameRepeatedOnlyAtKeepalivePeriod)
+{
+  // Long enough that the ticks below land inside one period on a loaded machine.
+  constexpr double keepalive_period = 1.5;
+  CreateNode({rclcpp::Parameter("frame_keepalive_period", keepalive_period)});
+  FrameListener listener(lights_controller_node_);
+
+  // No segment has an animation, so every tick renders the same frame.
+  for (int i = 0; i < 5; ++i) {
+    lights_controller_node_->UpdateAndPublishAnimation();
+  }
+  // Waits briefly for a second frame that must not come.
+  listener.SpinUntil(1);
+  listener.SpinUntil(2, std::chrono::milliseconds(200));
+  ASSERT_EQ(1u, listener.frames.size());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(keepalive_period * 1000)));
+  lights_controller_node_->UpdateAndPublishAnimation();
+  lights_controller_node_->UpdateAndPublishAnimation();
+  listener.SpinUntil(2);
+  listener.SpinUntil(3, std::chrono::milliseconds(200));
+  ASSERT_EQ(2u, listener.frames.size());
+  EXPECT_EQ(listener.frames[0].data, listener.frames[1].data);
+
+  YAML::Node animation;
+  animation["image"] = "$(find husarion_ugv_lights)/test/files/animation.png";
+  animation["duration"] = 2;
+  YAML::Node animation_desc;
+  animation_desc["type"] = "husarion_ugv_lights::ImageAnimation";
+  animation_desc["segments"] = "test";
+  animation_desc["animation"] = animation;
+  YAML::Node led_animation;
+  led_animation["id"] = 2;
+  led_animation["animations"] = std::vector<YAML::Node>(1, animation_desc);
+  lights_controller_node_->LoadAnimation(led_animation);
+
+  // A changed frame goes out at once.
+  lights_controller_node_->AddAnimationToQueue(2, false);
+  lights_controller_node_->UpdateAndPublishAnimation();
+  listener.SpinUntil(3);
+  ASSERT_EQ(3u, listener.frames.size());
+  EXPECT_NE(listener.frames[1].data, listener.frames[2].data);
 }
 
 int main(int argc, char ** argv)

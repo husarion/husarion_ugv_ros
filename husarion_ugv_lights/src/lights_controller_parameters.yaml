@@ -11,6 +11,15 @@ lights_controller:
     description: Frequency in Hz at which the lights controller node will process animations.
     validation: { gt<>: 0.0 }
 
+  frame_keepalive_period:
+    type: double
+    default_value: 0.0
+    description: Time in seconds after which an unchanged panel frame is published again. Above 0
+      frames are otherwise published only when they change, and the repeat restores a strip that
+      lost its frame, for example after a power glitch. A frame the driver dropped is not repeated before the period
+      expires, so it is capped at 5 s. 0 publishes every frame.
+    validation: { bounds<>: [0.0, 5.0] }
+
   user_led_animations_path:
     type: string
     default_value: ""

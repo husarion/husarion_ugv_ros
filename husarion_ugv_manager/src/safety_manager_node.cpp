@@ -143,7 +143,7 @@ void SafetyManagerNode::InitializeUVP()
        UvpReaction::ShutdownHostsTimeoutS(uvp_input_.shutdown_hosts_timeout_s)},
     };
     uvp_shutdown_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-      "UVPShutdown", uvp_shutdown_initial_blackboard, 8888);
+      "UVPShutdown", uvp_shutdown_initial_blackboard, 8888, this->params_.use_groot);
     uvp_shutdown_tree_manager_->Initialize(factory_);
   } catch (const std::exception & e) {
     // The plugins it needs come from the plugin_libs parameter, which a user can change.

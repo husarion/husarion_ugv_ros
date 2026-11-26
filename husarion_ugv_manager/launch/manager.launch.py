@@ -60,11 +60,19 @@ def generate_launch_description():
         description="Path to BehaviorTree project file, responsible for lights management.",
     )
 
+    use_groot = LaunchConfiguration("use_groot")
+    declare_use_groot_arg = DeclareLaunchArgument(
+        "use_groot",
+        default_value="True",
+        description="Start the Groot2 publishers of the manager behavior trees.",
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
         default_value="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
         description="Logging level",
     )
 
@@ -124,6 +132,7 @@ def generate_launch_description():
             {
                 "bt_project_path": lights_bt_project_path,
                 "uvp_enable": ParameterValue(uvp_enable, value_type=bool),
+                "use_groot": ParameterValue(use_groot, value_type=bool),
             },
         ],
         namespace=namespace,
@@ -146,6 +155,7 @@ def generate_launch_description():
                 "bt_project_path": safety_bt_project_path,
                 "shutdown_hosts_path": shutdown_hosts_config_path,
                 "uvp_enable": ParameterValue(uvp_enable, value_type=bool),
+                "use_groot": ParameterValue(use_groot, value_type=bool),
             },
         ],
         namespace=namespace,
@@ -162,6 +172,7 @@ def generate_launch_description():
 
     actions = [
         declare_common_dir_path_arg,
+        declare_use_groot_arg,
         declare_log_level_arg,
         declare_lights_bt_project_path_arg,
         declare_safety_bt_project_path_arg,

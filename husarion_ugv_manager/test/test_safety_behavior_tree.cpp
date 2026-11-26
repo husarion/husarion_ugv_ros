@@ -363,6 +363,36 @@ TEST_F(TestSafetyBehaviorTree, PowerSupplyHealthOverheatFatalTemp)
   EXPECT_NE(BT::NodeStatus::IDLE, safety_manager_node_->GetShutdownTreeStatus());
 }
 
+TEST_F(TestSafetyBehaviorTree, PowerButtonDuringStartupWait)
+{
+  // Another namespace, so the e_stop_trigger service of the fixture does not end the wait.
+  auto params = CreateTestParameters();
+  params.push_back(rclcpp::Parameter("ros_communication_timeout.startup", 5.0));
+  rclcpp::NodeOptions options;
+  options.parameter_overrides(params);
+  options.arguments({"--ros-args", "-r", "__ns:=/without_service"});
+  auto node = std::make_shared<SafetyManagerNodeWrapper>("test_manager_without_service", options);
+  node->GetFactory().addSubstitutionRule("ExecuteCommand", "AlwaysSuccess");
+  node->GetFactory().addSubstitutionRule("ShutdownHostsFromFile", "AlwaysSuccess");
+
+  auto io_state_pub = safety_manager_node_->create_publisher<IOStateMsg>(
+    "/without_service/hardware/io_state",
+    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable());
+  IOStateMsg io_state;
+  io_state.power_button = true;
+  io_state_pub->publish(io_state);
+
+  const auto start = std::chrono::steady_clock::now();
+  node->Initialize();
+  const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+
+  // The press ends the wait with a shutdown, long before the 5 s timeout.
+  EXPECT_LT(elapsed.count(), 4.0);
+  EXPECT_NE(BT::NodeStatus::IDLE, node->GetShutdownTreeStatus());
+  // ShutdownRobot shuts the context down; the fixture initializes a new one for each test.
+  EXPECT_FALSE(rclcpp::ok());
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

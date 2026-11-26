@@ -17,7 +17,12 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    Shutdown,
+)
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -63,6 +68,14 @@ def generate_launch_description():
         "use_madgwick_filter",
         default_value="False",
         description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="True",
+        description="Use the IMU magnetometer in the Madgwick filter.",
         choices=["True", "true", "False", "false"],
     )
 
@@ -176,7 +189,7 @@ def generate_launch_description():
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
         default_value="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
         description="Logging level",
     )
 
@@ -218,6 +231,7 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
             "use_madgwick_filter": use_madgwick_filter,
+            "use_mag": use_mag,
             "configure_thread_priority": configure_thread_priority,
             "canopen_thread_priority": canopen_thread_priority,
             "rpdo_dispatch_priority": rpdo_dispatch_priority,
@@ -310,8 +324,9 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # CM services appear after hardware activation; max_roboteq_*_attempts can take ~60 s.
         "--controller-manager-timeout",
-        "10",
+        "90",
         "--ros-args",
         "--log-level",
         log_level,
@@ -337,6 +352,7 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         declare_configure_thread_priority_arg,
         declare_canopen_thread_priority_arg,
         declare_rpdo_dispatch_priority_arg,
@@ -353,7 +369,8 @@ def generate_launch_description():
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        load_urdf,
+        # Unscoped, load_urdf's empty battery_config_path default leaks to battery.launch.py.
+        GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,
     ]

@@ -180,6 +180,12 @@ TEST_F(TestLightsManagerNode, EStopCBBlackboardUpdate)
   EXPECT_FLOAT_EQ(blackboard->get<float>("e_stop_state"), expected_state);
 }
 
+TEST_F(TestLightsManagerNode, NoBatteryProtectionWhenUVPDisabled)
+{
+  EXPECT_FALSE(lights_manager_node_->get_parameter("uvp_enable").as_bool());
+  EXPECT_EQ(0u, lights_manager_node_->count_subscribers("/battery/protection"));
+}
+
 std::chrono::duration<double> TestLightsManagerNode::InitializeWithoutService(
   const double startup_timeout, const std::vector<std::string> & startup_services)
 {

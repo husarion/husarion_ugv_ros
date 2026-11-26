@@ -17,6 +17,7 @@
         </Action>
         <Action ID="ShutdownHostsFromFile" editable="true">
             <input_port name="shutdown_hosts_file">global path to YAML file with hosts to shutdown</input_port>
+            <input_port name="timeout_override">optional upper bound in seconds of each host timeout, unset or 0 keeps the file timeouts</input_port>
         </Action>
         <Action ID="SignalShutdown" editable="true">
             <input_port name="reason">reason to shutdown robot</input_port>

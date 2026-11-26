@@ -76,9 +76,9 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    groot_enabled = LaunchConfiguration("groot_enabled")
-    declare_groot_enabled_arg = DeclareLaunchArgument(
-        "groot_enabled",
+    use_groot = LaunchConfiguration("use_groot")
+    declare_use_groot_arg = DeclareLaunchArgument(
+        "use_groot",
         default_value="True",
         description="Start the Groot2 publishers of the manager behavior trees.",
         choices=["True", "true", "False", "false"],
@@ -149,7 +149,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            "groot_enabled": groot_enabled,
+            "use_groot": use_groot,
             "log_level": log_level,
             "namespace": namespace,
             "use_sim": "True",
@@ -268,7 +268,7 @@ def generate_launch_description():
         declare_robot_model_arg,  # robot_model is used by components_config_path
         declare_components_config_path_arg,
         declare_disable_manager_arg,
-        declare_groot_enabled_arg,
+        declare_use_groot_arg,
         declare_gz_bridge_config_path_arg,
         declare_log_level_arg,
         declare_namespace_arg,

@@ -32,8 +32,8 @@ class BehaviorTreeManagerWrapper : public husarion_ugv_manager::BehaviorTreeMana
 public:
   BehaviorTreeManagerWrapper(
     const std::string & tree_name, const std::map<std::string, std::any> & initial_blackboard,
-    const unsigned groot_port = 1667, const bool groot_enabled = true)
-  : BehaviorTreeManager(tree_name, initial_blackboard, groot_port, groot_enabled)
+    const unsigned groot_port = 1667, const bool use_groot = true)
+  : BehaviorTreeManager(tree_name, initial_blackboard, groot_port, use_groot)
   {
   }
   ~BehaviorTreeManagerWrapper() {}

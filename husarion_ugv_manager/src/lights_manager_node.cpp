@@ -52,7 +52,7 @@ LightsManagerNode::LightsManagerNode(
   const auto bt_server_port = this->get_parameter("bt_server_port").as_int();
   const auto initial_blackboard = CreateLightsInitialBlackboard();
   lights_tree_manager_ = std::make_unique<BehaviorTreeManager>(
-    "Lights", initial_blackboard, bt_server_port, this->params_.groot_enabled);
+    "Lights", initial_blackboard, bt_server_port, this->params_.use_groot);
 
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
 }

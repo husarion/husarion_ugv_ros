@@ -12,7 +12,7 @@ safety_manager:
     default_value: ""
     description: Path to a BehaviorTree project.
 
-  groot_enabled:
+  use_groot:
     type: bool
     default_value: true
     description: Start the Groot2 publisher for the behavior trees. Turn it off when nothing attaches Groot2.

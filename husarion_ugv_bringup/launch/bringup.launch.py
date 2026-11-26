@@ -55,9 +55,7 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    # battery_config_path is also the simulation's battery plugin config, which load_urdf declares
-    # with an empty default. It is read here, before that default applies, so a value given on the
-    # command line still reaches the battery driver.
+    # A name of its own, because battery_config_path also names the simulation's battery plugin.
     battery_driver_config_path = LaunchConfiguration("battery_driver_config_path")
     declare_battery_driver_config_path_arg = DeclareLaunchArgument(
         "battery_driver_config_path",

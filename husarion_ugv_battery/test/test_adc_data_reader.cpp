@@ -120,8 +120,6 @@ TEST_F(TestADCDataReader, UnreadableValueThrowsReadError)
   EXPECT_NE(std::string::npos, error.find("Failed to read from file")) << error;
 }
 
-// Fails `failures` reads with `error`, starting at call `first_failing_call`, and reads the file
-// otherwise.
 class FailingRead
 {
 public:

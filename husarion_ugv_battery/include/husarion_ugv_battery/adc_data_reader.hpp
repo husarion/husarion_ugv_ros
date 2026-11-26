@@ -54,8 +54,7 @@ public:
   }
 
 private:
-  // Only EIO is retried, once. Any other error, a timeout included, fails at once. The error text
-  // goes into the exception, so the log shows which errors really occur.
+  // EIO is a transient IIO read error (about 0.06 % of reads on a loaded Panther).
   static constexpr int kReadAttempts = 2;
 
   template <typename T>

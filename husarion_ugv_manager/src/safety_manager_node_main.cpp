@@ -27,7 +27,6 @@ int main(int argc, char ** argv)
   safety_manager_node->Initialize();
 
   try {
-    // A power button press during the startup wait has already shut the robot down.
     if (rclcpp::ok()) {
       rclcpp::spin(safety_manager_node);
     }

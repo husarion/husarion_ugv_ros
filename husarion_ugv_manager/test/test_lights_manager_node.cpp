@@ -232,7 +232,6 @@ TEST_F(TestLightsManagerNode, ShutdownDuringStartupWait)
   // Another namespace, so the service the fixture serves does not end the wait.
   options.arguments({"--ros-args", "-r", "__ns:=/shutdown_test"});
   auto node = std::make_shared<LightsManagerNodeWrapper>("test_manager_shutdown", options);
-  // Shuts the context down during the wait, as a signal would.
   auto timer = node->create_wall_timer(
     std::chrono::milliseconds(200), [context]() { context->shutdown("test"); });
 

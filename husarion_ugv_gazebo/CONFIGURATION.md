@@ -33,7 +33,7 @@ To obtain GPS data in Ignition, follow these steps:
 
 ## Linear Battery Plugin
 
-It is possible to simulate the battery operation of the simulated robot. By default, this feature is disabled, but you can enable it by setting the `simulate_discharging` parameter to `true` in the `battery_plugin.yaml` file or in the file pointed to by the `battery_config_path` parameter. Below, you will find the plugin parameters that enable battery simulation.
+It is possible to simulate the battery operation of the simulated robot. By default, this feature is disabled, but you can enable it by setting the `simulate_discharging` parameter to `true` in the `battery_plugin.yaml` file or in the file pointed to by the `battery_plugin_config_path` launch argument. Below, you will find the plugin parameters that enable battery simulation.
 
 - `simulate_discharging` [*bool*, default: **false**]: Enables battery simulation. If set to `true`, the battery will discharge **at a constant rate** (regardless of joint torque), and if it depletes completely, the robot will stop moving. When set to `false`, the battery will not discharge, but the battery status information will still be published on the `battery/battery_status` topic.
 - `initial_charge_percentage` [*float*, default: **70.0**]: Sets the initial charge percentage of the battery.

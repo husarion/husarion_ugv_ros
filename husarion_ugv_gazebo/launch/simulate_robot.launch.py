@@ -43,8 +43,8 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    declare_battery_config_path_arg = DeclareLaunchArgument(
-        "battery_config_path",
+    declare_battery_plugin_config_path_arg = DeclareLaunchArgument(
+        "battery_plugin_config_path",
         description=(
             "Path to the Ignition LinearBatteryPlugin configuration file. "
             "This configuration is intended for use in simulations only."
@@ -255,7 +255,7 @@ def generate_launch_description():
 
     actions = [
         declare_add_world_transform_arg,
-        declare_battery_config_path_arg,
+        declare_battery_plugin_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by components_config_path
         declare_components_config_path_arg,
         declare_disable_manager_arg,

@@ -54,9 +54,9 @@ def generate_launch_description():
         ]
     )
 
-    battery_config_path = LaunchConfiguration("battery_config_path")
-    declare_battery_config_path_arg = DeclareLaunchArgument(
-        "battery_config_path",
+    battery_plugin_config_path = LaunchConfiguration("battery_plugin_config_path")
+    declare_battery_plugin_config_path_arg = DeclareLaunchArgument(
+        "battery_plugin_config_path",
         description=(
             "Path to the Ignition LinearBatteryPlugin configuration file. "
             "This configuration is intended for use in simulations only."
@@ -201,7 +201,7 @@ def generate_launch_description():
             " controller_config_file:=",
             ns_controller_config_path,
             " battery_config_file:=",
-            battery_config_path,
+            battery_plugin_config_path,
             " imu_xyz:=",
             f"'{imu_pos_x} {imu_pos_y} {imu_pos_z}'",
             " imu_rpy:=",
@@ -231,7 +231,7 @@ def generate_launch_description():
 
     actions = [
         declare_common_dir_path_arg,
-        declare_battery_config_path_arg,
+        declare_battery_plugin_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,

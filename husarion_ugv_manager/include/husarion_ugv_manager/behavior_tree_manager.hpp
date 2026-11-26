@@ -69,8 +69,6 @@ public:
     config_ = CreateBTConfig(initial_blackboard_);
     tree_ = factory.createTree(tree_name_, config_.blackboard);
 
-    // The publisher keeps a ZMQ server and a heartbeat thread alive for the whole run, even when
-    // Groot2 never attaches.
     if (!use_groot_) {
       RCLCPP_DEBUG_STREAM(
         rclcpp::get_logger("BehaviorTreeManager"),

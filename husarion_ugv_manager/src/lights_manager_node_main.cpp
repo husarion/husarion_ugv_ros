@@ -27,7 +27,6 @@ int main(int argc, char ** argv)
   lights_manager_node->Initialize();
 
   try {
-    // A signal during the startup wait has already shut the context down.
     if (rclcpp::ok()) {
       rclcpp::spin(lights_manager_node);
     }

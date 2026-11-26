@@ -162,7 +162,7 @@
           <param name="mag_bias_x">0.0</param>
           <param name="mag_bias_y">0.0</param>
           <param name="mag_bias_z">0.0</param>
-          <param name="use_mag">${'true' if use_mag else 'false'}</param>
+          <param name="use_mag">${use_mag}</param>
           <param name="stateless">false</param>
           <param name="remove_gravity_vector">false</param>
           <param name="world_frame">enu</param>

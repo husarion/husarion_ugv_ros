@@ -41,13 +41,15 @@ cd docker/demo
 
 ### 🤖 Robot
 
+On every start, the container copies the driver configuration files that are missing from `/config`, for example on the first run, after the robot model changed, or when a driver update added a file. This start-up copy never overwrites a file that exists, so a file you deleted from `/config` comes back on the next start, while your edits stay.
+
 1. (Optional) Updating configuration files.
 
    > [!NOTE]
-   > This may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
+   > The command below refreshes every file and may overwrite your changes made in the `config` directory. If you want to keep your configuration you should skip this step or create backup of the `config` directory.
 
    ```bash
-   docker run --rm -v /home/husarion/config:/config husarion/panther:jazzy-<newest_tag> update_config_directory
+   docker run --rm -v /home/husarion/config:/config husarion/husarion-ugv:jazzy-<newest_tag> update_config_directory
    ```
 
 2. Activate Panther
@@ -55,6 +57,14 @@ cd docker/demo
    ```bash
    docker compose -f compose.hardware.yaml up
    ```
+
+   Extra bringup launch arguments can be passed in the `BRINGUP_EXTRA_ARGS` variable. They are appended to the default arguments, and the last value given for an argument wins, so they can also override a default such as `launch_gamepad:=false`:
+
+   ```bash
+   BRINGUP_EXTRA_ARGS="log_level:=WARN wheel_type:=WH05" docker compose -f compose.hardware.yaml up
+   ```
+
+   Compose reads the variable from the shell or from a `.env` file next to the compose file (a line `BRINGUP_EXTRA_ARGS=log_level:=WARN wheel_type:=WH05`), not from the service's `env_file`.
 
 3. Launch Visualization on PC
 

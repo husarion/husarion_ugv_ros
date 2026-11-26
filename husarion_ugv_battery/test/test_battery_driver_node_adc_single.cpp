@@ -33,7 +33,6 @@ TEST_F(TestBatteryNodeADCSingle, BatteryValues)
   // Change some values for ADC channels used by second battery.
   // As this is test for single battery this should not affect published battery state.
   WriteNumberToFile<int>(1600, std::filesystem::path(device1_path_ / "in_voltage3_raw"));
-  WriteNumberToFile<int>(100, std::filesystem::path(device0_path_ / "in_voltage2_raw"));
 
   ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(
     battery_driver_node_, battery_state_, std::chrono::milliseconds(5000)));
@@ -41,7 +40,7 @@ TEST_F(TestBatteryNodeADCSingle, BatteryValues)
   // This is done to check if channels of ADC readers were assigned correctly, not to verify
   // calculations. If any test performing calculations fails this test will most likely fail too.
   EXPECT_FLOAT_EQ(35.05957, battery_state_->voltage);
-  EXPECT_FLOAT_EQ(2.01, battery_state_->current);
+  EXPECT_FLOAT_EQ(2.02, battery_state_->current);
   EXPECT_FLOAT_EQ(26.094543, battery_state_->temperature);
   EXPECT_FLOAT_EQ(0.18720642, battery_state_->percentage);
   EXPECT_FLOAT_EQ(3.7441282, battery_state_->charge);
@@ -54,15 +53,8 @@ TEST_F(TestBatteryNodeADCSingle, BatteryValues)
   EXPECT_FLOAT_EQ(battery_1_state_->charge, battery_state_->charge);
 }
 
-class TestBatteryNodeADCSingleDualShunt : public TestBatteryNode
+TEST_F(TestBatteryNodeADCSingle, ChargeCurrentIsSumOfBothChannels)
 {
-public:
-  TestBatteryNodeADCSingleDualShunt() : TestBatteryNode(true, false, true) {}
-};
-
-TEST_F(TestBatteryNodeADCSingleDualShunt, ChargeCurrentIsSumOfBothChannels)
-{
-  // With dual_charge_shunt the second charge channel (0.5 A) adds to the first (0.01 A).
   WriteNumberToFile<int>(100, std::filesystem::path(device0_path_ / "in_voltage2_raw"));
 
   ASSERT_TRUE(husarion_ugv_utils::test_utils::WaitForMsg(

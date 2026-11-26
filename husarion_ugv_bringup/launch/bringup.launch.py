@@ -55,19 +55,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    # A name of its own, because battery_config_path also names the simulation's battery plugin.
-    battery_driver_config_path = LaunchConfiguration("battery_driver_config_path")
-    declare_battery_driver_config_path_arg = DeclareLaunchArgument(
-        "battery_driver_config_path",
-        default_value=LaunchConfiguration(
-            "battery_config_path",
-            default=PathJoinSubstitution(
-                [FindPackageShare("husarion_ugv_battery"), "config", "battery.yaml"]
-            ),
-        ),
-        description="Path to the battery driver configuration file.",
-    )
-
     common_dir_path = LaunchConfiguration("common_dir_path")
     declare_common_dir_path_arg = DeclareLaunchArgument(
         "common_dir_path",
@@ -148,11 +135,7 @@ def generate_launch_description():
                 [FindPackageShare("husarion_ugv_battery"), "launch", "battery.launch.py"]
             ),
         ),
-        launch_arguments={
-            "battery_config_path": battery_driver_config_path,
-            "log_level": log_level,
-            "namespace": namespace,
-        }.items(),
+        launch_arguments={"log_level": log_level, "namespace": namespace}.items(),
     )
 
     ekf_launch = IncludeLaunchDescription(
@@ -244,7 +227,6 @@ def generate_launch_description():
     actions = [
         SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
         declare_exit_on_wrong_hw_arg,
-        declare_battery_driver_config_path_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
         declare_log_level_arg,

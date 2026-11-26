@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Runs the whole hardware bringup without starting any process: every node's command line is
-# recorded instead of executed. Needs the hardware packages installed (source the workspace).
-
 import os
 import pathlib
 import sys
@@ -35,14 +32,12 @@ from launch_ros.substitutions import FindPackageShare
 
 from husarion_ugv_utils import messages
 
-# bringup.launch.py starts battery, lights, manager and ekf from a 10 s TimerAction. The margin
-# covers a slow CI runner; on a timeout find_node says which node is missing.
+# bringup.launch.py starts battery, lights, manager and ekf from a 10 s TimerAction.
 SHUTDOWN_AFTER_S = 15.0
 
 
 def run_bringup(launch_arguments=None):
-    # Records each node's command line instead of starting it. Relies on Node.execute reaching
-    # ExecuteProcess.execute, and on self.cmd still holding the unperformed substitutions.
+    # Relies on launch internals: Node.execute reaches ExecuteProcess.execute with self.cmd unperformed.
     commands = []
 
     def record(self, context):
@@ -51,10 +46,8 @@ def run_bringup(launch_arguments=None):
         return None
 
     with pytest.MonkeyPatch.context() as mp:
-        # The welcome message reads the husarion_ugv version with a Command, and that metapackage
-        # is not on the path while this package's own tests run.
+        # The husarion_ugv metapackage is not on the path in this package's tests.
         mp.setattr(messages, "Command", lambda command: TextSubstitution(text="0.0.0"))
-        # Run at the launch files' defaults, not at the configuration of the robot running it.
         for name in list(os.environ):
             if name.startswith("ROBOT_") or name == "SYSTEM_BUILD_VERSION":
                 mp.delenv(name)
@@ -92,7 +85,6 @@ def commands():
 
 
 def find_node(commands, name):
-    # ros2_control_node and robot_state_publisher have no name remap, so match them by executable.
     for cmd in commands:
         if f"__node:={name}" in cmd or cmd[0].endswith(f"/{name}"):
             return cmd
@@ -107,8 +99,7 @@ def option_values(cmd, option):
 
 
 def test_key_nodes_are_recorded(commands):
-    # Guards the recorder itself: if a launch_ros change stops ExecuteProcess.execute from being
-    # reached, every other test here would pass on an empty list.
+    # Without this, a broken recorder makes the other tests pass on an empty list.
     for name in [
         "robot_state_publisher",
         "ros2_control_node",
@@ -129,8 +120,6 @@ def test_log_level_warn_reaches_nodes():
 
 
 def test_battery_driver_gets_package_battery_yaml(commands):
-    # load_urdf.launch.py declares a simulation-only battery_config_path with an empty default.
-    # When that leaks out of controller.launch.py it wins over battery.launch.py's own default.
     cmd = find_node(commands, "battery_driver")
     expected = pathlib.Path(
         FindPackageShare("husarion_ugv_battery").find("husarion_ugv_battery"),
@@ -141,7 +130,6 @@ def test_battery_driver_gets_package_battery_yaml(commands):
 
 
 def test_every_params_file_exists(commands):
-    # Plain nodes only: LoadComposableNodes is patched out, so the lights yamls are not checked.
     assert commands, "bringup launched nothing"
     for cmd in commands:
         for path in params_files(cmd):

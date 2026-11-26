@@ -236,7 +236,6 @@ TEST_F(TestLEDSegment, MergeFrames)
   const std::uint8_t expected_color = (color_2 * alpha_2 + color_1 * (255 - alpha_2)) / 255;
   const std::uint8_t expected_alpha = alpha_2 + (255 - alpha_2) * alpha_1 / 255;
 
-  // MergeFrames walks every LED of the segment, so the frames must be as long as the segment.
   std::vector<std::uint8_t> base_frame;
   std::vector<std::uint8_t> overlay_frame;
   std::vector<std::uint8_t> expected_frame;

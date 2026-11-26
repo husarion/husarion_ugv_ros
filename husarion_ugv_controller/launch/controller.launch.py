@@ -250,9 +250,7 @@ def generate_launch_description():
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        # Scoped so load_urdf's argument defaults stay inside it. Unscoped, its empty
-        # battery_config_path default leaks to bringup's delayed actions and battery_driver starts
-        # without battery.yaml.
+        # Unscoped, load_urdf's empty battery_config_path default leaks to battery.launch.py.
         GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,

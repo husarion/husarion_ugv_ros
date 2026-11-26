@@ -1,0 +1,78 @@
+pal_statistics 2.8.2: poll slowly while nobody subscribes
+
+controller_manager starts two pal_statistics publisher threads, and each one
+polls at 2 kHz whether new data is ready, even when nothing subscribes to the
+statistics topics. That costs a few percent of a small CPU per thread for
+nothing. With this patch a thread polls at PAL_STATISTICS_IDLE_POLL_RATE
+(default 10 Hz) while neither of its topics has a subscriber, and at 2 kHz again
+as soon as one has. It also names the thread and stops polling once the ROS
+context is shut down, where the rate sleep used to throw. Only the .cpp file
+changes, so the library stays ABI compatible with the packaged one it replaces.
+
+diff --git a/pal_statistics/src/pal_statistics.cpp b/pal_statistics/src/pal_statistics.cpp
+index 03a4037..6fcf17b 100644
+--- a/pal_statistics/src/pal_statistics.cpp
++++ b/pal_statistics/src/pal_statistics.cpp
+@@ -29,8 +29,15 @@
+ 
+ #include "pal_statistics/pal_statistics.hpp"
+ 
++#ifdef __linux__
++#include <pthread.h>
++#endif
++
++#include <chrono>
++#include <cstdlib>
+ #include <memory>
+ #include <string>
++#include <thread>
+ #include <utility>
+ 
+ #include "lock_free_queue.hpp"
+@@ -339,13 +346,44 @@ bool StatisticsRegistry::updateMsg(
+   }
+ }
+ 
++namespace
++{
++double idlePollRate()
++{
++  constexpr double kDefaultRate = 10.0;
++  const char * env = std::getenv("PAL_STATISTICS_IDLE_POLL_RATE");
++  if (env == nullptr) {
++    return kDefaultRate;
++  }
++  char * end = nullptr;
++  const double rate = std::strtod(env, &end);
++  return (end != env && rate > 0.0) ? rate : kDefaultRate;
++}
++}  // namespace
++
+ void StatisticsRegistry::publisherThreadCycle()
+ {
++#ifdef __linux__
++  pthread_setname_np(pthread_self(), "pal-stats-pub");
++#endif
++  // The thread polls a flag set by publishAsync(). The 2 kHz poll keeps one
++  // sample per message, which a keep_last(1) subscriber needs, but costs a few
++  // percent of a small CPU per registry even when nobody subscribes. Without
++  // subscribers poll slowly. Each wake drains the whole buffer (100 samples),
++  // and a new subscriber gets the fast poll within one idle period. Not a
++  // condition variable on purpose - the notify would add a syscall to the
++  // real-time loop that calls publishAsync(). A rate sleep throws once the
++  // context is shut down, so stop polling then and sleep idle without it.
+   rclcpp::WallRate rate(2000);
++  const auto idle_period = std::chrono::duration<double>(1.0 / idlePollRate());
+   while (rclcpp::ok() && !interrupt_thread_) {
+     try {
+-      while (!is_data_ready_ && !interrupt_thread_) {
+-        rate.sleep();
++      while (!is_data_ready_ && !interrupt_thread_ && rclcpp::ok()) {
++        if (pub_->get_subscription_count() > 0 || pub_values_->get_subscription_count() > 0) {
++          rate.sleep();
++        } else {
++          std::this_thread::sleep_for(idle_period);
++        }
+       }
+ 
+       std::unique_lock<std::mutex> data_lock(data_mutex_);

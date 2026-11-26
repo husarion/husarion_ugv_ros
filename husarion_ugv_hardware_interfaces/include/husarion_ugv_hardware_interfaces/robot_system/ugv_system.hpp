@@ -16,6 +16,7 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_UGV_SYSTEM_HPP_
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -85,6 +86,7 @@ protected:
 
   void ReadDrivetrainSettings();
   void ReadCANopenSettings();
+  void ReadCANopenResyncWatchdogTimeout();
   void ReadRTThreadPriorities();
   unsigned ReadRTPriority(
     const std::string & name, const unsigned default_priority,
@@ -109,7 +111,10 @@ protected:
   void UpdateEStopState();
 
   virtual void UpdateHwStates() = 0;
-  virtual void UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
+  // Possible but needs changes in robot driver. Returns whether motor states PDO data is currently
+  // timed out.
+  virtual bool UpdateMotorsStateDataTimedOut() = 0;
+  void UpdateCANopenResyncWatchdog(const bool data_timed_out);
   bool AreVelocityCommandsNearZero();
   // Whether a motor controller of this robot reports its emergency stop fault.
   bool IsRoboteqEStopSet();
@@ -183,6 +188,14 @@ protected:
 
   rclcpp::Time next_driver_state_update_time_{0, 0, RCL_STEADY_TIME};
   rclcpp::Duration driver_states_update_period_{0, 0};
+
+  // A PDO timeout that lasts this long means the master stopped receiving, which only a new
+  // initialization heals. Host-side stalls that delay PDOs last milliseconds.
+  static constexpr std::chrono::seconds kDefaultCANopenResyncWatchdogTimeout{30};
+  std::chrono::seconds canopen_resync_watchdog_timeout_ = kDefaultCANopenResyncWatchdogTimeout;
+
+  std::chrono::steady_clock::time_point pdo_timeout_since_;
+  bool pdo_timeout_ongoing_ = false;
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

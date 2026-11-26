@@ -15,22 +15,102 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 
 #include <pthread.h>
+#include <unistd.h>
 
+#include <cerrno>
 #include <condition_variable>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 #include <thread>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
+#include "husarion_ugv_hardware_interfaces/utils.hpp"
 #include "husarion_ugv_utils/configure_rt.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
+
+namespace
+{
+
+// Writes dcf_dir/master.dcf, with every relative UploadFile path made absolute against dcf_dir, to
+// a new private temporary file and returns its path.
+std::filesystem::path WriteDCFWithAbsoluteUploadFiles(const std::filesystem::path & dcf_dir)
+{
+  const auto source_path = dcf_dir / "master.dcf";
+  std::ifstream source(source_path);
+  if (!source) {
+    throw std::runtime_error("Can't read " + source_path.string());
+  }
+  std::ostringstream dcf;
+  dcf << source.rdbuf();
+  const std::string content = MakeDCFUploadFilesAbsolute(dcf.str(), dcf_dir);
+
+  // A filesystem_error is a system_error, which Initialize() handles as a CAN error and returns
+  // without a master, so it leaves as a runtime_error.
+  std::filesystem::path temp_dir;
+  try {
+    temp_dir = std::filesystem::temp_directory_path();
+  } catch (const std::filesystem::filesystem_error & e) {
+    throw std::runtime_error(
+      "Can't find a directory for the temporary master dcf: " + std::string(e.what()));
+  }
+
+  // mkstemps creates the file with O_EXCL and mode 0600 under a random name.
+  std::string copy_path = (temp_dir / "husarion_ugv_master_XXXXXX.dcf").string();
+  const int fd = mkstemps(copy_path.data(), 4);
+  if (fd < 0) {
+    throw std::runtime_error(
+      "Can't create a temporary master dcf " + copy_path + ": " + std::strerror(errno));
+  }
+  const auto fail = [&copy_path](const int fd_to_close, const int error) {
+    if (fd_to_close >= 0) {
+      close(fd_to_close);
+    }
+    unlink(copy_path.c_str());
+    throw std::runtime_error("Can't write " + copy_path + ": " + std::strerror(error));
+  };
+  std::size_t written = 0;
+  while (written < content.size()) {
+    const auto n = write(fd, content.data() + written, content.size() - written);
+    if (n < 0 && errno == EINTR) {
+      continue;
+    }
+    if (n <= 0) {
+      fail(fd, n < 0 ? errno : EIO);
+    }
+    written += static_cast<std::size_t>(n);
+  }
+  if (close(fd) != 0) {
+    fail(-1, errno);
+  }
+  return copy_path;
+}
+
+// Removes the file when it goes out of scope, also when the constructor that reads it throws.
+struct ScopedFileRemover
+{
+  std::filesystem::path path;
+  ~ScopedFileRemover()
+  {
+    if (!path.empty()) {
+      std::error_code ec;
+      std::filesystem::remove(path, ec);
+    }
+  }
+};
+
+}  // namespace
 
 CANopenManager::CANopenManager(const CANopenSettings & canopen_settings)
 : canopen_settings_(canopen_settings)
@@ -163,9 +243,19 @@ void CANopenManager::InitializeCANCommunication()
   // Master dcf is generated from roboteq_motor_controllers_v80_21a using following command:
   // dcfgen canopen_configuration.yaml -r
   // dcfgen comes with lely, -r option tells to enable remote PDO mapping
-  std::string master_dcf_path = std::filesystem::path(ament_index_cpp::get_package_share_directory(
-                                  "husarion_ugv_hardware_interfaces")) /
-                                "config" / "master.dcf";
+  auto config_dir = std::filesystem::path(ament_index_cpp::get_package_share_directory(
+                      "husarion_ugv_hardware_interfaces")) /
+                    "config";
+  std::string master_dcf_path = config_dir / "master.dcf";
+
+  // The limited master.dcf names the slave configurations as UploadFile=slave_N.bin, and lely
+  // opens that path as written on every slave boot. A copy with absolute paths keeps that
+  // independent of the working directory. lely parses it in the AsyncMaster constructor.
+  ScopedFileRemover absolute_dcf;
+  if (canopen_settings_.limit_tpdo_rates) {
+    absolute_dcf.path = WriteDCFWithAbsoluteUploadFiles(config_dir / "limited_tpdo_rates");
+    master_dcf_path = absolute_dcf.path;
+  }
 
   master_ = std::make_shared<lely::canopen::AsyncMaster>(
     *timer_, *chan_, master_dcf_path, "", canopen_settings_.master_can_id);

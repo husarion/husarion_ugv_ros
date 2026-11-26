@@ -16,6 +16,7 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_UTILS_HPP_
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <stdexcept>
@@ -80,6 +81,13 @@ std::optional<unsigned> ParseRTPriority(const std::string & text);
  * cpu_count - 1]
  */
 std::optional<int> ParseCPU(const std::string & text, const int cpu_count);
+
+/**
+ * @brief Rewrites every relative UploadFile= path of a DCF to an absolute path in dcf_dir. Other
+ * lines pass through unchanged, a CR line ending is dropped, and every line ends with LF.
+ */
+std::string MakeDCFUploadFilesAbsolute(
+  const std::string & dcf, const std::filesystem::path & dcf_dir);
 
 }  // namespace husarion_ugv_hardware_interfaces
 

@@ -126,6 +126,12 @@ public:
   std::uint8_t GetTurnOffEStop() { return (*this)[0x200D][0]; }
   std::uint8_t GetTurnOnSafetyStop() { return (*this)[0x202C][0]; }
 
+  template <typename T>
+  T GetObjectValue(const std::uint16_t idx, const std::uint8_t subidx)
+  {
+    return (*this)[idx][subidx];
+  }
+
   /**
    * @brief Sets 0 to all flags
    */
@@ -280,7 +286,13 @@ class MockRoboteq
 {
 public:
   MockRoboteq() {}
-  ~MockRoboteq() {}
+  // A test that throws before Stop() would otherwise destroy a joinable thread and abort.
+  ~MockRoboteq()
+  {
+    if (canopen_communication_thread_.joinable()) {
+      Stop();
+    }
+  }
 
   /**
    * @brief Starts CAN communication and creates a simulated Roboteq, that publish PDOs with set

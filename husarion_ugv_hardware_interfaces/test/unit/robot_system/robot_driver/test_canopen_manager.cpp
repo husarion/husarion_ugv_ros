@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdlib>
+#include <filesystem>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -19,6 +21,7 @@
 #include <gtest/gtest.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 
@@ -99,6 +102,35 @@ TEST_F(TestCANopenManager, ZeroConfigurePriorityLeavesTheCallingThreadAlone)
   EXPECT_EQ(policy_before, policy_after);
   EXPECT_EQ(param_before.sched_priority, param_after.sched_priority);
   ASSERT_NO_THROW(canopen_manager.Deinitialize());
+}
+
+TEST_F(TestCANopenManager, InitializeWithLimitedTPDORates)
+{
+  // A temporary directory of this test only, so another job on the machine cannot change it.
+  const auto tmp_dir = std::filesystem::temp_directory_path() /
+                       ("husarion_ugv_test_" + std::to_string(getpid()));
+  std::filesystem::create_directories(tmp_dir);
+  const char * old_tmpdir = std::getenv("TMPDIR");
+  const std::string saved_tmpdir = old_tmpdir ? old_tmpdir : "";
+  setenv("TMPDIR", tmp_dir.c_str(), 1);
+
+  can_socket_->Initialize();
+  auto settings = husarion_ugv_hardware_interfaces_test::kCANopenSettings;
+  settings.limit_tpdo_rates = true;
+  husarion_ugv_hardware_interfaces::CANopenManager canopen_manager(settings);
+
+  // lely parses the limited master.dcf from a temporary copy, which is removed right after.
+  EXPECT_NO_THROW(canopen_manager.Initialize());
+  EXPECT_NE(canopen_manager.GetMaster(), nullptr);
+  EXPECT_TRUE(std::filesystem::is_empty(tmp_dir));
+  EXPECT_NO_THROW(canopen_manager.Deinitialize());
+
+  if (old_tmpdir) {
+    setenv("TMPDIR", saved_tmpdir.c_str(), 1);
+  } else {
+    unsetenv("TMPDIR");
+  }
+  std::filesystem::remove_all(tmp_dir);
 }
 
 TEST_F(TestCANopenManager, GetMaster)

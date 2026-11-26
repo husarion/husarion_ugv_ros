@@ -14,8 +14,11 @@
 
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
 
+#include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -104,6 +107,29 @@ std::optional<int> ParseCPU(const std::string & text, const int cpu_count)
     return std::nullopt;
   }
   return cpu;
+}
+
+std::string MakeDCFUploadFilesAbsolute(
+  const std::string & dcf, const std::filesystem::path & dcf_dir)
+{
+  const std::string upload_file_key = "UploadFile=";
+  std::istringstream source(dcf);
+  std::ostringstream result;
+  std::string line;
+  while (std::getline(source, line)) {
+    // A CR left on the path would make every slave boot fail to open the file.
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (line.rfind(upload_file_key, 0) == 0) {
+      const std::filesystem::path upload_file = line.substr(upload_file_key.size());
+      if (upload_file.is_relative()) {
+        line = upload_file_key + (dcf_dir / upload_file).string();
+      }
+    }
+    result << line << '\n';
+  }
+  return result.str();
 }
 
 }  // namespace husarion_ugv_hardware_interfaces

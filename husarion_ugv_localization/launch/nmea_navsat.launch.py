@@ -31,7 +31,7 @@ def generate_launch_description():
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
         default_value="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
         description="Logging level",
     )
 
@@ -53,7 +53,7 @@ def generate_launch_description():
 
     component_name = "gps"
     nmea_driver_node = Node(
-        package="nmea_navsat_driver",
+        package="husarion_ugv_localization",
         executable="nmea_socket_driver",
         name="nmea_navsat_driver",
         namespace=namespace,

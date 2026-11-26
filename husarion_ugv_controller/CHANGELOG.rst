@@ -2,6 +2,10 @@
 Changelog for package husarion_ugv_controller
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* battery_driver loads battery.yaml again when started by bringup, it ran on built-in defaults since launch 3.4.5
+
 2.3.2 (2026-06-25)
 ------------------
 * Add parameter to disable orientation (`#639 <https://github.com/husarion/husarion_ugv_ros/issues/639>`_)

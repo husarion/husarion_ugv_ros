@@ -212,7 +212,7 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
-        # Must exceed the Roboteq init/activation retry budget (~60 s on Panther).
+        # CM services appear after hardware activation; max_roboteq_*_attempts can take ~60 s.
         "--controller-manager-timeout",
         "90",
         "--ros-args",

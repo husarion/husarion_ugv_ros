@@ -21,6 +21,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "yaml-cpp/yaml.h"
@@ -104,7 +105,7 @@ public:
       finished_ = true;
     }
 
-    frame_ = frame;
+    frame_ = std::move(frame);
   }
 
   /**

@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
+
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -43,23 +51,6 @@ public:
   using NiceMock = testing::NiceMock<MockAPA102>;
 };
 
-// LightsDriverNode constructor implemented for testing purposes
-husarion_ugv_lights::LightsDriverNode::LightsDriverNode(
-  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
-  const rclcpp::NodeOptions & options)
-: Node("lights_driver", options),
-  led_control_granted_(false),
-  led_control_pending_(false),
-  initialization_attempt_(0),
-  channel_1_(channel_1),
-  channel_2_(channel_2),
-  diagnostic_updater_(this)
-{
-  channel_1_num_led_ = 46;
-  channel_2_num_led_ = 46;
-  frame_timeout_ = 0.1;
-};
-
 class DriverNodeWrapper : public husarion_ugv_lights::LightsDriverNode
 {
 public:
@@ -68,9 +59,13 @@ public:
     const rclcpp::NodeOptions & options = rclcpp::NodeOptions().use_intra_process_comms(true))
   : LightsDriverNode(channel_1, channel_2, options)
   {
+    // The tests call InitializationTimerCB themselves.
+    initialization_timer_->cancel();
   }
 
   void ClearLEDs() { return LightsDriverNode::ClearLEDs(); }
+
+  void InitializationTimerCB() { return LightsDriverNode::InitializationTimerCB(); }
 
   void ToggleLEDControlCB(rclcpp::Client<SetBoolSrv>::SharedFutureWithRequest future)
   {
@@ -91,10 +86,34 @@ public:
   double GetTimeout() const { return frame_timeout_; }
   bool GetLedControlGranted() const { return led_control_granted_; }
   bool GetLedControlPending() const { return led_control_pending_; }
+  unsigned GetInitializationAttempt() const { return initialization_attempt_; }
+  std::size_t PruneLEDControlRequests()
+  {
+    return enable_led_control_client_->prune_pending_requests();
+  }
+  void BackdateLedControlCall(const std::chrono::seconds age)
+  {
+    led_control_call_time_ = this->now() - rclcpp::Duration(age);
+  }
 
   rclcpp::Time SetChannel1Ts(const rclcpp::Time & ts) { return channel_1_ts_ = ts; }
   rclcpp::Time SetChannel2Ts(const rclcpp::Time & ts) { return channel_2_ts_ = ts; }
 };
+
+// A namespace of its own, so the LED control service of another test running in parallel on the
+// same ROS domain is not seen here.
+std::string UniqueNamespace(const std::string & name)
+{
+  return "/" + name + "_" + std::to_string(getpid());
+}
+
+rclcpp::NodeOptions IsolatedOptions(const std::string & name)
+{
+  rclcpp::NodeOptions options;
+  options.use_intra_process_comms(true);
+  options.arguments({"--ros-args", "-r", "__ns:=" + UniqueNamespace(name)});
+  return options;
+}
 
 class TestLightsDriverNode : public testing::Test
 {
@@ -303,6 +322,219 @@ TEST_F(TestLightsDriverNode, FrameCBWidth)
   EXPECT_CALL(*channel_1_, SetPanel(msg->data)).Times(0);
 
   lights_driver_node_->FrameCB(msg, channel_1_, msg->header.stamp, "channel_1");
+}
+
+TEST_F(TestLightsDriverNode, RetryForeverWaitsWithoutService)
+{
+  auto options = IsolatedOptions("retry_forever_without_service");
+  options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", true)});
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  auto node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2, options);
+
+  // No LED control service exists, so every tick only polls it. The bounded default would throw
+  // after three attempts.
+  const auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < 10; ++i) {
+    EXPECT_NO_THROW(node->InitializationTimerCB());
+  }
+  EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(1));
+  EXPECT_FALSE(node->GetLedControlPending());
+  EXPECT_FALSE(node->GetLedControlGranted());
+}
+
+// A hardware LED control service that counts requests and answers each with `success`, or never
+// answers when `respond` is false.
+class LEDControlServer
+{
+public:
+  LEDControlServer(const bool success, const bool respond, const std::string & ns)
+  : node_(std::make_shared<rclcpp::Node>("led_control_server", ns)),
+    success_(success),
+    respond_(respond)
+  {
+    service_ = node_->create_service<SetBoolSrv>(
+      "hardware/led_control_enable", [this](
+                                       const std::shared_ptr<rmw_request_id_t> header,
+                                       const std::shared_ptr<SetBoolSrv::Request>) {
+        calls_++;
+        if (respond_) {
+          SetBoolSrv::Response response;
+          response.success = success_;
+          service_->send_response(*header, response);
+        }
+      });
+  }
+
+  rclcpp::Node::SharedPtr GetNode() const { return node_; }
+  int GetCalls() const { return calls_.load(); }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Service<SetBoolSrv>::SharedPtr service_;
+  const bool success_;
+  const bool respond_;
+  std::atomic<int> calls_{0};
+};
+
+class TestLightsDriverNodeLEDControl : public testing::Test
+{
+protected:
+  void CreateNodes(const bool retry_forever, const bool success, const bool respond)
+  {
+    auto options = IsolatedOptions("led_control");
+    options.parameter_overrides({rclcpp::Parameter("led_control_retry_forever", retry_forever)});
+    channel_1_ = std::make_shared<MockAPA102::NiceMock>();
+    channel_2_ = std::make_shared<MockAPA102::NiceMock>();
+    node_ = std::make_shared<DriverNodeWrapper>(channel_1_, channel_2_, options);
+    server_ = std::make_unique<LEDControlServer>(success, respond, UniqueNamespace("led_control"));
+    executor_.add_node(node_);
+    executor_.add_node(server_->GetNode());
+  }
+
+  // Calls the timer callback (when tick is set) and spins until the condition holds.
+  bool SpinUntil(
+    const std::function<bool()> & condition, const bool tick,
+    const std::chrono::milliseconds timeout = std::chrono::milliseconds(5000))
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline) {
+      if (tick) {
+        node_->InitializationTimerCB();
+      }
+      executor_.spin_some();
+      if (condition()) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return false;
+  }
+
+  rclcpp::executors::SingleThreadedExecutor executor_;
+  std::shared_ptr<MockAPA102> channel_1_;
+  std::shared_ptr<MockAPA102> channel_2_;
+  std::shared_ptr<DriverNodeWrapper> node_;
+  std::unique_ptr<LEDControlServer> server_;
+};
+
+TEST_F(TestLightsDriverNodeLEDControl, DefaultThrowsAfterThreeRefusals)
+{
+  CreateNodes(false, false, true);
+
+  for (int attempt = 1; attempt <= 3; ++attempt) {
+    ASSERT_NO_THROW(node_->InitializationTimerCB());
+    ASSERT_TRUE(SpinUntil(
+      [this, attempt]() {
+        return server_->GetCalls() == attempt && !node_->GetLedControlPending();
+      },
+      false));
+  }
+
+  EXPECT_THROW(node_->InitializationTimerCB(), std::runtime_error);
+  EXPECT_EQ(3, server_->GetCalls());
+  EXPECT_FALSE(node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverResendsRefusalOnlyAfterResponseTimeout)
+{
+  CreateNodes(true, false, true);
+
+  ASSERT_TRUE(SpinUntil(
+    [this]() { return server_->GetCalls() == 1 && !node_->GetLedControlPending(); }, true));
+
+  // The default path would send the next request on the next tick.
+  EXPECT_FALSE(
+    SpinUntil([this]() { return server_->GetCalls() > 1; }, true, std::chrono::milliseconds(500)));
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 2; }, true));
+  EXPECT_FALSE(node_->GetLedControlGranted());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverResendsAfterResponseTimeout)
+{
+  CreateNodes(true, false, false);
+
+  ASSERT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 1; }, true));
+  EXPECT_TRUE(node_->GetLedControlPending());
+
+  EXPECT_FALSE(
+    SpinUntil([this]() { return server_->GetCalls() > 1; }, true, std::chrono::milliseconds(500)));
+  EXPECT_TRUE(node_->GetLedControlPending());
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 2; }, true));
+  EXPECT_TRUE(node_->GetLedControlPending());
+  EXPECT_EQ(2u, node_->GetInitializationAttempt());
+
+  node_->BackdateLedControlCall(std::chrono::seconds(4));
+  EXPECT_TRUE(SpinUntil([this]() { return server_->GetCalls() == 3; }, true));
+
+  // Each timed-out request was dropped from the client, only the last one is still pending.
+  EXPECT_EQ(1u, node_->PruneLEDControlRequests());
+}
+
+TEST_F(TestLightsDriverNodeLEDControl, RetryForeverStopsOnGrant)
+{
+  CreateNodes(true, true, true);
+
+  ASSERT_TRUE(SpinUntil([this]() { return node_->GetLedControlGranted(); }, true));
+  EXPECT_NO_THROW(node_->InitializationTimerCB());
+  EXPECT_EQ(1, server_->GetCalls());
+}
+
+TEST(TestLightsDriverNodeShutdownHook, DestroyedNodeLeavesNoHook)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  const auto hooks_before = context->get_on_shutdown_callbacks().size();
+
+  {
+    rclcpp::NodeOptions options;
+    options.context(context);
+    auto node = std::make_shared<DriverNodeWrapper>(
+      std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options);
+    EXPECT_EQ(hooks_before + 1, context->get_on_shutdown_callbacks().size());
+  }
+
+  EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
+  EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ThrowingConstructorLeavesNoHook)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  const auto hooks_before = context->get_on_shutdown_callbacks().size();
+
+  // Rejected by the parameter listener in the constructor body, after the point where the hook used
+  // to be registered.
+  rclcpp::NodeOptions options;
+  options.context(context);
+  options.parameter_overrides({rclcpp::Parameter("global_brightness", 2.0)});
+  EXPECT_ANY_THROW(std::make_shared<DriverNodeWrapper>(
+    std::make_shared<MockAPA102::NiceMock>(), std::make_shared<MockAPA102::NiceMock>(), options));
+
+  EXPECT_EQ(hooks_before, context->get_on_shutdown_callbacks().size());
+  EXPECT_NO_THROW(context->shutdown("test"));
+}
+
+TEST(TestLightsDriverNodeShutdownHook, ShutdownClearsLEDs)
+{
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr);
+  rclcpp::NodeOptions options;
+  options.context(context);
+  auto channel_1 = std::make_shared<MockAPA102::NiceMock>();
+  auto channel_2 = std::make_shared<MockAPA102::NiceMock>();
+  auto node = std::make_shared<DriverNodeWrapper>(channel_1, channel_2, options);
+
+  EXPECT_CALL(*channel_1, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_1") * 4, 0)))
+    .Times(1);
+  EXPECT_CALL(*channel_2, SetPanel(std::vector<std::uint8_t>(node->GetNumLed("channel_2") * 4, 0)))
+    .Times(1);
+  context->shutdown("test");
 }
 
 int main(int argc, char ** argv)

@@ -70,6 +70,17 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    led_control_retry_forever = LaunchConfiguration("led_control_retry_forever")
+    declare_led_control_retry_forever_arg = DeclareLaunchArgument(
+        "led_control_retry_forever",
+        default_value="False",
+        description=(
+            "Keep asking the hardware for LED control until it is granted, instead of exiting"
+            " after three attempts."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
@@ -123,6 +134,7 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
+            "led_control_retry_forever": led_control_retry_forever,
             "log_level": log_level,
             "namespace": namespace,
             "common_dir_path": common_dir_path,
@@ -229,6 +241,7 @@ def generate_launch_description():
         declare_exit_on_wrong_hw_arg,
         declare_common_dir_path_arg,
         declare_disable_manager_arg,
+        declare_led_control_retry_forever_arg,
         declare_log_level_arg,
         declare_namespace_arg,
         welcome_info,

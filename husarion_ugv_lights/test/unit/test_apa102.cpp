@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -84,6 +91,24 @@ TEST(TestInitialization, SetModeFailure)
   EXPECT_CALL(*spi_device, Close(testing::_)).Times(1);
 
   EXPECT_THROW(APA102Wrapper(spi_device, kMockDeviceName), std::ios_base::failure);
+}
+
+TEST(TestInitialization, ModeIsA32BitWord)
+{
+  auto spi_device = std::make_shared<MockSPIDevice::NiceMock>();
+
+  // The constructor also sets bits per word and speed; only the mode call is checked here.
+  EXPECT_CALL(*spi_device, IOControl(testing::_, testing::_, testing::_))
+    .Times(testing::AnyNumber());
+  std::uint32_t mode = 0;
+  EXPECT_CALL(*spi_device, IOControl(testing::_, SPI_IOC_WR_MODE32, testing::_))
+    .WillOnce([&mode](int, unsigned long, const void * arg) {
+      std::memcpy(&mode, arg, sizeof(mode));
+      return 0;
+    });
+
+  APA102Wrapper apa102(spi_device, kMockDeviceName);
+  EXPECT_EQ(static_cast<std::uint32_t>(SPI_MODE_3 | SPI_CS_HIGH), mode);
 }
 
 TEST(TestInitialization, SetBitsFailure)
@@ -184,6 +209,27 @@ TEST_F(TestAPA102, RGBAFrameToBGRBuffer)
   EXPECT_EQ(buffer[5], 0x0B);  // B component after color correction
   EXPECT_EQ(buffer[6], 0x37);  // G component after color correction
   EXPECT_EQ(buffer[7], 0xF5);  // R component after color correction
+}
+
+TEST_F(TestAPA102, RGBAFrameToBGRBufferMatchesGammaFormula)
+{
+  // Full alpha and full global brightness, so every colour byte is the gamma correction alone.
+  std::vector<std::uint8_t> frame;
+  for (int v = 0; v < 256; v++) {
+    frame.insert(frame.end(), {std::uint8_t(v), std::uint8_t(v), std::uint8_t(v), 255});
+  }
+
+  apa102_->SetGlobalBrightness(std::uint8_t(31));
+  const auto buffer = apa102_->RGBAFrameToBGRBuffer(frame);
+
+  const float gamma = 2.2;
+  for (int v = 0; v < 256; v++) {
+    const std::size_t led = 4 + 4 * v;
+    EXPECT_EQ(buffer[led], 0xFF);
+    EXPECT_EQ(buffer[led + 1], std::uint8_t(pow(v / 255.0, gamma) * 240)) << "blue " << v;
+    EXPECT_EQ(buffer[led + 2], std::uint8_t(pow(v / 255.0, gamma) * 255)) << "green " << v;
+    EXPECT_EQ(buffer[led + 3], std::uint8_t(pow(v / 255.0, gamma) * 245)) << "red " << v;
+  }
 }
 
 int main(int argc, char ** argv)

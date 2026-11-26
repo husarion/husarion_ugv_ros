@@ -15,6 +15,7 @@
 #include "husarion_ugv_lights/apa102.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -37,7 +38,9 @@ APA102::APA102(
     throw std::ios_base::failure("Failed to open " + device_name_ + ".");
   }
 
-  static std::uint8_t mode = cs_high ? SPI_MODE_3 : SPI_MODE_3 | SPI_CS_HIGH;
+  // SPI_IOC_WR_MODE32 reads four bytes, so the mode has to be a 32-bit word. The mapping looks
+  // inverted (cs_high false requests SPI_CS_HIGH), but it is what the strips have always run with.
+  const std::uint32_t mode = cs_high ? SPI_MODE_3 : SPI_MODE_3 | SPI_CS_HIGH;
   if (spi_device_->IOControl(file_descriptor_, SPI_IOC_WR_MODE32, &mode) == -1) {
     spi_device_->Close(file_descriptor_);
     throw std::ios_base::failure("Failed to set mode for " + device_name_ + ".");
@@ -93,6 +96,8 @@ std::vector<std::uint8_t> APA102::RGBAFrameToBGRBuffer(
   std::fill(buffer.begin(), buffer.begin() + 4, 0x00);
   std::fill(buffer.end() - 4, buffer.end(), 0xFF);
 
+  const auto & luts = GetGammaLUTs();
+
   // Copy frame from vector to sending buffer
   for (std::size_t i = 0; i < frame.size() / 4; i++) {
     const std::size_t padding = i * 4;
@@ -100,15 +105,26 @@ std::vector<std::uint8_t> APA102::RGBAFrameToBGRBuffer(
     const std::uint8_t brightness = (std::uint16_t(frame[padding + 3]) * global_brightness_) / 255;
     buffer[4 + padding] = 0xE0 | brightness;
     // Convert rgb to bgr with color correction
-    buffer[4 + padding + 1] =
-      std::uint8_t(pow(frame[padding + 2] / 255.0, kCorrectionGamma) * kCorrBlue);
-    buffer[4 + padding + 2] =
-      std::uint8_t(pow(frame[padding + 1] / 255.0, kCorrectionGamma) * kCorrGreen);
-    buffer[4 + padding + 3] =
-      std::uint8_t(pow(frame[padding + 0] / 255.0, kCorrectionGamma) * kCorrRed);
+    buffer[4 + padding + 1] = luts.blue[frame[padding + 2]];
+    buffer[4 + padding + 2] = luts.green[frame[padding + 1]];
+    buffer[4 + padding + 3] = luts.red[frame[padding + 0]];
   }
 
   return buffer;
+}
+
+const APA102::GammaLUTs & APA102::GetGammaLUTs()
+{
+  static const GammaLUTs luts = []() {
+    GammaLUTs l;
+    for (std::size_t i = 0; i < 256; i++) {
+      l.red[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrRed);
+      l.green[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrGreen);
+      l.blue[i] = std::uint8_t(pow(i / 255.0, kCorrectionGamma) * kCorrBlue);
+    }
+    return l;
+  }();
+  return luts;
 }
 
 void APA102::SPISendBuffer(const std::vector<std::uint8_t> & buffer) const

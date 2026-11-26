@@ -40,17 +40,26 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
+: LightsDriverNode(nullptr, nullptr, options)
+{
+}
+
+LightsDriverNode::LightsDriverNode(
+  APA102Interface::SharedPtr channel_1, APA102Interface::SharedPtr channel_2,
+  const rclcpp::NodeOptions & options)
 : Node("lights_driver", options),
   led_control_granted_(false),
   led_control_pending_(false),
   initialization_attempt_(0),
-  channel_1_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
-  channel_2_(std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
+  channel_1_(
+    channel_1 ? channel_1
+              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel1")),
+  channel_2_(
+    channel_2 ? channel_2
+              : std::make_shared<APA102>(std::make_shared<SPIDevice>(), "/dev/spiled-channel2")),
   diagnostic_updater_(this)
 {
   RCLCPP_INFO(this->get_logger(), "Constructing node.");
-
-  rclcpp::on_shutdown(std::bind(&LightsDriverNode::OnShutdown, this));
 
   this->param_listener_ =
     std::make_shared<lights_driver::ParamListener>(this->get_node_parameters_interface());
@@ -94,16 +103,39 @@ LightsDriverNode::LightsDriverNode(const rclcpp::NodeOptions & options)
   diagnostic_updater_.setHardwareID("Bumper Lights");
   diagnostic_updater_.add("Lights driver status", this, &LightsDriverNode::DiagnoseLights);
 
+  // Last, because a constructor that throws runs no destructor to remove the hook.
+  RegisterShutdownHook();
+
   RCLCPP_INFO(this->get_logger(), "Node constructed successfully.");
+}
+
+LightsDriverNode::~LightsDriverNode()
+{
+  // The hook captures this, and the node can be unloaded from its container before shutdown.
+  this->get_node_base_interface()->get_context()->remove_on_shutdown_callback(
+    shutdown_callback_handle_);
+}
+
+void LightsDriverNode::RegisterShutdownHook()
+{
+  shutdown_callback_handle_ =
+    this->get_node_base_interface()->get_context()->add_on_shutdown_callback(
+      std::bind(&LightsDriverNode::OnShutdown, this));
 }
 
 void LightsDriverNode::OnShutdown()
 {
-  ClearLEDs();
-
-  if (led_control_granted_) {
-    ToggleLEDControl(false);
+  // An exception escaping a shutdown hook aborts the whole container.
+  try {
+    ClearLEDs();
+  } catch (const std::exception & e) {
+    RCLCPP_WARN_STREAM(this->get_logger(), "Clearing LEDs at shutdown failed: " << e.what());
   }
+
+  // LED control is not released here. on_shutdown hooks run after the context is shut down, when
+  // no request can be sent, and a request sent from a pre-shutdown hook was not delivered either,
+  // since the context goes down right after it. When the hardware interface stops it resets the
+  // LED control pin itself; when only the lights stop, control stays with this computer.
 }
 
 void LightsDriverNode::InitializationTimerCB()
@@ -120,8 +152,20 @@ void LightsDriverNode::InitializationTimerCB()
       return;
     }
 
-    RCLCPP_WARN(this->get_logger(), "LED control service response timeout.");
+    if (this->params_.led_control_retry_forever) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 10000, "LED control service response timeout.");
+      // The unanswered request would otherwise stay in the client for good, one per resend.
+      enable_led_control_client_->prune_pending_requests();
+    } else {
+      RCLCPP_WARN(this->get_logger(), "LED control service response timeout.");
+    }
     led_control_pending_ = false;
+  }
+
+  if (this->params_.led_control_retry_forever) {
+    RetryLEDControl();
+    return;
   }
 
   if (initialization_attempt_ >= kMaxInitializationAttempts) {
@@ -129,6 +173,30 @@ void LightsDriverNode::InitializationTimerCB()
   }
 
   ToggleLEDControl(true);
+  initialization_attempt_++;
+}
+
+void LightsDriverNode::RetryLEDControl()
+{
+  // Poll instead of calling the blocking wait_for_service: this timer shares the executor with the
+  // lights controller and the lights services.
+  if (!enable_led_control_client_->service_is_ready()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 10000,
+      "Waiting for service '%s' to grant LED control.",
+      enable_led_control_client_->get_service_name());
+    return;
+  }
+
+  // A refused request is sent again only after the response timeout, not on every tick.
+  if (
+    initialization_attempt_ > 0 &&
+    this->now() - led_control_call_time_ <=
+      rclcpp::Duration(std::chrono::seconds(kServiceResponseTimeout))) {
+    return;
+  }
+
+  SendLEDControlRequest(true);
   initialization_attempt_++;
 }
 
@@ -144,15 +212,20 @@ void LightsDriverNode::ToggleLEDControl(const bool enable)
     this->get_logger(), "Calling service to toggle LED control to '%s'.",
     enable ? "true" : "false");
 
-  auto request = std::make_shared<SetBoolSrv::Request>();
-  request->data = enable;
-
   if (!enable_led_control_client_->wait_for_service(std::chrono::seconds(kWaitForServiceTimeout))) {
     RCLCPP_WARN_STREAM(
       this->get_logger(), "Timeout occurred while waiting for service '"
                             << enable_led_control_client_->get_service_name() << "'!");
     return;
   }
+
+  SendLEDControlRequest(enable);
+}
+
+void LightsDriverNode::SendLEDControlRequest(const bool enable)
+{
+  auto request = std::make_shared<SetBoolSrv::Request>();
+  request->data = enable;
 
   enable_led_control_client_->async_send_request(
     request, std::bind(&LightsDriverNode::ToggleLEDControlCB, this, std::placeholders::_1));
@@ -174,7 +247,12 @@ void LightsDriverNode::ToggleLEDControlCB(
   const auto response = result.second;
 
   if (!response->success) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to toggle LED control.");
+    if (this->params_.led_control_retry_forever) {
+      RCLCPP_ERROR_THROTTLE(
+        this->get_logger(), *this->get_clock(), 10000, "Failed to toggle LED control.");
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to toggle LED control.");
+    }
     led_control_pending_ = false;
     return;
   }

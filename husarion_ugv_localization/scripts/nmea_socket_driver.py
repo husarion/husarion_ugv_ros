@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# UDP NMEA receiver that strips text before the '$'; parsing is done by nmea_navsat_driver's
-# Ros2NMEADriver.
+# Replaces nmea_navsat_driver's nmea_socket_driver, which drops every sentence with text before
+# the '$' as a bad checksum. A Teltonika RUTX50 with its NMEA prefix option unset sends
+# '(null)$GPGGA,...'.
 
 import socket
 import sys
@@ -24,12 +25,6 @@ import time
 
 
 def split_sentences(data):
-    """Split one datagram into NMEA sentences, each cut down to start at '$'.
-
-    Returns a list of (prefix, sentence) pairs. prefix is whatever came before
-    the first '$' on that line. Lines without a '$' are dropped, and so are
-    sentences that are not plain ASCII.
-    """
     sentences = []
     for line in data.splitlines():
         start = line.find(b"$")
@@ -47,11 +42,6 @@ def split_sentences(data):
 
 
 class PrefixReporter:
-    """Warns once for each distinct prefix.
-
-    The cause stays in the log without a line per sentence.
-    """
-
     # A prefix that changes with every sentence (a counter, a timestamp) would
     # otherwise grow the set and the log forever.
     MAX_PREFIXES = 8
@@ -76,7 +66,6 @@ class PrefixReporter:
 
 
 def receive(sock, buffer_size, add_sentence, reporter, logger, ok):
-    """Receive datagrams until ok() turns false. Returns False if receiving failed."""
     while ok():
         try:
             data, _ = sock.recvfrom(buffer_size)

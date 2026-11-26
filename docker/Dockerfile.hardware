@@ -1,8 +1,14 @@
-ARG ROS_DISTRO=jazzy
+# The Husarion ROS base: the official ros-core with apt pinned to dated snapshots, the patched Fast
+# DDS held, and the RMWs. Pinned by digest, so the shipped image shares its layers with the other
+# images built on the same base. Every stage builds on it, so the build uses the packages that ship.
+ARG ROS_BASE=husarion/ros:jazzy-ros-core-20261120@sha256:bff619b2e6b6a7fa2f861446fa4f2ed300c18549fc12afc5006358d0ba4963d7
 
 # BuildKit is needed for the RUN --mount below (buildx, or Docker 23 and newer).
-FROM husarnet/ros:${ROS_DISTRO}-ros-core AS base
+FROM ${ROS_BASE} AS base
 
+SHELL ["/bin/bash", "-c"]
+
+ENV USER=root
 ENV HUSARION_ROS_BUILD_TYPE=hardware
 
 WORKDIR /ros2_ws
@@ -39,20 +45,13 @@ ARG APT_CACHE_BUST=
 # Only the manifests are mounted, so a code change keeps this layer cached.
 RUN --mount=type=bind,from=sources,source=/manifests,target=/tmp/src \
     apt-get update && \
-    apt-get upgrade -y && \
-    # The RMW implementation is chosen at runtime, so no package depends on one.
     apt-get install -y --no-install-recommends \
-        python3-rosdep \
-        ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-        ros-${ROS_DISTRO}-rmw-fastrtps-cpp \
-        ros-${ROS_DISTRO}-rmw-zenoh-cpp && \
+        python3-rosdep && \
     rosdep init && \
     rosdep update --rosdistro $ROS_DISTRO && \
     rosdep install --from-paths /tmp/src -y -i --dependency-types=exec && \
-    # docker/demo/compose.rviz.yaml runs rviz from this image, and no hardware package needs it.
-    apt-get install -y ros-${ROS_DISTRO}-rviz2 && \
-    # The RMWs are no rosdep key and are loaded with dlopen, so neither rosdep nor ldd sees
-    # them. Check that each library landed.
+    # The RMWs come from the base. They are no rosdep key and are loaded with dlopen, so neither
+    # rosdep nor ldd sees them. Check that each library is there.
     for rmw in cyclonedds fastrtps zenoh; do \
         test -f /opt/ros/${ROS_DISTRO}/lib/librmw_${rmw}_cpp.so || exit 1; \
     done && \
@@ -61,28 +60,6 @@ RUN --mount=type=bind,from=sources,source=/manifests,target=/tmp/src \
     dpkg --purge python3-rosdep python3-rosdep-modules && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Stock Fast DDS 2.14 loses a shared memory listener when a participant dies uncleanly, and after
-# two such deaths the ROS network stops accepting new nodes. It also cuts about one large sample
-# in 256 sent over shared memory, and after a cold boot the shared memory network can split into
-# groups that do not see each other. Swap in a patched build of the same version and hold it, so
-# no later apt run brings the stock one back. It comes after every RUN that installs ROS
-# packages, so the build stage compiles against it too, and the find fails the build if another
-# copy of the library could shadow it. One unpatched process is enough to keep the bugs alive.
-ARG FASTDDS_PATCHED=v5
-ARG FASTDDS_SHA256_AMD64=322b33f4a9a8437c5794dd927c282814cd15ed7c4a75389a156a5212379866ca
-ARG FASTDDS_SHA256_ARM64=12dbcaf214115950bd5d7dcbb9f7e6ca66f0c8c00419f664a498174b77bf6bdd
-RUN set -eu; arch=$(dpkg --print-architecture); \
-    case "$arch" in amd64) sum=$FASTDDS_SHA256_AMD64 ;; arm64) sum=$FASTDDS_SHA256_ARM64 ;; *) exit 1 ;; esac; \
-    curl -fsSL --retry 5 -o /tmp/fastdds.deb \
-      "https://github.com/husarion/fastdds-patched/releases/download/${FASTDDS_PATCHED}/fastrtps-${ROS_DISTRO}-${arch}.deb"; \
-    echo "${sum}  /tmp/fastdds.deb" | sha256sum -c -; \
-    apt-get update && apt-get install -y --no-install-recommends /tmp/fastdds.deb; \
-    pkg=$(dpkg-deb -f /tmp/fastdds.deb Package); apt-mark hold "$pkg"; rm -f /tmp/fastdds.deb; \
-    dpkg-query -W -f='${Version}' "$pkg" | grep -q '+husarion'; \
-    dpkg --verify "$pkg"; \
-    test "$(find / -xdev \( -name 'libfastrtps.so*' -o -name 'libfastdds.so*' \) -type f -not -path "/opt/ros/${ROS_DISTRO}/lib/*" | wc -l)" = 0; \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 FROM runtime-deps AS builder
 
@@ -144,18 +121,26 @@ walk = sys.argv[1].startswith("husarion_ugv"); \
 COPY docker/utils/update_config_directory.sh /usr/local/sbin/update_config_directory
 COPY docker/utils/setup_environment.sh /usr/local/sbin/setup_environment
 COPY docker/utils/supervise_command.sh /usr/local/sbin/supervise_command
+# Replaces the base's entrypoint, which only sources /opt/ros.
+COPY --chmod=755 docker/utils/ros_entrypoint.sh /ros_entrypoint.sh
 
-# Setup envs from eeprom, and forward a SIGTERM stop to the command of every exec after the
-# marker. The marker stays usable for derived images. Fail when the entrypoint layout differs.
+# Shells opened in the container get the ROS and workspace environment.
+RUN echo "source \"/opt/ros/$ROS_DISTRO/setup.bash\"" >> /etc/bash.bashrc && \
+    echo "test -f \"/ros2_ws/install/setup.bash\" && source \"/ros2_ws/install/setup.bash\"" >> /etc/bash.bashrc
+
+# The entrypoint sets up the env from the EEPROM and forwards a SIGTERM stop to the command of every
+# exec after the marker. The marker stays usable for derived images. Fail when the layout differs.
 RUN entrypoint=$(ls /*_entrypoint.sh) && \
-    test "$(echo "${entrypoint}" | wc -l)" -eq 1 && \
-    grep -q '# <additional-user-commands>' "${entrypoint}" && \
-    sed -i \
-        -e '/# <additional-user-commands>/i set -e -a && source setup_environment' \
-        -e '/# <additional-user-commands>/,$ s/^\([[:space:]]*\)exec \(.*\)$/\1source supervise_command \2\n\1exec \2/' \
-        "${entrypoint}" && \
+    test "${entrypoint}" = /ros_entrypoint.sh && \
+    grep -qx 'set -e -a && source setup_environment' "${entrypoint}" && \
+    grep -qx '# <additional-user-commands>' "${entrypoint}" && \
     grep -qx '[[:space:]]*source supervise_command "\$@"' "${entrypoint}" && \
     awk '/# <additional-user-commands>/ { marker = 1 } \
         marker && /^[[:space:]]*exec / { if (previous !~ /^[[:space:]]*source supervise_command /) bad = 1 } \
         { previous = $0 } \
-        END { exit !marker || bad }' "${entrypoint}"
+        END { exit !marker || bad }' "${entrypoint}" && \
+    # A package installed by this Dockerfile must not have replaced the base's patched Fast DDS.
+    apt-mark showhold | grep -qx "ros-${ROS_DISTRO}-fastrtps" && \
+    dpkg-query -W -f='${Version}' "ros-${ROS_DISTRO}-fastrtps" | grep -q '+husarion' && \
+    dpkg --verify "ros-${ROS_DISTRO}-fastrtps" && \
+    test "$(find / -xdev \( -name 'libfastrtps.so*' -o -name 'libfastdds.so*' \) -type f -not -path "/opt/ros/${ROS_DISTRO}/lib/*" | wc -l)" = 0

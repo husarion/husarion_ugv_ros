@@ -19,9 +19,7 @@ from launch.substitutions import PythonExpression
 
 
 def limit_log_level_to_info(unit: SomeSubstitutionsType, log_level: SomeSubstitutionsType):
-    log_level = PythonExpression(["'", log_level, "'.upper()'"])
-
-    if PythonExpression(["'", log_level, "' == 'DEBUG'"]):
-        return PythonExpression(["'", unit, "' + ':=' + 'INFO'"])
-    else:
-        return PythonExpression(["'", unit, "' + ':=' + ", log_level])
+    # The level is only known at launch time, so the DEBUG check runs inside the substitution.
+    return PythonExpression(
+        ["'", unit, ":=' + ('INFO' if '", log_level, "' == 'DEBUG' else '", log_level, "')"]
+    )

@@ -28,12 +28,14 @@
 
 #include "sensor_msgs/msg/battery_state.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 #include <husarion_ugv_manager/safety_manager_node.hpp>
 #include "husarion_ugv_utils/test/ros_test_utils.hpp"
 
 using BoolMsg = std_msgs::msg::Bool;
 using BatteryStateMsg = sensor_msgs::msg::BatteryState;
+using TriggerSrv = std_srvs::srv::Trigger;
 
 class SafetyManagerNodeWrapper : public husarion_ugv_manager::SafetyManagerNode
 {
@@ -64,10 +66,13 @@ public:
 protected:
   void CreateBTProjectFile(const std::string & tree_xml);
   std::vector<rclcpp::Parameter> CreateTestParameters() const;
+  std::chrono::duration<double> InitializeWithoutService(
+    const double startup_timeout, const std::vector<std::string> & startup_services);
 
   const rclcpp::QoS transient_local_qos =
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable();
   std::shared_ptr<SafetyManagerNodeWrapper> safety_manager_node_;
+  rclcpp::Service<TriggerSrv>::SharedPtr e_stop_trigger_server_;
 
 private:
   std::string bt_project_path_;
@@ -102,6 +107,10 @@ TestSafetyManagerNode::TestSafetyManagerNode()
   options.parameter_overrides(CreateTestParameters());
 
   safety_manager_node_ = std::make_shared<SafetyManagerNodeWrapper>("test_safety_manager", options);
+  // Initialize() waits for the hardware e-stop service
+  e_stop_trigger_server_ = safety_manager_node_->create_service<TriggerSrv>(
+    "hardware/e_stop_trigger",
+    [](const TriggerSrv::Request::SharedPtr, TriggerSrv::Response::SharedPtr) {});
   safety_manager_node_->Initialize();
 }
 
@@ -236,6 +245,45 @@ TEST_F(TestSafetyManagerNode, SystemStatusCBBlackboardUpdate)
 
   auto blackboard = safety_manager_node_->GetSafetyTreeBlackboard();
   EXPECT_FLOAT_EQ(blackboard->get<float>("cpu_temp"), expected_temp);
+}
+
+std::chrono::duration<double> TestSafetyManagerNode::InitializeWithoutService(
+  const double startup_timeout, const std::vector<std::string> & startup_services)
+{
+  auto params = CreateTestParameters();
+  params.push_back(rclcpp::Parameter("ros_communication_timeout.startup", startup_timeout));
+  params.push_back(rclcpp::Parameter("startup_services", startup_services));
+  // Each service node of the tree waits this long for its missing server while the tree is built.
+  params.push_back(rclcpp::Parameter("ros_communication_timeout.availability", 0.01));
+  rclcpp::NodeOptions options;
+  options.parameter_overrides(params);
+  // Another namespace, so the service the fixture serves does not count.
+  options.arguments({"--ros-args", "-r", "__ns:=/without_service"});
+  auto node = std::make_shared<SafetyManagerNodeWrapper>("test_manager_without_service", options);
+
+  const auto start = std::chrono::steady_clock::now();
+  node->Initialize();
+  const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+  EXPECT_NE(node->GetSafetyTreeBlackboard(), nullptr);
+  return elapsed;
+}
+
+TEST_F(TestSafetyManagerNode, StartupWaitIsBoundedWithoutService)
+{
+  const auto elapsed = InitializeWithoutService(0.5, {"hardware/e_stop_trigger"});
+  // wait_for_service may return a few ms before its deadline.
+  EXPECT_GE(elapsed.count(), 0.45);
+  EXPECT_LT(elapsed.count(), 3.0);
+}
+
+TEST_F(TestSafetyManagerNode, StartupWaitSkippedWhenZero)
+{
+  EXPECT_LT(InitializeWithoutService(0.0, {"hardware/e_stop_trigger"}).count(), 1.0);
+}
+
+TEST_F(TestSafetyManagerNode, StartupWaitSkippedWithoutServices)
+{
+  EXPECT_LT(InitializeWithoutService(5.0, {}).count(), 1.0);
 }
 
 int main(int argc, char ** argv)

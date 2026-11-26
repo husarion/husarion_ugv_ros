@@ -22,6 +22,10 @@ install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
+
+  ament_add_pytest_test(${PROJECT_NAME}_test_logging
+                        test/python/test_logging.py)
 
   ament_add_gtest(${PROJECT_NAME}_test_common_utilities
                   test/test_common_utilities.cpp)

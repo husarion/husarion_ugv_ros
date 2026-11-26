@@ -16,7 +16,8 @@
 
 # Replaces nmea_navsat_driver's nmea_socket_driver, which drops every sentence with text before
 # the '$' as a bad checksum. A Teltonika RUTX50 with its NMEA prefix option unset sends
-# '(null)$GPGGA,...'.
+# '(null)$GPGGA,...'. Remove this script and launch the upstream node again once
+# https://github.com/ros-drivers/nmea_navsat_driver/pull/199 is released.
 
 import socket
 import sys

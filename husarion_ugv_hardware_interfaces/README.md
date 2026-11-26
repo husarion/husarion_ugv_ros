@@ -54,6 +54,21 @@ CAN settings
 - `max_read_pdo_motor_states_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 - `max_read_pdo_driver_state_errors_count` [*int*, default: **2**]: How many consecutive errors can happen before escalating to general error.
 
+Real-time thread priorities. Each is a SCHED_FIFO priority from 1 to 98. For the threads that accept 0, it means the thread sets no priority of its own and keeps the one it inherited. Each can be set with the launch argument of the same name. A missing parameter keeps the default, and an invalid value is replaced by the default with a warning. Each thread also carries a name, so it can be found with `ps -eLo tid,rtprio,psr,comm` and pinned to a CPU from outside the process.
+
+- `configure_thread_priority` [*int*, default: **0**]: Priority the thread that runs `on_configure` takes when the CANopen manager initializes. Every thread it creates afterwards inherits it: the threads below before they set their own priority, the ROS interface executor that serves `hardware/e_stop_trigger` and `hardware/e_stop_reset`, and other helper threads. 0 leaves that thread as it is, so the helper threads run SCHED_OTHER and only the threads below run RT.
+- `canopen_thread_priority` [*int*, default: **70**]: CANopen communication thread (`lely-io`). It reads the CAN frames and has to stay above the control loop (FIFO 50, or `thread_priority` in the controller config), or the motor state timestamps go stale and the driver latches the e-stop. 0 is not accepted, and a value of 50 or less (the default control loop priority) logs a warning.
+- `rpdo_dispatch_priority` [*int*, default: **65**]: RPDO dispatch thread of each Roboteq driver (`rpdo-dispatch`), which timestamps every motor state frame and runs the boot callbacks.
+- `gpio_watchdog_priority` [*int*, default: **60**]: Safety watchdog thread (`gpio-wdog`). It toggles the watchdog pin every 10 ms while the e-stop is released, and the safety board cuts motor power when the toggling stops. A trigger waits for this thread to stop the toggling, as it did on earlier versions, so a thread kept off the CPU delays the trigger and it has to stay above the control loop too. 0 is not accepted, and a value of 50 or less (the default control loop priority) logs a warning.
+- `gpio_monitor_priority` [*int*, default: **60**]: GPIO edge event monitor thread (`gpio-monit`).
+
+Real-time thread CPUs. Each thread pins itself to the given CPU when it starts, and -1 leaves it unpinned. A value that is not -1 or a CPU of this machine leaves the thread unpinned with a warning, and so does a failed pin. All of them are unpinned by default and set from the launch arguments of the same name.
+
+- `canopen_thread_cpu` [*int*, default: **-1**]: CPU of the CANopen communication thread.
+- `rpdo_dispatch_cpu` [*int*, default: **-1**]: CPU of the RPDO dispatch threads.
+- `gpio_watchdog_cpu` [*int*, default: **-1**]: CPU of the safety watchdog thread. The thread is created once when the GPIO controller starts and parks while the e-stop is latched, so it keeps its CPU and priority across e-stop resets.
+- `gpio_monitor_cpu` [*int*, default: **-1**]: CPU of the GPIO monitor thread.
+
 PantherSystem additional CAN settings
 
 - `front_driver_can_id` [*int*, default: **1**]: CAN ID defined in the properties of Roboteq (set as in [canopen_configuration.yaml](./config/canopen_configuration.yaml)).

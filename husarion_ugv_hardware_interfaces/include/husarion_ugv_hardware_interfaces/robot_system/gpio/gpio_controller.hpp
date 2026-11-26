@@ -20,9 +20,15 @@
 #ifndef HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_GPIO_GPIO_CONTROLLER_HPP_
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_GPIO_GPIO_CONTROLLER_HPP_
 
+#include <pthread.h>
+
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -54,42 +60,97 @@ public:
    * @brief Constructor for Watchdog class.
    *
    * @param gpio_driver Pointer to the GPIODriver object.
+   * @param sched_priority SCHED_FIFO priority of the watchdog thread.
+   * @param cpu CPU the watchdog thread pins itself to, -1 to not pin.
+   * @param period Time between two edges of the heartbeat.
    * @exception std::runtime_error if the Watchdog pin is not configured by GPIODriver or not
    * described in GPIOController gpio_info storage
    */
-  Watchdog(std::shared_ptr<GPIODriverInterface> gpio_driver);
+  Watchdog(
+    std::shared_ptr<GPIODriverInterface> gpio_driver,
+    const unsigned sched_priority = kWatchdogSchedPriority, const int cpu = -1,
+    const std::chrono::milliseconds period = kPeriod);
 
   /**
-   * @brief Destructor for Watchdog class. Turns off the watchdog thread.
+   * @brief Destructor for Watchdog class. Stops the heartbeat and joins the watchdog thread.
    */
   ~Watchdog();
 
   /**
    * @brief Turns on the Watchdog.
    *
-   * @return True if successful; otherwise, false.
+   * @return True if successful, false after Close().
    * @exception std::runtime_error if the Watchdog pin is not configured by GPIODriver or not
    * described in GPIOController gpio_info storage
    */
   bool TurnOn();
+
+  /**
+   * @brief Turns off the Watchdog. Returns once the heartbeat has stopped and the pin is low.
+   * TurnOn and TurnOff are serialized by the e-stop mutex. Close() is the exception: it takes only
+   * the watchdog mutex, which is enough because it waits for the heartbeat itself and every later
+   * TurnOn refuses.
+   */
   bool TurnOff();
+
+  /**
+   * @brief Turns the Watchdog off for good: TurnOn refuses from then on. The teardown calls it.
+   */
+  void Close();
+
   bool IsWatchdogEnabled() const;
 
+  // Feeding the safety board is the most timing-critical thing this process does, so it runs above
+  // the control loop.
+  static constexpr unsigned kWatchdogSchedPriority = 60;
+  static constexpr std::chrono::milliseconds kPeriod{10};
+
 private:
+  // A priority inheriting mutex: the e-stop services that take it can run SCHED_OTHER, and one of
+  // them preempted while holding it must not hold the heartbeat off.
+  class PIMutex
+  {
+  public:
+    PIMutex();
+    ~PIMutex();
+    void lock();
+    void unlock();
+    pthread_mutex_t * native() { return &mtx_; }
+
+  private:
+    pthread_mutex_t mtx_;
+  };
+
   /**
-   * @brief Monitors the Watchdog thread status.
+   * @brief Body of the watchdog thread.
    *
-   * While the Watchdog thread is enabled, it toggles the state of the Watchdog pin between active
-   * and inactive states at regular intervals. The Watchdog thread is active for a duration of 10
-   * milliseconds and then sleeps for the same duration. When the Watchdog thread is disabled, it
-   * sets the Watchdog pin to an inactive state.
+   * While the Watchdog is on, it toggles the state of the Watchdog pin between active and
+   * inactive states every period. When it is turned off, it sets the Watchdog pin to an inactive
+   * state and parks until it is turned on again or destroyed.
    */
   void WatchdogThread();
+  bool StopHeartbeat(std::unique_lock<PIMutex> & lck);
+  void Wait(std::unique_lock<PIMutex> & lck);
+  void WaitUntil(
+    std::unique_lock<PIMutex> & lck, const std::chrono::steady_clock::time_point & deadline);
+  void NotifyAll();
 
   GPIOPin watchdog_pin_ = GPIOPin::WATCHDOG;
   std::shared_ptr<GPIODriverInterface> gpio_driver_;
+  const unsigned sched_priority_;
+  const int cpu_;
+  const std::chrono::milliseconds period_;
+
+  // One thread for the life of the Watchdog, parked while it is off, so its priority and CPU
+  // survive e-stop resets. The flags are written under mtx_ and read lock-free on the fast path.
+  PIMutex mtx_;
+  pthread_cond_t cv_;
+  std::atomic_bool enabled_ = false;
+  std::atomic_bool shutdown_ = false;
+  std::atomic_bool closed_ = false;
+  std::atomic_bool heartbeat_running_ = false;
+  std::uint64_t heartbeat_stops_ = 0;  // guarded by mtx_
   std::thread watchdog_thread_;
-  std::atomic_bool watchdog_thread_enabled_ = false;
 };
 
 class GPIOControllerInterface
@@ -158,9 +219,19 @@ public:
    * @brief Constructor for GPIOController class.
    *
    * @param gpio_driver Pointer to the GPIODriver object.
+   * @param watchdog_sched_priority SCHED_FIFO priority of the safety watchdog thread.
+   * @param monitor_sched_priority SCHED_FIFO priority of the GPIO monitor thread.
+   * @param watchdog_cpu CPU the safety watchdog thread pins itself to, -1 to not pin.
+   * @param monitor_cpu CPU the GPIO monitor thread pins itself to, -1 to not pin.
    * @throw `std::runtime_error` When the GPIO driver is not initialized.
    */
-  GPIOController(std::shared_ptr<GPIODriverInterface> gpio_driver);
+  GPIOController(
+    std::shared_ptr<GPIODriverInterface> gpio_driver,
+    const unsigned watchdog_sched_priority = Watchdog::kWatchdogSchedPriority,
+    const unsigned monitor_sched_priority = kMonitorSchedPriority, const int watchdog_cpu = -1,
+    const int monitor_cpu = -1);
+
+  static constexpr unsigned kMonitorSchedPriority = 60;
 
   /**
    * @brief Initializes the GPIODriver, Watchdog, and powers on the motors.
@@ -263,6 +334,11 @@ protected:
   std::unique_ptr<Watchdog> watchdog_;
 
 private:
+  const unsigned watchdog_sched_priority_;
+  const unsigned monitor_sched_priority_;
+  const int watchdog_cpu_;
+  const int monitor_cpu_;
+
   /**
    * @brief Waits for a specific duration or until an interruption is signaled.
    *
@@ -293,15 +369,23 @@ public:
   /**
    * @brief Creates a GPIO controller.
    *
+   * @param watchdog_sched_priority SCHED_FIFO priority of the safety watchdog thread.
+   * @param monitor_sched_priority SCHED_FIFO priority of the GPIO monitor thread.
+   * @param watchdog_cpu CPU the safety watchdog thread pins itself to, -1 to not pin.
+   * @param monitor_cpu CPU the GPIO monitor thread pins itself to, -1 to not pin.
    * @return A unique pointer to the created GPIO controller.
    */
-  static std::unique_ptr<GPIOControllerInterface> CreateGPIOController()
+  static std::unique_ptr<GPIOControllerInterface> CreateGPIOController(
+    const unsigned watchdog_sched_priority = Watchdog::kWatchdogSchedPriority,
+    const unsigned monitor_sched_priority = GPIOController::kMonitorSchedPriority,
+    const int watchdog_cpu = -1, const int monitor_cpu = -1)
   {
     std::unique_ptr<GPIOControllerInterface> gpio_controller;
     auto config_info_storage = GPIOController::GetGPIOConfigInfoStorage();
     auto gpio_driver = std::make_shared<GPIODriver>(config_info_storage);
 
-    gpio_controller = std::make_unique<GPIOController>(gpio_driver);
+    gpio_controller = std::make_unique<GPIOController>(
+      gpio_driver, watchdog_sched_priority, monitor_sched_priority, watchdog_cpu, monitor_cpu);
 
     return gpio_controller;
   };

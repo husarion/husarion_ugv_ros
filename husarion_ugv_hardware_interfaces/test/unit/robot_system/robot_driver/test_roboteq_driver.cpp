@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <pthread.h>
+
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -85,7 +87,7 @@ TestRoboteqDriver::TestRoboteqDriver()
   canopen_manager_->Initialize();
 
   roboteq_driver_ = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqDriver>(
-    canopen_manager_->GetMaster(), 1, std::chrono::milliseconds(100));
+    canopen_manager_->GetMaster(), 1, std::chrono::milliseconds(100), 65);
 
   canopen_manager_->Activate();
 }
@@ -172,6 +174,27 @@ bool TestRoboteqDriver::TestBoot()
 }
 
 TEST_F(TestRoboteqDriver, BootRoboteqDriver) { ASSERT_TRUE(TestBoot()); }
+
+TEST_F(TestRoboteqDriver, ThreadsAreNamed)
+{
+  // The name is set by the first task on each executor, before any lely callback runs there.
+  const auto thread_name = [](lely::ev::Executor executor) {
+    auto name = std::make_shared<std::promise<std::string>>();
+    auto name_future = name->get_future();
+    executor.post([name]() {
+      char buffer[16] = {};
+      pthread_getname_np(pthread_self(), buffer, sizeof(buffer));
+      name->set_value(buffer);
+    });
+    if (name_future.wait_for(std::chrono::seconds(1)) != std::future_status::ready) {
+      return std::string("<timeout>");
+    }
+    return name_future.get();
+  };
+
+  EXPECT_EQ(thread_name(roboteq_driver_->GetExecutor()), "rpdo-dispatch");
+  EXPECT_EQ(thread_name(canopen_manager_->GetMaster()->GetExecutor()), "lely-io");
+}
 
 TEST_F(TestRoboteqDriver, BootErrorDeviceType)
 {

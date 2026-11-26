@@ -37,6 +37,8 @@ const husarion_ugv_hardware_interfaces::CANopenSettings kCANopenSettings{
   std::chrono::milliseconds(15),
   std::chrono::milliseconds(75),
   std::chrono::milliseconds(100),
+  70,  // canopen_thread_sched_priority
+  65,  // rpdo_dispatch_sched_priority
 };
 
 const husarion_ugv_hardware_interfaces::DrivetrainSettings kDrivetrainSettings{

@@ -85,6 +85,11 @@ protected:
 
   void ReadDrivetrainSettings();
   void ReadCANopenSettings();
+  void ReadRTThreadPriorities();
+  unsigned ReadRTPriority(
+    const std::string & name, const unsigned default_priority,
+    const bool above_control_loop = false);
+  int ReadRTCPU(const std::string & name, const int default_cpu);
   virtual void ReadCANopenSettingsDriverCANIDs() = 0;
 
   void ReadInitializationActivationAttempts();
@@ -145,6 +150,14 @@ protected:
 
   DrivetrainSettings drivetrain_settings_;
   CANopenSettings canopen_settings_;
+  unsigned gpio_watchdog_sched_priority_ = Watchdog::kWatchdogSchedPriority;
+  unsigned gpio_monitor_sched_priority_ = GPIOController::kMonitorSchedPriority;
+
+  static constexpr int kDefaultRTCPU = -1;
+  // ros2_control's default controller manager thread priority
+  static constexpr unsigned kDefaultControlLoopPriority = 50;
+  int gpio_watchdog_cpu_ = -1;
+  int gpio_monitor_cpu_ = -1;
 
   std::unique_ptr<SystemROSInterface> system_ros_interface_;
   // What the GPIO edge callback publishes through, cleared before system_ros_interface_ is reset.

@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/roboteq_driver.hpp"
 
+#include <pthread.h>
+
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
@@ -29,6 +31,7 @@
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/driver.hpp"
 #include "husarion_ugv_hardware_interfaces/utils.hpp"
+#include "husarion_ugv_utils/configure_rt.hpp"
 
 namespace husarion_ugv_hardware_interfaces
 {
@@ -100,9 +103,23 @@ void RoboteqMotorDriver::TurnOnSafetyStop()
 
 RoboteqDriver::RoboteqDriver(
   const std::shared_ptr<lely::canopen::AsyncMaster> & async_master, const std::uint8_t id,
-  const std::chrono::milliseconds & sdo_operation_timeout_ms)
+  const std::chrono::milliseconds & sdo_operation_timeout_ms,
+  const unsigned rpdo_dispatch_sched_priority, const int rpdo_dispatch_cpu)
 : lely::canopen::LoopDriver(*async_master, id), sdo_operation_timeout_ms_(sdo_operation_timeout_ms)
 {
+  // lely runs OnRpdoWrite, which timestamps every motor state frame, and the boot callbacks on a
+  // thread it creates for this driver. This task names that thread and sets its priority before
+  // any callback runs. It captures values only, because it may still be queued when the driver
+  // is destroyed.
+  GetExecutor().post([priority = rpdo_dispatch_sched_priority, cpu = rpdo_dispatch_cpu]() {
+    pthread_setname_np(pthread_self(), "rpdo-dispatch");
+    try {
+      husarion_ugv_utils::ConfigureRT(priority, cpu);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the RPDO dispatch thread: " << e.what()
+                << std::endl;
+    }
+  });
 }
 
 std::weak_ptr<RoboteqDriver> RoboteqDriver::GetWeakSelf()

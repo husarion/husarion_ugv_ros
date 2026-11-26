@@ -14,6 +14,8 @@
 
 #include "husarion_ugv_hardware_interfaces/robot_system/robot_driver/canopen_manager.hpp"
 
+#include <pthread.h>
+
 #include <condition_variable>
 #include <filesystem>
 #include <iostream>
@@ -43,8 +45,10 @@ void CANopenManager::Initialize()
 
   canopen_communication_started_.store(false);
 
+  // The calling thread, and every thread it creates afterwards, inherits this priority. With 0 it
+  // keeps the scheduling it has.
   try {
-    husarion_ugv_utils::ConfigureRT(kCANopenThreadSchedPriority);
+    husarion_ugv_utils::ConfigureRT(canopen_settings_.configure_thread_sched_priority);
   } catch (const std::runtime_error & e) {
     std::cerr << "An exception occurred while configuring RT: " << e.what() << std::endl
               << "Continuing with regular thread settings (it may have a negative impact on the "
@@ -83,6 +87,18 @@ void CANopenManager::Activate()
   }
 
   canopen_communication_thread_ = std::thread([this]() {
+    pthread_setname_np(pthread_self(), "lely-io");
+    try {
+      husarion_ugv_utils::ConfigureRT(
+        canopen_settings_.canopen_thread_sched_priority, canopen_settings_.canopen_thread_cpu);
+    } catch (const std::runtime_error & e) {
+      std::cerr << "Failed to configure RT priority for the CANopen thread: " << e.what()
+                << std::endl
+                << "Continuing with regular thread settings (it may have a negative impact on "
+                   "performance)."
+                << std::endl;
+    }
+
     NotifyCANCommunicationStarted(true);
 
     // run(ec) reports the last failed operation's error even when the loop was stopped normally, so

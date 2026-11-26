@@ -65,4 +65,45 @@ bool CheckIfJointNameContainValidSequence(const std::string & name, const std::s
   return true;
 }
 
+// Strips leading zeros and returns the remaining digits, or an empty string if text is not a
+// whole number. "0" and "000" give "0".
+static std::string WholeNumberDigits(const std::string & text)
+{
+  if (text.empty() || text.find_first_not_of("0123456789") != std::string::npos) {
+    return "";
+  }
+  const auto first_digit = text.find_first_not_of('0');
+  return first_digit == std::string::npos ? "0" : text.substr(first_digit);
+}
+
+std::optional<unsigned> ParseRTPriority(const std::string & text)
+{
+  const std::string digits = WholeNumberDigits(text);
+  // At most three digits, so stoul can neither overflow nor accept a sign or spaces.
+  if (digits.empty() || digits.size() > 3) {
+    return std::nullopt;
+  }
+  const unsigned priority = std::stoul(digits);
+  if (priority > kMaxRTPriority) {
+    return std::nullopt;
+  }
+  return priority;
+}
+
+std::optional<int> ParseCPU(const std::string & text, const int cpu_count)
+{
+  if (text == "-1") {
+    return -1;
+  }
+  const std::string digits = WholeNumberDigits(text);
+  if (digits.empty() || digits.size() > 4) {
+    return std::nullopt;
+  }
+  const int cpu = std::stoi(digits);
+  if (cpu >= cpu_count) {
+    return std::nullopt;
+  }
+  return cpu;
+}
+
 }  // namespace husarion_ugv_hardware_interfaces

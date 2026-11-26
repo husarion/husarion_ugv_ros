@@ -12,7 +12,8 @@ set(PACKAGE_DEPENDENCIES
     husarion_ugv_msgs
     husarion_ugv_utils
     rclcpp
-    sensor_msgs)
+    sensor_msgs
+    yaml-cpp)
 
 foreach(PACKAGE IN ITEMS ${PACKAGE_DEPENDENCIES})
   find_package(${PACKAGE} REQUIRED)
@@ -28,11 +29,14 @@ add_executable(
   src/battery/roboteq_battery.cpp
   src/battery_publisher/battery_publisher.cpp
   src/battery_publisher/dual_battery_publisher.cpp
-  src/battery_publisher/single_battery_publisher.cpp)
+  src/battery_publisher/single_battery_publisher.cpp
+  src/protection/protection_publisher.cpp
+  src/protection/uvp_detector.cpp
+  src/protection/uvp_parameters.cpp)
 ament_target_dependencies(battery_driver_node ${PACKAGE_DEPENDENCIES})
 
 generate_parameter_library(battery_parameters src/battery_parameters.yaml)
-target_link_libraries(battery_driver_node battery_parameters)
+target_link_libraries(battery_driver_node battery_parameters yaml-cpp)
 
 install(TARGETS battery_driver_node DESTINATION lib/${PROJECT_NAME})
 
@@ -126,7 +130,10 @@ if(BUILD_TESTING)
     src/battery_publisher/battery_publisher.cpp
     src/battery_publisher/dual_battery_publisher.cpp
     src/battery_publisher/single_battery_publisher.cpp
-    src/battery/roboteq_battery.cpp)
+    src/battery/roboteq_battery.cpp
+    src/protection/protection_publisher.cpp
+    src/protection/uvp_detector.cpp
+    src/protection/uvp_parameters.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_adc_dual
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -134,7 +141,7 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_dual
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_dual
-                        battery_parameters)
+                        battery_parameters yaml-cpp)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_driver_node_adc_single
@@ -144,7 +151,10 @@ if(BUILD_TESTING)
     src/battery_publisher/battery_publisher.cpp
     src/battery_publisher/dual_battery_publisher.cpp
     src/battery_publisher/single_battery_publisher.cpp
-    src/battery/roboteq_battery.cpp)
+    src/battery/roboteq_battery.cpp
+    src/protection/protection_publisher.cpp
+    src/protection/uvp_detector.cpp
+    src/protection/uvp_parameters.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_adc_single
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -152,7 +162,7 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_adc_single
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_adc_single
-                        battery_parameters)
+                        battery_parameters yaml-cpp)
 
   ament_add_gtest(
     ${PROJECT_NAME}_test_battery_driver_node_roboteq
@@ -162,7 +172,10 @@ if(BUILD_TESTING)
     src/battery_publisher/battery_publisher.cpp
     src/battery_publisher/dual_battery_publisher.cpp
     src/battery_publisher/single_battery_publisher.cpp
-    src/battery/roboteq_battery.cpp)
+    src/battery/roboteq_battery.cpp
+    src/protection/protection_publisher.cpp
+    src/protection/uvp_detector.cpp
+    src/protection/uvp_parameters.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_battery_driver_node_roboteq
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
@@ -170,7 +183,48 @@ if(BUILD_TESTING)
   ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_roboteq
                             ${PACKAGE_DEPENDENCIES})
   target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_roboteq
-                        battery_parameters)
+                        battery_parameters yaml-cpp)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_uvp_detector test/protection/test_uvp_detector.cpp
+    src/protection/uvp_detector.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_uvp_detector
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_uvp_parameters test/protection/test_uvp_parameters.cpp
+    src/protection/uvp_parameters.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_uvp_parameters
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_uvp_parameters rclcpp)
+  target_link_libraries(${PROJECT_NAME}_test_uvp_parameters yaml-cpp)
+
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_battery_driver_node_uvp
+    test/test_battery_driver_node_uvp.cpp
+    src/battery/adc_battery.cpp
+    src/battery_driver_node.cpp
+    src/battery_publisher/battery_publisher.cpp
+    src/battery_publisher/dual_battery_publisher.cpp
+    src/battery_publisher/single_battery_publisher.cpp
+    src/battery/roboteq_battery.cpp
+    src/protection/protection_publisher.cpp
+    src/protection/uvp_detector.cpp
+    src/protection/uvp_parameters.cpp)
+  set_tests_properties(${PROJECT_NAME}_test_battery_driver_node_uvp
+                       PROPERTIES TIMEOUT 180)
+  target_include_directories(
+    ${PROJECT_NAME}_test_battery_driver_node_uvp
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(${PROJECT_NAME}_test_battery_driver_node_uvp
+                            ${PACKAGE_DEPENDENCIES})
+  target_link_libraries(${PROJECT_NAME}_test_battery_driver_node_uvp
+                        battery_parameters yaml-cpp)
 
 endif()
 

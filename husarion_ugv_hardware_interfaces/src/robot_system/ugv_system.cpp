@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -62,6 +63,7 @@ CallbackReturn UGVSystem::on_init(const hardware_interface::HardwareInfo & hardw
     ReadCANopenSettings();
     ReadRTThreadPriorities();
     ReadInitializationActivationAttempts();
+    ReadUVPSettings();
     ReadParametersAndCreateRoboteqErrorFilter();
     ReadDriverStatesUpdateFrequency();
   } catch (const std::invalid_argument & e) {
@@ -133,13 +135,13 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
     std::bind(&UGVSystem::MotorTorqueEnable, this, std::placeholders::_1));
 
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
-    "hardware/e_stop_trigger", std::bind(&UGVSystem::TriggerEStopServiceCall, this), 1,
-    rclcpp::CallbackGroupType::MutuallyExclusive);
+    "hardware/e_stop_trigger", std::bind(&UGVSystem::TriggerEStopServiceCall, this),
+    kEStopTriggerCallbackGroup, rclcpp::CallbackGroupType::MutuallyExclusive);
 
   auto e_stop_reset_qos = rclcpp::ServicesQoS();
   e_stop_reset_qos.keep_last(1);
   system_ros_interface_->AddService<TriggerSrv, std::function<void()>>(
-    "hardware/e_stop_reset", std::bind(&UGVSystem::ResetEStop, this), 2,
+    "hardware/e_stop_reset", std::bind(&UGVSystem::ResetEStop, this), kEStopResetCallbackGroup,
     rclcpp::CallbackGroupType::MutuallyExclusive, e_stop_reset_qos);
 
   system_ros_interface_->AddDiagnosticTask(
@@ -147,6 +149,9 @@ CallbackReturn UGVSystem::on_configure(const rclcpp_lifecycle::State &)
 
   system_ros_interface_->AddDiagnosticTask(
     std::string("System status"), this, &UGVSystem::DiagnoseStatus);
+
+  // Before the E-stop task, which reads what it sets up, while the diagnostics already run.
+  ConfigureUVP();
 
   system_ros_interface_->AddDiagnosticTask(std::string("E-stop"), this, &UGVSystem::DiagnoseEStop);
 
@@ -593,6 +598,8 @@ void UGVSystem::DestroyComponents()
   if (gpio_controller_) {
     gpio_controller_->Stop();
   }
+  // ConfigureUVP() starts a new guard, with no input.
+  uvp_guard_.reset();
   e_stop_.reset();
 
   if (robot_driver_) {
@@ -760,7 +767,92 @@ void UGVSystem::UpdateEStopState()
   }
 
   const bool e_stop = e_stop_->ReadEStopState();
-  system_ros_interface_->PublishEStopStateIfChanged(e_stop);
+  // A trigger by the guard in this cycle is published now, not one cycle later.
+  const bool uvp_triggered = uvp_guard_ && UpdateUVPGuard(e_stop);
+  system_ros_interface_->PublishEStopStateIfChanged(e_stop || uvp_triggered);
+}
+
+static_assert(UvpProtectionInput::kStateUvp == BatteryProtectionMsg::STATE_UVP);
+static_assert(UvpProtectionInput::kModeStop == BatteryProtectionMsg::MODE_STOP);
+
+void UGVSystem::ReadUVPSettings()
+{
+  // Optional and absent from the robot description unless the protection is enabled, so the
+  // description stays what it was without it.
+  const auto it = info_.hardware_parameters.find("uvp_enable");
+  uvp_enable_ = it != info_.hardware_parameters.end() &&
+                (it->second == "true" || it->second == "True" || it->second == "1");
+}
+
+void UGVSystem::ConfigureUVP()
+{
+  if (!uvp_enable_) {
+    return;
+  }
+
+  uvp_guard_ = std::make_unique<UvpEStopGuard>();
+  // A reconfigure must not act on the previous subscription's message.
+  uvp_input_.writeFromNonRT(UvpProtectionInput());
+  uvp_last_msg_ns_.store(0);
+  uvp_configured_ns_ = EStopDiagnostics::SteadyNowNs();
+
+  // A callback group of its own, so a busy e-stop service never delays the protection.
+  system_ros_interface_->AddSubscription<BatteryProtectionMsg>(
+    "battery/protection", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    std::bind(&UGVSystem::ProtectionCB, this, std::placeholders::_1),
+    kBatteryProtectionCallbackGroup);
+
+  RCLCPP_INFO(logger_, "Battery undervoltage protection enabled.");
+}
+
+void UGVSystem::ProtectionCB(const std::shared_ptr<const BatteryProtectionMsg> msg)
+{
+  UvpProtectionInput input;
+  input.received = true;
+  input.state = msg->state;
+  input.mode = msg->mode;
+  input.reactions_enabled = msg->reactions_enabled;
+  input.drive_window_s = msg->drive_window_s;
+  if (
+    !std::isfinite(msg->drive_window_s) || msg->drive_window_s <= 0.0f ||
+    msg->drive_window_s > UvpEStopGuard::kMaxDriveWindowS) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      logger_, steady_clock_, 60000,
+      "Battery protection drive window " << msg->drive_window_s << " s is out of range, using "
+                                         << UvpEStopGuard::DriveWindowNs(msg->drive_window_s) / 1e9
+                                         << " s.");
+  }
+  input.trip_id = msg->trip_id;
+  input.trip_stamp_ns = rclcpp::Time(msg->trip_stamp).nanoseconds();
+  uvp_input_.writeFromNonRT(input);
+  uvp_last_msg_ns_.store(EStopDiagnostics::SteadyNowNs());
+}
+
+bool UGVSystem::UpdateUVPGuard(const bool e_stop)
+{
+  const auto * input = uvp_input_.readFromRT();
+
+  bool triggered = false;
+  // Only ever a trigger: releasing the e-stop stays with the reset service and its checks.
+  uvp_guard_->Update(*input, e_stop, EStopDiagnostics::SteadyNowNs(), [this, &triggered]() {
+    try {
+      // False while an e-stop reset holds the e-stop, which that reset then refuses. The next
+      // cycle tries again.
+      if (!e_stop_->TriggerEStopFromUVP()) {
+        return false;
+      }
+      triggered = true;
+      RCLCPP_WARN_THROTTLE(
+        logger_, steady_clock_, 5000, "Triggered E-Stop due to battery undervoltage protection.");
+      return true;
+    } catch (const std::runtime_error & e) {
+      RCLCPP_ERROR_STREAM_THROTTLE(
+        logger_, steady_clock_, 5000,
+        "Battery undervoltage protection failed to trigger the E-Stop: " << e.what());
+      return false;
+    }
+  });
+  return triggered;
 }
 
 void UGVSystem::HandleRobotDriverWriteOperation(std::function<void()> write_operation)
@@ -830,6 +922,11 @@ void UGVSystem::DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & stat
       message = "E-stop latched by a device outside the driver.";
       source = "hardware line (e-stop button, Roboteq fault or safety board watchdog)";
       break;
+    case EStopLatchSource::UVP:
+      level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+      message = "E-stop latched by the battery undervoltage protection.";
+      source = "UVP (battery undervoltage protection)";
+      break;
   }
 
   status.add(
@@ -844,7 +941,46 @@ void UGVSystem::DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & stat
     status.add("Last refused reset (s ago)", seconds_ago(snapshot.last_refused_reset_ns));
   }
 
+  if (uvp_guard_) {
+    DiagnoseUVP(status, level, message);
+  }
+
   status.summary(level, message);
+}
+
+void UGVSystem::DiagnoseUVP(
+  diagnostic_updater::DiagnosticStatusWrapper & status, unsigned char & level,
+  std::string & message)
+{
+  const auto now_ns = EStopDiagnostics::SteadyNowNs();
+
+  status.add(
+    "UVP",
+    uvp_guard_->Active() ? std::string("tripped, holding the e-stop") : std::string("not tripped"));
+  const auto window_end_ns = uvp_guard_->GetWindowEndNs();
+  if (window_end_ns != 0) {
+    status.add(
+      "UVP drive window remaining (s)",
+      std::max(0.0, static_cast<double>(window_end_ns - now_ns) / 1.0e9));
+  }
+  status.add("UVP e-stop triggers", uvp_guard_->GetTriggerCount());
+
+  const auto last_msg_ns = uvp_last_msg_ns_.load();
+  if (last_msg_ns == 0) {
+    status.add("UVP data", "not received yet");
+    if (static_cast<double>(now_ns - uvp_configured_ns_) / 1.0e9 > kUVPTopicStartupGrace) {
+      level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+      message = "No battery protection data on battery/protection, the protection cannot act.";
+    }
+    return;
+  }
+
+  const auto age = static_cast<double>(now_ns - last_msg_ns) / 1.0e9;
+  status.add("UVP data age (s)", age);
+  if (age > kUVPTopicStaleTimeout) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::ERROR;
+    message = "Battery protection data is stale, the protection cannot act.";
+  }
 }
 
 void UGVSystem::DiagnoseDriversStatus(

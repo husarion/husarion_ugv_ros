@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -27,6 +28,8 @@
 #include "husarion_ugv_battery/battery/battery.hpp"
 #include "husarion_ugv_battery/battery_parameters.hpp"
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
+#include "husarion_ugv_battery/protection/protection_publisher.hpp"
+#include "husarion_ugv_battery/protection/uvp_parameters.hpp"
 
 namespace husarion_ugv_battery
 {
@@ -45,6 +48,8 @@ private:
   void Initialize();
   void InitializeWithADCBattery();
   void InitializeWithRoboteqBattery();
+  void InitializeProtection(
+    const std::vector<std::shared_ptr<Battery>> & batteries, const bool charging_detectable);
 
   static constexpr int kADCCurrentOffset = 625;
 
@@ -58,11 +63,14 @@ private:
 
   std::shared_ptr<battery::ParamListener> param_listener_;
   battery::Params params_;
+  UvpParams uvp_params_;
 
   rclcpp::Subscription<RobotDriverStateMsg>::SharedPtr driver_state_sub_;
   rclcpp::TimerBase::SharedPtr battery_pub_timer_;
 
   std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  // Only when the battery undervoltage protection is enabled.
+  std::unique_ptr<ProtectionPublisher> protection_publisher_;
 };
 
 }  // namespace husarion_ugv_battery

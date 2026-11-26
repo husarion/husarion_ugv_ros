@@ -16,6 +16,7 @@
 #define HUSARION_UGV_BATTERY_HUSARION_UGV_BATTERY_BATTERY_BATTERY_HPP_
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -57,6 +58,18 @@ public:
   BatteryStateMsg GetBatteryMsg() const { return battery_state_; }
   BatteryStateMsg GetBatteryMsgRaw() const { return battery_state_raw_; }
   ChargingStatusMsg GetChargingStatus() const { return charging_status_; }
+
+  // Called by Update() with each raw voltage read and whether the read is plausible as far as the
+  // battery can tell (a thermistor reading), then with the raw discharge current. Used by the
+  // undervoltage protection, unset by default.
+  using VoltageObserver = std::function<void(float voltage, bool temperature_valid)>;
+  using CurrentObserver = std::function<void(float current)>;
+  void SetProtectionObservers(
+    const VoltageObserver & voltage_observer, const CurrentObserver & current_observer)
+  {
+    voltage_observer_ = voltage_observer;
+    current_observer_ = current_observer;
+  }
 
 protected:
   void SetErrorMsg(const std::string & error_msg) { error_msg_ = error_msg; }
@@ -147,6 +160,9 @@ protected:
   static constexpr float battery_approx_a_values[6] = {8.665, 9.153, 19.8, 22.84, 10.538, 0.989};
   static constexpr float battery_approx_b_values[6] = {-258.73, -278.861, -672.6,
                                                        -782.04, -351.47,  -29.669};
+
+  VoltageObserver voltage_observer_;
+  CurrentObserver current_observer_;
 
   std::string error_msg_;
   std::string warning_msg_;

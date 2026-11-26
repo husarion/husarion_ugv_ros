@@ -22,6 +22,7 @@
   <depend>husarion_ugv_utils</depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
+  <depend>yaml-cpp</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
 

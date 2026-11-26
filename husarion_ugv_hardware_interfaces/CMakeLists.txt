@@ -69,6 +69,7 @@ add_library(
   src/robot_system/lynx_system.cpp
   src/robot_system/panther_system.cpp
   src/robot_system/ugv_system.cpp
+  src/robot_system/uvp_e_stop_guard.cpp
   src/utils.cpp)
 ament_target_dependencies(${PROJECT_NAME} ${PACKAGE_DEPENDENCIES})
 target_link_libraries(${PROJECT_NAME} PkgConfig::LIBLELY_COAPP
@@ -144,6 +145,11 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_system_e_stop
                         PkgConfig::LIBLELY_COAPP PkgConfig::LIBGPIOD)
 
+  ament_add_gtest(
+    ${PROJECT_NAME}_test_uvp_e_stop_guard
+    test/unit/robot_system/test_uvp_e_stop_guard.cpp
+    src/robot_system/uvp_e_stop_guard.cpp)
+
   ament_add_gmock(
     ${PROJECT_NAME}_test_ugv_system
     test/unit/robot_system/test_ugv_system.cpp
@@ -154,6 +160,7 @@ if(BUILD_TESTING)
     src/robot_system/robot_driver/roboteq_error_filter.cpp
     src/robot_system/system_ros_interface.cpp
     src/robot_system/ugv_system.cpp
+    src/robot_system/uvp_e_stop_guard.cpp
     src/utils.cpp)
   target_include_directories(
     ${PROJECT_NAME}_test_ugv_system
@@ -187,6 +194,7 @@ if(BUILD_TESTING)
     src/robot_system/system_ros_interface.cpp
     src/robot_system/lynx_system.cpp
     src/robot_system/ugv_system.cpp
+    src/robot_system/uvp_e_stop_guard.cpp
     src/utils.cpp)
   set_tests_properties(${PROJECT_NAME}_test_lynx_system PROPERTIES TIMEOUT 120)
   target_include_directories(
@@ -221,6 +229,7 @@ if(BUILD_TESTING)
     src/robot_system/system_ros_interface.cpp
     src/robot_system/panther_system.cpp
     src/robot_system/ugv_system.cpp
+    src/robot_system/uvp_e_stop_guard.cpp
     src/utils.cpp)
   set_tests_properties(${PROJECT_NAME}_test_panther_system PROPERTIES TIMEOUT
                                                                       120)

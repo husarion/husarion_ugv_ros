@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -222,6 +223,29 @@ public:
   }
 
   /**
+   * @brief Subscribes to a topic in its own callback group.
+   *
+   * @param group_id The callback group, as for AddService. Never 0: the callback must not share a
+   * group with the services.
+   */
+  template <class MsgT>
+  inline void AddSubscription(
+    const std::string & topic_name, const rclcpp::QoS & qos,
+    const std::function<void(const std::shared_ptr<const MsgT>)> & callback,
+    const unsigned group_id)
+  {
+    if (group_id == 0) {
+      throw std::invalid_argument(
+        "A subscription must not use the callback group of the services.");
+    }
+    rclcpp::SubscriptionOptions options;
+    options.callback_group = GetOrCreateNodeCallbackGroup(
+      group_id, rclcpp::CallbackGroupType::MutuallyExclusive);
+    subscriptions_storage_.push_back(
+      node_->create_subscription<MsgT>(topic_name, qos, callback, options));
+  }
+
+  /**
    * @brief Adds a new diagnostic task. A task that throws reports STALE with the error message,
    * because an exception escaping the diagnostic updater timer terminates the process.
    *
@@ -361,6 +385,7 @@ protected:
   diagnostic_updater::Updater diagnostic_updater_;
 
   std::vector<std::any> service_wrappers_storage_;
+  std::vector<rclcpp::SubscriptionBase::SharedPtr> subscriptions_storage_;
 
   std::shared_ptr<IOStateDiagnosticsStore> io_state_diagnostics_ =
     std::make_shared<IOStateDiagnosticsStore>();

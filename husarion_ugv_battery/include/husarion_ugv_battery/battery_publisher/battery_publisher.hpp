@@ -50,6 +50,15 @@ public:
 
   void Publish();
 
+  /**
+   * @brief Makes a battery whose read throws leave the next battery to be updated anyway, so the
+   * undervoltage protection keeps seeing every battery. Off by default.
+   */
+  void SetUpdateEveryBattery(const bool update_every_battery)
+  {
+    update_every_battery_ = update_every_battery;
+  }
+
 protected:
   virtual void Update() = 0;
   virtual void Reset() = 0;
@@ -111,6 +120,7 @@ protected:
   // Use weak pointer to prevent circular dependency
   rclcpp::Node::WeakPtr node_;
   std::shared_ptr<diagnostic_updater::Updater> diagnostic_updater_;
+  bool update_every_battery_ = false;
 
   // Below this the battery status task warns.
   const float low_battery_percentage_;

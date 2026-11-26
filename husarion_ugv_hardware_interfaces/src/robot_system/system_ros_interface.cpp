@@ -124,6 +124,7 @@ SystemROSInterface::~SystemROSInterface()
   e_stop_state_publisher_.reset();
 
   service_wrappers_storage_.clear();
+  subscriptions_storage_.clear();
 
   node_.reset();
 }

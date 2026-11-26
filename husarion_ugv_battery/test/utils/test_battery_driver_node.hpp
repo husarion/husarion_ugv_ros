@@ -21,6 +21,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -40,7 +41,9 @@ using IOStateMsg = husarion_ugv_msgs::msg::IOState;
 class TestBatteryNode : public testing::Test
 {
 public:
-  TestBatteryNode(const bool use_adc_battery = true, const bool dual_battery = false);
+  TestBatteryNode(
+    const bool use_adc_battery = true, const bool dual_battery = false,
+    const std::vector<rclcpp::Parameter> & extra_params = {});
   ~TestBatteryNode();
 
 protected:
@@ -63,9 +66,11 @@ protected:
   rclcpp::Publisher<RobotDriverStateMsg>::SharedPtr driver_state_pub_;
 };
 
-TestBatteryNode::TestBatteryNode(const bool use_adc_battery, const bool dual_battery)
+TestBatteryNode::TestBatteryNode(
+  const bool use_adc_battery, const bool dual_battery,
+  const std::vector<rclcpp::Parameter> & extra_params)
 {
-  std::vector<rclcpp::Parameter> params;
+  std::vector<rclcpp::Parameter> params = extra_params;
 
   if (use_adc_battery) {
     device0_path_ = std::filesystem::path(testing::TempDir()) / kADCDevice0;

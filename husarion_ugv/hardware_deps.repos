@@ -14,7 +14,7 @@ repositories:
   husarion_components_description:
     type: git
     url: https://github.com/husarion/husarion_components_description.git
-    version: ed1d8664354ed1dcaa94cc973dd8bed7bef62690
+    version: 02d0019629ff5b9a75b88161955aed669d52e994
   joy2twist:
     type: git
     url: https://github.com/husarion/joy2twist.git

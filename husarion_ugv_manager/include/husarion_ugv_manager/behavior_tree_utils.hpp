@@ -147,24 +147,32 @@ inline bool WaitForServices(
   rclcpp::executors::SingleThreadedExecutor executor(executor_options);
   executor.add_node(node);
   const auto deadline = std::chrono::steady_clock::now() + timeout;
-  auto missing = missing_services();
+  std::string missing;
   bool waiting_logged = false;
-  while (!missing.empty()) {
-    if (std::chrono::steady_clock::now() >= deadline) {
-      RCLCPP_WARN(
-        node->get_logger(), "Services not available after %.1f s: %s", timeout.count(),
-        missing.c_str());
-      break;
-    }
-    executor.spin_once(std::chrono::milliseconds(50));
-    // A callback, or a signal, may have shut the context down, and the graph cannot be read then.
-    if (!context->is_valid()) {
-      break;
-    }
+  try {
     missing = missing_services();
-    if (!missing.empty() && !waiting_logged) {
-      RCLCPP_INFO(node->get_logger(), "Waiting for services: %s", missing.c_str());
-      waiting_logged = true;
+    while (!missing.empty()) {
+      if (std::chrono::steady_clock::now() >= deadline) {
+        RCLCPP_WARN(
+          node->get_logger(), "Services not available after %.1f s: %s", timeout.count(),
+          missing.c_str());
+        break;
+      }
+      executor.spin_once(std::chrono::milliseconds(50));
+      // A callback, or a signal, may have shut the context down, and the graph cannot be read then.
+      if (!context->is_valid()) {
+        break;
+      }
+      missing = missing_services();
+      if (!missing.empty() && !waiting_logged) {
+        RCLCPP_INFO(node->get_logger(), "Waiting for services: %s", missing.c_str());
+        waiting_logged = true;
+      }
+    }
+  } catch (const std::runtime_error &) {
+    // count_services throws when a signal shuts the context down right after the check above.
+    if (context->is_valid()) {
+      throw;
     }
   }
   executor.remove_node(node);

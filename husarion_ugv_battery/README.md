@@ -41,3 +41,4 @@ Publishes battery state read from ADC unit.
 - `ma_window_len.voltage` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery voltage readings.
 - `ma_window_len.current` [*int*, default: **10**]: Window length of a moving average, used to smooth out battery current readings.
 - `roboteq.driver_state_timeout` [*float*, default: **0.2**]: Specifies timeout in seconds after which driver state messages will be considered old (deprecated).
+- `low_battery_percentage` [*float*, default: **0.4**]: Battery percentage, from 0 to 1, below which the battery status diagnostic warns. The default matches the manager's `low_battery_threshold_percent`.

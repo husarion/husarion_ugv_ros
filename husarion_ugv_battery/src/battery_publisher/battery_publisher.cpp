@@ -14,9 +14,12 @@
 
 #include "husarion_ugv_battery/battery_publisher/battery_publisher.hpp"
 
+#include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 #include "diagnostic_updater/diagnostic_updater.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -27,17 +30,21 @@ namespace husarion_ugv_battery
 BatteryPublisher::BatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
   const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
-  const double battery_timeout)
+  const double battery_timeout, const float low_battery_percentage)
 : node_(std::move(node)),
   diagnostic_updater_(std::move(diagnostic_updater)),
-  battery_timeout_(battery_timeout)
+  battery_timeout_(battery_timeout),
+  low_battery_percentage_(low_battery_percentage)
 {
   charger_connected_ = false;
   last_battery_info_time_ = rclcpp::Time(std::int64_t(0), RCL_ROS_TIME);
 
   io_state_sub_ = node->create_subscription<IOStateMsg>(
     "hardware/io_state", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-    [&](const IOStateMsg::SharedPtr msg) { charger_connected_ = msg->charger_connected; });
+    [&](const IOStateMsg::SharedPtr msg) {
+      charger_connected_ = msg->charger_connected;
+      charger_enabled_ = msg->charger_enabled;
+    });
 
   diagnostic_updater_->add("Battery errors", this, &BatteryPublisher::DiagnoseErrors);
   diagnostic_updater_->add("Battery status", this, &BatteryPublisher::DiagnoseStatus);
@@ -53,9 +60,10 @@ void BatteryPublisher::Publish()
       GetLogger(), *GetClock(), 1000,
       "An exception occurred while reading battery data: " << e.what());
 
-    diagnostic_updater_->broadcast(
-      diagnostic_msgs::msg::DiagnosticStatus::WARN,
-      "Error reading battery data: " + std::string(e.what()));
+    // Kept for the diagnostic tasks rather than broadcast: this runs at 10 Hz, and a broadcast
+    // per failed read flooded /diagnostics exactly when the robot was already in trouble.
+    last_read_error_ = e.what();
+    ++read_failures_since_report_;
   }
 
   if (TimeoutReached()) {
@@ -71,6 +79,110 @@ bool BatteryPublisher::TimeoutReached()
 {
   return (GetClock()->now() - last_battery_info_time_) >
          rclcpp::Duration::from_seconds(battery_timeout_);
+}
+
+bool BatteryPublisher::DiagnoseMissingData(diagnostic_updater::DiagnosticStatusWrapper & status)
+{
+  const auto read_failures = read_failures_since_report_;
+  read_failures_since_report_ = 0;
+  reads_failed_in_report_ = read_failures > 0;
+
+  if (TimeoutReached()) {
+    std::string message = "No battery data";
+    if (last_battery_info_time_.nanoseconds() != 0) {
+      const auto seconds = (GetClock()->now() - last_battery_info_time_).seconds();
+      message += " for " + std::to_string(static_cast<int>(seconds)) + " s";
+    }
+    if (read_failures > 0) {
+      message += ": " + last_read_error_;
+    }
+    status.summary(diagnostic_updater::DiagnosticStatusWrapper::STALE, message);
+    return true;
+  }
+
+  if (read_failures > 0) {
+    status.add("Failed reads since the last report", read_failures);
+    status.add("Last read error", last_read_error_);
+  } else {
+    last_read_error_.clear();
+  }
+  return false;
+}
+
+void BatteryPublisher::WarnOnReadFailures(
+  diagnostic_updater::DiagnosticStatusWrapper & status) const
+{
+  if (reads_failed_in_report_) {
+    status.mergeSummary(
+      diagnostic_updater::DiagnosticStatusWrapper::WARN,
+      "Error reading battery data: " + last_read_error_);
+  }
+}
+
+void BatteryPublisher::AddMeasurement(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const std::string & key, const float value)
+{
+  if (std::isnan(value)) {
+    status.add(key, "n/a");
+  } else {
+    status.add(key, value);
+  }
+}
+
+void BatteryPublisher::AddBatteryState(
+  diagnostic_updater::DiagnosticStatusWrapper & status, const BatteryStateMsg & battery_state,
+  const std::string & key_prefix)
+{
+  const auto key = [&key_prefix](const std::string & name) {
+    if (key_prefix.empty()) {
+      return name;
+    }
+    auto lower_name = name;
+    lower_name[0] = static_cast<char>(std::tolower(lower_name[0]));
+    return key_prefix + " " + lower_name;
+  };
+
+  AddMeasurement(status, key("Voltage (V)"), battery_state.voltage);
+  AddMeasurement(status, key("Percentage (%)"), battery_state.percentage * 100.0f);
+  AddMeasurement(status, key("Temperature (\u00B0C)"), battery_state.temperature);
+  status.add(key("Health"), MapPowerSupplyHealthToString(battery_state.power_supply_health));
+}
+
+void BatteryPublisher::WarnOnBatteryState(
+  const BatteryStateMsg & battery_state, unsigned char & level, std::string & message) const
+{
+  if (battery_state.percentage < low_battery_percentage_) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery low.";
+  }
+
+  // A charger disabled on request does not charge on purpose, and a nearly full battery takes only
+  // a trickle.
+  if (
+    charger_enabled_ &&
+    battery_state.power_supply_status == BatteryStateMsg::POWER_SUPPLY_STATUS_NOT_CHARGING &&
+    !(battery_state.percentage >= kNearFullPercentage)) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Charger plugged in, but the battery is not charging.";
+  }
+}
+
+std::string BatteryPublisher::MapPowerSupplyHealthToString(const std::uint8_t power_supply_health)
+{
+  switch (power_supply_health) {
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_GOOD:
+      return "Good";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERHEAT:
+      return "Overheat";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_DEAD:
+      return "Dead";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_OVERVOLTAGE:
+      return "Overvoltage";
+    case BatteryStateMsg::POWER_SUPPLY_HEALTH_COLD:
+      return "Cold";
+    default:
+      return "Unknown";
+  }
 }
 
 void BatteryPublisher::BatteryStatusLogger(const BatteryStateMsg & battery_state)

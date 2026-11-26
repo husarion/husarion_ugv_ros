@@ -26,6 +26,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node, SetParameter
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -81,6 +82,18 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
+    ekf_print_diagnostics = LaunchConfiguration("ekf_print_diagnostics")
+    declare_ekf_print_diagnostics_arg = DeclareLaunchArgument(
+        "ekf_print_diagnostics",
+        default_value="False",
+        description=(
+            "Set print_diagnostics of the EKF unless the configuration file sets it."
+            " robot_localization counts the odometry/filtered messages for its frequency"
+            " diagnostic only with it, so without it that diagnostic reports no events."
+        ),
+        choices=["True", "true", "False", "false"],
+    )
+
     use_sim = LaunchConfiguration("use_sim")
     declare_use_sim_arg = DeclareLaunchArgument(
         "use_sim",
@@ -126,7 +139,12 @@ def generate_launch_description():
         package="robot_localization",
         executable="ekf_node",
         name="ekf_filter",
-        parameters=[localization_config_path, {"tf_prefix": namespace}],
+        # print_diagnostics goes first, so a value in the configuration file wins
+        parameters=[
+            {"print_diagnostics": ParameterValue(ekf_print_diagnostics, value_type=bool)},
+            localization_config_path,
+            {"tf_prefix": namespace},
+        ],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -178,6 +196,7 @@ def generate_launch_description():
 
     actions = [
         declare_common_dir_path_arg,
+        declare_ekf_print_diagnostics_arg,
         declare_fuse_gps_arg,
         declare_launch_nmea_gps_arg,
         declare_localization_mode_arg,

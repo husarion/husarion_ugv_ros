@@ -30,10 +30,18 @@ public:
   bool IsError() const { return error_; };
 
   /**
+   * @brief Whether the error was set, or kept set, by a run of errors that were not all excused.
+   */
+  bool IsUnexcusedError() const { return error_ && unexcused_error_; };
+
+  /**
    * @brief Updates the error count, if the number of consecutive errors exceeds the max
    * threshold error is set
+   *
+   * @param excused the error has a known cause that is not a fault, for example a torque disable
+   * requested by this driver. It counts like any other error.
    */
-  void UpdateError(const bool current_error);
+  void UpdateError(const bool current_error, const bool excused = false);
 
   void ClearError();
 
@@ -41,6 +49,8 @@ private:
   const unsigned max_error_count_;
   unsigned current_error_count_ = 0;
   bool error_ = false;
+  bool unexcused_in_run_ = false;
+  bool unexcused_error_ = false;
 };
 
 enum class ErrorsFilterIds {
@@ -56,6 +66,14 @@ const std::map<ErrorsFilterIds, std::string> error_filter_id_names = {
   {ErrorsFilterIds::READ_PDO_MOTOR_STATES, "READ_PDO_MOTOR_STATES"},
   {ErrorsFilterIds::READ_PDO_DRIVER_STATE, "READ_PDO_DRIVER_STATE"},
   {ErrorsFilterIds::ROBOTEQ_DRIVER, "ROBOTEQ_DRIVER"},
+};
+
+// What each filter means, in the words the diagnostics show to an operator.
+const std::map<ErrorsFilterIds, std::string> error_filter_id_descriptions = {
+  {ErrorsFilterIds::WRITE_PDO_CMDS, "Motor command writes failing"},
+  {ErrorsFilterIds::READ_PDO_MOTOR_STATES, "Motor state data timing out"},
+  {ErrorsFilterIds::READ_PDO_DRIVER_STATE, "Driver state data timing out"},
+  {ErrorsFilterIds::ROBOTEQ_DRIVER, "Motor controller fault"},
 };
 
 /**
@@ -77,16 +95,26 @@ public:
 
   bool IsError(const ErrorsFilterIds id) const { return error_filters_.at(id).IsError(); };
 
+  bool IsUnexcusedError(const ErrorsFilterIds id) const
+  {
+    return error_filters_.at(id).IsUnexcusedError();
+  };
+
   /**
    * @brief Updates error count, if the number of consecutive errors exceeds the max
    * threshold error is set
    */
-  void UpdateError(const ErrorsFilterIds id, const bool current_error);
+  void UpdateError(const ErrorsFilterIds id, const bool current_error, const bool excused = false);
 
   /**
    * @brief Returns a map of all errors, with their respective names and values.
    */
   std::map<std::string, bool> GetErrorMap() const;
+
+  /**
+   * @brief Same as GetErrorMap, keyed by the operator description of each error.
+   */
+  std::map<std::string, bool> GetErrorDescriptionMap() const;
 
   /**
    * @brief Sets clear errors flag - errors will be cleared upon the next Update (any) method.

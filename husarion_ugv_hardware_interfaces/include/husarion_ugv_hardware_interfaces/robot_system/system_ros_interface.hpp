@@ -16,10 +16,13 @@
 #define HUSARION_UGV_HARDWARE_INTERFACES_HUSARION_UGV_HARDWARE_INTERFACES_ROBOT_SYSTEM_SYSTEM_ROS_INTERFACE_HPP_
 
 #include <any>
+#include <atomic>
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -69,6 +72,30 @@ struct CANErrors
   bool read_pdo_driver_state_error;
 
   std::unordered_map<DriverNames, DriverCANErrors> driver_errors;
+};
+
+// The IO lines the diagnostics show. A line stays empty until its state is first known.
+struct IOStateDiagnostics
+{
+  std::optional<bool> motor_on;
+  std::optional<bool> charger_connected;
+  std::optional<bool> aux_power;
+  std::optional<bool> fan;
+};
+
+/**
+ * @brief Lock-free copies of the IO lines the diagnostics show, -1 while unknown, else 0 or 1. The
+ * GPIO monitor thread writes them. The hardware system keeps its own reference, so a diagnostic
+ * tick that races the teardown of SystemROSInterface still reads a live object.
+ */
+struct IOStateDiagnosticsStore
+{
+  std::atomic<std::int8_t> motor_on{-1};
+  std::atomic<std::int8_t> charger_connected{-1};
+  std::atomic<std::int8_t> aux_power{-1};
+  std::atomic<std::int8_t> fan{-1};
+
+  IOStateDiagnostics Get() const;
 };
 
 /**
@@ -270,6 +297,11 @@ public:
   void InitializeAndPublishIOStateMsg(const std::unordered_map<GPIOPin, bool> & io_state);
   void PublishIOState(const GPIOInfo & gpio_info);
 
+  std::shared_ptr<const IOStateDiagnosticsStore> GetIOStateDiagnostics() const
+  {
+    return io_state_diagnostics_;
+  }
+
 protected:
   /**
    * @brief Updates the IOState message and indicates whether its state has changed.
@@ -329,6 +361,9 @@ protected:
   diagnostic_updater::Updater diagnostic_updater_;
 
   std::vector<std::any> service_wrappers_storage_;
+
+  std::shared_ptr<IOStateDiagnosticsStore> io_state_diagnostics_ =
+    std::make_shared<IOStateDiagnosticsStore>();
 };
 
 }  // namespace husarion_ugv_hardware_interfaces

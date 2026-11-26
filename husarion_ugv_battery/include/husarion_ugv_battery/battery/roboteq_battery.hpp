@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -55,6 +56,7 @@ public:
   void Reset(const rclcpp::Time & header_stamp) override;
 
   float GetLoadCurrent() override { return std::numeric_limits<float>::quiet_NaN(); }
+  std::string GetSourceName() const override { return "Roboteq motor controllers"; }
 
 protected:
   void ValidateRobotDriverStateMsg(const rclcpp::Time & header_stamp);

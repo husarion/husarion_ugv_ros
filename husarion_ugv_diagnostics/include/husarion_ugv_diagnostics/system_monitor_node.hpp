@@ -64,6 +64,12 @@ protected:
    */
   husarion_ugv_msgs::msg::SystemStatus SystemStatusToMessage(const SystemStatus & status);
 
+  /**
+   * @brief Fills the OS status task from a system status and the warning thresholds.
+   */
+  void DiagnoseSystemStatus(
+    const SystemStatus & system_status, diagnostic_updater::DiagnosticStatusWrapper & status) const;
+
 private:
   void TimerCallback();
   void DiagnoseSystem(diagnostic_updater::DiagnosticStatusWrapper & status);

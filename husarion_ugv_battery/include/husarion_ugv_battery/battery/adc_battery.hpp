@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -53,6 +54,7 @@ public:
   void Reset(const rclcpp::Time & header_stamp) override;
 
   float GetLoadCurrent() override { return current_ma_->GetAverage(); }
+  std::string GetSourceName() const override { return "ADC"; }
 
 private:
   inline float ADCToBatteryVoltage(const float adc_data) const;

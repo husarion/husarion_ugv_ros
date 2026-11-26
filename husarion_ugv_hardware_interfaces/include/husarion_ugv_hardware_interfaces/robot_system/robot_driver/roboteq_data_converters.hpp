@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <bitset>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -82,6 +83,8 @@ public:
   {
     return motor_state_.current * roboteq_current_feedback_to_newton_meters_;
   }
+  // Motor current in A - the Roboteq reports it in A*10.
+  float GetCurrent() const { return motor_state_.current / 10.0F; }
 
 private:
   float roboteq_pos_feedback_to_radians_;
@@ -113,7 +116,20 @@ public:
 
   std::string GetErrorLog() const;
 
+  // Names of the set flags that do not count as an error.
+  std::vector<std::string> GetSetSuppressedFlags() const;
+
+  // Error map keys of bits that have no name, e.g. "script_flag.bit_5". A set bit counts as an
+  // error in IsError(), so it has to show up in the maps too.
+  static constexpr const char * kUnnamedBitPrefix = "bit_";
+
 protected:
+  void AddUnnamedErrorBits(
+    std::map<std::string, bool> & error_map, const std::string & key_prefix) const;
+
+  // Flags that are set and not suppressed - what counts as an error.
+  std::bitset<8> GetErrorFlags() const { return flags_ & (~suppressed_flags_); }
+
   const std::vector<std::string> flag_names_;
 
   std::bitset<8> suppressed_flags_ = 0;
@@ -126,7 +142,11 @@ public:
   FaultFlag();
   husarion_ugv_msgs::msg::FaultFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
+
   bool IsEmergencyStopSet() const { return flags_.test(4); }
+
+  // The emergency stop's key in GetErrorMap and DriverData::GetFlagErrorMap.
+  static constexpr const char * kEmergencyStopKey = "fault_flag.emergency_stop (torque disabled)";
 };
 
 class ScriptFlag : public FlagError
@@ -143,6 +163,20 @@ public:
   RuntimeError();
   husarion_ugv_msgs::msg::RuntimeError GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
+
+  /**
+   * @brief Describes the set flags that are not errors (current limiting, limit switches) for
+   * the operator, e.g. "current limit active". Empty when none is set.
+   *
+   * @param include_safety_stop false leaves the safety stop out, for when the e-stop holds it.
+   */
+  std::string GetWarningDescription(const bool include_safety_stop = true) const;
+
+  bool IsSafetyStopActive() const { return flags_.test(3); }
+
+  // The controller sets this bit, which has no name here, on both channels while its emergency
+  // stop is on.
+  static constexpr const char * kEmergencyStopBitKey = "runtime_error.bit_7";
 };
 
 /**
@@ -194,6 +228,12 @@ public:
     const MotorDriverState & channel_1_state, const MotorDriverState & channel_2_state,
     const bool data_timed_out);
   void SetDriverState(const DriverState & state, const bool data_timed_out);
+  // Ages of the oldest and the freshest motor state timestamp, kept from the last timed out read.
+  void SetMotorsStatesTimeoutAges(const float oldest_ms, const float freshest_ms)
+  {
+    motor_states_timeout_oldest_age_ms_ = oldest_ms;
+    motor_states_timeout_freshest_age_ms_ = freshest_ms;
+  }
   void SetCANError(const bool can_error) { can_error_ = can_error; }
   void SetHeartbeatTimeout(const bool heartbeat_timeout) { heartbeat_timeout_ = heartbeat_timeout; }
 
@@ -221,6 +261,10 @@ public:
   const RoboteqDriverState & GetDriverState() const { return driver_state_; }
 
   bool IsMotorStatesDataTimedOut() const { return motor_states_data_timed_out_; }
+  // How many times the motor state data went from fresh to timed out.
+  std::uint32_t GetMotorStatesTimeouts() const { return motor_states_timeouts_; }
+  float GetMotorStatesTimeoutOldestAgeMs() const { return motor_states_timeout_oldest_age_ms_; }
+  float GetMotorStatesTimeoutFreshestAgeMs() const { return motor_states_timeout_freshest_age_ms_; }
   bool IsDriverStateDataTimedOut() const { return driver_state_data_timed_out_; }
   bool IsCANError() const { return can_error_; }
   bool IsHeartbeatTimeout() const { return heartbeat_timeout_; }
@@ -254,6 +298,9 @@ private:
   RuntimeError channel_2_runtime_error_;
 
   bool motor_states_data_timed_out_ = false;
+  std::uint32_t motor_states_timeouts_ = 0;
+  float motor_states_timeout_oldest_age_ms_ = 0.0F;
+  float motor_states_timeout_freshest_age_ms_ = 0.0F;
   bool driver_state_data_timed_out_ = false;
   bool can_error_ = false;
   bool heartbeat_timeout_ = false;

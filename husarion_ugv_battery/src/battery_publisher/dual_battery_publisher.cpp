@@ -35,8 +35,9 @@ DualBatteryPublisher::DualBatteryPublisher(
   const rclcpp::Node::SharedPtr & node,
   const std::shared_ptr<diagnostic_updater::Updater> & diagnostic_updater,
   const double battery_timeout, const std::shared_ptr<Battery> & battery_1,
-  const std::shared_ptr<Battery> & battery_2)
-: BatteryPublisher(std::move(node), std::move(diagnostic_updater), battery_timeout),
+  const std::shared_ptr<Battery> & battery_2, const float low_battery_percentage)
+: BatteryPublisher(
+    std::move(node), std::move(diagnostic_updater), battery_timeout, low_battery_percentage),
   battery_1_(std::move(battery_1)),
   battery_2_(std::move(battery_2))
 {
@@ -89,6 +90,14 @@ void DualBatteryPublisher::LogErrors()
   if (battery_2_->HasErrorMsg()) {
     RCLCPP_ERROR_STREAM_THROTTLE(
       GetLogger(), *GetClock(), 10000, "Battery nr 2 error: " << battery_2_->GetErrorMsg());
+  }
+  if (battery_1_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery nr 1 warning: " << battery_1_->GetWarningMsg());
+  }
+  if (battery_2_->HasWarningMsg()) {
+    RCLCPP_WARN_STREAM_THROTTLE(
+      GetLogger(), *GetClock(), 10000, "Battery nr 2 warning: " << battery_2_->GetWarningMsg());
   }
 }
 
@@ -210,6 +219,10 @@ ChargingStatusMsg DualBatteryPublisher::MergeChargingStatusMsgs(
 
 void DualBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  if (DiagnoseMissingData(status)) {
+    return;
+  }
+
   unsigned char error_level{diagnostic_updater::DiagnosticStatusWrapper::OK};
   std::string message{"Battery has no errors"};
 
@@ -224,17 +237,34 @@ void DualBatteryPublisher::DiagnoseErrors(diagnostic_updater::DiagnosticStatusWr
     if (battery_2_->HasErrorMsg()) {
       status.add("Error message: battery 2", battery_2_->GetErrorMsg());
     }
+  } else if (battery_1_->HasWarningMsg() || battery_2_->HasWarningMsg()) {
+    error_level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "Battery has warning";
+  }
+
+  if (battery_1_->HasWarningMsg()) {
+    status.add("Warning message: battery 1", battery_1_->GetWarningMsg());
+  }
+  if (battery_2_->HasWarningMsg()) {
+    status.add("Warning message: battery 2", battery_2_->GetWarningMsg());
   }
 
   status.summary(error_level, message);
+  WarnOnReadFailures(status);
 }
 
 void DualBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWrapper & status)
 {
+  unsigned char level = diagnostic_updater::DiagnosticStatusWrapper::OK;
+  std::string message = "Battery status monitoring";
+
   const auto battery_1_msg = battery_1_->GetBatteryMsg();
   const auto battery_2_msg = battery_2_->GetBatteryMsg();
   auto charging_status_bat_1 = MapPowerSupplyStatusToString(battery_1_msg.power_supply_status);
   auto charging_status_bat_2 = MapPowerSupplyStatusToString(battery_2_msg.power_supply_status);
+
+  // Both batteries are read the same way.
+  status.add("Source", battery_1_->GetSourceName());
 
   std::string charging_status;
   charging_status_bat_1 == charging_status_bat_2
@@ -242,14 +272,38 @@ void DualBatteryPublisher::DiagnoseStatus(diagnostic_updater::DiagnosticStatusWr
     : charging_status = "Power supply status not determined, check batteries.";
   status.add("Power supply status", charging_status);
 
+  AddBatteryState(status, battery_1_msg, "Battery 1");
+  AddBatteryState(status, battery_2_msg, "Battery 2");
+
   const auto load_current_bat_1 = battery_1_->GetLoadCurrent();
   const auto load_current_bat_2 = battery_2_->GetLoadCurrent();
   const auto load_current = load_current_bat_1 + load_current_bat_2;
-  status.add("Load current total (A)", load_current);
-  status.add("Load current battery 1 (A)", load_current_bat_1);
-  status.add("Load current battery 2 (A)", load_current_bat_2);
+  AddMeasurement(status, "Load current total (A)", load_current);
+  AddMeasurement(status, "Load current battery 1 (A)", load_current_bat_1);
+  AddMeasurement(status, "Load current battery 2 (A)", load_current_bat_2);
 
-  status.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Battery status monitoring");
+  const auto charge_current_bat_1 = battery_1_->GetChargingStatus().current;
+  const auto charge_current_bat_2 = battery_2_->GetChargingStatus().current;
+  AddMeasurement(status, "Charge current total (A)", charge_current_bat_1 + charge_current_bat_2);
+  AddMeasurement(status, "Charge current battery 1 (A)", charge_current_bat_1);
+  AddMeasurement(status, "Charge current battery 2 (A)", charge_current_bat_2);
+
+  WarnOnBatteryState(battery_1_msg, level, message);
+  WarnOnBatteryState(battery_2_msg, level, message);
+  // One pack reaching full before the other is normal while charging. One pack charging while the
+  // other discharges is not.
+  const auto status_1 = battery_1_msg.power_supply_status;
+  const auto status_2 = battery_2_msg.power_supply_status;
+  if (
+    (status_1 == BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING &&
+     status_2 == BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING) ||
+    (status_1 == BatteryStateMsg::POWER_SUPPLY_STATUS_DISCHARGING &&
+     status_2 == BatteryStateMsg::POWER_SUPPLY_STATUS_CHARGING)) {
+    level = diagnostic_updater::DiagnosticStatusWrapper::WARN;
+    message = "One battery is charging while the other is discharging.";
+  }
+
+  status.summary(level, message);
 }
 
 }  // namespace husarion_ugv_battery

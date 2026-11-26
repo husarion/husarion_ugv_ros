@@ -14,6 +14,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -67,6 +68,14 @@ public:
 
   {
     return husarion_ugv_diagnostics::SystemMonitorNode::SystemStatusToMessage(status);
+  }
+
+  diagnostic_msgs::msg::DiagnosticStatus DiagnoseSystemStatus(
+    const husarion_ugv_diagnostics::SystemStatus & system_status) const
+  {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    husarion_ugv_diagnostics::SystemMonitorNode::DiagnoseSystemStatus(system_status, status);
+    return status;
   }
 };
 
@@ -174,6 +183,69 @@ TEST_F(TestSystemMonitorNode, SystemStatusToMessage)
   EXPECT_FLOAT_EQ(test_status.cpu_temperature, message.cpu_temp);
   EXPECT_FLOAT_EQ(test_status.ram_usage, message.ram_usage_percent);
   EXPECT_FLOAT_EQ(test_status.disk_usage, message.disc_usage_percent);
+}
+
+husarion_ugv_diagnostics::SystemStatus MakeNominalSystemStatus()
+{
+  husarion_ugv_diagnostics::SystemStatus status;
+  status.core_usages = {10.0, 20.0, 30.0, 40.0};
+  status.cpu_mean_usage = 25.0;
+  status.cpu_temperature = 50.0;
+  status.ram_usage = 50.0;
+  status.disk_usage = 50.0;
+  return status;
+}
+
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusNominal)
+{
+  const auto status = system_monitor_->DiagnoseSystemStatus(MakeNominalSystemStatus());
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+}
+
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusPerCoreUsage)
+{
+  auto system_status = MakeNominalSystemStatus();
+  system_status.core_usages[3] = 100.0;
+
+  const auto status = system_monitor_->DiagnoseSystemStatus(system_status);
+  // A single busy core does not change the level.
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+
+  std::string core_3_usage;
+  for (const auto & kv : status.values) {
+    if (kv.key == "CPU core 3 usage (%)") {
+      core_3_usage = kv.value;
+    }
+  }
+  EXPECT_FLOAT_EQ(100.0, std::stof(core_3_usage));
+}
+
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusDiskFull)
+{
+  // RAM and disk share the same 90 % default threshold.
+  auto system_status = MakeNominalSystemStatus();
+  system_status.disk_usage = 95.0;
+
+  const auto status = system_monitor_->DiagnoseSystemStatus(system_status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+}
+
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusRAMFull)
+{
+  auto system_status = MakeNominalSystemStatus();
+  system_status.ram_usage = 95.0;
+
+  const auto status = system_monitor_->DiagnoseSystemStatus(system_status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+}
+
+TEST_F(TestSystemMonitorNode, DiagnoseSystemStatusDiskUnknown)
+{
+  auto system_status = MakeNominalSystemStatus();
+  system_status.disk_usage = std::numeric_limits<float>::quiet_NaN();
+
+  const auto status = system_monitor_->DiagnoseSystemStatus(system_status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::ERROR, status.level);
 }
 
 int main(int argc, char ** argv)

@@ -21,15 +21,18 @@
 namespace husarion_ugv_hardware_interfaces
 {
 
-void ErrorFilter::UpdateError(const bool current_error)
+void ErrorFilter::UpdateError(const bool current_error, const bool excused)
 {
   if (current_error) {
     ++current_error_count_;
+    unexcused_in_run_ = unexcused_in_run_ || !excused;
     if (current_error_count_ >= max_error_count_) {
       error_ = true;
+      unexcused_error_ = unexcused_error_ || unexcused_in_run_;
     }
   } else {
     current_error_count_ = 0;
+    unexcused_in_run_ = false;
   }
 }
 
@@ -37,6 +40,8 @@ void ErrorFilter::ClearError()
 {
   error_ = false;
   current_error_count_ = 0;
+  unexcused_in_run_ = false;
+  unexcused_error_ = false;
 }
 
 RoboteqErrorFilter::RoboteqErrorFilter(
@@ -62,10 +67,11 @@ bool RoboteqErrorFilter::IsError() const
   });
 };
 
-void RoboteqErrorFilter::UpdateError(const ErrorsFilterIds id, const bool current_error)
+void RoboteqErrorFilter::UpdateError(
+  const ErrorsFilterIds id, const bool current_error, const bool excused)
 {
   ClearErrorsIfFlagSet();
-  error_filters_.at(id).UpdateError(current_error);
+  error_filters_.at(id).UpdateError(current_error, excused);
 }
 
 std::map<std::string, bool> RoboteqErrorFilter::GetErrorMap() const
@@ -78,6 +84,15 @@ std::map<std::string, bool> RoboteqErrorFilter::GetErrorMap() const
     error_map.emplace(error_name, error_value);
   });
 
+  return error_map;
+}
+
+std::map<std::string, bool> RoboteqErrorFilter::GetErrorDescriptionMap() const
+{
+  std::map<std::string, bool> error_map;
+  for (const auto & [id, filter] : error_filters_) {
+    error_map.emplace(error_filter_id_descriptions.at(id), filter.IsError());
+  }
   return error_map;
 }
 

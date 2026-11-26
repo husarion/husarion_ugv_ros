@@ -69,6 +69,7 @@ public:
 
   MOCK_METHOD(void, DiagnoseErrors, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
   MOCK_METHOD(void, DiagnoseStatus, (diagnostic_updater::DiagnosticStatusWrapper &), (override));
+  MOCK_METHOD(std::vector<DriverDiagnosticData>, GetDriversDiagnosticData, (), (override));
 
   void SetHwCommandVelocity(const std::vector<double> & velocity)
   {
@@ -80,6 +81,10 @@ public:
     hw_states_velocities_ = velocity;
   }
   void SetHwStateEffort(const std::vector<double> & effort) { hw_states_efforts_ = effort; }
+  void DiagnoseEStop(diagnostic_updater::DiagnosticStatusWrapper & status)
+  {
+    UGVSystem::DiagnoseEStop(status);
+  }
 
   std::shared_ptr<husarion_ugv_hardware_interfaces_test::MockRobotDriver::NiceMock>
   GetMockRobotDriver()
@@ -553,6 +558,59 @@ TEST_F(TestUGVSystem, ReadKeepsDriverStateRate)
   EXPECT_EQ(driver_state_updates, 20);
 
   rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, DiagnoseEStop)
+{
+  using husarion_ugv_hardware_interfaces::EStopLatchSource;
+  rclcpp::init(0, nullptr);
+
+  const auto e_stop_diagnostics =
+    std::make_shared<husarion_ugv_hardware_interfaces::EStopDiagnostics>();
+  ON_CALL(*ugv_system_->GetMockEStop(), GetDiagnostics())
+    .WillByDefault(::testing::Return(e_stop_diagnostics));
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+
+  const auto diagnose = [this]() -> diagnostic_msgs::msg::DiagnosticStatus {
+    diagnostic_updater::DiagnosticStatusWrapper status;
+    ugv_system_->DiagnoseEStop(status);
+    return status;
+  };
+  const auto value_of = husarion_ugv_hardware_interfaces_test::GetDiagnosticValue;
+
+  // A robot parked since boot or stopped by the driver is not a fault.
+  auto status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("latched", value_of(status, "State"));
+
+  e_stop_diagnostics->SetSource(EStopLatchSource::SOFTWARE);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_THAT(value_of(status, "Source"), ::testing::HasSubstr("software"));
+
+  e_stop_diagnostics->SetSource(EStopLatchSource::RELEASED);
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::OK, status.level);
+  EXPECT_EQ("released", value_of(status, "State"));
+
+  // Only a stop by a device outside the driver asks for attention.
+  e_stop_diagnostics->SetSource(EStopLatchSource::HARDWARE);
+  e_stop_diagnostics->SetResetRefused("line stuck");
+  status = diagnose();
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::WARN, status.level);
+  EXPECT_THAT(value_of(status, "Source"), ::testing::HasSubstr("hardware line"));
+  EXPECT_EQ("line stuck", value_of(status, "Last refused reset"));
+
+  rclcpp::shutdown();
+}
+
+TEST_F(TestUGVSystem, DiagnoseEStopWithoutState)
+{
+  diagnostic_updater::DiagnosticStatusWrapper status;
+  ugv_system_->DiagnoseEStop(status);
+  EXPECT_EQ(diagnostic_updater::DiagnosticStatusWrapper::STALE, status.level);
 }
 
 TEST_F(TestUGVSystem, Write)

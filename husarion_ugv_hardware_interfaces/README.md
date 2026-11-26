@@ -17,6 +17,16 @@ Plugins for Panther and Lynx are based on an abstraction called UGVSystem. Most 
 - `hardware/io_state` [*husarion_ugv_msgs/IOState*]: Current IO state.
 - `hardware/robot_driver_state` [*husarion_ugv_msgs/RobotDriverState*]: Current motor controllers' state and error flags.
 
+#### Diagnostics
+
+The `diagnostics` topic carries three tasks of the `hardware_controller` node:
+
+- `E-stop`: whether the E-stop is latched and what latched it: the driver start (the safety board powers up latched), software (a service call, a communication error, a deactivation or a shutdown), or the hardware line with no software trigger (an e-stop button, a Roboteq fault or the safety board watchdog), plus the last refused reset. Only a latch by the hardware line is a WARN.
+- `System errors`: the motor controller faults and the latched driver errors. Conditions that do not stop the robot, such as a late PDO, an active current limit or a safety stop with the E-stop released, are WARN. Motor torque disabled on request is a WARN too. While it is off on request, a real emergency stop fault of a motor controller looks the same as the request.
+- `System status`: voltages, currents and temperatures of each motor controller, the IO lines, the longest period between two reads since the last report and the PDO timeouts in the last hour.
+
+Earlier versions named the tasks `system errors` and `system status`, keyed the latched driver errors by their internal id (`READ_PDO_MOTOR_STATES error`) and reported the Lynx values as `Default driver ...`. Anything that matches on those names needs updating.
+
 #### Service Servers
 
 - `hardware/aux_power_enable` [*std_srvs/SetBool*]: Enables or disables AUX power.

@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <thread>
 
 #include <gmock/gmock.h>
@@ -31,6 +32,7 @@
 
 #include "utils/system_test_utils.hpp"
 
+using husarion_ugv_hardware_interfaces::GPIOPin;
 using husarion_ugv_hardware_interfaces_test::MockGPIOController;
 using husarion_ugv_hardware_interfaces_test::MockRobotDriver;
 using testing::Invoke;
@@ -62,6 +64,34 @@ public:
   }
 
 protected:
+  // The reset pin is active while the hardware line is released.
+  void SetLineAsserted(const bool asserted)
+  {
+    ON_CALL(gpio_controller_->GetMockGPIODriver(), IsPinActive(GPIOPin::E_STOP_RESET))
+      .WillByDefault(testing::Return(!asserted));
+  }
+
+  std::string ReadAndCaptureLog()
+  {
+    testing::internal::CaptureStderr();
+    e_stop_->ReadEStopState();
+    return testing::internal::GetCapturedStderr();
+  }
+
+  void TriggerQuietly()
+  {
+    testing::internal::CaptureStderr();
+    e_stop_->TriggerEStop();
+    testing::internal::GetCapturedStderr();
+  }
+
+  void ReleaseLine()
+  {
+    SetLineAsserted(false);
+    e_stop_->ResetEStop();
+    ReadAndCaptureLog();
+  }
+
   // Returns false when the trigger was not requested within 5 s.
   bool WaitForTriggerCount(const std::uint64_t count)
   {
@@ -393,6 +423,21 @@ TEST_F(TestEStop, RefusedResetOfReleasedEStopLatchesTheMotorControllerAgain)
   EXPECT_THROW(e_stop_->ResetEStop(), std::runtime_error);
 }
 
+TEST_F(TestEStop, RefusedResetCallsTheHookBeforeTheLatch)
+{
+  testing::MockFunction<void()> before_relatch;
+  auto error_filter = std::make_shared<husarion_ugv_hardware_interfaces::RoboteqErrorFilter>(
+    2, 2, 2, 2);
+  EStopWrapper e_stop(
+    gpio_controller_, error_filter, robot_driver_, robot_driver_write_mtx_, []() { return false; },
+    []() { return false; }, before_relatch.AsStdFunction());
+
+  testing::InSequence sequence;
+  EXPECT_CALL(before_relatch, Call()).Times(1);
+  EXPECT_CALL(*robot_driver_, TurnOnEStop()).Times(1);
+  EXPECT_THROW(e_stop.ResetEStop(), std::runtime_error);
+}
+
 TEST_F(TestEStop, ResetRefusedWhenGPIOResetFails)
 {
   EXPECT_CALL(*gpio_controller_, EStopReset())
@@ -424,6 +469,171 @@ TEST_F(TestEStop, ResetReportsFailedLatch)
     EXPECT_THAT(e.what(), testing::HasSubstr("Latching the motor controllers again failed"));
     EXPECT_THAT(e.what(), testing::HasSubstr("SDO write failed"));
   }
+}
+
+TEST_F(TestEStop, LineAssertedWithoutSoftwareTriggerBlamesOutsideDevice)
+{
+  ReleaseLine();
+
+  SetLineAsserted(true);
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, LineAssertedAfterSoftwareTriggerNamesTheTrigger)
+{
+  ReleaseLine();
+  TriggerQuietly();
+
+  // The safety board drops the line a few cycles after the watchdog stops.
+  EXPECT_EQ("", ReadAndCaptureLog());
+  SetLineAsserted(true);
+  const auto log = ReadAndCaptureLog();
+  EXPECT_THAT(log, testing::HasSubstr("after the software trigger"));
+  EXPECT_THAT(log, testing::Not(testing::HasSubstr("No software trigger")));
+}
+
+TEST_F(TestEStop, SoftwareTriggerDoesNotCoverLaterOutsideStops)
+{
+  ReleaseLine();
+  TriggerQuietly();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  ReleaseLine();
+  SetLineAsserted(true);
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, ResetClearsAPendingSoftwareTrigger)
+{
+  // Triggered while the line was already asserted, so no edge consumed it.
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  TriggerQuietly();
+
+  ReleaseLine();
+  SetLineAsserted(true);
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+}
+
+TEST_F(TestEStop, DiagnosticsStartLatchedAtStartup)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_EQ(0, snapshot.last_change_ns);
+  EXPECT_TRUE(snapshot.last_refused_reset.empty());
+}
+
+TEST_F(TestEStop, DiagnosticsFollowResetAndSoftwareTrigger)
+{
+  ReleaseLine();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::RELEASED,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::SOFTWARE, snapshot.source);
+  EXPECT_NE(0, snapshot.last_change_ns);
+}
+
+TEST_F(TestEStop, DiagnosticsBlameTheHardwareLineWithoutATrigger)
+{
+  ReleaseLine();
+
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+
+  // A later software trigger does not hide the outside stop.
+  testing::internal::CaptureStderr();
+  e_stop_->TriggerEStop();
+  testing::internal::GetCapturedStderr();
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, DiagnosticsKeepTheRefusedResetReason)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  EXPECT_CALL(*gpio_controller_, EStopReset())
+    .WillOnce(testing::Throw(std::runtime_error("line stuck")));
+
+  EXPECT_THROW(e_stop_->ResetEStop(), std::runtime_error);
+
+  const auto snapshot = e_stop_->GetDiagnostics()->Get();
+  EXPECT_EQ(husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP, snapshot.source);
+  EXPECT_THAT(snapshot.last_refused_reset, testing::HasSubstr("line stuck"));
+  EXPECT_NE(0, snapshot.last_refused_reset_ns);
+}
+
+TEST_F(TestEStop, RepeatedSoftwareTriggerLogsOnce)
+{
+  // A communication error triggers the E-stop on every read cycle, which must not write a line
+  // per cycle from the control loop.
+  ReleaseLine();
+
+  testing::internal::CaptureStderr();
+  for (int i = 0; i < 100; ++i) {
+    e_stop_->TriggerEStop();
+  }
+  const auto log = testing::internal::GetCapturedStderr();
+
+  const std::string line = "E-Stop triggered in software";
+  std::size_t count = 0;
+  for (auto pos = log.find(line); pos != std::string::npos; pos = log.find(line, pos + 1)) {
+    ++count;
+  }
+  EXPECT_EQ(1u, count);
+}
+
+TEST_F(TestEStop, LatchRightAfterResetIsNotMissed)
+{
+  // The button is pressed after the reset returned and before a read saw the released line.
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  e_stop_->ResetEStop();
+
+  EXPECT_THAT(ReadAndCaptureLog(), testing::HasSubstr("No software trigger was requested"));
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::HARDWARE,
+    e_stop_->GetDiagnostics()->Get().source);
+}
+
+TEST_F(TestEStop, ResetLogsTheRelease)
+{
+  SetLineAsserted(true);
+  ReadAndCaptureLog();
+  SetLineAsserted(false);
+
+  testing::internal::CaptureStderr();
+  e_stop_->ResetEStop();
+  EXPECT_THAT(testing::internal::GetCapturedStderr(), testing::HasSubstr("line released"));
+  EXPECT_EQ("", ReadAndCaptureLog());
+}
+
+TEST_F(TestEStop, StartupWithTheLineReleasedStaysLatched)
+{
+  // The software E-stop is set until the first reset, whatever the line says.
+  SetLineAsserted(false);
+  testing::internal::CaptureStderr();
+  EXPECT_TRUE(e_stop_->ReadEStopState());
+  EXPECT_THAT(testing::internal::GetCapturedStderr(), testing::HasSubstr("line released"));
+  EXPECT_EQ(
+    husarion_ugv_hardware_interfaces::EStopLatchSource::STARTUP,
+    e_stop_->GetDiagnostics()->Get().source);
 }
 
 int main(int argc, char ** argv)

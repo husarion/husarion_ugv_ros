@@ -178,15 +178,18 @@ void SystemROSInterface::UpdateMsgErrors(const CANErrors & can_errors)
 
 void SystemROSInterface::PublishEStopStateMsg(const bool e_stop)
 {
-  realtime_e_stop_state_publisher_->msg_.data = e_stop;
+  // msg_ is written only while the lock is held, so it always holds the last published value. If
+  // trylock() fails, nothing is stored and PublishEStopStateIfChanged retries on the next cycle.
   if (realtime_e_stop_state_publisher_->trylock()) {
+    realtime_e_stop_state_publisher_->msg_.data = e_stop;
     realtime_e_stop_state_publisher_->unlockAndPublish();
+    e_stop_state_published_ = true;
   }
 }
 
 void SystemROSInterface::PublishEStopStateIfChanged(const bool e_stop)
 {
-  if (realtime_e_stop_state_publisher_->msg_.data != e_stop) {
+  if (!e_stop_state_published_ || realtime_e_stop_state_publisher_->msg_.data != e_stop) {
     PublishEStopStateMsg(e_stop);
   }
 }

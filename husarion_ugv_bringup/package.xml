@@ -26,6 +26,11 @@
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch</exec_depend>
   <exec_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch_ros</exec_depend>
 
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">ament_cmake_pytest</test_depend>
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch</test_depend>
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">launch_ros</test_depend>
+  <test_depend condition="$HUSARION_ROS_BUILD_TYPE == hardware">python3-pytest</test_depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>

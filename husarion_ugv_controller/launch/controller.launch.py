@@ -17,7 +17,12 @@
 
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Shutdown
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    Shutdown,
+)
 from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
@@ -84,11 +89,23 @@ def generate_launch_description():
         ),
     )
 
+    controller_overlay_config_path = LaunchConfiguration("controller_overlay_config_path")
+    declare_controller_overlay_config_path_arg = DeclareLaunchArgument(
+        "controller_overlay_config_path",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("husarion_ugv_controller"), "config", "controller_overlay.yaml"]
+        ),
+        description=(
+            "Path to a parameter file that ros2_control_node loads after controller_config_path,"
+            " so its values override the ones there."
+        ),
+    )
+
     log_level = LaunchConfiguration("log_level")
     declare_log_level_arg = DeclareLaunchArgument(
         "log_level",
         default_value="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "FATAL"],
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
         description="Logging level",
     )
 
@@ -174,7 +191,10 @@ def generate_launch_description():
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[ns_controller_config_path],
+        parameters=[
+            ns_controller_config_path,
+            ReplaceString(controller_overlay_config_path, {"<namespace>/": ns}),
+        ],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -212,8 +232,9 @@ def generate_launch_description():
     spawner_common_args = [
         "--controller-manager",
         "controller_manager",
+        # CM services appear after hardware activation; max_roboteq_*_attempts can take ~60 s.
         "--controller-manager-timeout",
-        "10",
+        "90",
         "--ros-args",
         "--log-level",
         log_level,
@@ -241,11 +262,12 @@ def generate_launch_description():
         declare_use_madgwick_filter_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
+        declare_controller_overlay_config_path_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
-        load_urdf,
+        GroupAction([load_urdf], scoped=True),
         control_node,
         controllers_spawner,
     ]

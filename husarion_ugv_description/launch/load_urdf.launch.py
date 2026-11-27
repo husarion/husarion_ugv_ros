@@ -54,9 +54,9 @@ def generate_launch_description():
         ]
     )
 
-    battery_config_path = LaunchConfiguration("battery_config_path")
-    declare_battery_config_path_arg = DeclareLaunchArgument(
-        "battery_config_path",
+    gz_battery_config_path = LaunchConfiguration("gz_battery_config_path")
+    declare_gz_battery_config_path_arg = DeclareLaunchArgument(
+        "gz_battery_config_path",
         description=(
             "Path to the Ignition LinearBatteryPlugin configuration file. "
             "This configuration is intended for use in simulations only."
@@ -79,6 +79,14 @@ def generate_launch_description():
         "use_madgwick_filter",
         default_value="False",
         description="Determine orientation from IMU",
+        choices=["True", "true", "False", "false"],
+    )
+
+    use_mag = LaunchConfiguration("use_mag")
+    declare_use_mag_arg = DeclareLaunchArgument(
+        "use_mag",
+        default_value="True",
+        description="Use the IMU magnetometer in the Madgwick filter.",
         choices=["True", "true", "False", "false"],
     )
 
@@ -193,7 +201,7 @@ def generate_launch_description():
             " controller_config_file:=",
             ns_controller_config_path,
             " battery_config_file:=",
-            battery_config_path,
+            gz_battery_config_path,
             " imu_xyz:=",
             f"'{imu_pos_x} {imu_pos_y} {imu_pos_z}'",
             " imu_rpy:=",
@@ -204,6 +212,8 @@ def generate_launch_description():
             components_config_path,
             " use_madgwick_filter:=",
             use_madgwick_filter,
+            " use_mag:=",
+            use_mag,
         ]
     )
 
@@ -221,10 +231,11 @@ def generate_launch_description():
 
     actions = [
         declare_common_dir_path_arg,
-        declare_battery_config_path_arg,
+        declare_gz_battery_config_path_arg,
         declare_components_config_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
+        declare_use_mag_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
         declare_namespace_arg,

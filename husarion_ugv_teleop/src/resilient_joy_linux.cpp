@@ -368,7 +368,6 @@ public:
           break;
         }
         if (first_fault) {
-          // A gamepad is optional: a missing one is INFO, a lost one is WARN.
           const char * reason = present ? "" : " (no device registered in /sys/dev/char)";
           if (opened_before_) {
             RCLCPP_WARN(

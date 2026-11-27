@@ -108,6 +108,8 @@ void BatteryDriverNode::InitializeWithADCBattery()
       battery_2_);
   } else {
     battery_2_.reset();
+    // Lynx v1.0h splits the charge current over two shunts; on boards with one the second
+    // channel reads ~0 A (measured on a Lynx with power board 1.4).
     battery_1_ = std::make_shared<ADCBattery>(
       std::bind(&ADCDataReader::GetADCMeasurement, *adc1_reader_, 0, 0),
       [&]() {
@@ -115,7 +117,10 @@ void BatteryDriverNode::InitializeWithADCBattery()
                adc1_reader_->GetADCMeasurement(1, kADCCurrentOffset);
       },
       std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 1, 0),
-      std::bind(&ADCDataReader::GetADCMeasurement, *adc0_reader_, 3, 0), battery_params);
+      [&]() {
+        return adc0_reader_->GetADCMeasurement(3, 0) + adc0_reader_->GetADCMeasurement(2, 0);
+      },
+      battery_params);
     battery_publisher_ = std::make_shared<SingleBatteryPublisher>(
       this->shared_from_this(), diagnostic_updater_, params_.battery_timeout, battery_1_);
   }

@@ -49,11 +49,7 @@ public:
     const CANopenSettings & canopen_settings, const DrivetrainSettings & drivetrain_settings,
     const std::chrono::milliseconds activate_wait_time = std::chrono::milliseconds(1000));
 
-  ~RoboteqRobotDriver()
-  {
-    drivers_.clear();
-    Deinitialize();
-  };
+  ~RoboteqRobotDriver() { Deinitialize(); };
 
   /**
    * @brief Starts CAN communication and waits for boot to finish

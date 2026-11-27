@@ -71,6 +71,9 @@ void RoboteqRobotDriver::Initialize()
 
 void RoboteqRobotDriver::Deinitialize()
 {
+  // Tasks posted to the master's executor point at the drivers, so the loop stops first. The
+  // drivers still deregister from the master, which goes last.
+  canopen_manager_.StopCommunication();
   drivers_.clear();
   data_.clear();
   canopen_manager_.Deinitialize();
@@ -94,18 +97,23 @@ void RoboteqRobotDriver::Activate()
 
   std::this_thread::sleep_for(activate_wait_time_);
 
-  for (auto & [name, driver] : drivers_) {
-    try {
-      driver->GetMotorDriver(MotorNames::LEFT)->SendCmdVel(0);
-      driver->GetMotorDriver(MotorNames::RIGHT)->SendCmdVel(0);
-    } catch (const std::runtime_error & e) {
-      throw std::runtime_error(
-        "Send 0 command exception on " + DriverNamesToString(name) +
-        "driver : " + std::string(e.what()));
+  const auto send_zero_commands = [this]() {
+    for (auto & [name, driver] : drivers_) {
+      try {
+        driver->GetMotorDriver(MotorNames::LEFT)->SendCmdVel(0);
+        driver->GetMotorDriver(MotorNames::RIGHT)->SendCmdVel(0);
+      } catch (const std::runtime_error & e) {
+        throw std::runtime_error(
+          "Send 0 command exception on " + DriverNamesToString(name) +
+          "driver : " + std::string(e.what()));
+      }
     }
-  }
-
+  };
+  send_zero_commands();
   std::this_thread::sleep_for(activate_wait_time_);
+  // The command is written by a task on the master's executor. Sending it again reports a write
+  // of the first one that failed, or one the master never ran.
+  send_zero_commands();
 }
 
 void RoboteqRobotDriver::UpdateCommunicationState()

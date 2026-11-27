@@ -530,6 +530,31 @@ TEST_F(TestUGVSystem, Read)
   rclcpp::shutdown();
 }
 
+TEST_F(TestUGVSystem, ReadKeepsDriverStateRate)
+{
+  rclcpp::init(0, nullptr);
+
+  ASSERT_NO_THROW(ugv_system_->on_init(hardware_info_));
+  ASSERT_NO_THROW(ugv_system_->on_configure(rclcpp_lifecycle::State()));
+  ASSERT_NO_THROW(ugv_system_->on_activate(rclcpp_lifecycle::State()));
+
+  int driver_state_updates = 0;
+  ON_CALL(*ugv_system_, UpdateDriverStateMsg()).WillByDefault([&]() { ++driver_state_updates; });
+
+  // 100 Hz reads up to 0.4 ms late for one second, 20 Hz driver state expected
+  const int64_t start_ns = 1'000'000'000;
+  for (int i = 0; i < 100; ++i) {
+    const int64_t jitter_ns = (i % 3) * 200'000;
+    ugv_system_->read(
+      rclcpp::Time(start_ns + i * 10'000'000 + jitter_ns, RCL_STEADY_TIME),
+      rclcpp::Duration(0, 10'000'000));
+  }
+
+  EXPECT_EQ(driver_state_updates, 20);
+
+  rclcpp::shutdown();
+}
+
 TEST_F(TestUGVSystem, Write)
 {
   rclcpp::init(0, nullptr);

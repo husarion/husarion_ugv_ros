@@ -80,6 +80,12 @@ public:
   void Deinitialize();
 
   /**
+   * @brief Stops the CANopen event loop and waits for its thread, but keeps the master, so the
+   * drivers created on it can still be destroyed. Deinitialize() calls it too.
+   */
+  void StopCommunication();
+
+  /**
    * @brief Activates CANopen communication thread. This method should be invoked after all objects
    * using this communication are created.
    *
@@ -114,6 +120,8 @@ private:
 
   // Priority set to be higher than the priority of the main ros2 control node (50)
   static constexpr unsigned kCANopenThreadSchedPriority = 60;
+
+  static constexpr std::chrono::seconds kCANopenCommunicationStartTimeout{10};
 
   bool initialized_ = false;
 

@@ -63,6 +63,19 @@ void CANopenManager::Initialize()
   initialized_ = true;
 }
 
+void CANopenManager::StopCommunication()
+{
+  if (canopen_communication_thread_.joinable()) {
+    if (master_) {
+      master_->AsyncDeconfig().submit(*exec_, [this]() { ctx_->shutdown(); });
+    }
+    // Unbounded: deconfiguration completes after every registered driver has deconfigured.
+    canopen_communication_thread_.join();
+  }
+
+  canopen_communication_started_.store(false);
+}
+
 void CANopenManager::Activate()
 {
   if (!initialized_) {
@@ -82,9 +95,13 @@ void CANopenManager::Activate()
     }
   });
 
-  if (!canopen_communication_started_.load()) {
+  // The thread can notify before this one starts waiting, and on failure the flag never becomes
+  // true, so wait for the flag with a deadline.
+  {
     std::unique_lock<std::mutex> lck(canopen_communication_started_mtx_);
-    canopen_communication_started_cond_.wait(lck);
+    canopen_communication_started_cond_.wait_for(lck, kCANopenCommunicationStartTimeout, [this]() {
+      return canopen_communication_started_.load();
+    });
   }
 
   if (!canopen_communication_started_.load()) {
@@ -97,15 +114,7 @@ void CANopenManager::Deinitialize()
   // Deinitialization should be done regardless of the initialized_ state - in case some operation
   // during initialization fails, it is still necessary to do the cleanup
 
-  if (master_) {
-    master_->AsyncDeconfig().submit(*exec_, [this]() { ctx_->shutdown(); });
-  }
-
-  if (canopen_communication_thread_.joinable()) {
-    canopen_communication_thread_.join();
-  }
-
-  canopen_communication_started_.store(false);
+  StopCommunication();
 
   master_.reset();
   chan_.reset();

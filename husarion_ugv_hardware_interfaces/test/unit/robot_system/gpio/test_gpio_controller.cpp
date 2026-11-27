@@ -31,6 +31,7 @@ public:
   MOCK_METHOD(
     void, GPIOMonitorEnable, (const bool use_rt, const unsigned gpio_monit_thread_sched_priority),
     (override));
+  MOCK_METHOD(void, GPIOMonitorDisable, (), (override));
   MOCK_METHOD(
     void, ConfigureEdgeEventCallback, (const std::function<void(const GPIOInfo &)> & callback),
     (override));
@@ -174,6 +175,17 @@ INSTANTIATE_TEST_SUITE_P(
     GPIOTestParam{GPIOPin::VDIG_OFF, &GPIOControllerWrapper::DigitalPowerEnable, true},
     GPIOTestParam{GPIOPin::CHRG_DISABLE, &GPIOControllerWrapper::ChargerEnable, true},
     GPIOTestParam{GPIOPin::LED_SBC_SEL, &GPIOControllerWrapper::LEDControlEnable}));
+
+TEST_F(TestGPIOController, StopTurnsOffWatchdogAndMonitor)
+{
+  gpio_controller_wrapper_->WatchdogEnable();
+  ASSERT_TRUE(gpio_controller_wrapper_->IsWatchdogEnabled());
+
+  EXPECT_CALL(*gpio_driver_, GPIOMonitorDisable()).Times(1);
+  gpio_controller_wrapper_->Stop();
+
+  EXPECT_FALSE(gpio_controller_wrapper_->IsWatchdogEnabled());
+}
 
 TEST_F(TestGPIOController, TestQueryControlInterfaceIOStates)
 {

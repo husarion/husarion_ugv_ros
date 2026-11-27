@@ -24,6 +24,11 @@ ExternalProject_Add(
   GIT_REPOSITORY https://gitlab.com/lely_industries/lely-core.git
   GIT_TAG v2.3.3
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ep_liblely
+  # Skipped when already applied, so a re-configure does not fail. Check that
+  # the patch still applies when GIT_TAG changes.
+  PATCH_COMMAND
+    sh -c
+    "git apply --reverse --check '${PROJECT_SOURCE_DIR}/patches/lely-loop-driver-teardown-throw.patch' 2>/dev/null || git apply '${PROJECT_SOURCE_DIR}/patches/lely-loop-driver-teardown-throw.patch'"
   CONFIGURE_COMMAND autoreconf -i <SOURCE_DIR>
   COMMAND
     env CFLAGS=-DNDEBUG CXXFLAGS=-DNDEBUG <SOURCE_DIR>/configure

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
-# Handle superbuild first
+# Handle superbuild first. Building with USE_SUPERBUILD=OFF against a system
+# lely-core skips patches/lely-loop-driver-teardown-throw.patch.
 option(USE_SUPERBUILD "Whether or not a superbuild should be invoked" ON)
 
 if(USE_SUPERBUILD)
@@ -125,6 +126,23 @@ if(BUILD_TESTING)
                             ament_index_cpp husarion_ugv_utils)
   target_link_libraries(${PROJECT_NAME}_test_gpiod_controller
                         PkgConfig::LIBGPIOD)
+
+  ament_add_gmock(
+    ${PROJECT_NAME}_test_system_e_stop
+    test/unit/robot_system/test_system_e_stop.cpp
+    src/robot_system/gpio/gpio_controller.cpp
+    src/robot_system/gpio/gpio_driver.cpp
+    src/robot_system/system_e_stop.cpp
+    src/robot_system/robot_driver/roboteq_error_filter.cpp)
+  target_include_directories(
+    ${PROJECT_NAME}_test_system_e_stop
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test>
+           $<INSTALL_INTERFACE:include>)
+  ament_target_dependencies(
+    ${PROJECT_NAME}_test_system_e_stop ament_index_cpp hardware_interface
+    rclcpp husarion_ugv_msgs husarion_ugv_utils)
+  target_link_libraries(${PROJECT_NAME}_test_system_e_stop
+                        PkgConfig::LIBLELY_COAPP PkgConfig::LIBGPIOD)
 
   ament_add_gmock(
     ${PROJECT_NAME}_test_ugv_system

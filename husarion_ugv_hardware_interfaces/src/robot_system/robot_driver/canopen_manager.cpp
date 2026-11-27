@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <system_error>
 #include <thread>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
@@ -71,12 +72,13 @@ void CANopenManager::Activate()
   canopen_communication_thread_ = std::thread([this]() {
     NotifyCANCommunicationStarted(true);
 
-    try {
-      loop_->run();
-    } catch (const std::system_error & e) {
-      // If the error happens and loop stops SDO and PDO operations will timeout and in result
-      // system will switch to error state
-      std::cerr << "An exception occurred in loop run: " << e.what() << std::endl;
+    // run(ec) reports the last failed operation's error even when the loop was stopped normally, so
+    // report it only when it was not. A loop that stops with an error makes SDO and PDO operations
+    // time out, and the system goes to the error state.
+    std::error_code ec;
+    loop_->run(ec);
+    if (ec && !loop_->stopped()) {
+      std::cerr << "CANopen event loop stopped with error: " << ec.message() << std::endl;
     }
   });
 

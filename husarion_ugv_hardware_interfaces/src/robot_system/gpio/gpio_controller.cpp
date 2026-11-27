@@ -82,6 +82,8 @@ void Watchdog::WatchdogThread()
 
 bool Watchdog::IsWatchdogEnabled() const { return watchdog_thread_.joinable(); }
 
+void GPIOControllerInterface::Stop() { gpio_driver_->GPIOMonitorDisable(); }
+
 void GPIOControllerInterface::RegisterGPIOEventCallback(
   const std::function<void(const GPIOInfo &)> & callback)
 {
@@ -119,6 +121,15 @@ void GPIOController::Start()
   MotorPowerEnable(true);
 
   watchdog_ = std::make_unique<Watchdog>(gpio_driver_);
+}
+
+void GPIOController::Stop()
+{
+  // Without the e-stop mutex: EStop::Close() ran before, so no reset can turn the watchdog on.
+  if (watchdog_) {
+    watchdog_->TurnOff();
+  }
+  GPIOControllerInterface::Stop();
 }
 
 void GPIOController::EStopTrigger()

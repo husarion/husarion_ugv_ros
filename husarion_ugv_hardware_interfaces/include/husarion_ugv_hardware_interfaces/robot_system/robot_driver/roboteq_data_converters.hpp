@@ -126,6 +126,7 @@ public:
   FaultFlag();
   husarion_ugv_msgs::msg::FaultFlag GetMessage() const;
   std::map<std::string, bool> GetErrorMap() const;
+  bool IsEmergencyStopSet() const { return flags_.test(4); }
 };
 
 class ScriptFlag : public FlagError

@@ -76,9 +76,8 @@ void EStop::ResetEStop()
   // them again.
   bool roboteq_latched = latched;
   try {
-    // Released as on ros2-devel, under the write mutex like MotorTorqueEnable. Skipped only when
-    // the e-stop is released and the motor controllers report no emergency stop: then the control
-    // loop is driving and needs the mutex, and there is nothing to release.
+    // Under the write mutex like MotorTorqueEnable. Skipped when the e-stop is released and no
+    // motor controller reports one: the control loop is driving and needs the mutex.
     roboteq_latched = latched || (RoboteqEStopSet && RoboteqEStopSet());
     if (roboteq_latched) {
       std::lock_guard<std::mutex> write_lck(*robot_driver_write_mtx_);

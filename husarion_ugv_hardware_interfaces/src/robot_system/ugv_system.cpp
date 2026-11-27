@@ -181,8 +181,7 @@ CallbackReturn UGVSystem::on_deactivate(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
 {
-  // e_stop_ is null when configure failed before it was created. A failed trigger still tears
-  // down, which latches the e-stop through the watchdog anyway.
+  // e_stop_ is null if configure failed early. A failed trigger still tears down.
   bool trigger_failed = false;
   if (e_stop_) {
     try {
@@ -201,8 +200,7 @@ CallbackReturn UGVSystem::on_shutdown(const rclcpp_lifecycle::State &)
 
 CallbackReturn UGVSystem::on_error(const rclcpp_lifecycle::State &)
 {
-  // e_stop_ is null when configure failed before it was created. A failed trigger still tears
-  // down, which latches the e-stop through the watchdog anyway.
+  // e_stop_ is null if configure failed early. A failed trigger still tears down.
   bool trigger_failed = false;
   if (e_stop_) {
     try {

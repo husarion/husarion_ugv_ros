@@ -134,7 +134,6 @@ protected:
   std::shared_ptr<std::mutex> robot_driver_write_mtx_;
 
   std::function<bool()> ZeroVelocityCheck;
-  // Whether a motor controller reports its emergency stop fault, read from its driver state.
   std::function<bool()> RoboteqEStopSet;
 
   std::mutex e_stop_manipulation_mtx_;

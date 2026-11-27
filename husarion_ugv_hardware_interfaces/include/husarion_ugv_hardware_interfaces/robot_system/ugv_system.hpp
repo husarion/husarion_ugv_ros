@@ -106,7 +106,6 @@ protected:
   virtual void UpdateHwStates() = 0;
   virtual void UpdateMotorsStateDataTimedOut() = 0;  // possible but needs changes in robot driver
   bool AreVelocityCommandsNearZero();
-  // Whether a motor controller of this robot reports its emergency stop fault.
   bool IsRoboteqEStopSet();
 
   virtual void UpdateDriverStateMsg() = 0;

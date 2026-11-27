@@ -22,4 +22,4 @@ repositories:
   joy2twist:
     type: git
     url: https://github.com/husarion/joy2twist.git
-    version: 7b14999ff7c03dda7a344caf64fd001843317307
+    version: 70dd08baecf1393271dd1da11c26718b45f91ff1

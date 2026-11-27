@@ -10,7 +10,7 @@ Changing wheel types is possible and can be done for both the real robot and the
 
 ## Overriding Controller Parameters
 
-To change a few controller parameters on a physical robot without copying the whole controller configuration file, put them in a separate parameter file and pass its path with the `controller_params_overlay_path` launch argument. `ros2_control_node` loads it after the file from `controller_config_path`, so a value given in both comes from the overlay. For example, to run the controller manager loop with real-time priority on a chosen CPU and publish joint states at 50 Hz:
+To change a few controller parameters on a physical robot without copying the whole controller configuration file, put them in a separate parameter file and pass its path with the `controller_overlay_config_path` launch argument. `ros2_control_node` loads it after the file from `controller_config_path`, so a value given in both comes from the overlay. For example, to run the controller manager loop with real-time priority on a chosen CPU and publish joint states at 50 Hz:
 
 ```yaml
 /**:

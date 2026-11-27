@@ -15,15 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 from husarion_ugv_utils.logging import limit_log_level_to_info
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     GroupAction,
     IncludeLaunchDescription,
-    OpaqueFunction,
     Shutdown,
 )
 from launch.conditions import UnlessCondition
@@ -100,13 +97,15 @@ def generate_launch_description():
         ),
     )
 
-    controller_params_overlay_path = LaunchConfiguration("controller_params_overlay_path")
-    declare_controller_params_overlay_path_arg = DeclareLaunchArgument(
-        "controller_params_overlay_path",
-        default_value="",
+    controller_overlay_config_path = LaunchConfiguration("controller_overlay_config_path")
+    declare_controller_overlay_config_path_arg = DeclareLaunchArgument(
+        "controller_overlay_config_path",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("husarion_ugv_controller"), "config", "controller_overlay.yaml"]
+        ),
         description=(
             "Path to a parameter file that ros2_control_node loads after controller_config_path,"
-            " so its values override the ones there. Empty loads none."
+            " so its values override the ones there."
         ),
     )
 
@@ -198,55 +197,46 @@ def generate_launch_description():
         },
     )
 
-    def create_control_node(context):
-        # A parameter file given later overrides the values of the earlier ones.
-        parameters = [ns_controller_config_path]
-        overlay_path = controller_params_overlay_path.perform(context)
-        if overlay_path:
-            if not os.path.isfile(overlay_path):
-                raise FileNotFoundError(
-                    f"controller_params_overlay_path: no such file '{overlay_path}'"
-                )
-            parameters.append(ReplaceString(overlay_path, {"<namespace>/": ns}))
-
-        control_node = Node(
-            package="controller_manager",
-            executable="ros2_control_node",
-            parameters=parameters,
-            namespace=namespace,
-            remappings=[
-                ("/diagnostics", "diagnostics"),
-                ("drive_controller/cmd_vel", "cmd_vel"),
-                ("drive_controller/odom", "odometry/wheels"),
-                ("drive_controller/transition_event", "drive_controller/_transition_event"),
-                ("imu_broadcaster/imu", "imu/data"),
-                ("imu_broadcaster/transition_event", "imu_broadcaster/_transition_event"),
-                (
-                    "joint_state_broadcaster/transition_event",
-                    "joint_state_broadcaster/_transition_event",
-                ),
-                (
-                    "twist_mux_controller/transition_event",
-                    "twist_mux_controller/_transition_event",
-                ),
-            ],
-            arguments=[
-                "--ros-args",
-                "--log-level",
-                log_level,
-                "--log-level",
-                limit_log_level_to_info("rcl", log_level),
-                "--log-level",
-                limit_log_level_to_info("pluginlib.ClassLoader", log_level),
-                "--log-level",
-                limit_log_level_to_info(joint_state_broadcaster_log_unit, log_level),
-                "--log-level",
-                limit_log_level_to_info(controller_manager_log_unit, log_level),
-            ],
-            condition=UnlessCondition(use_sim),
-            on_exit=Shutdown(),
-        )
-        return [control_node]
+    control_node = Node(
+        package="controller_manager",
+        executable="ros2_control_node",
+        parameters=[
+            ns_controller_config_path,
+            ReplaceString(controller_overlay_config_path, {"<namespace>/": ns}),
+        ],
+        namespace=namespace,
+        remappings=[
+            ("/diagnostics", "diagnostics"),
+            ("drive_controller/cmd_vel", "cmd_vel"),
+            ("drive_controller/odom", "odometry/wheels"),
+            ("drive_controller/transition_event", "drive_controller/_transition_event"),
+            ("imu_broadcaster/imu", "imu/data"),
+            ("imu_broadcaster/transition_event", "imu_broadcaster/_transition_event"),
+            (
+                "joint_state_broadcaster/transition_event",
+                "joint_state_broadcaster/_transition_event",
+            ),
+            (
+                "twist_mux_controller/transition_event",
+                "twist_mux_controller/_transition_event",
+            ),
+        ],
+        arguments=[
+            "--ros-args",
+            "--log-level",
+            log_level,
+            "--log-level",
+            limit_log_level_to_info("rcl", log_level),
+            "--log-level",
+            limit_log_level_to_info("pluginlib.ClassLoader", log_level),
+            "--log-level",
+            limit_log_level_to_info(joint_state_broadcaster_log_unit, log_level),
+            "--log-level",
+            limit_log_level_to_info(controller_manager_log_unit, log_level),
+        ],
+        condition=UnlessCondition(use_sim),
+        on_exit=Shutdown(),
+    )
 
     spawner_common_args = [
         "--controller-manager",
@@ -282,13 +272,13 @@ def generate_launch_description():
         declare_use_mag_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
-        declare_controller_params_overlay_path_arg,
+        declare_controller_overlay_config_path_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_log_level_arg,
         SetParameter(name="use_sim_time", value=use_sim),
         GroupAction([load_urdf], scoped=True),
-        OpaqueFunction(function=create_control_node),
+        control_node,
         controllers_spawner,
     ]
 

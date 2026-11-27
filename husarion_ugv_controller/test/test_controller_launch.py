@@ -78,12 +78,13 @@ def read(path):
         return file.read()
 
 
-def test_default_loads_only_the_controller_config():
+def test_default_overlay_overrides_nothing():
     return_code, commands = run_controller_launch()
     assert return_code == 0
     params_files = control_node_params_files(commands)
-    assert len(params_files) == 1, params_files
+    assert len(params_files) == 2, params_files
     assert "controller_manager:" in read(params_files[0])
+    assert "ros__parameters" not in read(params_files[1])
 
 
 def test_overlay_is_loaded_after_the_controller_config(tmp_path):
@@ -98,7 +99,7 @@ def test_overlay_is_loaded_after_the_controller_config(tmp_path):
         "      frame_id: <namespace>/imu_link\n"
     )
     return_code, commands = run_controller_launch(
-        {"controller_params_overlay_path": str(overlay), "namespace": "robot"}
+        {"controller_overlay_config_path": str(overlay), "namespace": "robot"}
     )
     assert return_code == 0
     params_files = control_node_params_files(commands)
@@ -111,7 +112,7 @@ def test_overlay_is_loaded_after_the_controller_config(tmp_path):
 
 def test_missing_overlay_fails_the_launch(tmp_path):
     missing = tmp_path / "missing.yaml"
-    return_code, commands = run_controller_launch({"controller_params_overlay_path": str(missing)})
+    return_code, commands = run_controller_launch({"controller_overlay_config_path": str(missing)})
     assert return_code != 0
     assert not any(cmd[0].endswith("/ros2_control_node") for cmd in commands)
 

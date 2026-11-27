@@ -136,12 +136,12 @@ def test_every_params_file_exists(commands):
             assert os.path.isfile(path), cmd
 
 
-def test_controller_params_overlay_reaches_ros2_control_node(tmp_path):
+def test_controller_overlay_reaches_ros2_control_node(tmp_path):
     overlay = tmp_path / "overlay.yaml"
     overlay.write_text(
         "/**:\n  controller_manager:\n    ros__parameters:\n      lock_memory: true\n"
     )
-    commands = run_bringup({"controller_params_overlay_path": str(overlay)})
+    commands = run_bringup({"controller_overlay_config_path": str(overlay)})
     files = params_files(find_node(commands, "ros2_control_node"))
     assert len(files) == 2, files
     with open(files[1]) as file:

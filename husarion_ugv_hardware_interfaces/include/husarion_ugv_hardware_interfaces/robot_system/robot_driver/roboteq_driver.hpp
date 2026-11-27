@@ -36,10 +36,6 @@ namespace husarion_ugv_hardware_interfaces
 // Forward declaration
 class RoboteqMotorDriver;
 
-/**
- * @brief Hardware implementation of Driver with lely LoopDriver for Roboteq drivers
- * control
- */
 // What SyncSDOWrite does with a write the master has not run when the caller stops waiting.
 enum class SdoLateWrite {
   // Dropped: a release that goes out after the caller reported a failure must never happen.
@@ -48,6 +44,10 @@ enum class SdoLateWrite {
   kKeepQueued,
 };
 
+/**
+ * @brief Hardware implementation of Driver with lely LoopDriver for Roboteq drivers
+ * control
+ */
 class RoboteqDriver : public DriverInterface,
                       public lely::canopen::LoopDriver,
                       public std::enable_shared_from_this<RoboteqDriver>

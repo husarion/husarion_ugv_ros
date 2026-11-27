@@ -296,7 +296,7 @@ bool SafetyManagerNode::SystemReady()
 void SafetyManagerNode::ShutdownRobot(const std::string & reason)
 {
   RCLCPP_WARN(this->get_logger(), "Soft shutdown initialized. %s", reason.c_str());
-  // Also log to syslog, so a host-side syslog daemon keeps the reason.
+  // The journal is RAM-only on UGV OS; the host syslog file keeps the reason past power-off.
   syslog(LOG_DAEMON | LOG_WARNING, "Soft shutdown initialized. %s", reason.c_str());
   // The safety tree does not exist yet when the shutdown comes during the startup wait.
   if (safety_tree_timer_) {

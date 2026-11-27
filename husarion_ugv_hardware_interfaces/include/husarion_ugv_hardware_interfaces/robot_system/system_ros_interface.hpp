@@ -301,6 +301,7 @@ protected:
 
   rclcpp::Publisher<BoolMsg>::SharedPtr e_stop_state_publisher_;
   std::unique_ptr<realtime_tools::RealtimePublisher<BoolMsg>> realtime_e_stop_state_publisher_;
+  bool e_stop_state_published_ = false;
 
   diagnostic_updater::Updater diagnostic_updater_;
 

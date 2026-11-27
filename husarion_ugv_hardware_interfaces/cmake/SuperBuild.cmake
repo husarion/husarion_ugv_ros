@@ -34,8 +34,12 @@ ExternalProject_Add(
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/ep_libgpiod/include)
 ExternalProject_Add(
   ep_libgpiod
-  GIT_REPOSITORY git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git
-  GIT_TAG v2.0.2
+  # v2.0.2 from the maintainer's GitHub mirror, the same tree as the
+  # git.kernel.org tag: the GitHub arm64 runners cannot reach git.kernel.org,
+  # and the mirror no longer has the v2.0.x branch to clone.
+  URL https://github.com/brgl/libgpiod/archive/9068bb08dc3bf183eee6de2577ad266fe6b8f434.tar.gz
+  URL_HASH
+    SHA256=c092a2dea6a23a24d8534be07460302c527e81e42fa437e2633c04b091700315
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ep_libgpiod
   INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
   CONFIGURE_COMMAND

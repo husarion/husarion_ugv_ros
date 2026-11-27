@@ -71,14 +71,6 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    use_mag = LaunchConfiguration("use_mag")
-    declare_use_mag_arg = DeclareLaunchArgument(
-        "use_mag",
-        default_value="True",
-        description="Use the IMU magnetometer in the Madgwick filter.",
-        choices=["True", "true", "False", "false"],
-    )
-
     wheel_type = LaunchConfiguration("wheel_type")
     controller_config_path = LaunchConfiguration("controller_config_path")
     declare_controller_config_path_arg = DeclareLaunchArgument(
@@ -94,6 +86,18 @@ def generate_launch_description():
             "Path to controller configuration file. By default, it is located in"
             " 'husarion_ugv_controller/config/{wheel_type}_controller.yaml'. You can also specify"
             " the path to your custom controller configuration file here. "
+        ),
+    )
+
+    controller_overlay_config_path = LaunchConfiguration("controller_overlay_config_path")
+    declare_controller_overlay_config_path_arg = DeclareLaunchArgument(
+        "controller_overlay_config_path",
+        default_value=PathJoinSubstitution(
+            [FindPackageShare("husarion_ugv_controller"), "config", "controller_overlay.yaml"]
+        ),
+        description=(
+            "Path to a parameter file that ros2_control_node loads after controller_config_path,"
+            " so its values override the ones there."
         ),
     )
 
@@ -143,7 +147,6 @@ def generate_launch_description():
             "robot_model": robot_model,
             "log_level": log_level,
             "use_madgwick_filter": use_madgwick_filter,
-            "use_mag": use_mag,
         }.items(),
     )
 
@@ -188,7 +191,10 @@ def generate_launch_description():
     control_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[ns_controller_config_path],
+        parameters=[
+            ns_controller_config_path,
+            ReplaceString(controller_overlay_config_path, {"<namespace>/": ns}),
+        ],
         namespace=namespace,
         remappings=[
             ("/diagnostics", "diagnostics"),
@@ -254,9 +260,9 @@ def generate_launch_description():
         declare_common_dir_path_arg,
         declare_robot_model_arg,  # robot_model is used by wheel_type
         declare_use_madgwick_filter_arg,
-        declare_use_mag_arg,
         declare_wheel_type_arg,  # wheel_type is used by controller_config_path
         declare_controller_config_path_arg,
+        declare_controller_overlay_config_path_arg,
         declare_namespace_arg,
         declare_use_sim_arg,
         declare_log_level_arg,
